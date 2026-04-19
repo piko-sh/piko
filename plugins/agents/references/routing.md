@@ -12,9 +12,9 @@ pages/
 ├── about.pk          → /about
 ├── blog/
 │   ├── index.pk      → /blog
-│   └── {slug}.pk     → /blog/:slug
+│   └── {slug}.pk     → /blog/{slug}
 └── docs/
-    └── {...slug}.pk  → /docs/*
+    └── {slug}*.pk    → /docs/{slug}*
 ```
 
 Routes are determined at build time, not runtime.
@@ -26,9 +26,9 @@ One file, one URL:
 ```piko
 <!-- pages/about.pk -->
 <template>
-  <layout is="layout" :server.page_title="'About Us'">
+  <piko:partial is="layout" :server.page_title="'About Us'">
     <h1>About Our Company</h1>
-  </layout>
+  </piko:partial>
 </template>
 
 <script type="application/x-go">
@@ -63,7 +63,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     slug := r.PathParam("slug")  // "my-first-post"
     post, err := domain.GetPostBySlug(slug)
     if err != nil {
-        return Response{}, piko.Metadata{Status: 404}, nil
+        return Response{}, piko.Metadata{}, piko.NotFound("post", slug)
     }
     return Response{Post: post}, piko.Metadata{Title: post.Title}, nil
 }
@@ -78,9 +78,9 @@ postID := r.PathParam("postId")
 
 ## Catch-all routes
 
-Use `{...param}` to match multiple path segments:
+Use `{name}*` (or regex `{name:.+}`) to match multiple path segments:
 
-**File**: `pages/docs/{...slug}.pk`
+**File**: `pages/docs/{slug}*.pk`
 
 ```go
 slug := r.PathParam("slug")
@@ -97,7 +97,7 @@ slug := r.PathParam("slug")
 ```text
 pages/blog/featured.pk    → /blog/featured (static, wins)
 pages/blog/{id}.pk        → /blog/123 (dynamic)
-pages/blog/{...slug}.pk   → /blog/2024/jan/post (catch-all)
+pages/blog/{slug}*.pk     → /blog/2024/jan/post (catch-all)
 ```
 
 ## Index routes
@@ -127,23 +127,19 @@ tags := r.QueryParamValues("tag")          // []string of all values
 
 ## 404 handling
 
-Return a 404 status via metadata:
+Return a typed error from `Render` to trigger a 404. `piko.Metadata.Status` is not read by the production response writer (only by the pikotest harness); non-200 responses come from the returned error.
 
 ```go
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
     post, err := domain.GetPost(id)
     if err != nil {
-        return Response{}, piko.Metadata{
-            Status:     404,
-            StatusText: "Post not found",
-            Title:      "404 - Not Found",
-        }, nil
+        return Response{}, piko.Metadata{}, piko.NotFound("post", id)
     }
     // ...
 }
 ```
 
-The template still renders, so you can show a custom 404 message based on state.
+`piko.NotFound("post", id)` is shorthand for `&piko.NotFoundError{Resource: "post", ID: id}` and triggers the matching `!404.pk` (or `!error.pk`) page.
 
 ## Error pages
 
@@ -187,12 +183,12 @@ Combine `p-collection` with dynamic routes for content-driven pages:
 ```piko
 <!-- pages/blog/{slug}.pk -->
 <template p-collection="blog" p-provider="markdown">
-  <layout is="layout" :server.page_title="state.Title">
+  <piko:partial is="layout" :server.page_title="state.Title">
     <article>
       <h1>{{ state.Title }}</h1>
       <piko:content />
     </article>
-  </layout>
+  </piko:partial>
 </template>
 ```
 
@@ -205,9 +201,9 @@ Each markdown file in `content/blog/` gets its own route automatically.
 ```text
 pages/blog/
 ├── index.pk              → /blog
-├── {slug}.pk             → /blog/:slug
+├── {slug}.pk             → /blog/{slug}
 └── category/
-    └── {category}.pk     → /blog/category/:category
+    └── {category}.pk     → /blog/category/{category}
 ```
 
 ### Documentation
@@ -215,16 +211,16 @@ pages/blog/
 ```text
 pages/docs/
 ├── index.pk              → /docs
-└── {...slug}.pk          → /docs/*
+└── {slug}*.pk            → /docs/{slug}*
 ```
 
 ## LLM mistake checklist
 
-- Using `:slug` instead of `{slug}` syntax in filenames
+- Using `:slug` (Express style) or `{...slug}` (Next.js style) instead of `{slug}` / `{slug}*` in filenames
 - Putting pages outside the `pages/` directory
 - Using `r.QueryParam` when you need `r.PathParam` (or vice versa)
 - Forgetting to handle 404 for dynamic routes when data is missing
-- Using `return ..., err` instead of `piko.Metadata{Status: 404}` for not-found
+- Setting `piko.Metadata{Status: 404}` instead of returning a typed error such as `piko.NotFound(...)` (the `Status` field is not read by the response writer)
 
 ## Related
 

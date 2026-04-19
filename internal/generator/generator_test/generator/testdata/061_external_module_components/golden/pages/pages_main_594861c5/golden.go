@@ -5,6 +5,7 @@
 package pages_main_594861c5
 
 import (
+	"cmp"
 	"fmt"
 	"html"
 	"sort"
@@ -24,6 +25,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 var _ = testdata_modules_layout_primitives_layouts_container_5c8b63f6.Render
 var _ = testdata_modules_ui_components_components_card_633def0f.Render

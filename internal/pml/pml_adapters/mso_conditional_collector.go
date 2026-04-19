@@ -69,7 +69,7 @@ func (m *msoConditionalCollector) RegisterStyle(selector string, styles string) 
 // with all collected styles. The output follows the standard MSO conditional
 // comment format used in email templates.
 //
-// The generated block follows this structure:
+// The generated block follows the structure below:
 // <!--[if mso]>
 // <style type="text/css">
 //

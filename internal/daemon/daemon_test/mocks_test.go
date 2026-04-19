@@ -254,7 +254,7 @@ func (t *testManifestStoreView) AddEntry(path string, entry templater_domain.Pag
 
 func newMockRateLimitService() *security_domain.MockRateLimitService {
 	return &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, limit int, window time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, limit int, window time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:   true,
 				Remaining: limit - 1,

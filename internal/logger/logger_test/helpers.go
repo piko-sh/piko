@@ -28,7 +28,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_adapters/driver_handlers"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
@@ -56,7 +55,7 @@ type loggerState struct {
 
 // Initialise creates and configures a logger based on the provided configuration.
 // This is a test helper function.
-func Initialise(ctx context.Context, loggerConfig logger_dto.Config, serverConfig *config.ServerConfig) (*slog.Logger, func(context.Context) error, error) {
+func Initialise(ctx context.Context, loggerConfig logger_dto.Config) (*slog.Logger, func(context.Context) error, error) {
 	logger_domain.ClearLifecycle()
 
 	handlerList := make([]slog.Handler, 0, len(loggerConfig.Outputs))

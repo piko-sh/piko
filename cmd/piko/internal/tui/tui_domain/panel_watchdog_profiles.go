@@ -311,7 +311,7 @@ func (p *WatchdogProfilesPanel) renderRows(width, height int) []string {
 		prof := profiles[i]
 		age := inspector.FormatTimeSince(now, prof.Timestamp)
 		size := prof.DisplaySize()
-		sidecar := "—"
+		sidecar := "-"
 		if prof.HasSidecar {
 			sidecar = "✓"
 		}

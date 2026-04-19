@@ -35,8 +35,8 @@ type ComponentDefinition struct {
 	SourcePath string
 
 	// ModulePath is the Go module path that provides this component. Empty for
-	// local components; for external components contains the path such as
-	// "github.com/someone/uikit".
+	// local components; for external components contains a fully qualified
+	// module path (for example, a GitHub-hosted module).
 	ModulePath string
 
 	// AssetPaths lists directories (relative to the module root) whose files

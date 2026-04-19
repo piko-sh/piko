@@ -144,16 +144,26 @@ function processStyleBlocks(parsedDoc: Document, domOps: DOMOperations): void {
 
 /**
  * Returns a stable key for a DOM node using data-stable-id, p-key, or element id.
+ * Keys are namespaced by `partial_name` when present, so an element keyed by p-key
+ * does not collide with a different-partial element occupying the same tree
+ * position across SPA navigations.
+ *
+ * Exported for testing.
  *
  * @param node - The node to extract a key from.
  * @returns The key string, or null if no key is available.
  */
-function getNodeKey(node: Node): string | null {
+export function getNodeKey(node: Node): string | null {
     if (node.nodeType !== 1) {
         return null;
     }
     const el = node as HTMLElement;
-    return el.dataset.stableId ?? el.getAttribute('p-key') ?? (el.id || null);
+    const baseKey = el.dataset.stableId ?? el.getAttribute('p-key') ?? (el.id || null);
+    if (baseKey === null) {
+        return null;
+    }
+    const partialName = el.getAttribute('partial_name');
+    return partialName ? `${partialName}@${baseKey}` : baseKey;
 }
 
 /**

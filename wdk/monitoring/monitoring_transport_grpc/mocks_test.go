@@ -20,7 +20,10 @@ package monitoring_transport_grpc
 
 import (
 	"context"
+	"io"
+	"time"
 
+	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 )
@@ -85,3 +88,82 @@ func (m *mockRegistryInspector) ListRecentArtefacts(_ context.Context, _ int32) 
 }
 
 var _ registry_domain.RegistryInspector = (*mockRegistryInspector)(nil)
+
+type mockWatchdogInspector struct {
+	listProfilesFn            func(ctx context.Context) ([]monitoring_domain.WatchdogProfileInfo, error)
+	downloadProfileFn         func(ctx context.Context, filename string, w io.Writer) error
+	downloadSidecarFn         func(ctx context.Context, profileFilename string) ([]byte, bool, error)
+	pruneProfilesFn           func(ctx context.Context, profileType string) (int, error)
+	getStatusFn               func(ctx context.Context) *monitoring_domain.WatchdogStatusInfo
+	runContentionDiagnosticFn func(ctx context.Context) error
+	getStartupHistoryFn       func(ctx context.Context) ([]monitoring_domain.WatchdogStartupHistoryEntry, error)
+	listEventsFn              func(ctx context.Context, limit int, since time.Time, eventType string) []monitoring_domain.WatchdogEventInfo
+	subscribeEventsFn         func(ctx context.Context, since time.Time) (<-chan monitoring_domain.WatchdogEventInfo, func())
+}
+
+func (m *mockWatchdogInspector) ListProfiles(ctx context.Context) ([]monitoring_domain.WatchdogProfileInfo, error) {
+	if m.listProfilesFn != nil {
+		return m.listProfilesFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *mockWatchdogInspector) DownloadProfile(ctx context.Context, filename string, w io.Writer) error {
+	if m.downloadProfileFn != nil {
+		return m.downloadProfileFn(ctx, filename, w)
+	}
+	return nil
+}
+
+func (m *mockWatchdogInspector) DownloadSidecar(ctx context.Context, profileFilename string) ([]byte, bool, error) {
+	if m.downloadSidecarFn != nil {
+		return m.downloadSidecarFn(ctx, profileFilename)
+	}
+	return nil, false, nil
+}
+
+func (m *mockWatchdogInspector) PruneProfiles(ctx context.Context, profileType string) (int, error) {
+	if m.pruneProfilesFn != nil {
+		return m.pruneProfilesFn(ctx, profileType)
+	}
+	return 0, nil
+}
+
+func (m *mockWatchdogInspector) GetWatchdogStatus(ctx context.Context) *monitoring_domain.WatchdogStatusInfo {
+	if m.getStatusFn != nil {
+		return m.getStatusFn(ctx)
+	}
+	return &monitoring_domain.WatchdogStatusInfo{}
+}
+
+func (m *mockWatchdogInspector) RunContentionDiagnostic(ctx context.Context) error {
+	if m.runContentionDiagnosticFn != nil {
+		return m.runContentionDiagnosticFn(ctx)
+	}
+	return nil
+}
+
+func (m *mockWatchdogInspector) GetStartupHistory(ctx context.Context) ([]monitoring_domain.WatchdogStartupHistoryEntry, error) {
+	if m.getStartupHistoryFn != nil {
+		return m.getStartupHistoryFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *mockWatchdogInspector) ListEvents(ctx context.Context, limit int, since time.Time, eventType string) []monitoring_domain.WatchdogEventInfo {
+	if m.listEventsFn != nil {
+		return m.listEventsFn(ctx, limit, since, eventType)
+	}
+	return nil
+}
+
+func (m *mockWatchdogInspector) SubscribeEvents(ctx context.Context, since time.Time) (<-chan monitoring_domain.WatchdogEventInfo, func()) {
+	if m.subscribeEventsFn != nil {
+		return m.subscribeEventsFn(ctx, since)
+	}
+	ch := make(chan monitoring_domain.WatchdogEventInfo)
+	close(ch)
+	return ch, func() {}
+}
+
+var _ monitoring_domain.WatchdogInspector = (*mockWatchdogInspector)(nil)

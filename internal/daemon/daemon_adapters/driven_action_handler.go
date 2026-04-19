@@ -19,7 +19,9 @@
 package daemon_adapters
 
 import (
+	"bytes"
 	"context"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -37,6 +39,7 @@ import (
 	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/mem"
@@ -72,7 +75,24 @@ const (
 	// batch request. This bounds CPU and memory usage regardless of the body
 	// size limit.
 	maxBatchActions = 100
+
+	// defaultMaxJSONBodyDepth is the maximum nesting depth permitted when
+	// decoding action request bodies. Pre-decoding the byte stream guards
+	// against stack-blow attacks before the structural decoder allocates
+	// reflective storage.
+	defaultMaxJSONBodyDepth = 32
+
+	// defaultSSEWriteTimeout bounds how long a single SSE write may block
+	// before the underlying connection is forcibly closed. The deadline is
+	// reset before every write so a healthy client can stream indefinitely
+	// while a slow-loris peer is dropped within this window.
+	defaultSSEWriteTimeout = 5 * time.Second
 )
+
+// errJSONDepthExceeded is returned when a request body's structural nesting
+// exceeds the configured depth limit. It is wrapped with context before being
+// surfaced to callers.
+var errJSONDepthExceeded = errors.New("JSON nesting depth exceeded")
 
 // ActionHandler is a generated-code friendly action handler that dispatches
 // requests to actions using the generated registry.
@@ -242,7 +262,7 @@ func (h *ActionHandler) handleRequest(w http.ResponseWriter, request *http.Reque
 	)
 	defer span.End()
 
-	l := log.WithSpanContext(ctx)
+	ctx, l := logger_domain.From(ctx, log)
 
 	actionRequestCount.Add(ctx, 1,
 		metric.WithAttributes(
@@ -307,7 +327,7 @@ func (h *ActionHandler) handleHTTP(
 	arguments, err := h.parseRequestBody(request)
 	if err != nil {
 		l.ReportError(span, err, "Failed to parse request body")
-		h.writeError(w, http.StatusBadRequest, "Invalid request body", err)
+		h.writeError(w, http.StatusBadRequest, "Invalid request body", err, isDevelopmentModeFromContext(ctx))
 		return
 	}
 
@@ -361,7 +381,7 @@ func (h *ActionHandler) runSecurityValidation(
 	arguments map[string]any,
 	entry ActionHandlerEntry,
 ) bool {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	if csrfErr := h.validateCSRF(request, arguments); csrfErr != nil {
 		l.Warn("CSRF validation failed",
@@ -556,17 +576,16 @@ func (h *ActionHandler) handleSSE(
 	h.executeSSEStream(ctx, w, request, action, entry, span, l)
 }
 
-// writeSSEHeaders sets the standard SSE response headers and disables the
-// write deadline.
+// writeSSEHeaders sets the standard SSE response headers. The write deadline
+// is intentionally left under the caller's control so each write can apply
+// defaultSSEWriteTimeout, dropping slow-loris peers without truncating
+// long-lived streams used by healthy clients.
 //
 // Takes w (http.ResponseWriter) which receives the SSE headers.
 func (*ActionHandler) writeSSEHeaders(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-
-	rc := http.NewResponseController(w)
-	_ = rc.SetWriteDeadline(time.Time{})
 }
 
 // applySSEDurationLimit applies a timeout to the context if the action or
@@ -607,8 +626,10 @@ func (h *ActionHandler) applySSEDurationLimit(ctx context.Context, request *http
 // Takes span (trace.Span) which records the operation status.
 // Takes l (logger_domain.Logger) which provides structured logging.
 //
-// Concurrent goroutine is spawned to detect client disconnection via
-// the request context.
+// Concurrency: a watcher goroutine derived from ctx via WithCancelCause
+// closes the disconnect channel when the request context ends. The
+// deferred cancel guarantees the watcher exits as soon as StreamProgress
+// returns, even when the request context outlives the handler.
 func (*ActionHandler) executeSSEStream(
 	ctx context.Context,
 	w http.ResponseWriter,
@@ -618,9 +639,13 @@ func (*ActionHandler) executeSSEStream(
 	span trace.Span,
 	l logger_domain.Logger,
 ) {
+	watchCtx, cancelWatch := context.WithCancelCause(request.Context())
+	defer cancelWatch(errors.New("sse handler returned"))
+
 	done := make(chan struct{})
 	go func() {
-		<-request.Context().Done()
+		defer goroutine.RecoverPanic(watchCtx, "daemon.sseDisconnectWatcher")
+		<-watchCtx.Done()
 		close(done)
 	}()
 
@@ -630,12 +655,15 @@ func (*ActionHandler) executeSSEStream(
 		return
 	}
 
+	deadlineWriter := newSSEDeadlineWriter(w, defaultSSEWriteTimeout)
+
 	lastEventID := request.Header.Get("Last-Event-ID")
-	stream := daemon_domain.NewSSEStream(w, done, lastEventID)
+	stream := daemon_domain.NewSSEStream(deadlineWriter, done, lastEventID)
 	if stream == nil {
 		l.Error("Response writer does not support flushing for SSE", logger_domain.String(attributeKeyAction, entry.Name))
 		return
 	}
+	stream.SetDevelopmentModeFromContext(request.Context())
 
 	if err := sseCapable.StreamProgress(stream); err != nil {
 		l.ReportError(span, err, "SSE streaming failed")
@@ -907,8 +935,7 @@ func recordCaptchaScore(action any, response *captcha_dto.VerifyResponse) {
 	}
 
 	if requestMeta := provider.Request(); requestMeta != nil {
-		score := *response.Score
-		requestMeta.CaptchaScore = &score
+		requestMeta.CaptchaScore = new(*response.Score)
 	}
 }
 
@@ -955,12 +982,108 @@ func (h *ActionHandler) parseRequestBody(request *http.Request) (map[string]any,
 		return h.parseMultipartBody(request)
 	}
 
+	body, err := io.ReadAll(request.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading request body: %w", err)
+	}
+
+	if err := validateJSONStructuralDepth(body, defaultMaxJSONBodyDepth); err != nil {
+		return nil, fmt.Errorf("validating request body depth: %w", err)
+	}
+
+	decoder := stdjson.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+
 	var arguments map[string]any
-	if err := json.ConfigDefault.NewDecoder(request.Body).Decode(&arguments); err != nil {
+	if err := decoder.Decode(&arguments); err != nil {
 		return nil, fmt.Errorf("decoding request body: %w", err)
 	}
 
 	return arguments, nil
+}
+
+// validateJSONStructuralDepth scans a JSON byte stream and ensures the
+// maximum brace/bracket nesting does not exceed maxDepth. The check is
+// performed before any reflective decoding so attacker payloads that would
+// otherwise blow the stack are rejected up front.
+//
+// Takes data ([]byte) which is the raw JSON payload to scan.
+// Takes maxDepth (int) which is the inclusive maximum nesting depth.
+//
+// Returns error which wraps errJSONDepthExceeded when the payload nests
+// beyond maxDepth. String literals (including escaped quotes) are skipped
+// so brace characters within strings do not contribute to the depth.
+func validateJSONStructuralDepth(data []byte, maxDepth int) error {
+	if maxDepth <= 0 {
+		return nil
+	}
+
+	depth := 0
+	inString := false
+	escape := false
+
+	for i := range len(data) {
+		c := data[i]
+		if inString {
+			inString, escape = advanceJSONStringScan(c, escape)
+			continue
+		}
+		newDepth, entered := advanceJSONStructureScan(c, depth, &inString)
+		depth = newDepth
+		if entered && depth > maxDepth {
+			return fmt.Errorf("nesting depth %d exceeds limit %d: %w", depth, maxDepth, errJSONDepthExceeded)
+		}
+	}
+
+	return nil
+}
+
+// advanceJSONStringScan updates the in-string scan state for a single byte
+// inside a JSON string literal.
+//
+// Takes c (byte) which is the byte being consumed inside the string literal.
+// Takes escape (bool) which indicates whether the previous byte was a
+// backslash so the current byte is treated as escaped.
+//
+// Returns inString (bool) which is true when the scanner remains inside the
+// string literal after consuming c.
+// Returns nextEscape (bool) which is true when the next byte should be
+// treated as escaped.
+func advanceJSONStringScan(c byte, escape bool) (inString, nextEscape bool) {
+	if escape {
+		return true, false
+	}
+	switch c {
+	case '\\':
+		return true, true
+	case '"':
+		return false, false
+	}
+	return true, false
+}
+
+// advanceJSONStructureScan updates the structural-scan state for a byte
+// outside any string literal.
+//
+// Takes c (byte) which is the byte being consumed outside any string literal.
+// Takes depth (int) which is the current structural nesting depth.
+// Takes inString (*bool) which is set to true when c opens a string literal.
+//
+// Returns int which is the updated nesting depth after consuming c.
+// Returns bool which is true when a brace or bracket was just opened so the
+// caller can enforce the max depth.
+func advanceJSONStructureScan(c byte, depth int, inString *bool) (int, bool) {
+	switch c {
+	case '"':
+		*inString = true
+	case '{', '[':
+		return depth + 1, true
+	case '}', ']':
+		if depth > 0 {
+			return depth - 1, false
+		}
+	}
+	return depth, false
 }
 
 // parseMultipartBody parses a multipart form request into arguments. File uploads
@@ -1032,22 +1155,12 @@ func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request
 	ctx, span := tracer.Start(ctx, "handleBatchActionRequest")
 	defer span.End()
 
-	l := log.WithSpanContext(ctx)
+	ctx, l := logger_domain.From(ctx, log)
 	h.trackBatchMetrics(ctx, request)
 	l.Trace("Handling batch action request")
 
-	var batchReq daemon_dto.BatchActionRequest
-	if err := json.ConfigDefault.NewDecoder(request.Body).Decode(&batchReq); err != nil {
-		l.ReportError(span, err, "Failed to parse batch request body")
-		h.writeError(w, http.StatusBadRequest, "Invalid batch request body", err)
-		return
-	}
-
-	if csrfErr := h.validateCSRFWithToken(request, batchReq.CSRFEphemeralToken); csrfErr != nil {
-		l.Warn("CSRF validation failed for batch request",
-			logger_domain.Error(csrfErr),
-		)
-		h.writeCSRFError(w, csrfErr)
+	batchReq, ok := h.parseBatchRequest(w, request, span, l)
+	if !ok {
 		return
 	}
 
@@ -1058,7 +1171,7 @@ func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request
 
 	if len(batchReq.Actions) > maxBatchActions {
 		h.writeError(w, http.StatusBadRequest,
-			fmt.Sprintf("batch exceeds maximum of %d actions", maxBatchActions), nil)
+			fmt.Sprintf("batch exceeds maximum of %d actions", maxBatchActions), nil, isDevelopmentModeFromContext(ctx))
 		return
 	}
 
@@ -1071,6 +1184,59 @@ func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request
 	)
 	span.SetStatus(codes.Ok, "Batch request completed")
 	h.writeJSON(w, http.StatusOK, daemon_dto.BatchActionResponse{Results: results, Success: allSuccess})
+}
+
+// parseBatchRequest reads, depth-validates, decodes, and CSRF-validates a
+// batch action request.
+//
+// On any failure it writes the appropriate HTTP error and returns ok=false.
+//
+// Takes w (http.ResponseWriter) which receives any HTTP error responses.
+// Takes request (*http.Request) which provides the batch request body and
+// headers.
+// Takes span (trace.Span) which records errors encountered during parsing.
+// Takes l (logger_domain.Logger) which provides structured logging for
+// failures.
+//
+// Returns daemon_dto.BatchActionRequest which contains the decoded batch
+// request when parsing succeeds, or a zero value on failure.
+// Returns bool which is true when the request was parsed successfully and
+// false when an HTTP error response has already been written.
+func (h *ActionHandler) parseBatchRequest(w http.ResponseWriter, request *http.Request, span trace.Span, l logger_domain.Logger) (daemon_dto.BatchActionRequest, bool) {
+	var batchReq daemon_dto.BatchActionRequest
+
+	developmentMode := isDevelopmentModeFromContext(request.Context())
+
+	body, err := io.ReadAll(request.Body)
+	if err != nil {
+		l.ReportError(span, err, "Failed to read batch request body")
+		h.writeError(w, http.StatusBadRequest, "Invalid batch request body", err, developmentMode)
+		return batchReq, false
+	}
+
+	if err := validateJSONStructuralDepth(body, defaultMaxJSONBodyDepth); err != nil {
+		l.ReportError(span, err, "Batch request body exceeds nesting limit")
+		h.writeError(w, http.StatusBadRequest, "Invalid batch request body", err, developmentMode)
+		return batchReq, false
+	}
+
+	decoder := stdjson.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&batchReq); err != nil {
+		l.ReportError(span, err, "Failed to parse batch request body")
+		h.writeError(w, http.StatusBadRequest, "Invalid batch request body", err, developmentMode)
+		return batchReq, false
+	}
+
+	if csrfErr := h.validateCSRFWithToken(request, batchReq.CSRFEphemeralToken); csrfErr != nil {
+		l.Warn("CSRF validation failed for batch request",
+			logger_domain.Error(csrfErr),
+		)
+		h.writeCSRFError(w, csrfErr)
+		return batchReq, false
+	}
+
+	return batchReq, true
 }
 
 // trackBatchMetrics records metrics for a batch action request.
@@ -1114,6 +1280,8 @@ func (h *ActionHandler) executeSingleAction(
 	request *http.Request,
 	item daemon_dto.BatchActionItem,
 ) daemon_dto.BatchActionResult {
+	ctx, l := logger_domain.From(ctx, log)
+
 	entry, ok := h.registry[item.Name]
 	if !ok {
 		return daemon_dto.BatchActionResult{
@@ -1143,12 +1311,7 @@ func (h *ActionHandler) executeSingleAction(
 	}
 
 	if captchaErr := h.validateCaptcha(ctx, request, action, arguments, item.Name); captchaErr != nil {
-		return daemon_dto.BatchActionResult{
-			Name:   item.Name,
-			Status: http.StatusForbidden,
-			Error:  "Captcha validation failed",
-			Code:   "CAPTCHA_FAILED",
-		}
+		return buildBatchCaptchaResult(l, item.Name, captchaErr)
 	}
 
 	result, err := entry.Invoke(ctx, action, arguments)
@@ -1160,6 +1323,37 @@ func (h *ActionHandler) executeSingleAction(
 		Name:   item.Name,
 		Status: http.StatusOK,
 		Data:   result,
+	}
+}
+
+// buildBatchCaptchaResult converts a captcha validation error into the
+// matching batch result, mirroring the single-action 429/403 split. It also
+// emits the structured warning that the single-action path emits.
+//
+// Takes l (logger_domain.Logger) which receives the structured warning.
+// Takes name (string) which identifies the action that failed validation.
+// Takes captchaErr (error) which carries the underlying captcha failure.
+//
+// Returns daemon_dto.BatchActionResult populated with the right status code
+// and code string (RATE_LIMITED for ErrRateLimited, otherwise CAPTCHA_FAILED).
+func buildBatchCaptchaResult(l logger_domain.Logger, name string, captchaErr error) daemon_dto.BatchActionResult {
+	l.Warn("Captcha validation failed",
+		logger_domain.String(attributeKeyAction, name),
+		logger_domain.Error(captchaErr),
+	)
+	if errors.Is(captchaErr, captcha_dto.ErrRateLimited) {
+		return daemon_dto.BatchActionResult{
+			Name:   name,
+			Status: http.StatusTooManyRequests,
+			Error:  "Too many captcha attempts",
+			Code:   "RATE_LIMITED",
+		}
+	}
+	return daemon_dto.BatchActionResult{
+		Name:   name,
+		Status: http.StatusForbidden,
+		Error:  "Captcha validation failed",
+		Code:   "CAPTCHA_FAILED",
 	}
 }
 
@@ -1178,7 +1372,7 @@ func (*ActionHandler) buildBatchErrorResult(name string, err error, developmentM
 		return daemon_dto.BatchActionResult{
 			Name:   name,
 			Status: actionErr.StatusCode(),
-			Error:  err.Error(),
+			Error:  safeerror.ExtractSafeMessage(err, developmentMode),
 			Code:   actionErr.ErrorCode(),
 		}
 	}
@@ -1204,16 +1398,21 @@ func (*ActionHandler) writeJSON(w http.ResponseWriter, status int, data any) {
 	}
 }
 
-// writeError writes an error response.
+// writeError writes an error response. When err is non-nil the underlying
+// error message is exposed under "details" only when developmentMode is true;
+// in production the user-safe message extracted via safeerror.ExtractSafeMessage
+// is surfaced instead so internal details never reach the client.
 //
 // Takes w (http.ResponseWriter) which receives the JSON error response.
 // Takes status (int) which specifies the HTTP status code.
 // Takes message (string) which provides the error message for clients.
 // Takes err (error) which contains the underlying error details, or nil.
-func (h *ActionHandler) writeError(w http.ResponseWriter, status int, message string, err error) {
+// Takes developmentMode (bool) which controls whether internal error details
+// are exposed under the "details" key.
+func (h *ActionHandler) writeError(w http.ResponseWriter, status int, message string, err error, developmentMode bool) {
 	response := map[string]any{"error": message}
 	if err != nil {
-		response["details"] = err.Error()
+		response["details"] = safeerror.ExtractSafeMessage(err, developmentMode)
 	}
 	h.writeJSON(w, status, response)
 }
@@ -1242,11 +1441,13 @@ func (h *ActionHandler) handleActionError(w http.ResponseWriter, request *http.R
 		}
 	}
 
+	developmentMode := isDevelopmentModeFromContext(request.Context())
+
 	if actionErr, ok := errors.AsType[daemon_dto.ActionError](err); ok {
 		response := map[string]any{
 			"status":  actionErr.StatusCode(),
 			"code":    actionErr.ErrorCode(),
-			"message": err.Error(),
+			"message": safeerror.ExtractSafeMessage(err, developmentMode),
 		}
 
 		if ve, ok := errors.AsType[*daemon_dto.ValidationError](err); ok {
@@ -1261,7 +1462,6 @@ func (h *ActionHandler) handleActionError(w http.ResponseWriter, request *http.R
 		return
 	}
 
-	developmentMode := isDevelopmentModeFromContext(request.Context())
 	message := safeerror.ExtractSafeMessage(err, developmentMode)
 
 	response := map[string]any{

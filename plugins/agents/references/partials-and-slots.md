@@ -236,7 +236,7 @@ Pass request-time values with `:request.` prefix:
 
 ## LLM mistake checklist
 
-- Note: `:prop` renders value as an HTML attribute too; `:server.prop` is server-only (use `:server.prop` when you don't want the prop exposed in rendered HTML)
+- Note: a bare `:foo="..."` matching a declared prop is consumed as a prop only (not also rendered as an HTML attribute on the partial root). A bare attribute that does NOT match any declared prop forwards as a plain HTML attribute on the partial root. Use `:server.foo` to keep the value server-only and raise an error if the prop is not declared.
 - Using `<slot>` instead of `<piko:slot>` in server partials (`<slot>` is for PKC components)
 - Making `is` attribute dynamic (must be static - resolved at compile time)
 - Forgetting to import the partial in the Go script block

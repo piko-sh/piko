@@ -362,7 +362,10 @@ func (b *TransformBuilder) DoToWriter(ctx context.Context, w io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("executing transformation: %w", err)
 	}
-	defer func() { _ = result.Body.Close() }()
+	defer func() {
+		_, _ = io.Copy(io.Discard, result.Body)
+		_ = result.Body.Close()
+	}()
 
 	if _, err = io.Copy(w, result.Body); err != nil {
 		return fmt.Errorf("writing transformation result: %w", err)

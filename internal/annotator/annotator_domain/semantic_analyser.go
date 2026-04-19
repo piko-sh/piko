@@ -199,7 +199,7 @@ func (sa *SemanticAnalyser) Enter(goCtx context.Context, node *ast_domain.Templa
 
 // Exit runs after a node and all its children have been visited.
 //
-// Returns error when the visit fails; this method always returns nil.
+// Returns error when the visit fails; always returns nil.
 func (*SemanticAnalyser) Exit(_ context.Context, _ *ast_domain.TemplateNode) error {
 	return nil
 }
@@ -268,10 +268,10 @@ func (sa *SemanticAnalyser) resolveForDirectiveInContext(goCtx context.Context, 
 	}
 }
 
-// handleForDirective processes the p-for directive, validating loop
-// variables and creating loop context. For partial invocation nodes, the
-// expression has already been resolved by resolveForDirectiveInContext;
-// this method only creates the loop context.
+// handleForDirective processes the p-for directive, validating loop variables
+// and creating loop context. For partial invocation nodes, the expression has
+// already been resolved by resolveForDirectiveInContext, and only the loop
+// context is created here.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the directive to
 // process.
@@ -399,7 +399,7 @@ func Annotate(
 // Returns *annotator_dto.AnnotationResult which contains the wrapped AST with
 // nil values for all optional fields.
 // Returns []*ast_domain.Diagnostic which is the unchanged diagnostics slice.
-// Returns error which is always nil for this function.
+// Returns error which is always nil here.
 func createEmptyAnnotationResult(flattenedAST *ast_domain.TemplateAST, diagnostics []*ast_domain.Diagnostic) (*annotator_dto.AnnotationResult, []*ast_domain.Diagnostic, error) {
 	return &annotator_dto.AnnotationResult{
 		AnnotatedAST:          flattenedAST,

@@ -69,11 +69,11 @@ func IsTransformable(importPath string) bool {
 // served asset URL. The @/ prefix is replaced with
 // /_piko/assets/{moduleName}/ and the extension is normalised to .js.
 //
-// For example, with moduleName "github.com/org/repo":
+// For example, with a GitHub-hosted moduleName such as "example.com/org/repo":
 //
-//	@/lib/utils     -> /_piko/assets/github.com/org/repo/lib/utils.js
-//	@/lib/utils.ts  -> /_piko/assets/github.com/org/repo/lib/utils.js
-//	@/lib/utils.js  -> /_piko/assets/github.com/org/repo/lib/utils.js
+//	@/lib/utils     -> /_piko/assets/example.com/org/repo/lib/utils.js
+//	@/lib/utils.ts  -> /_piko/assets/example.com/org/repo/lib/utils.js
+//	@/lib/utils.js  -> /_piko/assets/example.com/org/repo/lib/utils.js
 //
 // Takes importPath (string) which is the @/ prefixed import path.
 // Takes moduleName (string) which is the Go module name.
@@ -88,9 +88,9 @@ func ResolveModuleAlias(importPath, moduleName string) string {
 // prefix) for an @/ import. This is used by the compiler to build dependency
 // records that track which artefacts a component depends on.
 //
-// For example, with moduleName "github.com/org/repo":
+// For example, with a GitHub-hosted moduleName such as "example.com/org/repo":
 //
-//	@/lib/utils -> github.com/org/repo/lib/utils.js
+//	@/lib/utils -> example.com/org/repo/lib/utils.js
 //
 // Takes importPath (string) which is the @/ prefixed import path.
 // Takes moduleName (string) which is the Go module name.

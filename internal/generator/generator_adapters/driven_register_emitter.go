@@ -57,7 +57,7 @@ func NewRegisterEmitter(fsWriter generator_domain.FSWriterPort) *RegisterEmitter
 	return &RegisterEmitter{fsWriter: fsWriter}
 }
 
-// Generate creates the register file content for the given package paths.
+// Generate generates the register file content for the given package paths.
 //
 // Takes allPackagePaths ([]string) which lists the canonical Go package paths
 // for the components that need to be included in the build.

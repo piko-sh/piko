@@ -100,5 +100,5 @@ Partials can render content passed into them from their parent by using the spec
 
 Partials are fundamental to building complex applications with Piko. For a deeper dive into their capabilities, see the official documentation:
 
-*   **[Partials: reusable server components](https://piko.sh/docs/guide/partials)**
-*   **[Slots](https://piko.sh/docs/guide/slots)**
+*   **[Partials: reusable server components](https://piko.sh/docs/reference/pk-file-format)**
+*   **[Slots](https://piko.sh/docs/how-to/templates/slots)**

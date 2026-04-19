@@ -70,7 +70,7 @@ func (b BigInt) Ceil() BigInt {
 }
 
 // Floor returns the BigInt unchanged, as integers have no decimal part.
-// This method exists for API consistency with other numeric types.
+// Provided for API consistency with other numeric types.
 //
 // Returns BigInt which is the receiver unchanged.
 func (b BigInt) Floor() BigInt {

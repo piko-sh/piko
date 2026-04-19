@@ -20,6 +20,7 @@ package logger_domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -71,40 +72,44 @@ func (lm *lifecycleManager) RegisterClosable(c io.Closer) {
 // Shutdown stops the lifecycle manager by running all shutdown hooks in
 // reverse order and closing all registered resources.
 //
-// Returns error when any resource fails to close.
+// Hooks and closers are copied out and the lock is released before invocation
+// so a hook is free to call RegisterShutdownHook or RegisterClosable on the
+// same manager without deadlocking.
+//
+// Returns error when any resource fails to close. Multiple errors are joined
+// via errors.Join so callers can use errors.Is or errors.As.
 //
 // Safe for concurrent use.
 func (lm *lifecycleManager) Shutdown(_ context.Context) error {
 	lm.mu.Lock()
-	defer lm.mu.Unlock()
-
-	shouldLog := len(lm.shutdownHooks) > 0 || len(lm.closableOutputs) > 0
-
-	if shouldLog {
-		shutdownLogger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-		shutdownLogger.Info("Shutting down logger subsystems...")
-		defer shutdownLogger.Info("Logger subsystems shut down successfully.")
-	}
-
-	for i := len(lm.shutdownHooks) - 1; i >= 0; i-- {
-		lm.shutdownHooks[i]()
-	}
+	hooks := lm.shutdownHooks
+	closers := lm.closableOutputs
 	lm.shutdownHooks = nil
+	lm.closableOutputs = nil
+	lm.mu.Unlock()
+
+	if len(hooks) == 0 && len(closers) == 0 {
+		return nil
+	}
+
+	shutdownLogger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	shutdownLogger.Info("Shutting down logger subsystems...")
+	defer shutdownLogger.Info("Logger subsystems shut down successfully.")
+
+	for i := len(hooks) - 1; i >= 0; i-- {
+		hooks[i]()
+	}
 
 	var allErrors []error
-	for _, closer := range lm.closableOutputs {
+	for _, closer := range closers {
 		if err := closer.Close(); err != nil {
 			allErrors = append(allErrors, err)
 		}
 	}
-	lm.closableOutputs = nil
 
 	if len(allErrors) > 0 {
-		if shouldLog {
-			shutdownLogger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-			shutdownLogger.Error("Errors occurred during logger shutdown", "errors", allErrors)
-		}
-		return fmt.Errorf("errors during logger shutdown: %v", allErrors)
+		shutdownLogger.Error("Errors occurred during logger shutdown", "errors", allErrors)
+		return fmt.Errorf("errors during logger shutdown: %w", errors.Join(allErrors...))
 	}
 
 	return nil
@@ -147,9 +152,8 @@ func ClearLifecycle() {
 	defaultLifecycleManager.closableOutputs = nil
 }
 
-// Shutdown stops the logger subsystem by calling all registered shutdown hooks
-// and closing all registered closable resources. This function uses the
-// defaultLifecycleManager.
+// Shutdown stops the logger subsystem by calling all registered shutdown hooks and
+// closing all registered closable resources. Uses the defaultLifecycleManager.
 //
 // Returns error when any closable resource fails to close.
 func Shutdown(ctx context.Context) error {

@@ -19,6 +19,7 @@
 package bootstrap
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,6 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/capabilities"
 	"piko.sh/piko/internal/collection/collection_domain"
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	"piko.sh/piko/internal/email/email_domain"
 	"piko.sh/piko/internal/events/events_domain"
@@ -129,7 +129,7 @@ func TestServiceGetterOverrideContract(t *testing.T) {
 				c.eventBusOverride = s
 				return s
 			},
-			callGetter: func(c *Container) (any, error) { return c.GetEventBus(), nil },
+			callGetter: func(c *Container) (any, error) { return c.GetEventBus() },
 		},
 		{
 			name: "CapabilityService",
@@ -323,7 +323,7 @@ func TestServiceGetterOverrideContract(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c := NewContainer(config.NewConfigProvider())
+			c := NewContainer()
 
 			stub := tc.setup(c)
 
@@ -339,7 +339,7 @@ func TestServiceGetterOverrideIdempotency(t *testing.T) {
 	t.Parallel()
 
 	stub := &stubEmailService{}
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.emailServiceOverride = stub
 
 	first, err1 := c.GetEmailService()
@@ -350,4 +350,18 @@ func TestServiceGetterOverrideIdempotency(t *testing.T) {
 
 	assert.Same(t, first, second, "consecutive getter calls should return the same instance")
 	assert.Same(t, stub, first, "both calls should return the override")
+}
+
+func TestGetEventBus_ReturnsErrorWhenEventsProviderFails(t *testing.T) {
+	t.Parallel()
+
+	c := NewContainer()
+	expected := errors.New("events provider unavailable")
+	c.eventsProviderErr = expected
+	c.eventsProviderOnce.Do(func() {})
+
+	bus, err := c.GetEventBus()
+	require.Error(t, err)
+	assert.Nil(t, bus)
+	assert.ErrorIs(t, err, expected)
 }

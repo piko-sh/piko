@@ -37,10 +37,10 @@ type pikoBuiltinDocumentation struct {
 	// Signature holds the function or method signature text.
 	Signature string
 
-	// Description explains what this function does.
+	// Description explains what the built-in does.
 	Description string
 
-	// Accepts describes what argument types the function accepts.
+	// Accepts describes the argument types accepted by the built-in.
 	Accepts string
 
 	// Returns describes what the function gives back.
@@ -313,7 +313,7 @@ func (*document) checkBuiltinHoverContext(line string, cursor int, position prot
 // Takes ctx (*PKHoverContext) which provides the hover request context.
 //
 // Returns *protocol.Hover which contains the hover information to display.
-// Returns error which is always nil for this function.
+// Returns error which is always nil here.
 func (*document) getBuiltinHover(ctx *PKHoverContext) (*protocol.Hover, error) {
 	builtinDocumentation, exists := pikoBuiltinDocumentations[ctx.Name]
 	if !exists {

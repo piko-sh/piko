@@ -117,6 +117,11 @@ const (
 	WalkStop
 )
 
+// MaxMarkdownDepth caps the recursive walk depth so a maliciously nested AST
+// cannot overflow the Go stack. Real-world Markdown rarely nests beyond a
+// dozen levels, so 256 is generous.
+const MaxMarkdownDepth = 256
+
 // Segment represents a byte range within the source markdown.
 type Segment struct {
 	// Start is the inclusive beginning byte offset.
@@ -347,8 +352,8 @@ func (n *BaseNode) AppendChild(child Node) {
 	}
 }
 
-// getBaseNode extracts the embedded BaseNode from any Node. All concrete
-// node types in this package embed BaseNode, so this always succeeds.
+// getBaseNode extracts the embedded BaseNode from any Node. All concrete node types
+// embed BaseNode, so this always succeeds.
 //
 // Takes n (Node) which is the node to extract from.
 //
@@ -444,26 +449,33 @@ func (a *Attributes) SetAttributeString(name string, value any) {
 // Walk traverses the AST depth-first. The callback is called twice for each
 // node: once on entry (entering=true) and once on exit (entering=false).
 //
+// The walk stops cleanly when the depth exceeds MaxMarkdownDepth so a
+// pathological tree cannot overflow the Go stack.
+//
 // Takes root (Node) which is the starting node.
 // Takes fn (func(Node, bool) WalkStatus) which is the visitor callback.
 func Walk(root Node, fn func(node Node, entering bool) WalkStatus) {
-	walkNode(root, fn)
+	walkNode(root, fn, 0)
 }
 
 // walkNode recursively visits a single node and its descendants.
 //
 // Takes node (Node) which is the node to visit.
 // Takes fn (func(Node, bool) WalkStatus) which is the visitor callback.
+// Takes depth (int) which is the current recursion depth.
 //
 // Returns WalkStatus which signals whether traversal should continue.
-func walkNode(node Node, fn func(Node, bool) WalkStatus) WalkStatus {
+func walkNode(node Node, fn func(Node, bool) WalkStatus, depth int) WalkStatus {
+	if depth >= MaxMarkdownDepth {
+		return WalkStop
+	}
 	status := fn(node, true)
 	if status == WalkStop {
 		return WalkStop
 	}
 	if status != WalkSkipChildren {
 		for child := node.FirstChild(); child != nil; child = child.NextSibling() {
-			if walkNode(child, fn) == WalkStop {
+			if walkNode(child, fn, depth+1) == WalkStop {
 				return WalkStop
 			}
 		}

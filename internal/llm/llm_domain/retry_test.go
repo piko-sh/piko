@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -544,4 +545,142 @@ func TestIsRetryable_408_409_425(t *testing.T) {
 	assert.True(t, executor.IsRetryable(&ProviderError{StatusCode: 408, Message: "request timeout"}))
 	assert.True(t, executor.IsRetryable(&ProviderError{StatusCode: 409, Message: "conflict"}))
 	assert.True(t, executor.IsRetryable(&ProviderError{StatusCode: 425, Message: "too early"}))
+}
+
+func TestRetry_HonoursRetryAfterHeader(t *testing.T) {
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+
+	var observedBackoff time.Duration
+	policy := &llm_dto.RetryPolicy{
+		MaxRetries:        2,
+		InitialBackoff:    10 * time.Millisecond,
+		MaxBackoff:        500 * time.Millisecond,
+		BackoffMultiplier: 2.0,
+		OnRetry: func(_ int, _ error, nextBackoff time.Duration) {
+			observedBackoff = nextBackoff
+		},
+	}
+
+	executor := NewRetryExecutor(policy, WithRetryExecutorClock(mockClock))
+	errChan := make(chan error, 1)
+	baseline := mockClock.TimerCount()
+
+	rateLimitErr := &ProviderError{
+		Provider:   "openai",
+		StatusCode: http.StatusTooManyRequests,
+		Message:    "rate limited",
+		RetryAfter: 2 * time.Second,
+	}
+
+	go func() {
+		attempts := 0
+		err := executor.Execute(context.Background(), func() error {
+			attempts++
+			if attempts == 1 {
+				return rateLimitErr
+			}
+			return nil
+		})
+		errChan <- err
+	}()
+
+	require.True(t, mockClock.AwaitTimerSetup(baseline, time.Second))
+	mockClock.Advance(3 * time.Second)
+
+	require.NoError(t, <-errChan)
+	assert.GreaterOrEqual(t, observedBackoff, 2*time.Second,
+		"expected backoff to honour Retry-After hint of 2 seconds")
+}
+
+func TestRetry_RetryAfterCappedAtMaximum(t *testing.T) {
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+
+	var observedBackoff time.Duration
+	policy := &llm_dto.RetryPolicy{
+		MaxRetries:        2,
+		InitialBackoff:    10 * time.Millisecond,
+		MaxBackoff:        500 * time.Millisecond,
+		BackoffMultiplier: 2.0,
+		OnRetry: func(_ int, _ error, nextBackoff time.Duration) {
+			observedBackoff = nextBackoff
+		},
+	}
+
+	executor := NewRetryExecutor(policy, WithRetryExecutorClock(mockClock))
+	errChan := make(chan error, 1)
+	baseline := mockClock.TimerCount()
+
+	hostileErr := &ProviderError{
+		Provider:   "openai",
+		StatusCode: http.StatusServiceUnavailable,
+		Message:    "service unavailable",
+		RetryAfter: time.Hour,
+	}
+
+	go func() {
+		attempts := 0
+		err := executor.Execute(context.Background(), func() error {
+			attempts++
+			if attempts == 1 {
+				return hostileErr
+			}
+			return nil
+		})
+		errChan <- err
+	}()
+
+	require.True(t, mockClock.AwaitTimerSetup(baseline, time.Second))
+	mockClock.Advance(MaxRetryAfterDuration + time.Second)
+
+	require.NoError(t, <-errChan)
+	assert.LessOrEqual(t, observedBackoff, MaxRetryAfterDuration,
+		"expected Retry-After to be clamped at MaxRetryAfterDuration")
+}
+
+func TestParseRetryAfter_Seconds(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("integer seconds", func(t *testing.T) {
+		assert.Equal(t, 30*time.Second, ParseRetryAfter("30", now))
+	})
+
+	t.Run("zero seconds returns zero", func(t *testing.T) {
+		assert.Equal(t, time.Duration(0), ParseRetryAfter("0", now))
+	})
+
+	t.Run("negative seconds returns zero", func(t *testing.T) {
+		assert.Equal(t, time.Duration(0), ParseRetryAfter("-5", now))
+	})
+
+	t.Run("empty header returns zero", func(t *testing.T) {
+		assert.Equal(t, time.Duration(0), ParseRetryAfter("", now))
+	})
+
+	t.Run("whitespace header returns zero", func(t *testing.T) {
+		assert.Equal(t, time.Duration(0), ParseRetryAfter("   ", now))
+	})
+
+	t.Run("seconds capped at maximum", func(t *testing.T) {
+		assert.Equal(t, MaxRetryAfterDuration, ParseRetryAfter("3600", now))
+	})
+
+	t.Run("invalid format returns zero", func(t *testing.T) {
+		assert.Equal(t, time.Duration(0), ParseRetryAfter("not-a-number", now))
+	})
+}
+
+func TestParseRetryAfter_HTTPDate(t *testing.T) {
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	future := now.Add(45 * time.Second)
+	header := future.Format(http.TimeFormat)
+
+	got := ParseRetryAfter(header, now)
+	assert.InDelta(t, (45 * time.Second).Seconds(), got.Seconds(), 1.0)
+}
+
+func TestParseRetryAfter_HTTPDateInPastReturnsZero(t *testing.T) {
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	past := now.Add(-30 * time.Second).Format(http.TimeFormat)
+
+	assert.Equal(t, time.Duration(0), ParseRetryAfter(past, now))
 }

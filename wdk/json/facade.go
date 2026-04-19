@@ -22,23 +22,23 @@ import (
 	"io"
 	"reflect"
 
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 )
 
 // Provider supplies JSON encoding and decoding operations.
-type Provider = pikojson.Provider
+type Provider = json.Provider
 
 // API is a frozen JSON configuration providing encode and decode operations.
-type API = pikojson.API
+type API = json.API
 
 // Config describes JSON encoding behaviour.
-type Config = pikojson.Config
+type Config = json.Config
 
 // Encoder writes JSON values to an output stream.
-type Encoder = pikojson.Encoder
+type Encoder = json.Encoder
 
 // Decoder reads JSON values from an input stream.
-type Decoder = pikojson.Decoder
+type Decoder = json.Decoder
 
 // Marshal encodes v as JSON bytes.
 //
@@ -47,7 +47,7 @@ type Decoder = pikojson.Decoder
 // Returns []byte which contains the JSON-encoded data.
 // Returns error when encoding fails.
 func Marshal(v any) ([]byte, error) {
-	return pikojson.Marshal(v)
+	return json.Marshal(v)
 }
 
 // Unmarshal decodes JSON data into v.
@@ -57,7 +57,7 @@ func Marshal(v any) ([]byte, error) {
 //
 // Returns error when decoding fails.
 func Unmarshal(data []byte, v any) error {
-	return pikojson.Unmarshal(data, v)
+	return json.Unmarshal(data, v)
 }
 
 // MarshalIndent encodes v as indented JSON bytes.
@@ -69,7 +69,7 @@ func Unmarshal(data []byte, v any) error {
 // Returns []byte which contains the indented JSON-encoded data.
 // Returns error when encoding fails.
 func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
-	return pikojson.MarshalIndent(v, prefix, indent)
+	return json.MarshalIndent(v, prefix, indent)
 }
 
 // MarshalString encodes v as a JSON string.
@@ -79,7 +79,7 @@ func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 // Returns string which contains the JSON-encoded data.
 // Returns error when encoding fails.
 func MarshalString(v any) (string, error) {
-	return pikojson.MarshalString(v)
+	return json.MarshalString(v)
 }
 
 // UnmarshalString decodes a JSON string into v.
@@ -89,7 +89,7 @@ func MarshalString(v any) (string, error) {
 //
 // Returns error when decoding fails.
 func UnmarshalString(s string, v any) error {
-	return pikojson.UnmarshalString(s, v)
+	return json.UnmarshalString(s, v)
 }
 
 // ValidString reports whether s is valid JSON.
@@ -98,7 +98,7 @@ func UnmarshalString(s string, v any) error {
 //
 // Returns bool which is true when s is valid JSON.
 func ValidString(s string) bool {
-	return pikojson.ValidString(s)
+	return json.ValidString(s)
 }
 
 // NewEncoder creates a streaming JSON encoder writing to w.
@@ -107,7 +107,7 @@ func ValidString(s string) bool {
 //
 // Returns Encoder which writes JSON to the writer.
 func NewEncoder(w io.Writer) Encoder {
-	return pikojson.NewEncoder(w)
+	return json.NewEncoder(w)
 }
 
 // NewDecoder creates a streaming JSON decoder reading from r.
@@ -116,7 +116,7 @@ func NewEncoder(w io.Writer) Encoder {
 //
 // Returns Decoder which reads JSON from the reader.
 func NewDecoder(r io.Reader) Decoder {
-	return pikojson.NewDecoder(r)
+	return json.NewDecoder(r)
 }
 
 // Freeze creates a frozen API from a Config.
@@ -125,7 +125,7 @@ func NewDecoder(r io.Reader) Decoder {
 //
 // Returns API which provides encode and decode operations.
 func Freeze(config Config) API {
-	return pikojson.Freeze(config)
+	return json.Freeze(config)
 }
 
 // Pretouch pre-compiles JSON codecs for the given type.
@@ -134,19 +134,19 @@ func Freeze(config Config) API {
 //
 // Returns error when pre-compilation fails.
 func Pretouch(t reflect.Type) error {
-	return pikojson.Pretouch(t)
+	return json.Pretouch(t)
 }
 
 // StdConfig returns the standard-library-compatible configuration.
 //
 // Returns API which provides encoding behaviour matching encoding/json.
 func StdConfig() API {
-	return pikojson.ConfigStd
+	return json.ConfigStd
 }
 
 // DefaultConfig returns the high-performance default configuration.
 //
 // Returns API which provides the default high-performance encoding behaviour.
 func DefaultConfig() API {
-	return pikojson.ConfigDefault
+	return json.ConfigDefault
 }

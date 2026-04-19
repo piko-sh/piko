@@ -1,0 +1,64 @@
+<svg viewBox="0 0 620 360" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="ce-title ce-desc">
+  <title id="ce-title">Collections enumeration: provider to filtered typed results</title>
+  <desc id="ce-desc">A collection provider enumerates items from its source. The returned slice passes through a filter pipeline: filter predicate, sort option, and pagination. SQL-capable providers push the filter into a WHERE clause before reading; markdown and other in-memory providers apply the filter after reading. The output is a typed slice of items matching the query.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="20" y="50" width="130" height="90" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M30,50 H140 A10,10 0 0 1 150,60 V72 H20 V60 A10,10 0 0 1 30,50 Z" fill="#364049"/>
+  <text x="85" y="65" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">source</text>
+  <text x="30" y="88" fill="#C9F5F2" font-family="monospace" font-size="10">content/blog/*</text>
+  <text x="30" y="104" fill="#C9F5F2" font-family="monospace" font-size="10">SQL table</text>
+  <text x="30" y="120" fill="#C9F5F2" font-family="monospace" font-size="10">JSON API</text>
+  <text x="85" y="135" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">any provider</text>
+
+  <line x1="155" y1="95" x2="185" y2="95" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="190" y="50" width="170" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M200,50 H350 A10,10 0 0 1 360,60 V72 H190 V60 A10,10 0 0 1 200,50 Z" fill="#1C544F"/>
+  <text x="275" y="65" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">provider</text>
+  <text x="200" y="88" fill="#C9F5F2" font-family="monospace" font-size="10">Enumerate(ctx)</text>
+  <text x="200" y="104" fill="#A7F0E9" font-family="monospace" font-size="10">([]Item, error)</text>
+  <text x="275" y="125" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="9" font-weight="600">push-down if SQL</text>
+  <text x="275" y="137" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">in-memory otherwise</text>
+
+  <line x1="365" y1="95" x2="395" y2="95" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="400" y="50" width="200" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M410,50 H590 A10,10 0 0 1 600,60 V72 H400 V60 A10,10 0 0 1 410,50 Z" fill="#1C544F"/>
+  <text x="500" y="65" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">filter pipeline</text>
+  <text x="410" y="88" fill="#C9F5F2" font-family="monospace" font-size="10">Filter(...)</text>
+  <text x="410" y="104" fill="#C9F5F2" font-family="monospace" font-size="10">SortOption(...)</text>
+  <text x="410" y="120" fill="#C9F5F2" font-family="monospace" font-size="10">Pagination(...)</text>
+  <text x="500" y="135" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">composable, optional</text>
+
+  
+  <text x="310" y="172" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">CALL SITES</text>
+
+  <rect x="20" y="185" width="280" height="70" rx="10" fill="#1C544F"/>
+  <text x="30" y="203" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">one item, by slug</text>
+  <text x="30" y="220" fill="#C9F5F2" font-family="monospace" font-size="10">post := piko.GetData[Post](r)</text>
+  <text x="30" y="236" fill="#A7F0E9" font-family="monospace" font-size="10">// slug comes from the URL</text>
+  <text x="30" y="250" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">used on /blog/{slug}.pk pages</text>
+
+  <rect x="320" y="185" width="280" height="70" rx="10" fill="#1C544F"/>
+  <text x="330" y="203" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">many items, filtered</text>
+  <text x="330" y="220" fill="#C9F5F2" font-family="monospace" font-size="10">hits, _ := piko.SearchCollection[Post](</text>
+  <text x="330" y="234" fill="#C9F5F2" font-family="monospace" font-size="10">  r, "blog", q, filter, sort, page)</text>
+  <text x="330" y="250" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">used on /blog/index.pk listings</text>
+
+  
+  <rect x="20" y="270" width="580" height="52" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M30,270 H590 A10,10 0 0 1 600,280 V290 H20 V280 A10,10 0 0 1 30,270 Z" fill="#364049"/>
+  <text x="310" y="284" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">typed output</text>
+  <text x="310" y="308" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">Post &#183; []Post &#183; []SearchResult[Post]</text>
+
+  <text x="310" y="346" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">Provider interface is uniform; push-down is a provider capability that the service detects and uses when available.</text>
+</svg>

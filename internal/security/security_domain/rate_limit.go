@@ -19,6 +19,7 @@
 package security_domain
 
 import (
+	"context"
 	"time"
 
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
@@ -29,12 +30,14 @@ import (
 type RateLimitService interface {
 	// CheckLimit checks whether the given key has exceeded its rate limit.
 	//
+	// Takes ctx (context.Context) which carries cancellation and tracing
+	// metadata for the underlying counter store call.
 	// Takes key (string) which identifies the client or resource being limited.
 	// Takes limit (int) which specifies the maximum number of requests allowed.
 	// Takes window (time.Duration) which defines the time period for the limit.
 	//
 	// Returns ratelimiter_dto.Result which contains allowed status, remaining
 	// count, and reset time.
-	// Returns error when the limit check fails.
-	CheckLimit(key string, limit int, window time.Duration) (ratelimiter_dto.Result, error)
+	// Returns error when the limit check fails or the context is cancelled.
+	CheckLimit(ctx context.Context, key string, limit int, window time.Duration) (ratelimiter_dto.Result, error)
 }

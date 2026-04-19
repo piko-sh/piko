@@ -19,11 +19,15 @@
 package daemon_domain
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+
+	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/safeerror"
 )
 
 // errClientDisconnected is returned when the SSE client has disconnected.
@@ -33,8 +37,8 @@ var errClientDisconnected = errors.New("client disconnected")
 // Server-Sent Events (SSE) streaming. When an action implements this
 // interface, clients can request SSE transport for progressive updates.
 type SSECapable interface {
-	// StreamProgress handles SSE streaming for this action.
-	// The stream is automatically closed when this method returns.
+	// StreamProgress handles SSE streaming for the action.
+	// The stream is automatically closed when the call returns.
 	StreamProgress(stream *SSEStream) error
 }
 
@@ -61,6 +65,29 @@ type SSEStream struct {
 	// idsEnabled controls whether Send/SendData/SendComplete include
 	// an id: field in the SSE output. Activated by EnableEventIDs().
 	idsEnabled bool
+
+	// developmentMode controls whether SendError exposes the raw
+	// internal error string to the client. In production only the
+	// safe message extracted by safeerror.ExtractSafeMessage is sent.
+	developmentMode bool
+}
+
+// isDevelopmentModeFromContext reads the DevelopmentMode flag from a
+// PikoRequestCtx attached to ctx. Returns false when no carrier is present
+// so default behaviour is the safer production path.
+//
+// Takes ctx (context.Context) which carries the request scoped context.
+//
+// Returns bool which is true when the request context indicates development
+// mode is active.
+func isDevelopmentModeFromContext(ctx context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil {
+		return pctx.DevelopmentMode
+	}
+	return false
 }
 
 // NewSSEStream creates a new SSE stream from an HTTP response writer.
@@ -94,6 +121,25 @@ func NewSSEStream(w http.ResponseWriter, done <-chan struct{}, lastEventID strin
 func (s *SSEStream) EnableEventIDs() {
 	s.idsEnabled = true
 	s.nextID = 1
+}
+
+// SetDevelopmentModeFromContext records whether the daemon is running in
+// development mode by inspecting the PikoRequestCtx attached to ctx. The
+// flag controls whether SendError forwards the raw internal error string
+// or only the user-safe message extracted by safeerror.ExtractSafeMessage.
+//
+// Takes ctx (context.Context) which carries the request scoped context.
+func (s *SSEStream) SetDevelopmentModeFromContext(ctx context.Context) {
+	s.developmentMode = isDevelopmentModeFromContext(ctx)
+}
+
+// SetDevelopmentMode explicitly toggles development mode on the stream
+// without reading any context. Provided for tests and callers that already
+// have the resolved flag.
+//
+// Takes developmentMode (bool) which enables raw error exposure when true.
+func (s *SSEStream) SetDevelopmentMode(developmentMode bool) {
+	s.developmentMode = developmentMode
 }
 
 // LastEventID returns the Last-Event-ID header value from the client's
@@ -224,14 +270,20 @@ func (s *SSEStream) SendComplete(data any) error {
 	return s.Send("complete", data)
 }
 
-// SendError sends an "error" event with error details.
+// SendError sends an "error" event with sanitised error details.
+//
+// The payload is passed through safeerror.ExtractSafeMessage so production
+// clients only receive a user-safe message, while development mode
+// surfaces the full internal error for debugging. Callers should configure
+// development mode via SetDevelopmentModeFromContext before invoking
+// SendError.
 //
 // Takes err (error) which provides the error to send to the client.
 //
 // Returns error when the event cannot be sent.
 func (s *SSEStream) SendError(err error) error {
 	return s.Send("error", map[string]string{
-		"message": err.Error(),
+		"message": safeerror.ExtractSafeMessage(err, s.developmentMode),
 	})
 }
 

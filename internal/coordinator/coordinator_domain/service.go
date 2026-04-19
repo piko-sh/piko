@@ -220,8 +220,8 @@ type coordinatorService struct {
 // GetResult retrieves the latest successful build or triggers an initial build
 // on cold start.
 //
-// This method provides a non-blocking fast path for retrieving cached results.
-// If no build is available, it falls back to the blocking GetOrBuildProject.
+// Provides a non-blocking fast path for retrieving cached results.
+// If no build is available, falls back to the blocking GetOrBuildProject.
 //
 // Actions are auto-discovered from the actions/ directory during annotation.
 //

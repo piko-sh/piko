@@ -75,7 +75,8 @@ var charHandlers = [latinAlphabetSize]charHandler{
 // Encoder provides phonetic encoding using Dutch phonetic rules.
 // It implements the linguistics_domain.PhoneticEncoderPort interface.
 type Encoder struct {
-	// maxLength is the maximum line length in characters; 0 means no limit.
+	// maxLength is the maximum length in runes of the output code; 0 means no
+	// limit.
 	maxLength int
 }
 
@@ -115,11 +116,7 @@ func (e *Encoder) Encode(word string) string {
 		position = processCharacter(word, position, &result)
 	}
 
-	code := result.String()
-	if len(code) > e.maxLength {
-		return code[:e.maxLength]
-	}
-	return code
+	return linguistics_domain.TruncateRunes(result.String(), e.maxLength)
 }
 
 // GetLanguage returns the language this encoder is configured for.

@@ -19,12 +19,11 @@
 package asmgen
 
 import (
-	"os"
+	"fmt"
 	"path/filepath"
-)
 
-// directoryPermission is the file mode used when creating parent directories.
-const directoryPermission = 0o750
+	"piko.sh/piko/wdk/safedisk"
+)
 
 // filePermission is the file mode used when writing output files.
 const filePermission = 0o600
@@ -42,18 +41,24 @@ func NewDiskWriter() *DiskWriter {
 	return &DiskWriter{}
 }
 
-// WriteFile writes data to the given path, creating parent
-// directories as needed. It uses mode 0o600 for files and 0o750 for
-// directories.
+// WriteFile writes data to the given path atomically.
+//
+// It constructs a one-shot read-write sandbox at the file's parent directory
+// so all writes go through safedisk path-traversal protection. The sandbox
+// creates the parent directory if it does not yet exist. The data is written
+// via WriteFileAtomic so an interrupted build cannot leave a half-written
+// file on disk.
 //
 // Takes path (string) which is the output file path.
 // Takes data ([]byte) which is the file content.
 //
-// Returns error when directory creation or file writing fails.
+// Returns error when sandbox creation or file writing fails.
 func (*DiskWriter) WriteFile(path string, data []byte) error {
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, directoryPermission); err != nil {
-		return err
+	directory := filepath.Dir(path)
+	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
+	if err != nil {
+		return fmt.Errorf("preparing directory %q: %w", directory, err)
 	}
-	return os.WriteFile(path, data, filePermission)
+	defer func() { _ = sandbox.Close() }()
+	return sandbox.WriteFileAtomic(filepath.Base(path), data, filePermission)
 }

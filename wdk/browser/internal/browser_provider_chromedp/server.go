@@ -76,7 +76,7 @@ func WaitForServerReady(port int, timeout time.Duration) error {
 
 // WaitForURL waits for a URL to become reachable.
 //
-// Returns error when called, as this function is not implemented.
+// Returns error when called, as the helper is not implemented.
 func WaitForURL(_ string, _ time.Duration) error {
 	return errors.New("WaitForURL not implemented, use WaitForServerReady with port")
 }

@@ -113,14 +113,14 @@ type intSetter[T int64 | uint64] struct {
 //
 // # Safety Analysis
 //
-// This function uses unsafe.Add and pointer casting to write directly to
-// struct fields. This is SAFE because:
+// Uses unsafe.Add and pointer casting to write directly to struct fields. This
+// is SAFE because:
 //
 //  1. COMPILER-VERIFIED OFFSETS: fi.Offset comes from reflect.StructField.Offset,
 //     which is computed by the Go compiler. The compiler guarantees this offset
 //     is correct for the field's position within the struct's memory layout.
 //
-//  2. CONTROLLED ENTRY POINTS: This function is only called when fi.CanDirect
+//  2. CONTROLLED ENTRY POINTS: Only called when fi.CanDirect
 //     is true. CanDirect requires ALL of these conditions (see cache.go
 //     processField):
 //     - len(Index) == 1: Single-level access, no nested struct traversal
@@ -152,8 +152,8 @@ type intSetter[T int64 | uint64] struct {
 //   - reflect.Value for the converted value (via ValueOf())
 //   - Type checking in Set()
 //
-// This function eliminates all of that: parse the string, write directly to
-// memory. Benchmarks show 57-73% reduction in allocations.
+// Eliminates all of that: parse the string, write directly to memory.
+// Benchmarks show 57-73% reduction in allocations.
 func (b *ASTBinder) convertAndSetDirect(structVal reflect.Value, value string, fullPath string, fi *fieldInfo) error {
 	if b.hasConverters.Load() {
 		if converter := b.getUserConverter(fi.Type); converter != nil {

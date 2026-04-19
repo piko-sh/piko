@@ -20,6 +20,7 @@ package linguistics_domain
 
 import (
 	"testing"
+	"unicode/utf8"
 )
 
 func TestPhoneticEncoder_StandardPairs(t *testing.T) {
@@ -504,6 +505,39 @@ func TestPhoneticEncoder_UTF8Input(t *testing.T) {
 			}
 
 			t.Logf("%q → %q (UTF-8 handled)", word, code)
+		})
+	}
+}
+
+func TestTruncateRunes(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    string
+		maxRunes int
+		want     string
+	}{
+		{name: "ascii fits", input: "hello", maxRunes: 10, want: "hello"},
+		{name: "ascii truncates", input: "hello world", maxRunes: 5, want: "hello"},
+		{name: "cyrillic truncates by runes", input: "ПРИВЕТ", maxRunes: 3, want: "ПРИ"},
+		{name: "accented latin truncates by runes", input: "éléphant", maxRunes: 3, want: "élé"},
+		{name: "emoji multi-byte truncates", input: "abc😀def", maxRunes: 4, want: "abc😀"},
+		{name: "zero produces empty", input: "ПРИВЕТ", maxRunes: 0, want: ""},
+		{name: "negative produces empty", input: "ПРИВЕТ", maxRunes: -1, want: ""},
+		{name: "empty input", input: "", maxRunes: 5, want: ""},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := TruncateRunes(testCase.input, testCase.maxRunes)
+			if got != testCase.want {
+				t.Errorf("TruncateRunes(%q, %d) = %q, want %q", testCase.input, testCase.maxRunes, got, testCase.want)
+			}
+			if !utf8.ValidString(got) {
+				t.Errorf("TruncateRunes(%q, %d) returned invalid UTF-8: %q", testCase.input, testCase.maxRunes, got)
+			}
+			if testCase.maxRunes > 0 && utf8.RuneCountInString(got) > testCase.maxRunes {
+				t.Errorf("TruncateRunes(%q, %d) returned %d runes (exceeds limit)", testCase.input, testCase.maxRunes, utf8.RuneCountInString(got))
+			}
 		})
 	}
 }

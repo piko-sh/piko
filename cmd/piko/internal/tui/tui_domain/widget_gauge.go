@@ -55,7 +55,7 @@ const (
 
 	// emDashSymbol is the placeholder rendered when a gauge has no
 	// configured maximum.
-	emDashSymbol = "—"
+	emDashSymbol = "-"
 )
 
 // GaugeConfig configures a single horizontal gauge bar.

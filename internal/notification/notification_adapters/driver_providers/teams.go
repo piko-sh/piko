@@ -21,6 +21,7 @@ package driver_providers
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -29,14 +30,19 @@ import (
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/notification/notification_dto"
+	"piko.sh/piko/internal/safeerror"
 )
-
-var _ notification_domain.NotificationProviderPort = (*TeamsProvider)(nil)
 
 const (
 	// teamsMaxMessageLength is the maximum message length in characters for Teams.
 	teamsMaxMessageLength = 28000
 )
+
+// ErrTeamsResponseTooLarge indicates the Teams webhook reply exceeded the
+// maximum size cap and was truncated before parsing.
+var ErrTeamsResponseTooLarge = errors.New("teams response body exceeded maximum allowed size")
+
+var _ notification_domain.NotificationProviderPort = (*TeamsProvider)(nil)
 
 // teamsMessageCard holds the structure for a Microsoft Teams message card.
 type teamsMessageCard struct {
@@ -118,15 +124,22 @@ func (t *TeamsProvider) Send(ctx context.Context, params *notification_dto.SendP
 	if err != nil {
 		return fmt.Errorf("sending to teams: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndCloseResponse(response)
 
 	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("teams returned status %d: %s", response.StatusCode, response.Status)
+		statusErr := buildProviderStatusError("teams", response)
+		if isClientError(response.StatusCode) {
+			return safeerror.NewError(safeNotificationDeliveryFailed, statusErr)
+		}
+		return statusErr
 	}
 
-	body, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxNotificationResponseBytes+1))
 	if err != nil {
 		return fmt.Errorf("reading teams response: %w", err)
+	}
+	if len(body) > maxNotificationResponseBytes {
+		return fmt.Errorf("teams response truncated at %d bytes: %w", maxNotificationResponseBytes, ErrTeamsResponseTooLarge)
 	}
 
 	if strings.TrimSpace(string(body)) != "1" {

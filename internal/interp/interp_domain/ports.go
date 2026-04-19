@@ -32,10 +32,9 @@ type SymbolProviderPort interface {
 	Exports() SymbolExports
 }
 
-// TypesPackageProviderPort is an optional extension of
-// [SymbolProviderPort]. Providers that also implement this interface
-// supply pre-built [types.Package] objects for packages whose type
-// information cannot be synthesised from reflect values alone.
+// TypesPackageProviderPort is an optional extension of [SymbolProviderPort].
+// Providers implementing it supply pre-built [types.Package] objects for packages
+// whose type information cannot be synthesised from reflect values alone.
 type TypesPackageProviderPort interface {
 	// TypesPackages returns a map of import paths to pre-built
 	// types.Package objects, such as those for generic packages

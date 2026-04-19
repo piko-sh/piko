@@ -52,7 +52,7 @@ type Config struct {
 	EnableMetrics bool
 }
 
-// Validate checks whether the configuration is valid.
+// Validate reports whether the configuration is valid.
 //
 // Returns error when required fields are missing or values are invalid.
 func (c *Config) Validate() error {

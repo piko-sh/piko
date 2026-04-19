@@ -160,11 +160,10 @@ func GetData[T any](r *RequestData) T {
 
 // GetDataLink is the //piko:link sibling for GetData.
 //
-// The interpreter dispatches to this function when compiling
-// piko.GetData[T](r) in a .pk file whose T is a user-defined struct.
-// The first argument is the instantiated T supplied by the
-// interpreter; the remaining signature mirrors GetData's non-generic
-// parameters.
+// The interpreter dispatches to GetDataLink when compiling piko.GetData[T](r)
+// in a .pk file whose T is a user-defined struct. The first argument is the
+// instantiated T supplied by the interpreter; the remaining signature mirrors
+// GetData's non-generic parameters.
 //
 // Takes tType (reflect.Type) which is the instantiated type the user
 // wrote inside the brackets (e.g. Post from piko.GetData[Post](r)).
@@ -262,8 +261,8 @@ func DefaultNavigationConfig() NavigationConfig {
 
 // GetAllCollectionItems retrieves all items from a static collection.
 //
-// This function gets all items in a collection without their content ASTs,
-// suitable for building navigation, sitemaps, or indexes.
+// Retrieves all items in a collection without their content ASTs, suitable for
+// building navigation, sitemaps, or indexes.
 //
 // Takes collectionName (string) which specifies the collection to retrieve.
 //
@@ -276,10 +275,10 @@ func GetAllCollectionItems(collectionName string) ([]map[string]any, error) {
 // BuildNavigationFromMetadata constructs hierarchical navigation from
 // collection metadata.
 //
-// This function takes metadata maps (from GetAllCollectionItems) and builds
-// navigation trees based on the "Navigation" field in each item's metadata.
+// Takes metadata maps (from GetAllCollectionItems) and builds navigation trees
+// based on the "Navigation" field in each item's metadata.
 //
-// The navigation metadata should be in this structure:
+// The navigation metadata should follow the layout below:
 // metadata["Navigation"] = NavigationMetadata with Groups["sidebar"], etc.
 //
 // Takes items ([]map[string]interface{}) which is a slice of metadata maps
@@ -314,8 +313,8 @@ func BuildNavigationFromMetadata(ctx context.Context, items []map[string]any, co
 // SearchCollection performs fuzzy text search on collection data.
 // Results are ranked by relevance score (0.0 - 1.0).
 //
-// This function searches both static (markdown) and dynamic (CMS) collections
-// with configurable fuzzy matching.
+// Searches both static (markdown) and dynamic (CMS) collections with
+// configurable fuzzy matching.
 //
 // Takes r (*RequestData) which provides the request context.
 // Takes collectionName (string) which identifies the collection to

@@ -19,7 +19,9 @@
 package driver_markdown
 
 import (
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -58,11 +60,12 @@ func TestPathAnalyser_Analyse_LanguageFirstPattern(t *testing.T) {
 			expectedURL:      "/fr/blog/my-post",
 		},
 		{
-			name:             "German post with nested path",
-			relativePath:     "de/api/intro.md",
-			collectionName:   "docs",
-			expectedLocale:   "de",
-			expectedSlug:     "intro",
+			name:           "German post with nested path",
+			relativePath:   "de/api/intro.md",
+			collectionName: "docs",
+			expectedLocale: "de",
+
+			expectedSlug:     "api/intro",
 			expectedSegments: []string{"docs", "api"},
 			expectedTransKey: "docs/api/intro",
 			expectedURL:      "/de/docs/api/intro",
@@ -133,7 +136,7 @@ func TestPathAnalyser_Analyse_SuffixPattern(t *testing.T) {
 			relativePath:     "api/intro.de.md",
 			collectionName:   "docs",
 			expectedLocale:   "de",
-			expectedSlug:     "intro",
+			expectedSlug:     "api/intro",
 			expectedTransKey: "docs/api/intro",
 			expectedURL:      "/de/docs/api/intro",
 		},
@@ -237,7 +240,7 @@ func TestPathAnalyser_Analyse_NoLocale(t *testing.T) {
 			relativePath:     "guides/getting-started.md",
 			collectionName:   "docs",
 			expectedLocale:   "en",
-			expectedSlug:     "getting-started",
+			expectedSlug:     "guides/getting-started",
 			expectedTransKey: "docs/guides/getting-started",
 			expectedURL:      "/docs/guides/getting-started",
 		},
@@ -275,10 +278,11 @@ func TestPathAnalyser_Analyse_SpecialCases(t *testing.T) {
 		expectedURL      string
 	}{
 		{
-			name:             "Uppercase filename gets lowercased slug",
-			relativePath:     "blog/MY-POST.md",
-			expectedLocale:   "en",
-			expectedSlug:     "my-post",
+			name:           "Uppercase filename gets lowercased slug",
+			relativePath:   "blog/MY-POST.md",
+			expectedLocale: "en",
+
+			expectedSlug:     "blog/my-post",
 			expectedTransKey: "blog/my-post",
 			expectedURL:      "/blog/my-post",
 		},
@@ -286,7 +290,7 @@ func TestPathAnalyser_Analyse_SpecialCases(t *testing.T) {
 			name:             "Date-prefixed filename",
 			relativePath:     "blog/2024-01-15-announcement.md",
 			expectedLocale:   "en",
-			expectedSlug:     "2024-01-15-announcement",
+			expectedSlug:     "blog/2024-01-15-announcement",
 			expectedTransKey: "blog/2024-01-15-announcement",
 			expectedURL:      "/blog/2024-01-15-announcement",
 		},
@@ -422,6 +426,167 @@ func TestPathAnalyser_CaseInsensitiveLocale(t *testing.T) {
 
 func equalFold(a, b string) bool {
 	return len(a) == len(b) && (a == b || len(a) > 0 && a[0]|0x20 == b[0]|0x20)
+}
+
+func TestSanitiseRelativePath(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "empty", in: "", want: ""},
+		{name: "no traversal", in: "blog/post.md", want: "blog/post.md"},
+		{name: "leading dotdot", in: "../escape.md", want: "escape.md"},
+		{name: "embedded dotdot", in: "blog/../etc/passwd.md", want: "blog/etc/passwd.md"},
+		{name: "dot segments", in: "./blog/./post.md", want: "blog/post.md"},
+		{name: "nul byte stripped", in: "blog/po\x00st.md", want: "blog/post.md"},
+		{name: "multiple dotdot", in: "../../etc/passwd.md", want: "etc/passwd.md"},
+		{name: "windows backslash", in: "blog\\..\\escape.md", want: "blog/escape.md"},
+		{name: "double slash", in: "blog//post.md", want: "blog/post.md"},
+		{name: "trailing slash", in: "blog/post/", want: "blog/post"},
+		{name: "leading slash", in: "/blog/post.md", want: "blog/post.md"},
+		{name: "control chars", in: "blog/po\x01st\x1Fname.md", want: "blog/postname.md"},
+		{name: "del char", in: "blog/po\x7Fst.md", want: "blog/post.md"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, sanitiseRelativePath(tt.in))
+		})
+	}
+}
+
+func TestBuildItemSlug(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		dirParts  []string
+		basename  string
+		wantSlug  string
+		wantBytes int
+	}{
+		{name: "flat file", dirParts: nil, basename: "post", wantSlug: "post"},
+		{name: "nested file", dirParts: []string{"blog"}, basename: "post", wantSlug: "blog/post"},
+		{name: "deeply nested", dirParts: []string{"a", "b", "c"}, basename: "post", wantSlug: "a/b/c/post"},
+		{name: "root index drops basename", dirParts: nil, basename: "index", wantSlug: "index"},
+		{name: "nested index drops basename", dirParts: []string{"tutorials"}, basename: "index", wantSlug: "tutorials"},
+		{name: "deep nested index", dirParts: []string{"docs", "guides"}, basename: "index", wantSlug: "docs/guides"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.wantSlug, buildItemSlug(tt.dirParts, tt.basename))
+		})
+	}
+}
+
+func TestBuildItemSlug_DepthCap(t *testing.T) {
+	t.Parallel()
+
+	parts := make([]string, maxSlugDepth+10)
+	for i := range parts {
+		parts[i] = "x"
+	}
+	got := buildItemSlug(parts, "leaf")
+	want := strings.Repeat("x/", maxSlugDepth) + "leaf"
+	assert.Equal(t, want, got)
+}
+
+func TestBuildItemSlug_LengthCap(t *testing.T) {
+	t.Parallel()
+
+	long := strings.Repeat("a", maxSlugBytes+100)
+	got := buildItemSlug(nil, long)
+	assert.LessOrEqual(t, len(got), maxSlugBytes)
+}
+
+func TestCapSlugBytes_RuneBoundary(t *testing.T) {
+	t.Parallel()
+
+	prefix := strings.Repeat("a", maxSlugBytes-1)
+	withMultibyte := prefix + "é"
+	got := capSlugBytes(withMultibyte)
+	assert.True(t, utf8.ValidString(got), "result must be valid UTF-8")
+	assert.LessOrEqual(t, len(got), maxSlugBytes)
+}
+
+func TestPathAnalyser_Analyse_IndexSlug(t *testing.T) {
+	t.Parallel()
+
+	analyser := newPathAnalyser([]string{"en"}, "en")
+
+	tests := []struct {
+		name           string
+		relativePath   string
+		collectionName string
+		wantSlug       string
+		wantURL        string
+	}{
+		{
+			name:           "root index",
+			relativePath:   "index.md",
+			collectionName: "",
+			wantSlug:       "index",
+			wantURL:        "/",
+		},
+		{
+			name:           "collection root index",
+			relativePath:   "index.md",
+			collectionName: "docs",
+			wantSlug:       "index",
+			wantURL:        "/docs/",
+		},
+		{
+			name:           "nested index",
+			relativePath:   "tutorials/index.md",
+			collectionName: "docs",
+			wantSlug:       "tutorials",
+			wantURL:        "/docs/tutorials/",
+		},
+		{
+			name:           "deep nested index",
+			relativePath:   "guides/setup/index.md",
+			collectionName: "docs",
+			wantSlug:       "guides/setup",
+			wantURL:        "/docs/guides/setup/",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := analyser.Analyse(tt.relativePath, tt.collectionName)
+			assert.Equal(t, tt.wantSlug, result.slug)
+			assert.Equal(t, tt.wantURL, result.url)
+		})
+	}
+}
+
+func TestPathAnalyser_Analyse_RejectsTraversal(t *testing.T) {
+	t.Parallel()
+
+	analyser := newPathAnalyser([]string{"en"}, "en")
+
+	result := analyser.Analyse("../escape.md", "blog")
+	assert.NotContains(t, result.slug, "..")
+	assert.Equal(t, "escape", result.slug)
+
+	result = analyser.Analyse("blog/../../escape.md", "blog")
+	assert.NotContains(t, result.slug, "..")
+}
+
+func TestPathAnalyser_Analyse_StripsNulByte(t *testing.T) {
+	t.Parallel()
+
+	analyser := newPathAnalyser([]string{"en"}, "en")
+
+	result := analyser.Analyse("blog/po\x00st.md", "blog")
+	assert.NotContains(t, result.slug, "\x00")
 }
 
 func TestIndexURLGeneration(t *testing.T) {

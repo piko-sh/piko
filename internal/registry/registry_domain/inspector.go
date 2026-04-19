@@ -63,7 +63,7 @@ type ArtefactListItem struct {
 }
 
 // RegistryInspector provides read-only access to registry state.
-// The monitoring service uses this interface to show artefact and variant
+// The monitoring service uses RegistryInspector to show artefact and variant
 // data in the TUI without needing direct database access.
 type RegistryInspector interface {
 	// ListArtefactSummary returns artefact counts grouped by

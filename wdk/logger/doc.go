@@ -19,11 +19,10 @@
 // Package logger provides the public API for Piko's structured,
 // context-aware logging system.
 //
-// This package is the primary entry point for all logging in Piko
-// applications. It re-exports core types and functions from the
-// internal logger implementation and provides convenience methods
-// for configuring output handlers, integrations, and
-// OpenTelemetry tracing.
+// Acts as the primary entry point for all logging in Piko applications,
+// re-exporting core types and functions from the internal logger
+// implementation and providing convenience methods for configuring output
+// handlers, integrations, and OpenTelemetry tracing.
 //
 // # Getting started
 //

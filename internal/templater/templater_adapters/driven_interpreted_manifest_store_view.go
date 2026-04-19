@@ -134,14 +134,6 @@ func findErrorPageTier(
 	return best, true
 }
 
-// GetCollectionFallbackRoutes is not supported in interpreted mode. Static
-// collection expansion only happens during a compiled build.
-//
-// Returns nil always.
-func (*interpretedManifestStoreView) GetCollectionFallbackRoutes() []templater_domain.CollectionFallbackRouteView {
-	return nil
-}
-
 // ListPreviewEntries returns all entries with a Preview function from the
 // interpreted runner's in-memory cache.
 //

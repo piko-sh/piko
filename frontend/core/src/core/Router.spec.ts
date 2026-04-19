@@ -78,6 +78,7 @@ function createMockLoader(): LoaderUI {
         show: vi.fn(),
         hide: vi.fn(),
         setProgress: vi.fn(),
+        headersReceived: vi.fn(),
         destroy: vi.fn(),
     };
 }
@@ -822,7 +823,7 @@ describe('Router', () => {
     });
 
     describe('loader progress', () => {
-        it('should pass onProgress to fetchClient that updates the loader', async () => {
+        it('should map onProgress into the 50–100% download half of the bar', async () => {
             vi.mocked(fetchClient.get).mockImplementation(async (_url: string, options?: FetchClientOptions) => {
                 options?.onProgress?.(50, 100);
                 return [true, VALID_HTML];
@@ -830,7 +831,29 @@ describe('Router', () => {
 
             await router.navigateTo('http://localhost/page');
 
-            expect(loader.setProgress).toHaveBeenCalledWith(50);
+            expect(loader.setProgress).toHaveBeenCalledWith(75);
+        });
+
+        it('should fire onHeadersReceived on the loader when fetch passes headers', async () => {
+            vi.mocked(fetchClient.get).mockImplementation(async (_url: string, options?: FetchClientOptions) => {
+                options?.onHeadersReceived?.();
+                return [true, VALID_HTML];
+            });
+
+            await router.navigateTo('http://localhost/page');
+
+            expect(loader.headersReceived).toHaveBeenCalled();
+        });
+
+        it('should skip setProgress when total is zero (no Content-Length)', async () => {
+            vi.mocked(fetchClient.get).mockImplementation(async (_url: string, options?: FetchClientOptions) => {
+                options?.onProgress?.(123, 0);
+                return [true, VALID_HTML];
+            });
+
+            await router.navigateTo('http://localhost/page');
+
+            expect(loader.setProgress).not.toHaveBeenCalled();
         });
     });
 

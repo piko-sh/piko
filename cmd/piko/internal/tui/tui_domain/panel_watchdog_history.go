@@ -305,7 +305,7 @@ func (p *WatchdogHistoryPanel) renderRows(width, height int) []string {
 	rows := make([]string, 0, height)
 	for i := startIdx; i < endIdx; i++ {
 		entry := entries[i]
-		stopLabel := "—"
+		stopLabel := "-"
 		if !entry.StoppedAt.IsZero() {
 			stopLabel = entry.StoppedAt.Format("2006-01-02 15:04:05")
 		}

@@ -22,11 +22,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
 	_ "modernc.org/sqlite" // register "sqlite" database/sql driver
+
+	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
@@ -42,9 +43,6 @@ const (
 	defaultMmapSize = 64 * 1024 * 1024
 
 	defaultJournalSizeLimit = 32 * 1024 * 1024
-
-	// directoryPermissions is the file mode used when creating database directories.
-	directoryPermissions = 0o750
 
 	poolSize = 1
 
@@ -90,9 +88,11 @@ func Open(path string, config Config) (*sql.DB, error) {
 	}
 
 	if directory := filepath.Dir(path); directory != "." && directory != "" {
-		if err := os.MkdirAll(directory, directoryPermissions); err != nil {
+		sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
+		if err != nil {
 			return nil, fmt.Errorf("db_driver_sqlite_nocgo: creating directory %q: %w", directory, err)
 		}
+		_ = sandbox.Close()
 	}
 
 	busyTimeout := defaultBusyTimeoutMs

@@ -20,6 +20,7 @@ package linguistics_phonetic_dutch
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -146,4 +147,16 @@ func TestEncode_Words(t *testing.T) {
 			assert.LessOrEqual(t, len(result), DefaultMaxLength)
 		})
 	}
+}
+
+func TestEncode_TruncationStaysValidUTF8(t *testing.T) {
+	t.Parallel()
+
+	enc, err := NewWithMaxLength(3)
+	require.NoError(t, err)
+
+	result := enc.Encode("SCHRIJVEN")
+
+	assert.True(t, utf8.ValidString(result), "result should be valid UTF-8")
+	assert.LessOrEqual(t, utf8.RuneCountInString(result), 3, "rune count must respect maxLength")
 }

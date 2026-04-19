@@ -31,6 +31,7 @@ import (
 	"sync"
 	"time"
 
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 )
@@ -133,7 +134,7 @@ type Controller struct {
 
 	// cancelTimer cancels the context passed to the timer goroutine so it
 	// does not call Disable after Close.
-	cancelTimer context.CancelFunc
+	cancelTimer context.CancelCauseFunc
 
 	// snapshotSemaphore limits concurrent snapshot captures.
 	snapshotSemaphore chan struct{}
@@ -253,7 +254,7 @@ func (c *Controller) Disable(ctx context.Context) (bool, error) {
 		c.timer = nil
 	}
 	if c.cancelTimer != nil {
-		c.cancelTimer()
+		c.cancelTimer(errors.New("profiler controller shutdown"))
 		c.cancelTimer = nil
 	}
 
@@ -348,7 +349,7 @@ func (c *Controller) CaptureProfile(ctx context.Context, profileType string, dur
 }
 
 // extendSession extends a running profiling session's deadline. The caller
-// must hold c.mu and must unlock it after this method returns.
+// must hold c.mu and must unlock it after extendSession returns.
 //
 // Takes duration (time.Duration) which is the new session duration.
 //
@@ -497,9 +498,10 @@ func (c *Controller) handleEnableRace(
 //
 // Takes duration (time.Duration) which is the delay before auto-disable fires.
 func (c *Controller) startAutoDisableTimer(duration time.Duration) {
-	timerCtx, timerCancel := context.WithCancel(context.Background())
+	timerCtx, timerCancel := context.WithCancelCause(context.Background())
 	c.cancelTimer = timerCancel
 	c.timer = time.AfterFunc(duration, func() {
+		defer goroutine.RecoverPanic(timerCtx, "profiler.autoDisableTimer")
 		if timerCtx.Err() != nil {
 			return
 		}

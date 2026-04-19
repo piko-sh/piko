@@ -605,3 +605,26 @@ func TestDiskSnapshot_SaveEmptyEntries(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, loaded)
 }
+
+func TestDiskSnapshot_Save_SyncsParentDirectory(t *testing.T) {
+	snapshot, _ := newTestSnapshot(t, false)
+	ctx := context.Background()
+
+	entries := []wal_domain.Entry[string, testValue]{
+		{
+			Operation: wal_domain.OpSet,
+			Key:       "durable",
+			Value:     testValue{Name: "stays-after-fsync", Count: 7},
+			Timestamp: time.Now().UnixNano(),
+		},
+	}
+
+	require.NoError(t, snapshot.Save(ctx, entries))
+	assert.True(t, snapshot.Exists())
+
+	loaded, err := collectEntries(snapshot.Load(ctx))
+	require.NoError(t, err)
+	require.Len(t, loaded, 1)
+	assert.Equal(t, "durable", loaded[0].Key)
+	assert.Equal(t, "stays-after-fsync", loaded[0].Value.Name)
+}

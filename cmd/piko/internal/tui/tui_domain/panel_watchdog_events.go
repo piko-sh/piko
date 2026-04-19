@@ -483,8 +483,7 @@ func (p *WatchdogEventsPanel) subscribeCmd() tea.Cmd {
 		p.subscription.Cancel()
 	}
 	since := p.clock.Now().Add(-eventsBackfillWindow)
-	sub := p.dispatcher.Subscribe(EventFilter{}, since)
-	p.subscription = &sub
+	p.subscription = new(p.dispatcher.Subscribe(EventFilter{}, since))
 	p.subscriptionMu.Unlock()
 	return p.waitForNextEventCmd()
 }

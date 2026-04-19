@@ -34,7 +34,7 @@ import (
 )
 
 // RenderPageParams holds all values needed to render a page or partial.
-// This struct groups related fields to reduce the number of function arguments.
+// Groups related fields to reduce the number of function arguments.
 type RenderPageParams struct {
 	// Writer is the destination for the rendered output.
 	Writer io.Writer
@@ -127,13 +127,6 @@ type ManifestStoreView interface {
 	// Returns bool which is true if a matching error page was found.
 	FindErrorPage(statusCode int, requestPath string) (PageEntryView, bool)
 
-	// GetCollectionFallbackRoutes returns the original dynamic route patterns
-	// from static collections. The daemon registers these as low-priority
-	// fallback routes that return "collection item not found" error pages.
-	//
-	// Returns []CollectionFallbackRouteView which contains the route patterns.
-	GetCollectionFallbackRoutes() []CollectionFallbackRouteView
-
 	// ListPreviewEntries returns all manifest entries that have a Preview
 	// function defined. Used by the dev API to build the preview catalogue.
 	//
@@ -154,15 +147,6 @@ type PreviewCatalogueEntry struct {
 
 	// Scenarios holds the preview scenarios returned by the Preview function.
 	Scenarios []templater_dto.PreviewScenario
-}
-
-// CollectionFallbackRouteView holds a static collection's original dynamic
-// route pattern. The daemon uses this to register a fallback route that
-// returns a proper "collection item not found" error page instead of a
-// generic 404.
-type CollectionFallbackRouteView struct {
-	// RoutePatterns maps locale identifiers to Chi-compatible route patterns.
-	RoutePatterns map[string]string
 }
 
 // ManifestRunnerPort provides access to the compiled template manifest,

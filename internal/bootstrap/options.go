@@ -99,8 +99,7 @@ type CSSResetOption func(*cssResetConfig)
 func WithPort(port int) Option {
 	return func(c *Container) {
 		overrides := c.ensureOverrides()
-		s := strconv.Itoa(port)
-		overrides.Network.Port = &s
+		overrides.Network.Port = new(strconv.Itoa(port))
 	}
 }
 
@@ -383,8 +382,7 @@ func WithConfigResolvers(resolvers ...config_domain.Resolver) Option {
 // This gives load balancers time to deregister the instance during rolling
 // deploys.
 //
-// Default: 0s in dev mode, 3s in production. Override with this option or via
-// healthProbe.shutdownDrainDelay in piko.yaml.
+// Default: 0s in dev mode, 3s in production.
 //
 // Takes delay (time.Duration) which specifies the drain delay duration.
 //
@@ -392,18 +390,6 @@ func WithConfigResolvers(resolvers ...config_domain.Resolver) Option {
 func WithShutdownDrainDelay(delay time.Duration) Option {
 	return func(c *Container) {
 		c.ensureOverrides().HealthProbe.ShutdownDrainDelay = new(int(delay.Seconds()))
-	}
-}
-
-// WithServerConfigDefaults sets the default server settings for a Container.
-//
-// Takes serverConfigDefaults (*config.ServerConfig) which provides the default
-// values for server settings.
-//
-// Returns Option which applies the server defaults to a Container.
-func WithServerConfigDefaults(serverConfigDefaults *config.ServerConfig) Option {
-	return func(c *Container) {
-		c.configServerDefaults = serverConfigDefaults
 	}
 }
 
@@ -862,6 +848,25 @@ func WithWatchdogProfileDirectory(directory string) WatchdogOption {
 func WithWatchdogDeltaProfiling() WatchdogOption {
 	return func(c *monitoring_domain.WatchdogConfig) {
 		c.DeltaProfilingEnabled = true
+	}
+}
+
+// WithWatchdogIncludeGoroutineStacks toggles per-goroutine stack capture.
+// When enabled, each goroutine profile firing also writes a human-readable
+// .stacks.txt sidecar containing the full stack of every goroutine
+// (pprof debug=2), alongside the existing aggregated .pb.gz binary profile.
+//
+// Useful when investigating goroutine leaks where you need to know the exact
+// call site or closure-captured arguments (e.g. which channel a publisher is
+// blocked on). Disabled by default because the sidecar can be tens of
+// megabytes per dump for processes with many thousand goroutines.
+//
+// Takes enabled (bool) which toggles the feature.
+//
+// Returns WatchdogOption which configures the stacks sidecar capture.
+func WithWatchdogIncludeGoroutineStacks(enabled bool) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.IncludeGoroutineStacks = enabled
 	}
 }
 

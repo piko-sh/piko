@@ -281,7 +281,7 @@ type OrchestratorService interface {
 	//
 	// Takes ctx (context.Context) which carries logging context.
 	// Takes name (string) which identifies the executor.
-	// Takes executor (TaskExecutor) which handles tasks of this type.
+	// Takes executor (TaskExecutor) which handles tasks of the named kind.
 	//
 	// Returns error when registration fails or the name is already taken.
 	RegisterExecutor(ctx context.Context, name string, executor TaskExecutor) error

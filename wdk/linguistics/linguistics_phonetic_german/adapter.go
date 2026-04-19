@@ -78,7 +78,7 @@ var charHandlers = [latinAlphabetSize]charHandler{
 // The Cologne phonetics algorithm was published in 1969 by Hans Joachim Postel
 // and is optimised for matching German names and words.
 type Encoder struct {
-	// maxLength is the maximum number of characters in the output code.
+	// maxLength is the maximum length in runes of the output code.
 	maxLength int
 }
 
@@ -114,11 +114,7 @@ func (e *Encoder) Encode(word string) string {
 	code = removeDuplicates(code)
 	code = removeInternalZeros(code)
 
-	if len(code) > e.maxLength {
-		code = code[:e.maxLength]
-	}
-
-	return string(code)
+	return linguistics_domain.TruncateRunes(string(code), e.maxLength)
 }
 
 // GetLanguage returns the language this encoder is set up for.

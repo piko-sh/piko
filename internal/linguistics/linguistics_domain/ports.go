@@ -37,7 +37,7 @@ type AnalyserPort interface {
 	AnalyseToStrings(text string) []string
 
 	// AnalyseToStemmed returns the stemmed forms of tokens from the given text.
-	// This method is only available in Smart mode.
+	// Only available in Smart mode.
 	//
 	// Takes text (string) which is the input to analyse.
 	//
@@ -45,7 +45,7 @@ type AnalyserPort interface {
 	AnalyseToStemmed(text string) []string
 
 	// AnalyseToPhonetic returns the phonetic codes for each token in the text.
-	// This method only works in Smart mode.
+	// Only works in Smart mode.
 	//
 	// Takes text (string) which is the input to analyse.
 	//

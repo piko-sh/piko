@@ -153,8 +153,8 @@ func (*formatterServiceImpl) detectFileFormat(source []byte, opts *FormatOptions
 
 // formatPK formats a Piko Single File Component (.pk) file.
 //
-// A .pk file contains template, script, style, and i18n blocks. This method
-// parses the file, formats each block, and reassembles them.
+// A .pk file contains template, script, style, and i18n blocks. Parses the file,
+// formats each block, and reassembles them.
 //
 // Takes source ([]byte) which contains the raw .pk file content.
 // Takes opts (*FormatOptions) which specifies formatting behaviour.

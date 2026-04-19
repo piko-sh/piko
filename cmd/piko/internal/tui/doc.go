@@ -55,11 +55,13 @@
 //     (default 2s)
 //   - [WithTheme]: select UI theme ("default" or "minimal")
 //   - [WithTitle]: set the TUI title bar text
-//   - [WithConfig]: apply settings from a piko.yaml config file
+//   - [WithConfig]: apply settings from a Config value
 //
-// Configuration can also be loaded from a piko.yaml file using
-// [LoadConfig], with environment variable overrides via
-// PIKO_TUI_* variables.
+// Configuration can also be loaded from a tui.yaml file using
+// [LoadConfig], which checks ./tui.yaml and
+// $HOME/.config/piko/tui.yaml. PIKO_TUI_* environment variables
+// override file values. The TUI's loader uses the same generic
+// config_domain machinery exposed at piko.sh/piko/wdk/config.
 //
 // # Custom panels and providers
 //

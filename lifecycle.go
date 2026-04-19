@@ -29,9 +29,9 @@ import (
 // LifecycleComponent defines the contract for components that require
 // lifecycle management.
 //
-// Components implementing this interface have their OnStart method called
-// during server startup (before accepting HTTP traffic) and their OnStop
-// method called during graceful shutdown.
+// Components implementing LifecycleComponent have their OnStart method called
+// during server startup (before accepting HTTP traffic) and their OnStop method
+// called during graceful shutdown.
 //
 // Lifecycle components are executed in the order they are registered. During
 // shutdown, they are stopped in reverse order (last registered, first
@@ -111,7 +111,7 @@ type LifecycleStartTimeout interface {
 //
 // Probes are called periodically by the health monitoring system and exposed
 // via HTTP endpoints. Components can implement both LifecycleComponent and
-// this interface to get both lifecycle management and health monitoring.
+// LifecycleHealthProbe to get both lifecycle management and health monitoring.
 //
 // Example implementation:
 //

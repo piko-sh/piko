@@ -121,9 +121,9 @@ func (*attributeEmitter) buildDirectWriterAttributeIfNotNil(nodeVar *goast.Ident
 	return []goast.Stmt{ifStmt}
 }
 
-// isExpressionIntrinsicallySafe recursively analyses an AST expression to
-// determine if it can only produce XSS-safe strings (no HTML special
-// characters). This is used to optimise HTML escaping for p-key attributes.
+// isExpressionIntrinsicallySafe recursively analyses an AST expression to determine
+// if it can only produce XSS-safe strings (no HTML special characters). Used to
+// optimise HTML escaping for p-key attributes.
 //
 // Safe expressions include:
 //   - String literals (static text)

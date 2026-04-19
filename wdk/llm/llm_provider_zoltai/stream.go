@@ -35,8 +35,10 @@ import (
 // Returns <-chan llm_dto.StreamEvent which yields word-by-word chunks.
 // Returns error which is always nil.
 //
-// Safe for concurrent use. Spawns a background goroutine that closes the
-// returned channel when streaming completes.
+// Safe for concurrent use. Spawns a background goroutine tracked by
+// streamWaitGroup so Close can wait for it to drain. The goroutine receives a
+// merged context that is cancelled when either the caller cancels or the
+// provider is closed.
 func (p *zoltaiProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	streamCount.Add(ctx, 1)
 
@@ -49,15 +51,17 @@ func (p *zoltaiProvider) Stream(ctx context.Context, request *llm_dto.Completion
 	full := p.config.FormatFortune(fortune)
 
 	events := make(chan llm_dto.StreamEvent)
+	streamContext := p.streamContext(ctx)
 
+	p.streamWaitGroup.Add(1)
 	if len(request.Tools) > 0 {
-		go processToolStream(ctx, model, request.Tools[0], len(request.Messages), events)
+		go p.runToolStream(streamContext, model, request.Tools[0], len(request.Messages), events)
 	} else {
 		content := full
 		if request.ResponseFormat != nil {
 			content = (*zoltaiProvider).formatStructuredOutput(nil, full, request.ResponseFormat)
 		}
-		go p.processStream(ctx, model, content, len(request.Messages), events)
+		go p.processStream(streamContext, model, content, len(request.Messages), events)
 	}
 
 	return events, nil
@@ -71,7 +75,8 @@ func (p *zoltaiProvider) Stream(ctx context.Context, request *llm_dto.Completion
 // Takes full (string) which is the full text to stream.
 // Takes msgCount (int) which is the number of input messages for usage stats.
 // Takes events (chan<- llm_dto.StreamEvent) which receives the stream events.
-func (*zoltaiProvider) processStream(ctx context.Context, model, full string, msgCount int, events chan<- llm_dto.StreamEvent) {
+func (p *zoltaiProvider) processStream(ctx context.Context, model, full string, msgCount int, events chan<- llm_dto.StreamEvent) {
+	defer p.streamWaitGroup.Done()
 	defer close(events)
 	defer goroutine.RecoverPanic(ctx, "llm.zoltaiProcessStream")
 
@@ -81,7 +86,7 @@ func (*zoltaiProvider) processStream(ctx context.Context, model, full string, ms
 		return
 	}
 
-	events <- llm_dto.NewDoneEvent(&llm_dto.CompletionResponse{
+	doneEvent := llm_dto.NewDoneEvent(&llm_dto.CompletionResponse{
 		Model: model,
 		Choices: []llm_dto.Choice{
 			{
@@ -98,6 +103,11 @@ func (*zoltaiProvider) processStream(ctx context.Context, model, full string, ms
 			TotalTokens:      msgCount*estimatedTokensPerMessage + totalWords,
 		},
 	})
+
+	select {
+	case events <- doneEvent:
+	case <-ctx.Done():
+	}
 }
 
 // streamLines splits text into lines and words and sends each
@@ -181,9 +191,25 @@ func sendChunk(ctx context.Context, model, token string, events chan<- llm_dto.S
 	case events <- llm_dto.NewChunkEvent(chunk):
 		return nil
 	case <-ctx.Done():
-		events <- llm_dto.NewErrorEvent(context.Cause(ctx))
+		select {
+		case events <- llm_dto.NewErrorEvent(context.Cause(ctx)):
+		default:
+		}
 		return context.Cause(ctx)
 	}
+}
+
+// runToolStream is the streamWaitGroup-aware wrapper around processToolStream
+// that releases its slot in the wait group when streaming finishes.
+//
+// Takes ctx (context.Context) which controls cancellation.
+// Takes model (string) which is the model name for responses.
+// Takes tool (llm_dto.ToolDefinition) which is the tool to call.
+// Takes msgCount (int) which is the number of input messages for usage stats.
+// Takes events (chan<- llm_dto.StreamEvent) which receives the stream events.
+func (p *zoltaiProvider) runToolStream(ctx context.Context, model string, tool llm_dto.ToolDefinition, msgCount int, events chan<- llm_dto.StreamEvent) {
+	defer p.streamWaitGroup.Done()
+	processToolStream(ctx, model, tool, msgCount, events)
 }
 
 // processToolStream sends a tool call via streaming deltas: one chunk with
@@ -200,7 +226,35 @@ func processToolStream(ctx context.Context, model string, tool llm_dto.ToolDefin
 	defer goroutine.RecoverPanic(ctx, "llm.zoltaiProcessToolStream")
 
 	callID := fmt.Sprintf("zoltai-call-%s", tool.Function.Name)
-	headerChunk := &llm_dto.StreamChunk{
+	headerChunk := buildToolHeaderChunk(model, tool, callID)
+
+	select {
+	case events <- llm_dto.NewChunkEvent(headerChunk):
+	case <-ctx.Done():
+		select {
+		case events <- llm_dto.NewErrorEvent(context.Cause(ctx)):
+		default:
+		}
+		return
+	}
+
+	doneEvent := buildToolDoneEvent(model, tool, callID, msgCount)
+	select {
+	case events <- doneEvent:
+	case <-ctx.Done():
+	}
+}
+
+// buildToolHeaderChunk constructs the streaming header chunk that announces a
+// tool call.
+//
+// Takes model (string) which is the model name to embed in the chunk.
+// Takes tool (llm_dto.ToolDefinition) which describes the tool being called.
+// Takes callID (string) which is the unique identifier for this call.
+//
+// Returns *llm_dto.StreamChunk which is the announce chunk for the tool call.
+func buildToolHeaderChunk(model string, tool llm_dto.ToolDefinition, callID string) *llm_dto.StreamChunk {
+	return &llm_dto.StreamChunk{
 		Model: model,
 		Delta: &llm_dto.MessageDelta{
 			ToolCalls: []llm_dto.ToolCallDelta{
@@ -216,16 +270,19 @@ func processToolStream(ctx context.Context, model string, tool llm_dto.ToolDefin
 			},
 		},
 	}
+}
 
-	select {
-	case events <- llm_dto.NewChunkEvent(headerChunk):
-	case <-ctx.Done():
-		events <- llm_dto.NewErrorEvent(context.Cause(ctx))
-		return
-	}
-
+// buildToolDoneEvent constructs the terminal done-event for a tool-call stream.
+//
+// Takes model (string) which is the model name to embed in the event.
+// Takes tool (llm_dto.ToolDefinition) which describes the tool that was called.
+// Takes callID (string) which is the unique identifier for this call.
+// Takes msgCount (int) which is the number of stream messages observed.
+//
+// Returns llm_dto.StreamEvent which is the done event terminating the stream.
+func buildToolDoneEvent(model string, tool llm_dto.ToolDefinition, callID string, msgCount int) llm_dto.StreamEvent {
 	finishReason := llm_dto.FinishReasonToolCalls
-	events <- llm_dto.NewDoneEvent(&llm_dto.CompletionResponse{
+	return llm_dto.NewDoneEvent(&llm_dto.CompletionResponse{
 		Model: model,
 		Choices: []llm_dto.Choice{
 			{

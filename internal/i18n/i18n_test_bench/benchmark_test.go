@@ -29,6 +29,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/i18n/i18n_adapters"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/wdk/maths"
@@ -40,7 +41,7 @@ type testCase struct {
 	path string
 }
 
-func setupBenchmark(b *testing.B, tc testCase) config.ServerConfig {
+func setupBenchmark(b *testing.B, tc testCase) bootstrap.ServerConfig {
 	b.Helper()
 	i18nDir := filepath.Join(tc.path, "i18n")
 	absI18nDir, err := filepath.Abs(i18nDir)
@@ -48,7 +49,7 @@ func setupBenchmark(b *testing.B, tc testCase) config.ServerConfig {
 
 	baseDir := filepath.Dir(absI18nDir)
 
-	serverConfig := config.ServerConfig{
+	serverConfig := bootstrap.ServerConfig{
 		I18nDefaultLocale: new("en"),
 		Paths: config.PathsConfig{
 			BaseDir:       &baseDir,

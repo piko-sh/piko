@@ -34,7 +34,7 @@ import (
 // Takes container (*Container) which provides access to the website
 // configuration and the resolver needed for alias expansion.
 func resolveFaviconSources(container *Container) {
-	favicons := container.config.WebsiteConfig.Favicons
+	favicons := container.websiteConfig.Favicons
 	if len(favicons) == 0 {
 		return
 	}

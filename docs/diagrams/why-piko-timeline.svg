@@ -1,0 +1,66 @@
+<svg viewBox="0 0 600 160" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="why-piko-timeline-title why-piko-timeline-desc">
+  <title id="why-piko-timeline-title">Piko's precipitation timeline from 2021 to 2026</title>
+  <desc id="why-piko-timeline-desc">A horizontal timeline with five milestones. Omega-centauri in 2021 in grey marked abandoned. Alpha-centauri in 2022 the video editor. Theta-centauri in 2023 where PKC components were born. Gossr in April 2025 where the PK file was born. Piko in August 2025 the name. Open source in 2026 as the current position.</desc>
+
+  
+  <line x1="40" y1="80" x2="560" y2="80" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+
+  
+  <g>
+    <circle cx="70" cy="80" r="6" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+    <line x1="70" y1="80" x2="70" y2="50" stroke="#475569" stroke-width="1.5" stroke-dasharray="2,2"/>
+    <text x="70" y="42" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600">omega-centauri</text>
+    <text x="70" y="28" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9" font-style="italic">abandoned</text>
+    <text x="70" y="104" text-anchor="middle" fill="#475569" font-family="monospace" font-size="10">2021</text>
+    <text x="70" y="118" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">cloud platform</text>
+  </g>
+
+  
+  <g>
+    <circle cx="170" cy="80" r="6" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+    <line x1="170" y1="80" x2="170" y2="50" stroke="#0F766E" stroke-width="1.5"/>
+    <text x="170" y="42" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10" font-weight="600">alpha-centauri</text>
+    <text x="170" y="104" text-anchor="middle" fill="#475569" font-family="monospace" font-size="10">2022</text>
+    <text x="170" y="118" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">video editor</text>
+  </g>
+
+  
+  <g>
+    <circle cx="270" cy="80" r="6" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+    <line x1="270" y1="80" x2="270" y2="50" stroke="#0F766E" stroke-width="1.5"/>
+    <text x="270" y="42" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10" font-weight="600">theta-centauri</text>
+    <text x="270" y="104" text-anchor="middle" fill="#475569" font-family="monospace" font-size="10">2023</text>
+    <text x="270" y="118" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">PKC born</text>
+  </g>
+
+  
+  <g>
+    <circle cx="380" cy="80" r="6" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+    <line x1="380" y1="80" x2="380" y2="50" stroke="#0F766E" stroke-width="1.5"/>
+    <text x="380" y="42" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10" font-weight="600">gossr</text>
+    <text x="380" y="104" text-anchor="middle" fill="#475569" font-family="monospace" font-size="10">Apr 2024</text>
+    <text x="380" y="118" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">PK file born</text>
+  </g>
+
+  
+  <g>
+    <circle cx="470" cy="80" r="6" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+    <line x1="470" y1="80" x2="470" y2="50" stroke="#0F766E" stroke-width="1.5"/>
+    <text x="470" y="42" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Piko</text>
+    <text x="470" y="104" text-anchor="middle" fill="#475569" font-family="monospace" font-size="10">Aug 2025</text>
+    <text x="470" y="118" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">named</text>
+  </g>
+
+  
+  <g>
+    <circle cx="540" cy="80" r="8" fill="#FFEE9C" stroke="#6BD5CC" stroke-width="1.5"/>
+    <line x1="540" y1="80" x2="540" y2="50" stroke="#0F766E" stroke-width="1.5"/>
+    <text x="540" y="42" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10" font-weight="600">open source</text>
+    <text x="540" y="104" text-anchor="middle" fill="#475569" font-family="monospace" font-size="10">2026</text>
+    <text x="540" y="118" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">now</text>
+  </g>
+
+  
+  <text x="300" y="148" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-style="italic">the toolkit was not designed; it precipitated</text>
+</svg>

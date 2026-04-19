@@ -568,7 +568,7 @@ func (*AttributeAnalyser) isActionCall(d *ast_domain.Directive) bool {
 // resolveActionCall handles an action call directive. Actions use the syntax
 // `action.namespace.Name($form)` and are recognised by the "action." prefix.
 //
-// This function transforms the directive to work with the code emitter by:
+// Transforms the directive to work with the code emitter by:
 //  1. Setting the modifier to "action" so the emitter treats it as a
 //     server action.
 //  2. Transforming the callee from a MemberExpr to an Identifier with

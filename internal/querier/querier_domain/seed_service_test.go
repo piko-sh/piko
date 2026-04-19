@@ -68,6 +68,74 @@ func TestSeedService_Apply_NoPendingSeeds(t *testing.T) {
 	assert.Equal(t, 0, applied)
 }
 
+func TestSeedService_Apply_AcquiresAndReleasesSeedLock(t *testing.T) {
+	reader := threeSeedFileReader()
+	var acquireCount, releaseCount, executeCount atomic.Int32
+	var heldDuringExecute atomic.Bool
+	executor := &mockSeedExecutor{
+		acquireSeedLockFn: func(_ context.Context) error {
+			acquireCount.Add(1)
+			heldDuringExecute.Store(true)
+			return nil
+		},
+		releaseSeedLockFn: func(_ context.Context) error {
+			heldDuringExecute.Store(false)
+			releaseCount.Add(1)
+			return nil
+		},
+		executeSeedFn: func(_ context.Context, _ querier_dto.SeedRecord) error {
+			require.True(t, heldDuringExecute.Load(),
+				"seed lock must be held while ExecuteSeed runs")
+			executeCount.Add(1)
+			return nil
+		},
+	}
+	svc := NewSeedService(executor, reader, "seeds")
+
+	applied, err := svc.Apply(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 3, applied)
+	assert.Equal(t, int32(1), acquireCount.Load(), "lock must be acquired exactly once per Apply")
+	assert.Equal(t, int32(1), releaseCount.Load(), "lock must be released exactly once per Apply")
+	assert.Equal(t, int32(3), executeCount.Load(), "all three pending seeds should execute under the lock")
+}
+
+func TestSeedService_Apply_ReleasesLockOnExecutionError(t *testing.T) {
+	reader := threeSeedFileReader()
+	var releaseCount atomic.Int32
+	expectedErr := errors.New("boom")
+	executor := &mockSeedExecutor{
+		releaseSeedLockFn: func(_ context.Context) error {
+			releaseCount.Add(1)
+			return nil
+		},
+		executeSeedFn: func(_ context.Context, _ querier_dto.SeedRecord) error {
+			return expectedErr
+		},
+	}
+	svc := NewSeedService(executor, reader, "seeds")
+
+	_, err := svc.Apply(context.Background())
+	require.Error(t, err)
+	assert.Equal(t, int32(1), releaseCount.Load(),
+		"lock must always be released, even when a seed fails")
+}
+
+func TestSeedService_Apply_SurfacesAcquireLockError(t *testing.T) {
+	reader := threeSeedFileReader()
+	expectedErr := errors.New("lock unavailable")
+	executor := &mockSeedExecutor{
+		acquireSeedLockFn: func(_ context.Context) error {
+			return expectedErr
+		},
+	}
+	svc := NewSeedService(executor, reader, "seeds")
+
+	_, err := svc.Apply(context.Background())
+	require.Error(t, err)
+	assert.ErrorIs(t, err, expectedErr)
+}
+
 func TestSeedService_Apply_ThreePendingSeeds(t *testing.T) {
 	reader := threeSeedFileReader()
 	var executedVersions []int64

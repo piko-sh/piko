@@ -214,13 +214,13 @@ import (
 )
 ```
 
-Use with the `is` attribute (the tag name is arbitrary):
+Invoke with `<piko:partial>` and the `is` attribute set to the import alias. Only `<piko:partial>` triggers partial invocation; an `is` attribute on any other tag is treated as a regular HTML attribute.
 
 ```piko
-<layout is="layout" :server.page_title="state.Title">
-  <header is="header" :server.user="state.CurrentUser"></header>
+<piko:partial is="layout" :server.page_title="state.Title">
+  <piko:partial is="header" :server.user="state.CurrentUser"></piko:partial>
   <main>{{ state.Content }}</main>
-</layout>
+</piko:partial>
 ```
 
 ## Style section

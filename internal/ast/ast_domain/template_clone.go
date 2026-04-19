@@ -197,18 +197,10 @@ func (n *TemplateNode) returnPooledResources() {
 
 // clearEventMaps removes all entries from the event and binding maps.
 func (n *TemplateNode) clearEventMaps() {
-	for k := range n.OnEvents {
-		delete(n.OnEvents, k)
-	}
-	for k := range n.CustomEvents {
-		delete(n.CustomEvents, k)
-	}
-	for k := range n.Binds {
-		delete(n.Binds, k)
-	}
-	for k := range n.TimelineDirectives {
-		delete(n.TimelineDirectives, k)
-	}
+	clear(n.OnEvents)
+	clear(n.CustomEvents)
+	clear(n.Binds)
+	clear(n.TimelineDirectives)
 }
 
 // Clone creates a shallow copy of the TextPart.

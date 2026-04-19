@@ -20,13 +20,13 @@ package llm_provider_gemini
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"google.golang.org/genai"
 
 	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/wdk/logger"
 )
@@ -61,6 +61,8 @@ type streamState struct {
 // Spawns a goroutine to process the stream. The channel is closed when
 // streaming completes or an error occurs.
 func (p *geminiProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.Stream")
+
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
 
@@ -77,13 +79,35 @@ func (p *geminiProvider) Stream(ctx context.Context, request *llm_dto.Completion
 		logger.Int("message_count", len(request.Messages)),
 	)
 
-	stream := p.client.Models.GenerateContentStream(ctx, modelName, contents, config)
+	streamContext := p.streamContext(ctx)
+	stream := p.client.Models.GenerateContentStream(streamContext, modelName, contents, config)
 
 	events := make(chan llm_dto.StreamEvent)
 
-	go p.processStream(ctx, stream, events, modelName)
+	p.streamWaitGroup.Add(1)
+	go p.processStream(streamContext, stream, events, modelName)
 
 	return events, nil
+}
+
+// streamContext returns a context that is cancelled when either the caller's
+// context is cancelled or the provider is closed.
+//
+// Takes ctx (context.Context) which is the caller's context.
+//
+// Returns context.Context which carries the merged cancellation signal.
+func (p *geminiProvider) streamContext(ctx context.Context) context.Context {
+	if p.closeContext == nil {
+		return ctx
+	}
+	merged, cancel := context.WithCancelCause(ctx)
+	stopWatch := context.AfterFunc(p.closeContext, func() {
+		cancel(context.Cause(p.closeContext))
+	})
+	context.AfterFunc(merged, func() {
+		stopWatch()
+	})
+	return merged
 }
 
 // streamIterFunc is the type signature for the range-based stream iterator
@@ -98,6 +122,7 @@ type streamIterFunc = func(func(*genai.GenerateContentResponse, error) bool)
 // events.
 // Takes model (string) which identifies the model for response metadata.
 func (p *geminiProvider) processStream(ctx context.Context, stream streamIterFunc, events chan<- llm_dto.StreamEvent, model string) {
+	defer p.streamWaitGroup.Done()
 	defer close(events)
 	defer goroutine.RecoverPanic(ctx, "llm.geminiProcessStream")
 	start := time.Now()
@@ -111,7 +136,10 @@ func (p *geminiProvider) processStream(ctx context.Context, stream streamIterFun
 
 		if err != nil {
 			streamErrorCount.Add(ctx, 1)
-			events <- llm_dto.NewErrorEvent(fmt.Errorf("gemini stream error: %w", err))
+			select {
+			case events <- llm_dto.NewErrorEvent(fmt.Errorf("gemini stream error: %w", err)):
+			case <-ctx.Done():
+			}
 			return
 		}
 
@@ -122,7 +150,10 @@ func (p *geminiProvider) processStream(ctx context.Context, stream streamIterFun
 
 	streamDuration.Record(ctx, float64(time.Since(start).Milliseconds()))
 
-	events <- llm_dto.NewDoneEvent(p.buildFinalResponse(state))
+	select {
+	case events <- llm_dto.NewDoneEvent(p.buildFinalResponse(state)):
+	case <-ctx.Done():
+	}
 }
 
 // processResponse processes a single response from the iterator.
@@ -250,7 +281,10 @@ func (*geminiProvider) sendEvent(ctx context.Context, events chan<- llm_dto.Stre
 	case events <- event:
 		return true
 	case <-ctx.Done():
-		events <- llm_dto.NewErrorEvent(context.Cause(ctx))
+		select {
+		case events <- llm_dto.NewErrorEvent(context.Cause(ctx)):
+		default:
+		}
 		return false
 	}
 }

@@ -20,13 +20,13 @@ package maths
 
 import (
 	"database/sql/driver"
-	"encoding/json"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 )
 
 // String returns the decimal value as a text string.
@@ -131,7 +131,7 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pikojson.Marshal(s)
+	return json.Marshal(s)
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
@@ -146,20 +146,20 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 		return errors.New("maths: UnmarshalJSON on nil Decimal pointer")
 	}
 
-	var numValue json.Number
-	if err := pikojson.Unmarshal(data, &numValue); err == nil {
+	var numValue stdjson.Number
+	if err := json.Unmarshal(data, &numValue); err == nil {
 		*d = NewDecimalFromString(numValue.String())
 		return d.err
 	}
 
 	var strValue string
-	if err := pikojson.Unmarshal(data, &strValue); err == nil {
+	if err := json.Unmarshal(data, &strValue); err == nil {
 		*d = NewDecimalFromString(strValue)
 		return d.err
 	}
 
 	var anyValue any
-	if err := pikojson.Unmarshal(data, &anyValue); err == nil {
+	if err := json.Unmarshal(data, &anyValue); err == nil {
 		switch v := anyValue.(type) {
 		case float64, float32, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 			*d = NewDecimalFromString(fmt.Sprint(v))

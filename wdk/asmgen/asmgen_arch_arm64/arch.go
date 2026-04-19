@@ -139,7 +139,7 @@ func (*ARM64Arch) LoadImmediate(e *asmgen.Emitter, value, destination string) {
 	inst5(e, "MOVD", value+", "+destination)
 }
 
-// Return emits a RET instruction.
+// Return emits a RET instruction. Returns from the current function.
 //
 // Takes e (*asmgen.Emitter) which is the output buffer.
 func (*ARM64Arch) Return(e *asmgen.Emitter) {

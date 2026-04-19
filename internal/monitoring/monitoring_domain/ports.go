@@ -37,7 +37,7 @@ import (
 // optional transport layer for remote access to monitoring data.
 type MonitoringService interface {
 	// Start begins background collection and, when a transport is configured,
-	// the transport server. This method blocks until the context is cancelled
+	// the transport server. Blocks until the context is cancelled
 	// or an error occurs.
 	//
 	// Takes ctx (context.Context) for cancellation.
@@ -147,7 +147,7 @@ type ResourceProvider interface {
 }
 
 // RenderCacheStatsProvider provides render cache statistics for the monitoring
-// service. The render registry adapter implements this interface so that
+// service. The render registry adapter implements RenderCacheStatsProvider so that
 // component and SVG cache sizes can be reported via the system stats endpoint.
 type RenderCacheStatsProvider interface {
 	// GetComponentCacheSize returns the number of entries in the component
@@ -318,7 +318,7 @@ type ProviderInfoInspector interface {
 // transport layer that handles network serving and
 // delegates to domain dependencies via MonitoringDeps.
 type TransportServer interface {
-	// Start begins serving on the configured address. This method blocks
+	// Start begins serving on the configured address. Blocks
 	// until the context is cancelled or an error occurs.
 	//
 	// Takes ctx (context.Context) for cancellation.
@@ -340,8 +340,8 @@ type TransportServer interface {
 // TransportFactory creates a TransportServer from the given dependencies and
 // configuration.
 //
-// Transport adapters (e.g. wdk/monitoring/monitoring_transport_grpc)
-// provide implementations of this function type.
+// Transport adapters (e.g. wdk/monitoring/monitoring_transport_grpc) provide
+// implementations of the function type.
 type TransportFactory func(deps MonitoringDeps, config TransportConfig) (TransportServer, error)
 
 // TransportConfig holds transport-agnostic server settings passed from the
@@ -361,9 +361,9 @@ type TransportConfig struct {
 
 // SpanProcessor receives span lifecycle events from the OTEL SDK.
 //
-// The domain layer passes these opaquely between adapters and the OTEL setup
-// without calling methods directly. Concrete implementations (e.g. from
-// otel/sdk/trace) satisfy this interface via structural typing.
+// The domain layer passes these opaquely between adapters and the OTEL setup without
+// calling methods directly. Concrete implementations (e.g. from otel/sdk/trace)
+// satisfy SpanProcessor via structural typing.
 type SpanProcessor interface {
 	// Shutdown flushes remaining spans and releases resources.
 	//
@@ -382,9 +382,9 @@ type SpanProcessor interface {
 
 // MetricReader provides collected metrics to the OTEL SDK.
 //
-// The domain layer passes these opaquely between adapters and the OTEL setup
-// without calling methods directly. Concrete implementations (e.g. from
-// otel/sdk/metric) satisfy this interface via structural typing.
+// The domain layer passes these opaquely between adapters and the OTEL setup without
+// calling methods directly. Concrete implementations (e.g. from otel/sdk/metric)
+// satisfy MetricReader via structural typing.
 type MetricReader interface {
 	// Shutdown flushes remaining metrics and releases resources.
 	//

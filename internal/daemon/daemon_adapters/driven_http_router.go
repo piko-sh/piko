@@ -43,6 +43,7 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/render/render_dto"
+	"piko.sh/piko/internal/route_pattern"
 	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
@@ -210,9 +211,9 @@ type errorPageRequest struct {
 	StatusCode int
 }
 
-// responseTracker wraps an http.ResponseWriter to track whether a response
-// body or status code has been written. This is used to determine whether it
-// is safe to render an error page after a rendering failure.
+// responseTracker wraps an http.ResponseWriter to track whether a response body
+// or status code has been written. Used to determine whether it is safe to render
+// an error page after a rendering failure.
 type responseTracker struct {
 	http.ResponseWriter
 
@@ -295,8 +296,6 @@ func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig
 		logger_domain.Int(logFieldActionCount, len(mountConfig.Actions)),
 	)
 
-	registerCollectionFallbackRoutes(ctx, mountConfig.Router, mountConfig.Deps, mountConfig.Store, mountConfig.SiteSettings)
-
 	mountActionRoutes(mountConfig)
 
 	mountConfig.Router.NotFound(func(w http.ResponseWriter, request *http.Request) {
@@ -322,11 +321,14 @@ func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig
 // registerPageRoute registers routes for a page entry with all its locale
 // variants.
 //
+// For each locale the route pattern is translated for chi (see
+// translateCatchAllForChi), wrapped in middleware, and registered for both
+// GET and POST.
+//
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes regDeps (*routeRegistrationDeps) which provides the router and
 // middleware dependencies.
-// Takes entry (templater_domain.PageEntryView) which specifies the page and
-// its route patterns.
+// Takes entry (templater_domain.PageEntryView) which is the page to register.
 func registerPageRoute(ctx context.Context, regDeps *routeRegistrationDeps, entry templater_domain.PageEntryView) {
 	_, l := logger_domain.From(ctx, log)
 	routePatterns := entry.GetRoutePatterns()
@@ -337,34 +339,136 @@ func registerPageRoute(ctx context.Context, regDeps *routeRegistrationDeps, entr
 	}
 
 	i18nStrategy := entry.GetI18nStrategy()
-
 	for locale, routePattern := range routePatterns {
-		l.Internal("Registering page route",
-			logger_domain.String(logFieldRoutePattern, routePattern),
-			logger_domain.String("locale", locale),
-			logger_domain.String("i18nStrategy", i18nStrategy),
-			logger_domain.String(logFieldOriginalPath, entry.GetOriginalPath()),
-			logger_domain.Bool("isE2EOnly", entry.GetIsE2EOnly()))
-
-		currentLocale := locale
-		currentPattern := routePattern
-
-		var baseHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-			pctx := daemon_dto.PikoRequestCtxFromContext(request.Context())
-			pctx.Locale = currentLocale
-			pctx.MatchedPattern = currentPattern
-			handlePageRequest(w, request, regDeps.deps, entry, regDeps.siteSettings, regDeps.store)
-		})
-
-		finalHandler := applyMiddlewares(baseHandler, entry, regDeps.cacheMiddleware, regDeps.authGuardConfig)
-
-		if entry.GetIsE2EOnly() && !regDeps.e2eModeEnabled {
-			finalHandler = e2eGuardMiddleware(finalHandler)
-		}
-
-		regDeps.router.Method(methodGET, routePattern, finalHandler)
-		regDeps.router.Method(methodPOST, routePattern, finalHandler)
+		registerPageRouteForLocale(ctx, regDeps, entry, locale, routePattern, i18nStrategy)
 	}
+}
+
+// registerPageRouteForLocale registers a single locale variant of a page
+// route.
+//
+// The chi pattern is derived from routePattern by translating any trailing
+// named regex catch-all into chi's native wildcard form, with the original
+// parameter name aliased back at request time.
+//
+// Takes ctx (context.Context) which carries the logger and trace context.
+// Takes regDeps (*routeRegistrationDeps) which provides the router and
+// middleware dependencies.
+// Takes entry (templater_domain.PageEntryView) which is the page being
+// registered.
+// Takes locale (string) which is the locale variant being registered.
+// Takes routePattern (string) which is the pre-translation route pattern.
+// Takes i18nStrategy (string) which is the strategy name used for logging.
+func registerPageRouteForLocale(
+	ctx context.Context,
+	regDeps *routeRegistrationDeps,
+	entry templater_domain.PageEntryView,
+	locale, routePattern, i18nStrategy string,
+) {
+	_, l := logger_domain.From(ctx, log)
+	chiPattern, aliasedParamName := translateCatchAllForChi(routePattern)
+
+	l.Internal("Registering page route",
+		logger_domain.String(logFieldRoutePattern, routePattern),
+		logger_domain.String(logFieldChiPattern, chiPattern),
+		logger_domain.String(logFieldLocale, locale),
+		logger_domain.String(logFieldI18nStrategy, i18nStrategy),
+		logger_domain.String(logFieldOriginalPath, entry.GetOriginalPath()),
+		logger_domain.Bool(logFieldIsE2EOnly, entry.GetIsE2EOnly()))
+
+	baseHandler := buildPageRouteHandler(regDeps, entry, locale, routePattern, aliasedParamName)
+	finalHandler := applyMiddlewares(baseHandler, entry, regDeps.cacheMiddleware, regDeps.authGuardConfig)
+	if entry.GetIsE2EOnly() && !regDeps.e2eModeEnabled {
+		finalHandler = e2eGuardMiddleware(finalHandler)
+	}
+
+	regDeps.router.Method(methodGET, chiPattern, finalHandler)
+	regDeps.router.Method(methodPOST, chiPattern, finalHandler)
+}
+
+// buildPageRouteHandler builds the base http.Handler for a page route.
+//
+// It captures the locale and route pattern on the request context and, when
+// the route had a named catch-all, copies chi's wildcard capture back under
+// the original parameter name so generated code can read it via r.PathParam.
+//
+// Takes regDeps (*routeRegistrationDeps) which provides the dependencies the
+// page handler needs.
+// Takes entry (templater_domain.PageEntryView) which is the page being
+// served.
+// Takes locale (string) which is set on the request context.
+// Takes routePattern (string) which is set as the matched pattern on the
+// request context.
+// Takes aliasedParamName (string) which is the named parameter that should
+// receive the chi wildcard alias, or "" to skip aliasing.
+//
+// Returns http.Handler which is the assembled base handler.
+func buildPageRouteHandler(
+	regDeps *routeRegistrationDeps,
+	entry templater_domain.PageEntryView,
+	locale, routePattern, aliasedParamName string,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		if aliasedParamName != "" {
+			aliasCatchAllParam(request, aliasedParamName)
+		}
+		pctx := daemon_dto.PikoRequestCtxFromContext(request.Context())
+		pctx.Locale = locale
+		pctx.MatchedPattern = routePattern
+		handlePageRequest(w, request, regDeps.deps, entry, regDeps.siteSettings, regDeps.store)
+	})
+}
+
+// aliasCatchAllParam copies chi's "*" URL param onto a named alias.
+//
+// Lets generated code read the catch-all value under its original parameter
+// name. When piko's mainRouter mounts the user router under its own "/*"
+// route both routers capture catch-all values into the same URLParams stack.
+// The parent's "*" (e.g. "docs/get-started/introduction") sits first and the
+// child's "*" (e.g. "get-started/introduction") sits second. We iterate
+// backwards so the alias reflects the most specific capture, which is the
+// user-router's value.
+//
+// Takes request (*http.Request) whose chi route context is mutated in place.
+// Takes aliasedParamName (string) which is the alias to receive the chi "*"
+// value.
+func aliasCatchAllParam(request *http.Request, aliasedParamName string) {
+	rctx := chi.RouteContext(request.Context())
+	if rctx == nil {
+		return
+	}
+	for i := len(rctx.URLParams.Keys) - 1; i >= 0; i-- {
+		if rctx.URLParams.Keys[i] == "*" {
+			rctx.URLParams.Keys = append(rctx.URLParams.Keys, aliasedParamName)
+			rctx.URLParams.Values = append(rctx.URLParams.Values, rctx.URLParams.Values[i])
+			return
+		}
+	}
+}
+
+// translateCatchAllForChi rewrites a piko-style named regex catch-all pattern.
+//
+// Patterns such as `/docs/{slug:.+}`, `/docs/{slug:.*}`, or `/docs/{slug:.+?}`
+// become chi's native wildcard form (`/docs/*`); the original named parameter
+// is returned so the runtime can alias chi's `*` URL param back under that
+// name.
+//
+// Any trailing `{name:<regex>}` segment is treated as a catch-all because
+// chi's `{name:regex}` form is segment-bounded; if the user wrote a regex
+// they almost certainly want multi-segment matching, otherwise the bare
+// `{name}` form would have sufficed. Patterns without a trailing
+// `{name:<regex>}` segment are returned unchanged with an empty alias.
+//
+// Takes pattern (string) which is the piko-style route pattern.
+//
+// Returns chiPattern (string) which is the chi-translated route pattern.
+// Returns aliasedName (string) which is the original named parameter, or "".
+func translateCatchAllForChi(pattern string) (chiPattern string, aliasedName string) {
+	parsed := route_pattern.ParseTrailing(pattern)
+	if !parsed.Found || !parsed.HasRegex || parsed.Regex == "" {
+		return pattern, ""
+	}
+	return parsed.Prefix + "*", parsed.Name
 }
 
 // registerPartialRoute registers a route for a partial page entry.
@@ -621,65 +725,6 @@ func registerRoutesFromStore(
 	}
 
 	return pageCount, partialCount
-}
-
-// registerCollectionFallbackRoutes registers fallback routes for static
-// collections, preserving the original dynamic pattern when a collection
-// like pages/blog/{slug}.pk is expanded into per-item routes so that
-// requests for nonexistent items return a proper "collection item not
-// found" error page instead of a generic 404.
-//
-// Chi's route specificity ensures concrete per-item routes always take
-// priority over these wildcard patterns.
-//
-// Takes ctx (context.Context) which carries the logger context.
-// Takes r (chi.Router) which receives the fallback routes.
-// Takes deps (*daemon_domain.HTTPHandlerDependencies) which provides the
-// templater service for error page rendering.
-// Takes store (templater_domain.ManifestStoreView) which provides error page
-// lookup.
-// Takes websiteConfig (*config.WebsiteConfig) which provides site settings.
-func registerCollectionFallbackRoutes(
-	ctx context.Context,
-	r chi.Router,
-	deps *daemon_domain.HTTPHandlerDependencies,
-	store templater_domain.ManifestStoreView,
-	websiteConfig *config.WebsiteConfig,
-) {
-	ctx, l := logger_domain.From(ctx, log)
-
-	fallbackRoutes := store.GetCollectionFallbackRoutes()
-	if len(fallbackRoutes) == 0 {
-		return
-	}
-
-	for _, route := range fallbackRoutes {
-		for _, routePattern := range route.RoutePatterns {
-			l.Internal("Registering collection fallback route",
-				logger_domain.String(logFieldRoutePattern, routePattern))
-
-			handler := http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-				if renderErrorPage(request.Context(), w, request, pageErrorContext{
-					Deps:          deps,
-					Store:         store,
-					WebsiteConfig: websiteConfig,
-				}, errorPageRequest{
-					StatusCode:   http.StatusNotFound,
-					Message:      "collection item not found",
-					OriginalPath: request.URL.Path,
-				}) {
-					return
-				}
-				if writeDevErrorFallback(request.Context(), w, http.StatusNotFound, "collection item not found: "+request.URL.Path) {
-					return
-				}
-				http.NotFound(w, request)
-			})
-
-			r.Method(methodGET, routePattern, handler)
-			r.Method(methodPOST, routePattern, handler)
-		}
-	}
 }
 
 // parseFragmentParam checks if the request is for a page fragment.

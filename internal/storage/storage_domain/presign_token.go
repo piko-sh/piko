@@ -44,6 +44,12 @@ const (
 
 	// presignSecretMinLength is the minimum required secret key length.
 	presignSecretMinLength = 32
+
+	// presignMaxTokenLength caps the encoded token length before any base64
+	// or JSON decoding work is performed. Legitimate presign tokens are well
+	// under 1 KiB; this 4 KiB ceiling rejects pathological inputs while
+	// staying clear of any plausible legitimate growth in the payload.
+	presignMaxTokenLength = 4096
 )
 
 var (
@@ -58,6 +64,11 @@ var (
 
 	// ErrPresignSecretTooShort indicates the signing secret is too short.
 	ErrPresignSecretTooShort = errors.New("presign: secret must be at least 32 bytes")
+
+	// ErrPresignTokenTooLarge indicates the encoded token length exceeds the
+	// configured maximum (presignMaxTokenLength). Oversized inputs are
+	// rejected before any expensive base64 or JSON decoding work is done.
+	ErrPresignTokenTooLarge = errors.New("presign: token exceeds maximum allowed size")
 )
 
 // PresignTokenData holds the payload for a presigned upload token.
@@ -249,6 +260,11 @@ func parseAndVerifyPresignTokenGeneric[T any, P interface {
 }](secret []byte, token string, tokenType string) (P, error) {
 	if len(secret) < presignSecretMinLength {
 		return nil, ErrPresignSecretTooShort
+	}
+
+	if len(token) > presignMaxTokenLength {
+		return nil, fmt.Errorf("%w: %s token is %d bytes, cap %d",
+			ErrPresignTokenTooLarge, tokenType, len(token), presignMaxTokenLength)
 	}
 
 	parts := strings.SplitN(token, presignTokenDelimiter, 2)

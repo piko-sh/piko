@@ -532,6 +532,116 @@ describe('fragmentMorpher', () => {
 
             expect(fromEl.querySelector('p')).toBe(originalP);
         });
+
+        it('should sync whitespace-only text nodes inside spans (chroma highlight regression)', () => {
+            setup('<pre><span class="w"> </span><span class="nx">a</span></pre>');
+
+            fragmentMorpher(fromEl, '<pre><span class="w">    </span><span class="nx">b</span></pre>');
+
+            const wSpan = fromEl.querySelector('span.w');
+            expect(wSpan?.textContent).toBe('    ');
+            expect(fromEl.textContent).toBe('    b');
+        });
+
+        it('should sync newline-only text nodes between spans inside a pre block', () => {
+            setup(
+                '<pre>' +
+                    '<span class="line"><span class="cl"><span class="kn">old</span><span class="w"></span></span></span>' +
+                '</pre>'
+            );
+
+            fragmentMorpher(
+                fromEl,
+                '<pre>' +
+                    '<span class="line"><span class="cl"><span class="kn">new</span><span class="w">\n</span></span></span>' +
+                '</pre>'
+            );
+
+            const wSpan = fromEl.querySelector('span.w');
+            expect(wSpan?.textContent).toBe('\n');
+        });
+
+        it('should add a missing whitespace text node into an empty span', () => {
+            setup('<div><span class="w"></span><span>x</span></div>');
+
+            fragmentMorpher(fromEl, '<div><span class="w"> </span><span>x</span></div>');
+
+            const wSpan = fromEl.querySelector('span.w');
+            expect(wSpan?.textContent).toBe(' ');
+        });
+
+        it('should preserve an exact <pre> code block across an identity morph', () => {
+            const html =
+                '<pre><code>' +
+                    '<span class="line"><span class="cl">' +
+                        '<span class="kn">package</span>' +
+                        '<span class="w"> </span>' +
+                        '<span class="nx">main</span>' +
+                        '<span class="w">\n</span>' +
+                    '</span></span>' +
+                '</code></pre>';
+            setup(html);
+
+            fragmentMorpher(fromEl, html);
+
+            expect(fromEl.outerHTML).toBe(html);
+        });
+    });
+
+    describe('Custom Element Upgrade on Clone Insert', () => {
+        it('upgrades a freshly cloned custom element pulled from a DOMParser document', () => {
+            class FakeWidget extends HTMLElement {
+                static observedAttributes = ['data-state'];
+                connectedCalls = 0;
+                connectedCallback() { this.connectedCalls++; }
+            }
+            const tagName = `morph-fake-widget-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+            customElements.define(tagName, FakeWidget);
+
+            setup('<div></div>');
+
+            const parsed = new DOMParser().parseFromString(
+                `<div><${tagName} data-state="ready"></${tagName}></div>`,
+                'text/html'
+            );
+            const toEl = parsed.body.firstElementChild as HTMLElement;
+
+            fragmentMorpher(fromEl, toEl);
+
+            const widget = fromEl.querySelector(tagName);
+            expect(widget).not.toBeNull();
+            expect(widget?.constructor).toBe(FakeWidget);
+            expect((widget as InstanceType<typeof FakeWidget>).connectedCalls).toBeGreaterThan(0);
+        });
+
+        it('does not double-upgrade an already-upgraded custom element', () => {
+            class StableWidget extends HTMLElement {
+                upgrades = 0;
+                constructor() {
+                    super();
+                    this.upgrades++;
+                }
+            }
+            const tagName = `morph-stable-widget-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+            customElements.define(tagName, StableWidget);
+
+            setup(`<div></div>`);
+            const parsed = new DOMParser().parseFromString(
+                `<div><${tagName}></${tagName}></div>`,
+                'text/html'
+            );
+            const toEl = parsed.body.firstElementChild as HTMLElement;
+
+            fragmentMorpher(fromEl, toEl);
+            const widget = fromEl.querySelector(tagName) as InstanceType<typeof StableWidget>;
+            expect(widget).not.toBeNull();
+            expect(widget.upgrades).toBe(1);
+
+            fragmentMorpher(fromEl, toEl);
+            const sameWidget = fromEl.querySelector(tagName) as InstanceType<typeof StableWidget>;
+            expect(sameWidget).toBe(widget);
+            expect(sameWidget.upgrades).toBe(1);
+        });
     });
 
     class MockFormElement extends HTMLElement {
@@ -600,6 +710,14 @@ describe('fragmentMorpher', () => {
 
             const useEl = fromEl.querySelector('use');
             expect(useEl?.getAttributeNS('http://www.w3.org/1999/xlink', 'href')).toBe('#icon-2');
+        });
+
+        it('should update colon-prefixed HTML attributes without throwing NamespaceError', () => {
+            setup('<button p-on:click="oldHandler">x</button>');
+            expect(() => {
+                fragmentMorpher(fromEl, '<button p-on:click="newHandler">x</button>');
+            }).not.toThrow();
+            expect(fromEl.getAttribute('p-on:click')).toBe('newHandler');
         });
     });
 

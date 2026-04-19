@@ -258,7 +258,7 @@ func (e *typeExtractor) extractMethods(metadata *ComponentMetadata) {
 }
 
 // expressionToString converts an esbuild expression to its string form.
-// This is used to keep the starting value for defaultProps.
+// Used to keep the starting value for defaultProps.
 //
 // Takes expression (js_ast.Expr) which is the expression to
 // convert.

@@ -48,7 +48,7 @@ type walkState struct {
 	// keyPrefix is the dot-separated path to the current field in nested structs.
 	keyPrefix string
 
-	// source identifies which loading pass set this field's value.
+	// source identifies which loading pass set the field's value.
 	source string
 }
 

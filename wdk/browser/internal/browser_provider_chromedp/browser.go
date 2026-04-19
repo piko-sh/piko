@@ -450,7 +450,7 @@ func (ph *PageHelper) ConsoleLogs() []string {
 // Safe for concurrent use. Uses mutex to protect internal state.
 func (ph *PageHelper) ClearConsoleLogs() {
 	js := scripts.MustGet("console_clear.js")
-	clearContext, cancel := context.WithTimeout(ph.ctx, 2*time.Second)
+	clearContext, cancel := context.WithTimeoutCause(ph.ctx, 2*time.Second, errors.New("browser timeout"))
 	defer cancel()
 	_ = chromedp.Run(clearContext, chromedp.Evaluate(js, nil))
 

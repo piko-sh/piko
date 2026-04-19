@@ -101,8 +101,8 @@ func (e *engine) Transform(
 //
 // It initialises an email-specific transformation context with asset registry
 // support and returns the collected asset requests alongside the transformed
-// AST. Use this method when rendering email templates to enable automatic
-// CID (Content-ID) embedding of local assets referenced in <pml-img> tags.
+// AST. Use when rendering email templates to enable automatic CID (Content-ID)
+// embedding of local assets referenced in <pml-img> tags.
 //
 // Takes ast (*ast_domain.TemplateAST) which is the template to transform.
 // Takes config (*pml_dto.Config) which specifies rendering options.

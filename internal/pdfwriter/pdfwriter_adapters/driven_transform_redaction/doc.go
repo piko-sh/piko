@@ -23,4 +23,31 @@
 // in decoded content streams), region redaction (drawing filled black
 // rectangles over specified areas), and optional metadata stripping
 // (removing /Info from the trailer and /Metadata from the catalog).
+//
+// # Coverage of text-pattern redaction
+//
+// Pattern matching visits the following surfaces:
+//
+//   - Page /Contents streams.
+//   - Annotation /Contents and /T strings on each page's /Annots array.
+//   - /ActualText and /Alt accessibility properties (these live inside
+//     content streams as marked-content properties and are therefore
+//     covered by the byte-level walk over /Contents).
+//   - Form XObjects referenced from /Resources/XObject, walked
+//     recursively with a cycle guard.
+//
+// The following surfaces are deliberately out of scope:
+//
+//   - Image XObjects (rasterised text). Pattern matching is text-only.
+//   - Embedded fonts. Subsetted fonts may retain glyphs for sensitive
+//     characters even after the on-page text is overwritten.
+//   - /StructTreeRoot tagged-PDF logical structure metadata.
+//   - /JavaScript actions and /EmbeddedFiles trees.
+//
+// # Byte-length preservation
+//
+// Matched text is overwritten with U+0020 spaces of the same byte length
+// as the original match. The on-page layout is preserved, but the byte
+// length of redacted values remains observable. Combine redaction with
+// region-based black bars when length-hiding is required.
 package driven_transform_redaction

@@ -51,9 +51,8 @@ func NewFSWriter(sandbox safedisk.Sandbox) *FSWriter {
 	return &FSWriter{sandbox: sandbox}
 }
 
-// WriteFile writes data to the specified file path using an atomic
-// write-then-rename strategy. This method is safe from race conditions and
-// interruptions.
+// WriteFile writes data to the specified file path using an atomic write-then-rename
+// strategy. Safe from race conditions and interruptions.
 //
 // The filePath can be either absolute (within sandbox root) or relative.
 // Absolute paths are changed to relative paths within the sandbox. Relative

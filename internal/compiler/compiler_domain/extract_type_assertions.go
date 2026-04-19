@@ -128,10 +128,10 @@ type ParsedTypeInfo struct {
 // ExtractTypeAssertions finds and extracts "as Type" assertions from the state
 // object in TypeScript source code using esbuild's lexer.
 //
-// This function must run BEFORE esbuild parsing because esbuild removes all
-// type information during parsing.
+// Must run BEFORE esbuild parsing because esbuild removes all type information
+// during parsing.
 //
-// The function uses a state machine approach to:
+// Uses a state machine approach to:
 //  1. Find the "const state = {" declaration.
 //  2. Track brace depth to stay within the state object.
 //  3. For each property, detect the "propName: value as Type" pattern.

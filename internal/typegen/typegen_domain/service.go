@@ -84,13 +84,13 @@ func NewTypeDefinitionService(pikoTypes embed.FS, actionStubTypes string) *TypeD
 // EnsureTypeDefinitions copies all embedded type definitions to the specified
 // directory.
 //
-// This method:
+// Behaviour:
 //   - Creates the directory structure if it doesn't exist
 //   - Copies all Piko framework types (piko-ide.d.ts and subdirectories)
 //   - Writes the action stub types to piko-actions.d.ts
 //
-// This is called during daemon startup in development mode to provide
-// IDE integration for .pk file script blocks.
+// Called during daemon startup in development mode to provide IDE integration
+// for .pk file script blocks.
 //
 // Takes destDir (string) which is the target directory for type definitions.
 //

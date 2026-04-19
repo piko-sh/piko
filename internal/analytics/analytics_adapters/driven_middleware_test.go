@@ -22,8 +22,10 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
+	"unicode/utf8"
 
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
@@ -281,8 +283,7 @@ func TestMiddleware_StashedRevenuePropertiesAndEventName(t *testing.T) {
 	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pctx := daemon_dto.PikoRequestCtxFromContext(r.Context())
-		revenue := maths.NewMoneyFromString("49.99", "GBP")
-		pctx.AnalyticsRevenue = &revenue
+		pctx.AnalyticsRevenue = new(maths.NewMoneyFromString("49.99", "GBP"))
 		pctx.AnalyticsProperties = map[string]string{"plan": "pro", "source": "email"}
 		pctx.AnalyticsEventName = "purchase"
 		w.WriteHeader(http.StatusOK)
@@ -405,3 +406,74 @@ type stubAuth struct {
 func (a *stubAuth) IsAuthenticated() bool { return a.authenticated }
 func (a *stubAuth) UserID() string        { return a.userID }
 func (a *stubAuth) Get(_ string) any      { return nil }
+
+func TestTruncateField_AsciiUnderLimit(t *testing.T) {
+	got := truncateField("hello", 10)
+	if got != "hello" {
+		t.Errorf("truncateField(%q, 10) = %q, want %q", "hello", got, "hello")
+	}
+}
+
+func TestTruncateField_AsciiAtLimit(t *testing.T) {
+	got := truncateField("hello", 5)
+	if got != "hello" {
+		t.Errorf("truncateField(%q, 5) = %q, want %q", "hello", got, "hello")
+	}
+}
+
+func TestTruncateField_AsciiOverLimit(t *testing.T) {
+	got := truncateField("helloworld", 5)
+	if got != "hello" {
+		t.Errorf("truncateField(%q, 5) = %q, want %q", "helloworld", got, "hello")
+	}
+}
+
+func TestTruncateField_ZeroLimit(t *testing.T) {
+	got := truncateField("hello", 0)
+	if got != "" {
+		t.Errorf("truncateField(%q, 0) = %q, want empty", "hello", got)
+	}
+}
+
+func TestTruncateField_NegativeLimit(t *testing.T) {
+	got := truncateField("hello", -1)
+	if got != "" {
+		t.Errorf("truncateField(%q, -1) = %q, want empty", "hello", got)
+	}
+}
+
+func TestTruncateField_MultiByteRunesAreNotCutMidSequence(t *testing.T) {
+	input := "https://example.com/" + strings.Repeat("中", 100)
+	got := truncateField(input, 50)
+	if !utf8.ValidString(got) {
+		t.Errorf("truncateField produced invalid UTF-8 for non-ASCII input: %q", got)
+	}
+	if utf8.RuneCountInString(got) > 50 {
+		t.Errorf("truncateField returned %d runes (limit 50)", utf8.RuneCountInString(got))
+	}
+}
+
+func TestTruncateField_EmojiUrlIsRuneTruncated(t *testing.T) {
+	emojiUrl := "https://example.com/path?q=" + strings.Repeat("\U0001F600", 1000)
+	got := truncateField(emojiUrl, maxFieldLength)
+	if !utf8.ValidString(got) {
+		t.Errorf("truncateField produced invalid UTF-8 for emoji-rich URL: %q", got)
+	}
+	if utf8.RuneCountInString(got) > maxFieldLength {
+		t.Errorf("truncateField returned %d runes (limit %d)", utf8.RuneCountInString(got), maxFieldLength)
+	}
+}
+
+func TestTruncateField_BoundaryAtMultiByteRune(t *testing.T) {
+	input := "ab中cd"
+	got := truncateField(input, 3)
+	if !utf8.ValidString(got) {
+		t.Errorf("truncateField produced invalid UTF-8 at rune boundary: %q", got)
+	}
+	if utf8.RuneCountInString(got) != 3 {
+		t.Errorf("truncateField returned %d runes, want exactly 3", utf8.RuneCountInString(got))
+	}
+	if got != "ab中" {
+		t.Errorf("truncateField(%q, 3) = %q, want %q", input, got, "ab中")
+	}
+}

@@ -1,0 +1,89 @@
+<svg viewBox="0 0 620 400" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="pkpkc-title pkpkc-desc">
+  <title id="pkpkc-title">PK lifecycle versus PKC lifecycle</title>
+  <desc id="pkpkc-desc">Two parallel swim lanes. The PK lane shows request arriving, Render running on the server, HTML returned, browser displaying once, and nothing more. The PKC lane shows HTML arriving with component tags, the component booting in the browser, local reactive state tracking changes, and the component re-rendering locally without further server contact.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="155" y="22" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="12" font-weight="600">PK lifecycle (server-only)</text>
+  <text x="465" y="22" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="12" font-weight="600">PKC lifecycle (browser-only)</text>
+
+  
+  <line x1="310" y1="35" x2="310" y2="370" stroke="#475569" stroke-width="1" stroke-dasharray="2,3"/>
+
+  
+  
+  <rect x="30" y="45" width="250" height="40" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="155" y="62" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">1. HTTP request</text>
+  <text x="155" y="76" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">GET /about</text>
+
+  
+  <rect x="30" y="105" width="250" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="155" y="122" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">2. Render runs on server</text>
+  <text x="155" y="138" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">func Render(r, props) (Response, ...)</text>
+  <text x="155" y="154" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">reads DB, cache, services</text>
+
+  
+  <rect x="30" y="181" width="250" height="40" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="155" y="198" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">3. HTML body written to response</text>
+  <text x="155" y="212" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">&lt;h1&gt;Hello&lt;/h1&gt;</text>
+
+  
+  <rect x="30" y="241" width="250" height="40" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="155" y="258" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">4. Browser paints once</text>
+  <text x="155" y="272" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">no JS, no state, no hydration</text>
+
+  
+  <rect x="30" y="308" width="250" height="34" rx="8" fill="#1C544F"/>
+  <text x="155" y="329" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Done. No further work in this lane.</text>
+
+  
+  <line x1="155" y1="88" x2="155" y2="100" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="155" y1="164" x2="155" y2="176" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="155" y1="224" x2="155" y2="236" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="155" y1="284" x2="155" y2="304" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  
+  <rect x="340" y="45" width="250" height="40" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="465" y="62" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">1. HTML arrives with PKC tag</text>
+  <text x="465" y="76" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">&lt;pp-counter start="10"&gt;</text>
+
+  
+  <rect x="340" y="105" width="250" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="465" y="122" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">2. Component boots in browser</text>
+  <text x="465" y="138" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">onConnected() runs, state = $state(..)</text>
+  <text x="465" y="154" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">scoped shadow DOM attached</text>
+
+  
+  <rect x="340" y="181" width="250" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="465" y="198" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">3. Interaction mutates state</text>
+  <text x="465" y="214" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">state.count++</text>
+  <text x="465" y="230" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">proxy notices, dirty-tracks</text>
+
+  
+  <rect x="340" y="257" width="250" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="465" y="274" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">4. Local re-render</text>
+  <text x="465" y="290" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">shadow DOM updated in place</text>
+  <text x="465" y="306" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">no server call unless action invoked</text>
+
+  
+  <rect x="340" y="333" width="250" height="30" rx="8" fill="#1C544F"/>
+  <text x="465" y="353" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Loops on every interaction.</text>
+
+  
+  <line x1="465" y1="88" x2="465" y2="100" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="465" y1="164" x2="465" y2="176" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="465" y1="240" x2="465" y2="252" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="465" y1="316" x2="465" y2="330" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <path d="M595,285 Q615,285 615,213 Q615,181 591,181" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" fill="none" marker-end="url(#arrow)"/>
+
+  
+  <text x="310" y="395" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">No hydration bridge between the lanes. A PK page that needs interactivity embeds a PKC tag; their state does not mix.</text>
+</svg>

@@ -62,6 +62,8 @@ type streamState struct {
 // Spawns a goroutine to process incoming stream events. The channel is closed
 // when the stream completes or encounters an error.
 func (p *openaiProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.openaiProvider.Stream")
+
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
 
@@ -83,13 +85,35 @@ func (p *openaiProvider) Stream(ctx context.Context, request *llm_dto.Completion
 		logger.Int("message_count", len(request.Messages)),
 	)
 
-	stream := p.client.Chat.Completions.NewStreaming(ctx, params)
+	streamContext := p.streamContext(ctx)
+	stream := p.client.Chat.Completions.NewStreaming(streamContext, params)
 
 	events := make(chan llm_dto.StreamEvent)
 
-	go p.processStream(ctx, stream, events)
+	p.streamWaitGroup.Add(1)
+	go p.processStream(streamContext, stream, events)
 
 	return events, nil
+}
+
+// streamContext returns a context that is cancelled when either the caller's
+// context is cancelled or the provider is closed.
+//
+// Takes ctx (context.Context) which is the caller's context.
+//
+// Returns context.Context which carries the merged cancellation signal.
+func (p *openaiProvider) streamContext(ctx context.Context) context.Context {
+	if p.closeContext == nil {
+		return ctx
+	}
+	merged, cancel := context.WithCancelCause(ctx)
+	stopWatch := context.AfterFunc(p.closeContext, func() {
+		cancel(context.Cause(p.closeContext))
+	})
+	context.AfterFunc(merged, func() {
+		stopWatch()
+	})
+	return merged
 }
 
 // processStream reads from the OpenAI stream and converts events.
@@ -97,6 +121,7 @@ func (p *openaiProvider) Stream(ctx context.Context, request *llm_dto.Completion
 // Takes stream (*ssestream.Stream) which provides the SSE stream to read from.
 // Takes events (chan<- llm_dto.StreamEvent) which receives the converted events.
 func (p *openaiProvider) processStream(ctx context.Context, stream *ssestream.Stream[openai.ChatCompletionChunk], events chan<- llm_dto.StreamEvent) {
+	defer p.streamWaitGroup.Done()
 	defer close(events)
 	defer goroutine.RecoverPanic(ctx, "llm.openaiProcessStream")
 	start := time.Now()
@@ -122,11 +147,17 @@ func (p *openaiProvider) processStream(ctx context.Context, stream *ssestream.St
 
 	if err := stream.Err(); err != nil {
 		streamErrorCount.Add(ctx, 1)
-		events <- llm_dto.NewErrorEvent(fmt.Errorf("openai stream error: %w", wrapError(err)))
+		select {
+		case events <- llm_dto.NewErrorEvent(fmt.Errorf("openai stream error: %w", wrapError(err))):
+		case <-ctx.Done():
+		}
 		return
 	}
 
-	events <- llm_dto.NewDoneEvent(p.buildFinalResponse(state))
+	select {
+	case events <- llm_dto.NewDoneEvent(p.buildFinalResponse(state)):
+	case <-ctx.Done():
+	}
 }
 
 // processChunkChoices processes all choices in a chunk.
@@ -293,7 +324,10 @@ func (*openaiProvider) sendEvent(ctx context.Context, events chan<- llm_dto.Stre
 	case events <- event:
 		return true
 	case <-ctx.Done():
-		events <- llm_dto.NewErrorEvent(context.Cause(ctx))
+		select {
+		case events <- llm_dto.NewErrorEvent(context.Cause(ctx)):
+		default:
+		}
 		return false
 	}
 }

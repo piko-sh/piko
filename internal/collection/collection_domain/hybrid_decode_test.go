@@ -65,10 +65,12 @@ func TestDecodeCollectionBlob_RoundTrip(t *testing.T) {
 	encoder := &collection_adapters.FlatBufferEncoder{}
 	items := []collection_dto.ContentItem{
 		{
+			Slug:     "first-post",
 			URL:      "/blog/first-post",
 			Metadata: map[string]any{"title": "First Post", "URL": "/blog/first-post"},
 		},
 		{
+			Slug:     "second-post",
 			URL:      "/blog/second-post",
 			Metadata: map[string]any{"title": "Second Post", "URL": "/blog/second-post"},
 		},
@@ -99,10 +101,12 @@ func TestDecodeCollectionBlob_UnmarshalFailure(t *testing.T) {
 	encoder := &collection_adapters.FlatBufferEncoder{}
 	items := []collection_dto.ContentItem{
 		{
+			Slug:     "a",
 			URL:      "/a",
 			Metadata: map[string]any{"title": "works", "required_int": 42},
 		},
 		{
+			Slug:     "b",
 			URL:      "/b",
 			Metadata: map[string]any{"title": "also works", "required_int": 99},
 		},

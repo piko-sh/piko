@@ -28,6 +28,7 @@ import (
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/notification/notification_dto"
+	"piko.sh/piko/internal/safeerror"
 )
 
 var _ notification_domain.NotificationProviderPort = (*WebhookProvider)(nil)
@@ -118,10 +119,14 @@ func (w *WebhookProvider) Send(ctx context.Context, params *notification_dto.Sen
 	if err != nil {
 		return fmt.Errorf("sending to webhook: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndCloseResponse(response)
 
 	if response.StatusCode < httpStatusOKMin || response.StatusCode >= httpStatusOKMax {
-		return fmt.Errorf("webhook returned status %d: %s", response.StatusCode, response.Status)
+		statusErr := buildProviderStatusError("webhook", response)
+		if isClientError(response.StatusCode) {
+			return safeerror.NewError(safeNotificationDeliveryFailed, statusErr)
+		}
+		return statusErr
 	}
 
 	return nil

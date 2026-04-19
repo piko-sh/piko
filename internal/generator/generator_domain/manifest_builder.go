@@ -27,10 +27,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/route_pattern"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -98,7 +99,7 @@ func NewManifestBuilder(pathsConfig GeneratorPathsConfig, i18nDefaultLocale stri
 }
 
 // Build creates a complete Manifest from the generated artefacts for a project.
-// This method is a pure transformation and has no side effects.
+// A pure transformation with no side effects.
 //
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains all
 // generated artefacts for the project.
@@ -189,18 +190,22 @@ func (mb *ManifestBuilder) computeManifestKey(vc *annotator_dto.VirtualComponent
 	return filepath.ToSlash(relPath), nil
 }
 
-// addPageEntry creates and adds a page entry to the manifest. For virtual
-// pages (created by collections), it makes one entry for each VirtualInstance.
+// addPageEntry creates and adds a page entry to the manifest.
 //
-// Takes manifest (*generator_dto.Manifest) which is the target manifest to
-// populate.
+// Plain pages and collection-backed pages register a single manifest entry
+// whose route pattern is derived from the page's file location, so a page at
+// `pages/examples/{slug}.pk` registers `/examples/{slug}` regardless of the
+// consumed collection's name and resolves items at runtime by looking up the
+// collection by the matched slug.
+//
+// Takes manifest (*generator_dto.Manifest) which receives the new page entry.
 // Takes artefact (*generator_dto.GeneratedArtefact) which provides the
-// generated output data.
-// Takes vc (*annotator_dto.VirtualComponent) which describes the component
-// being added.
-// Takes manifestKey (string) which identifies the entry in the manifest.
-// Takes jsResolver (*partialJSDependencyResolver) which resolves partial JS
-// dependencies.
+// generated output paths and identifiers.
+// Takes vc (*annotator_dto.VirtualComponent) which describes the page being
+// added.
+// Takes manifestKey (string) which uniquely identifies this entry.
+// Takes jsResolver (*partialJSDependencyResolver) which computes partial JS
+// dependencies for the page.
 func (mb *ManifestBuilder) addPageEntry(
 	manifest *generator_dto.Manifest,
 	artefact *generator_dto.GeneratedArtefact,
@@ -208,22 +213,11 @@ func (mb *ManifestBuilder) addPageEntry(
 	manifestKey string,
 	jsResolver *partialJSDependencyResolver,
 ) {
-	if len(vc.VirtualInstances) > 0 {
-		baseRoutePattern := mb.calculatePageRoutePattern(vc)
-		for _, instance := range vc.VirtualInstances {
-			mb.addVirtualPageEntry(manifest, artefact, vc, instance, jsResolver, baseRoutePattern)
-		}
-		if baseRoutePattern != "" {
-			routePatterns, i18nStrategy := mb.computeRoutePatterns(baseRoutePattern, vc)
-			manifest.CollectionFallbackRoutes = append(manifest.CollectionFallbackRoutes, generator_dto.CollectionFallbackRoute{
-				RoutePatterns: routePatterns,
-				I18nStrategy:  i18nStrategy,
-			})
-		}
-		return
-	}
-
 	baseRoutePattern := mb.calculatePageRoutePattern(vc)
+
+	if vc.Source != nil && vc.Source.HasCollection {
+		baseRoutePattern = promoteToCatchAll(baseRoutePattern)
+	}
 	routePatterns, i18nStrategy := mb.computeRoutePatterns(baseRoutePattern, vc)
 
 	jsArtefactIDs := buildJSArtefactIDs(artefact.JSArtefactID, jsResolver.ResolveForPage(vc.HashedName))
@@ -314,59 +308,6 @@ func (mb *ManifestBuilder) calculateErrorPageScopePath(vc *annotator_dto.Virtual
 	return "/" + directory + "/"
 }
 
-// addVirtualPageEntry creates a manifest entry for a single virtual page
-// instance.
-//
-// Takes manifest (*generator_dto.Manifest) which is the manifest to add the
-// entry to.
-// Takes artefact (*generator_dto.GeneratedArtefact) which provides the
-// generated output data.
-// Takes vc (*annotator_dto.VirtualComponent) which is the parent virtual
-// component.
-// Takes instance (annotator_dto.VirtualPageInstance) which specifies the page
-// instance to register.
-// Takes jsResolver (*partialJSDependencyResolver) which works out partial JS
-// dependencies.
-// Takes fallbackRoutePattern (string) which is the pre-computed route pattern
-// to use when the instance has no explicit route.
-func (mb *ManifestBuilder) addVirtualPageEntry(
-	manifest *generator_dto.Manifest,
-	artefact *generator_dto.GeneratedArtefact,
-	vc *annotator_dto.VirtualComponent,
-	instance annotator_dto.VirtualPageInstance,
-	jsResolver *partialJSDependencyResolver,
-	fallbackRoutePattern string,
-) {
-	baseRoutePattern := instance.Route
-	if baseRoutePattern == "" {
-		baseRoutePattern = fallbackRoutePattern
-	}
-	routePatterns, i18nStrategy := mb.computeRoutePatterns(baseRoutePattern, vc)
-
-	jsArtefactIDs := buildJSArtefactIDs(artefact.JSArtefactID, jsResolver.ResolveForPage(vc.HashedName))
-
-	pageEntry := generator_dto.ManifestPageEntry{
-		PackagePath:              vc.CanonicalGoPackagePath,
-		OriginalSourcePath:       instance.ManifestKey,
-		RoutePatterns:            routePatterns,
-		I18nStrategy:             i18nStrategy,
-		StyleBlock:               artefact.Result.StyleBlock,
-		AssetRefs:                artefact.Result.AssetRefs,
-		CustomTags:               artefact.Result.CustomTags,
-		JSArtefactIDs:            jsArtefactIDs,
-		HasCachePolicy:           vc.Source.Script.HasCachePolicy,
-		CachePolicyFuncName:      vc.Source.Script.CachePolicyFuncName,
-		HasMiddleware:            vc.Source.Script.HasMiddleware,
-		MiddlewareFuncName:       vc.Source.Script.MiddlewaresFuncName,
-		HasSupportedLocales:      vc.Source.Script.HasSupportedLocales,
-		SupportedLocalesFuncName: vc.Source.Script.SupportedLocalesFuncName,
-		LocalTranslations:        vc.Source.LocalTranslations,
-		IsE2EOnly:                vc.IsE2EOnly,
-		HasPreview:               vc.Source.Script.HasPreview,
-	}
-	manifest.Pages[instance.ManifestKey] = pageEntry
-}
-
 // addPartialEntry creates and adds a partial entry to the manifest if the
 // component is public.
 //
@@ -437,6 +378,27 @@ func (*ManifestBuilder) addPdfEntry(manifest *generator_dto.Manifest, artefact *
 		HasPreview:          vc.Source.Script.HasPreview,
 	}
 	manifest.Pdfs[manifestKey] = pdfEntry
+}
+
+// promoteToCatchAll widens the trailing dynamic parameter of a route pattern.
+//
+// chi's bare `{name}` pattern only matches a single URL segment; using the
+// regex form `{name:.+}` lets the named parameter capture multi-segment
+// suffixes such as `/docs/get-started/intro`, which is the
+// path-relative-to-collection identifier the runtime lookup keys on. Patterns
+// without a trailing dynamic param (`/about`, `/`) and patterns already
+// widened are returned unchanged.
+//
+// Takes pattern (string) which is the source route pattern.
+//
+// Returns string which is the widened pattern, or the input when it has no
+// trailing dynamic parameter to widen.
+func promoteToCatchAll(pattern string) string {
+	parsed := route_pattern.ParseTrailing(pattern)
+	if !parsed.Found || parsed.HasRegex {
+		return pattern
+	}
+	return parsed.Prefix + "{" + parsed.Name + ":.+}"
 }
 
 // calculatePageRoutePattern computes the Chi route pattern for a page

@@ -85,7 +85,7 @@ func runBenchmarkCase(b *testing.B, bc benchmarkCase) {
 	manifestEmitter := generator_adapters.NewJSONManifestEmitter(benchSandbox)
 	cssProcessor := annotator_domain.NewCSSProcessor(esbuildconfig.LoaderCSS, &esbuildconfig.Options{MinifyWhitespace: true}, resolver)
 	baseDir := resolver.GetBaseDir()
-	serverConfig := config.ServerConfig{
+	serverConfig := bootstrap.ServerConfig{
 		Paths: config.PathsConfig{
 			BaseDir:           &baseDir,
 			PagesSourceDir:    new("pages"),
@@ -220,7 +220,7 @@ func loadBenchSpec(t testing.TB, tc benchmarkCase) TemplaterBenchSpec {
 	return spec
 }
 
-func discoverEntryPoints(t testing.TB, resolver resolver_domain.ResolverPort, serverConfig config.ServerConfig) []annotator_dto.EntryPoint {
+func discoverEntryPoints(t testing.TB, resolver resolver_domain.ResolverPort, serverConfig bootstrap.ServerConfig) []annotator_dto.EntryPoint {
 	t.Helper()
 
 	var entryPoints []annotator_dto.EntryPoint

@@ -459,7 +459,7 @@ func (op *buildOperation) runAssetLeg(
 func (op *buildOperation) discoverEntryPoints(ctx context.Context) error {
 	_, l := logger_domain.From(ctx, log)
 
-	serverConfig := op.container.config.ServerConfig
+	serverConfig := op.container.serverConfig
 	pagesDir := deref(serverConfig.Paths.PagesSourceDir, "pages")
 	partialsDir := deref(serverConfig.Paths.PartialsSourceDir, "partials")
 	emailsDir := deref(serverConfig.Paths.EmailsSourceDir, "emails")
@@ -511,7 +511,7 @@ func (op *buildOperation) discoverEntryPoints(ctx context.Context) error {
 // Returns error when the directory cannot be checked, the resolver cannot be
 // obtained, or walking the directory fails.
 func (op *buildOperation) discoverDirectory(ctx context.Context, sourceDir string, isPotentiallyPage, isPotentiallyEmail, isPotentiallyPdf, isE2EOnly bool) error {
-	serverConfig := op.container.config.ServerConfig
+	serverConfig := op.container.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
 	sourceRoot := filepath.Join(baseDir, sourceDir)
 
@@ -562,7 +562,7 @@ func (op *buildOperation) discoverDirectory(ctx context.Context, sourceDir strin
 func (op *buildOperation) checkSourceDirectory(ctx context.Context, sourceDir, sourceRoot string, isPotentiallyPage, isPotentiallyEmail, isPotentiallyPdf, isE2EOnly bool) (bool, error) {
 	_, l := logger_domain.From(ctx, log)
 
-	serverConfig := op.container.config.ServerConfig
+	serverConfig := op.container.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
 	baseSandbox, sandboxErr := op.container.createSandbox("build-source-check", baseDir, safedisk.ModeReadOnly)
 	if sandboxErr != nil {
@@ -625,7 +625,7 @@ func (op *buildOperation) processWalkEntry(
 		return nil
 	}
 
-	serverConfig := op.container.config.ServerConfig
+	serverConfig := op.container.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
 	relPathToBase, err := filepath.Rel(baseDir, absPath)
 	if err != nil {
@@ -718,7 +718,7 @@ func (op *buildOperation) runGeneration(ctx context.Context) error {
 //
 // Returns error when sandbox creation fails or a file cannot be written.
 func (op *buildOperation) writeArtefacts(ctx context.Context) error {
-	serverConfig := op.container.config.ServerConfig
+	serverConfig := op.container.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
 
 	factory, err := op.container.GetSandboxFactory()
@@ -744,7 +744,7 @@ func (op *buildOperation) writeArtefacts(ctx context.Context) error {
 //
 // Returns error when sandbox creation fails or the manifest cannot be written.
 func (op *buildOperation) writeManifest(ctx context.Context) error {
-	serverConfig := op.container.config.ServerConfig
+	serverConfig := op.container.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
 
 	factory, err := op.container.GetSandboxFactory()
@@ -815,7 +815,10 @@ func (op *buildOperation) runStaticAssetBuild(ctx context.Context) (*lifecycle_d
 	}
 
 	bridge := op.container.GetArtefactBridge()
-	eventBus := op.container.GetEventBus()
+	eventBus, err := op.container.GetEventBus()
+	if err != nil {
+		return nil, fmt.Errorf("getting event bus for asset build: %w", err)
+	}
 
 	buildFactory, buildFactoryErr := op.container.GetSandboxFactory()
 	if buildFactoryErr != nil {
@@ -824,7 +827,7 @@ func (op *buildOperation) runStaticAssetBuild(ctx context.Context) (*lifecycle_d
 
 	buildPathsConfig := op.buildLifecyclePathsConfig()
 	buildService := lifecycle_adapters.NewBuildService(
-		op.container.config, buildPathsConfig, registryService,
+		&op.container.websiteConfig, buildPathsConfig, registryService,
 		orchestratorService, bridge, eventBus, renderer, resolver,
 		op.container.externalComponents, buildFactory,
 	)
@@ -848,7 +851,7 @@ func (op *buildOperation) runStaticAssetBuild(ctx context.Context) (*lifecycle_d
 // Returns lifecycle_domain.LifecyclePathsConfig which holds the resolved path
 // values for file system operations.
 func (op *buildOperation) buildLifecyclePathsConfig() lifecycle_domain.LifecyclePathsConfig {
-	paths := op.container.config.ServerConfig.Paths
+	paths := op.container.serverConfig.Paths
 	return lifecycle_domain.LifecyclePathsConfig{
 		BaseDir:             deref(paths.BaseDir, "."),
 		PagesSourceDir:      deref(paths.PagesSourceDir, "pages"),

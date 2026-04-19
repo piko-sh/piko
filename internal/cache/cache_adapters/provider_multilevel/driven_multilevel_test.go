@@ -914,6 +914,62 @@ func TestClose_ClosesBothLevels(t *testing.T) {
 	_ = l2.Close(ctx)
 }
 
+func TestClose_BothFail_ReturnsJoinedError(t *testing.T) {
+	t.Parallel()
+
+	l1Err := errors.New("l1 close failed")
+	l2Err := errors.New("l2 close failed")
+
+	l1 := &closeFailingMock{
+		MockAdapter: provider_mock.NewMockAdapter[string, string](),
+		closeErr:    l1Err,
+	}
+	l2 := &closeFailingMock{
+		MockAdapter: provider_mock.NewMockAdapter[string, string](),
+		closeErr:    l2Err,
+	}
+
+	adapter := NewMultiLevelAdapter[string, string](context.Background(), "joined-close",
+		l1, l2, Config{MaxConsecutiveFailures: 5, OpenStateTimeout: 30 * time.Second})
+
+	err := adapter.Close(context.Background())
+	if err == nil {
+		t.Fatal("expected joined error, got nil")
+	}
+	if !errors.Is(err, l1Err) {
+		t.Errorf("expected error to wrap l1 close failure, got %v", err)
+	}
+	if !errors.Is(err, l2Err) {
+		t.Errorf("expected error to wrap l2 close failure, got %v", err)
+	}
+}
+
+func TestClose_Idempotent(t *testing.T) {
+	t.Parallel()
+
+	adapter, _, _ := newTestAdapter()
+	ctx := context.Background()
+
+	if err := adapter.Close(ctx); err != nil {
+		t.Fatalf("first Close failed: %v", err)
+	}
+	if err := adapter.Close(ctx); err != nil {
+		t.Fatalf("second Close must remain a safe no-op: %v", err)
+	}
+	if err := adapter.Close(ctx); err != nil {
+		t.Fatalf("third Close must remain a safe no-op: %v", err)
+	}
+}
+
+type closeFailingMock struct {
+	*provider_mock.MockAdapter[string, string]
+	closeErr error
+}
+
+func (m *closeFailingMock) Close(_ context.Context) error {
+	return m.closeErr
+}
+
 func TestGetIfPresent_L2Error_ReturnsL1Value(t *testing.T) {
 	adapter, l1, l2 := newTestAdapter()
 	ctx := context.Background()

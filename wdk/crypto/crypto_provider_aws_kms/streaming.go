@@ -32,26 +32,21 @@ import (
 	"piko.sh/piko/wdk/crypto/crypto_streaming"
 )
 
-// EncryptStream implements streaming encryption using AWS KMS
-// envelope encryption.
+// EncryptStream implements streaming encryption using AWS KMS envelope
+// encryption.
 //
-// This method generates a data encryption key (DEK) from KMS and
-// uses it to perform local AES-GCM streaming encryption. The
-// encrypted DEK is stored in the streaming header.
+// Generates a data encryption key (DEK) from KMS and uses it to perform local
+// AES-GCM streaming encryption. The encrypted DEK is stored in the streaming
+// header.
 //
-// Cost: 1 KMS API call (GenerateDataKey) per stream, regardless
-// of file size.
+// Cost: 1 KMS API call (GenerateDataKey) per stream, regardless of file size.
 // Memory: O(chunk_size) ~64KB, regardless of file size.
 //
-// Takes output (io.Writer) which receives the encrypted stream
-// data.
-// Takes request (*crypto.EncryptRequest) which specifies encryption
-// options.
+// Takes output (io.Writer) which receives the encrypted stream data.
+// Takes request (*crypto.EncryptRequest) which specifies encryption options.
 //
-// Returns io.WriteCloser which wraps output and encrypts data as
-// it is written.
-// Returns error when key generation, cipher creation, or header
-// writing fails.
+// Returns io.WriteCloser which wraps output and encrypts data as it is written.
+// Returns error when key generation, cipher creation, or header writing fails.
 //
 // Example:
 //
@@ -116,8 +111,8 @@ func (p *Provider) EncryptStream(ctx context.Context, output io.Writer, request 
 // DecryptStream implements streaming decryption using AWS KMS envelope
 // encryption.
 //
-// This method reads the streaming header, decrypts the data encryption key
-// (DEK) using KMS, and uses it to perform local AES-GCM streaming decryption.
+// Reads the streaming header, decrypts the data encryption key (DEK) using
+// KMS, and uses it to perform local AES-GCM streaming decryption.
 //
 // Takes input (io.Reader) which provides the encrypted data stream.
 //

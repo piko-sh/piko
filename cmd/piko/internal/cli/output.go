@@ -478,9 +478,8 @@ func argsAfterFilter(arguments []string, filter string) []string {
 // arguments may be mixed together.
 //
 // Go's flag.FlagSet.Parse stops at the first non-flag argument, so a command
-// like "Liveness --help" would never see --help. This function separates flags
-// from positional arguments, parses the flags, and returns the
-// positional arguments.
+// like "Liveness --help" would never see --help. Separates flags from positional
+// arguments, parses the flags, and returns the positional arguments.
 //
 // Takes fs (*flag.FlagSet) which has flags already defined on it.
 // Takes arguments ([]string) which contains interspersed flags and

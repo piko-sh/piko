@@ -153,13 +153,13 @@ type pikoAPIFunction struct {
 	// Signature is the function signature shown in completion details.
 	Signature string
 
-	// Description provides human-readable documentation for this function.
+	// Description provides human-readable documentation for the function.
 	Description string
 
 	// Namespace is the Piko namespace for this API function.
 	Namespace string
 
-	// IsProperty indicates whether this function behaves as a property accessor.
+	// IsProperty indicates whether the function behaves as a property accessor.
 	IsProperty bool
 }
 

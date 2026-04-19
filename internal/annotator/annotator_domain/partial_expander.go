@@ -73,6 +73,12 @@ const (
 
 	// attributePartialSrc is the attribute name for partial source content.
 	attributePartialSrc = "partial_src"
+
+	// maxAnnotatorDepth caps the recursion depth of annotator stamping and
+	// transform passes so a maliciously nested template tree cannot overflow
+	// the Go stack. Real templates rarely nest beyond a few dozen levels, so
+	// 256 is generous.
+	maxAnnotatorDepth = 256
 )
 
 // PartialExpander is a pure, in-memory, recursive AST transformation engine.
@@ -487,19 +493,35 @@ func stampNodesWithPackage(nodes []*ast_domain.TemplateNode, packageAlias string
 }
 
 // countNodesWithoutAnnotation counts nodes that lack a GoAnnotations field,
-// so we can pre-allocate the right number.
+// so we can pre-allocate the right number. Recursion is capped at
+// maxAnnotatorDepth so a pathological tree cannot overflow the stack.
 //
 // Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to inspect
 // recursively.
 //
 // Returns int which is the total count of nodes without annotations.
 func countNodesWithoutAnnotation(nodes []*ast_domain.TemplateNode) int {
+	return countNodesWithoutAnnotationAt(nodes, 0)
+}
+
+// countNodesWithoutAnnotationAt is the depth-tracked recursion behind
+// countNodesWithoutAnnotation.
+//
+// Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to inspect.
+// Takes depth (int) which is the current recursion depth.
+//
+// Returns int which is the total count of nodes without annotations,
+// truncated at maxAnnotatorDepth.
+func countNodesWithoutAnnotationAt(nodes []*ast_domain.TemplateNode, depth int) int {
+	if depth >= maxAnnotatorDepth {
+		return 0
+	}
 	count := 0
 	for _, node := range nodes {
 		if node.GoAnnotations == nil {
 			count++
 		}
-		count += countNodesWithoutAnnotation(node.Children)
+		count += countNodesWithoutAnnotationAt(node.Children, depth+1)
 	}
 	return count
 }
@@ -520,6 +542,31 @@ func stampNodesWithPackageRecursive(
 	arena []ast_domain.GoGeneratorAnnotation,
 	idx *int,
 ) {
+	stampNodesWithPackageRecursiveAt(nodes, packageAlias, sourcePath, arena, idx, 0)
+}
+
+// stampNodesWithPackageRecursiveAt is the depth-tracked recursion behind
+// stampNodesWithPackageRecursive.
+//
+// Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to stamp.
+// Takes packageAlias (string) which is the package alias to set.
+// Takes sourcePath (string) which is the source file path to set.
+// Takes arena ([]ast_domain.GoGeneratorAnnotation) which is the
+// pre-allocated annotation batch.
+// Takes idx (*int) which tracks the next free slot in the arena.
+// Takes depth (int) which is the current recursion depth, capped at
+// maxAnnotatorDepth.
+func stampNodesWithPackageRecursiveAt(
+	nodes []*ast_domain.TemplateNode,
+	packageAlias string,
+	sourcePath string,
+	arena []ast_domain.GoGeneratorAnnotation,
+	idx *int,
+	depth int,
+) {
+	if depth >= maxAnnotatorDepth {
+		return
+	}
 	for _, node := range nodes {
 		if node.GoAnnotations == nil {
 			node.GoAnnotations = &arena[*idx]
@@ -535,7 +582,7 @@ func stampNodesWithPackageRecursive(
 		stampDirectivesWithSourcePath(node, sourcePath)
 		stampRichTextWithSourcePath(node, sourcePath)
 		if len(node.Children) > 0 {
-			stampNodesWithPackageRecursive(node.Children, packageAlias, sourcePath, arena, idx)
+			stampNodesWithPackageRecursiveAt(node.Children, packageAlias, sourcePath, arena, idx, depth+1)
 		}
 	}
 }

@@ -590,7 +590,15 @@ func (d *EmailDispatcher) retryProducerLoop(ctx context.Context) {
 	}
 
 	for {
-		timer.Reset(d.calculateRetrySleep())
+		if d.dispatchReadyItems() {
+			return
+		}
+
+		sleepDuration := d.calculateRetrySleep()
+		if sleepDuration <= 0 {
+			continue
+		}
+		timer.Reset(sleepDuration)
 
 		action := d.waitForRetryEvent(ctx, timer)
 		switch action {

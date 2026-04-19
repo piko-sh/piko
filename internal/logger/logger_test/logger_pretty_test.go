@@ -30,7 +30,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
 )
@@ -48,7 +47,7 @@ func setupPrettyTestLogger(t *testing.T, loggerConfig logger_dto.Config) (logger
 		_, _ = io.Copy(buffer, r)
 	})
 
-	slogLogger, shutdown, err := Initialise(context.Background(), loggerConfig, &config.ServerConfig{})
+	slogLogger, shutdown, err := Initialise(context.Background(), loggerConfig)
 	require.NoError(t, err)
 
 	InitDefaultFactory(slogLogger)

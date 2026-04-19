@@ -20,6 +20,7 @@ package storage_transformer_gzip
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -32,7 +33,21 @@ import (
 const (
 	// defaultPriorityCompression is the default priority for compression transformers.
 	defaultPriorityCompression = 100
+
+	// DefaultMaxDecompressedBytes is the default cap on bytes returned from a
+	// decompression stream.
+	//
+	// Set high (256 MiB) so legitimate workloads are unaffected while still
+	// preventing pathological decompression bombs from dominating memory in
+	// callers that buffer the stream. Override with WithMaxDecompressedBytes
+	// for stricter or more relaxed limits.
+	DefaultMaxDecompressedBytes int64 = 256 * 1024 * 1024
 )
+
+// ErrDecompressedTooLarge is returned by the reader produced by Reverse when
+// the decompressed payload exceeds the configured maximum decompressed size.
+// Callers can use errors.Is to distinguish this from a normal io.EOF.
+var ErrDecompressedTooLarge = errors.New("storage_transformer_gzip: decompressed payload exceeds maximum allowed size")
 
 var _ io.ReadCloser = (*readerCloser)(nil)
 
@@ -48,6 +63,10 @@ type GzipTransformer struct {
 
 	// level is the gzip compression level; 0 uses the default.
 	level int
+
+	// maxDecompressedBytes caps the bytes returned from Reverse, preventing
+	// decompression bombs from exhausting memory in downstream consumers.
+	maxDecompressedBytes int64
 }
 
 var _ storage.StreamTransformerPort = (*GzipTransformer)(nil)
@@ -65,16 +84,42 @@ type Config struct {
 	// Level sets the gzip compression level.
 	// Defaults to gzip.DefaultCompression when set to zero.
 	Level int
+
+	// MaxDecompressedBytes caps the decompressed output size in bytes.
+	//
+	// When zero, DefaultMaxDecompressedBytes is used. Negative values disable
+	// the cap (not recommended for untrusted input).
+	MaxDecompressedBytes int64
+}
+
+// Option configures a GzipTransformer at construction time.
+type Option func(*GzipTransformer)
+
+// WithMaxDecompressedBytes sets the maximum number of decompressed bytes that
+// can flow through the reader returned by Reverse.
+//
+// Reads beyond this cap surface ErrDecompressedTooLarge. Pass a non-positive
+// value to disable the cap (only safe for fully trusted input streams).
+//
+// Takes maxBytes (int64) which is the cap in bytes; non-positive disables.
+//
+// Returns Option which sets the cap on a transformer.
+func WithMaxDecompressedBytes(maxBytes int64) Option {
+	return func(t *GzipTransformer) {
+		t.maxDecompressedBytes = maxBytes
+	}
 }
 
 // NewGzipTransformer creates a new gzip compression transformer.
 //
 // Takes config (Config) which sets the transformer options including name,
 // priority, and compression level. Missing or zero values use defaults.
+// Takes options (...Option) which override settings on the constructed
+// transformer (e.g. WithMaxDecompressedBytes).
 //
 // Returns *GzipTransformer which is the configured transformer ready for use.
 // Returns error when the compression level is outside the valid range.
-func NewGzipTransformer(config Config) (*GzipTransformer, error) {
+func NewGzipTransformer(config Config, options ...Option) (*GzipTransformer, error) {
 	if config.Name == "" {
 		config.Name = "gzip"
 	}
@@ -84,6 +129,9 @@ func NewGzipTransformer(config Config) (*GzipTransformer, error) {
 	if config.Level == 0 {
 		config.Level = gzip.DefaultCompression
 	}
+	if config.MaxDecompressedBytes == 0 {
+		config.MaxDecompressedBytes = DefaultMaxDecompressedBytes
+	}
 
 	if config.Level < gzip.NoCompression || config.Level > gzip.BestCompression {
 		if config.Level != gzip.DefaultCompression {
@@ -92,11 +140,18 @@ func NewGzipTransformer(config Config) (*GzipTransformer, error) {
 		}
 	}
 
-	return &GzipTransformer{
-		name:     config.Name,
-		priority: config.Priority,
-		level:    config.Level,
-	}, nil
+	t := &GzipTransformer{
+		name:                 config.Name,
+		priority:             config.Priority,
+		level:                config.Level,
+		maxDecompressedBytes: config.MaxDecompressedBytes,
+	}
+
+	for _, opt := range options {
+		opt(t)
+	}
+
+	return t, nil
 }
 
 // Name returns the unique identifier for this transformer.
@@ -179,7 +234,11 @@ func (g *GzipTransformer) Transform(ctx context.Context, input io.Reader, option
 }
 
 // Reverse decompresses the input stream using gzip.
+//
 // It returns a reader that provides decompressed data as the input is read.
+// The returned reader caps the decompressed bytes at the configured maximum
+// (see WithMaxDecompressedBytes); reading beyond the cap yields
+// ErrDecompressedTooLarge.
 //
 // Takes input (io.Reader) which provides the compressed data to decompress.
 //
@@ -189,33 +248,79 @@ func (g *GzipTransformer) Reverse(ctx context.Context, input io.Reader, _ any) (
 	_, l := logger.From(ctx, log)
 
 	l.Trace("Reversing gzip compression (decompressing)",
-		logger.String("transformer", g.name))
+		logger.String("transformer", g.name),
+		logger.Int64("maxDecompressedBytes", g.maxDecompressedBytes))
 
 	reader, err := gzip.NewReader(input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 	}
 
-	return &readerCloser{
-		reader: reader,
-	}, nil
+	return newCappedReader(reader, g.maxDecompressedBytes), nil
+}
+
+// newCappedReader wraps a gzip reader so that reads beyond maxBytes surface
+// ErrDecompressedTooLarge instead of allowing unbounded decompressed output.
+// When maxBytes is non-positive, the cap is disabled and the reader behaves
+// transparently.
+//
+// Takes reader (*gzip.Reader) which produces decompressed bytes.
+// Takes maxBytes (int64) which caps the byte count; non-positive disables the
+// cap.
+//
+// Returns *readerCloser which wraps the reader with the configured cap.
+func newCappedReader(reader *gzip.Reader, maxBytes int64) *readerCloser {
+	rc := &readerCloser{
+		reader:   reader,
+		source:   reader,
+		maxBytes: maxBytes,
+	}
+	if maxBytes > 0 {
+		rc.source = io.LimitReader(reader, maxBytes+1)
+	}
+	return rc
 }
 
 // readerCloser wraps a gzip reader to ensure proper cleanup.
-// It implements io.ReadCloser.
+//
+// It enforces a configurable cap on the total decompressed bytes returned to
+// callers, so a malicious payload cannot inflate to terabytes via a small
+// upload. It implements io.ReadCloser.
 type readerCloser struct {
 	// reader decompresses gzip-compressed data.
 	reader *gzip.Reader
+
+	// source is the bounded byte source actually read by callers; it is
+	// either the gzip reader directly (when no cap is set) or a LimitReader
+	// wrapping it.
+	source io.Reader
+
+	// readBytes is the running count of decompressed bytes returned. The
+	// running count is used to detect when the cap has been hit so the
+	// sentinel ErrDecompressedTooLarge can be surfaced to the caller.
+	readBytes int64
+
+	// maxBytes is the cap on decompressed bytes; non-positive disables the
+	// cap entirely.
+	maxBytes int64
 }
 
-// Read reads decompressed data from the gzip reader.
+// Read reads decompressed data from the gzip reader, enforcing the configured
+// maximum decompressed byte limit. When the limit is reached, the read returns
+// ErrDecompressedTooLarge.
 //
 // Takes p ([]byte) which is the buffer to read decompressed data into.
 //
 // Returns n (int) which is the number of bytes read.
-// Returns err (error) when the read fails or the stream ends.
+// Returns err (error) when the read fails, the stream ends, or the cap is hit.
 func (r *readerCloser) Read(p []byte) (n int, err error) {
-	return r.reader.Read(p)
+	n, err = r.source.Read(p)
+	r.readBytes += int64(n)
+	if r.maxBytes > 0 && r.readBytes > r.maxBytes {
+		return n, fmt.Errorf("%w: decompressed at least %d bytes, cap %d",
+			ErrDecompressedTooLarge, r.readBytes, r.maxBytes)
+	}
+	return n, err
 }
 
 // Close closes the gzip reader and releases resources.
@@ -230,8 +335,9 @@ func (r *readerCloser) Close() error {
 // Returns Config which contains the default compression settings ready for use.
 func DefaultConfig() Config {
 	return Config{
-		Name:     "gzip",
-		Priority: defaultPriorityCompression,
-		Level:    gzip.DefaultCompression,
+		Name:                 "gzip",
+		Priority:             defaultPriorityCompression,
+		Level:                gzip.DefaultCompression,
+		MaxDecompressedBytes: DefaultMaxDecompressedBytes,
 	}
 }

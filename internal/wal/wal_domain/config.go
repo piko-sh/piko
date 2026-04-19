@@ -159,7 +159,7 @@ type Config struct {
 	DisableAlignedWrites bool
 }
 
-// Validate checks that the configuration is valid.
+// Validate reports whether the configuration is valid.
 //
 // Returns error when any required fields are missing or invalid.
 func (c Config) Validate() error {

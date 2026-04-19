@@ -39,7 +39,7 @@ type SitemapConfig struct {
 	Sitemaps map[string]SitemapChunkConfig `json:"sitemaps" yaml:"sitemaps" usage:"Named sitemap chunks for large sites." summary:"hide"`
 
 	// Hostname is the base URL for the site
-	// (e.g., "https://www.example.com"). This field is required
+	// (e.g., "https://www.example.com"). Required
 	// to build full URLs in the sitemap.
 	Hostname string `json:"hostname" yaml:"hostname" env:"PIKO_SEO_SITEMAP_HOSTNAME" flag:"sitemapHostname" usage:"Canonical base URL (e.g., https://example.com)."`
 

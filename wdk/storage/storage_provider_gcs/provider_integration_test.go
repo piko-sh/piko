@@ -28,6 +28,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -795,6 +796,76 @@ func TestGCSProvider_RemoveMany_EmptyBatch(t *testing.T) {
 	assert.Equal(t, 0, result.TotalFailed)
 	assert.Nil(t, result.SuccessfulKeys)
 	assert.Nil(t, result.FailedKeys)
+}
+
+func TestGCSProvider_RemoveMany_ContextCancelDoesNotLeakWorkers(t *testing.T) {
+	provider := newTestProvider()
+
+	ctx, cancel := context.WithCancelCause(t.Context())
+
+	keys := make([]string, 200)
+	for i := range keys {
+		keys[i] = fmt.Sprintf("non-existent-cancel-test-%d-%d", time.Now().UnixNano(), i)
+	}
+
+	params := storage.RemoveManyParams{
+		Repository:      testRepoPrimary,
+		Keys:            keys,
+		Concurrency:     8,
+		ContinueOnError: true,
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, _ = provider.RemoveMany(ctx, params)
+	}()
+
+	cancel(errors.New("test cancelled context to detect worker leaks"))
+
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("RemoveMany did not return after context cancel; workers wedged")
+	}
+}
+
+func TestGCSProvider_PutMany_ContextCancelDoesNotLeakWorkers(t *testing.T) {
+	provider := newTestProvider()
+
+	ctx, cancel := context.WithCancelCause(t.Context())
+
+	objects := make([]storage.PutObjectSpec, 200)
+	for i := range objects {
+		content := fmt.Sprintf("ctx-cancel-test-%d", i)
+		objects[i] = storage.PutObjectSpec{
+			Key:         fmt.Sprintf("ctx-cancel-test-put-%d-%d", time.Now().UnixNano(), i),
+			Reader:      strings.NewReader(content),
+			Size:        int64(len(content)),
+			ContentType: "text/plain",
+		}
+	}
+
+	params := &storage.PutManyParams{
+		Repository:      testRepoPrimary,
+		Objects:         objects,
+		Concurrency:     8,
+		ContinueOnError: true,
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, _ = provider.PutMany(ctx, params)
+	}()
+
+	cancel(errors.New("test cancelled context to detect worker leaks"))
+
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("PutMany did not return after context cancel; workers wedged")
+	}
 }
 
 func TestGCSProvider_Get_ByteRange_SingleByte(t *testing.T) {

@@ -289,7 +289,7 @@ func (b *LiteBuilder) mergeTypeData(userPackages map[string]*inspector_dto.Packa
 // liteBuildError represents an error from lite building. It implements error
 // and gives context about which construct was not supported.
 type liteBuildError struct {
-	// Construct identifies the unsupported Go language construct, such as
+	// Construct names the unsupported Go language construct, such as
 	// "embedded field" or "generic type".
 	Construct string
 

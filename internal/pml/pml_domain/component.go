@@ -86,7 +86,7 @@ type StyleTarget struct {
 }
 
 // Component defines the interface that all PikoML components (e.g., <pml-row>,
-// <pml-button>) must implement. This interface allows the transformation engine
+// <pml-button>) must implement. The contract allows the transformation engine
 // to be decoupled from concrete component implementations.
 type Component interface {
 	// TagName returns the name of the component tag (e.g., "pml-row").

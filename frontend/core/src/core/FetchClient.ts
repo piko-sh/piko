@@ -29,6 +29,12 @@ export type FetchResult = [ok: boolean, text: string | null];
 export interface FetchClientOptions {
     /** Callback for progress updates during download. */
     onProgress?: (loaded: number, total: number) => void;
+
+    /**
+     * Callback fired the moment response headers are received and `response.ok`
+     * passes.
+     */
+    onHeadersReceived?: () => void;
 }
 
 /**
@@ -142,6 +148,8 @@ export function createFetchClient(deps: FetchClientDependencies = {}): FetchClie
                 if (!response.ok) {
                     return [false, null];
                 }
+
+                options.onHeadersReceived?.();
 
                 let text: string;
                 if (options.onProgress) {

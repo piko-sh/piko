@@ -30,6 +30,19 @@ import (
 	"piko.sh/piko/internal/generator/generator_dto"
 )
 
+const (
+	// defaultCollectionParamName is the URL parameter used when a
+	// collection-backed page omits an explicit `p-param`. Mirrors the runtime
+	// expectation that a route like `/blog/{slug}` exposes its slug under the
+	// key "slug".
+	defaultCollectionParamName = "slug"
+
+	// catchAllParamName is chi's literal key for catch-all matches. The router
+	// captures the matched suffix here when a `{name:.+}` pattern is
+	// translated to the native `*` form.
+	catchAllParamName = "*"
+)
+
 // AstBuilder defines the interface for building Go AST function
 // declarations. It enables mocking and testing of AST building logic.
 type AstBuilder interface {
@@ -154,7 +167,7 @@ func (b *astBuilder) buildASTFunctionBody(
 	statements = append(statements, initialiseDiagnosticsVar())
 
 	if len(request.VirtualInstances) > 0 {
-		populateStmts := generateCollectionDataPopulation(request.CollectionName)
+		populateStmts := generateCollectionDataPopulation(request.CollectionName, request.CollectionParamName)
 		statements = append(statements, populateStmts...)
 	}
 
@@ -325,12 +338,11 @@ func (b *astBuilder) emitAllRootNodes(
 
 // newAstBuilder creates and wires an astBuilder with all its parts.
 //
-// Use this function for testing when you want to create an astBuilder without
-// pool management. Production code should use getAstBuilder which gets
-// builders from pools.
+// Used for testing when an astBuilder is needed without pool management.
+// Production code should use getAstBuilder which gets builders from pools.
 //
-// This function uses a two-pass setup to break circular dependencies: first
-// it creates all parts, then it wires them together by passing interfaces.
+// Uses a two-pass setup to break circular dependencies: first it creates all
+// parts, then it wires them together by passing interfaces.
 //
 // Takes emitter (*emitter) which provides the code output capabilities.
 //
@@ -473,29 +485,32 @@ func initialiseRootASTVar(rootASTVar *goast.Ident, result *annotator_dto.Annotat
 // generateCollectionDataPopulation creates code that fills r.CollectionData
 // from the collection registry by calling GetStaticCollectionItem.
 //
-// The code fetches metadata, contentAST, and excerptAST for the given
-// collection and URL path. When the fetch fails, a CollectionNotFound error
-// is returned (HTTP 404) so the error page system can handle it. When the
-// fetch succeeds, it sets r.CollectionData to a map with these values under
-// "page", "contentAST", and "excerptAST" keys.
+// The code reads the matched URL parameter (e.g. "slug") to identify the item
+// and fetches metadata, contentAST, and excerptAST for the matching slug in
+// the named collection. When the fetch fails, a CollectionNotFound error is
+// returned (HTTP 404) so the error page system can handle it. When the fetch
+// succeeds, it sets r.CollectionData to a map with these values under "page",
+// "contentAST", and "excerptAST" keys.
 //
 // Takes collectionName (string) which names the collection to query.
+// Takes paramName (string) which is the URL param to read for the slug
+// (defaults to "slug" when empty).
 //
 // Returns []goast.Stmt which contains the assignment, error check, and data
 // population statements.
-func generateCollectionDataPopulation(collectionName string) []goast.Stmt {
-	assignStmt := buildCollectionItemFetchAssign(collectionName)
-
-	urlCallExpr := &goast.CallExpr{
-		Fun: &goast.SelectorExpr{X: cachedIdent(RequestVarName), Sel: cachedIdent("URL")},
+func generateCollectionDataPopulation(collectionName, paramName string) []goast.Stmt {
+	if paramName == "" {
+		paramName = defaultCollectionParamName
 	}
-	urlPathExpr := &goast.SelectorExpr{X: urlCallExpr, Sel: cachedIdent("Path")}
+	assignStmt := buildCollectionItemFetchAssign(collectionName, paramName)
+
+	slugLookup := pathParamExpr(paramName)
 
 	collectionNotFoundCall := &goast.CallExpr{
 		Fun: &goast.SelectorExpr{X: cachedIdent(runtimePackageName), Sel: cachedIdent("CollectionNotFound")},
 		Args: []goast.Expr{
 			&goast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("%q", collectionName)},
-			urlPathExpr,
+			slugLookup,
 			cachedIdent("__err"),
 		},
 	}
@@ -527,18 +542,18 @@ func generateCollectionDataPopulation(collectionName string) []goast.Stmt {
 }
 
 // buildCollectionItemFetchAssign builds an assignment statement that fetches
-// data for a collection item. It gets the URL path from r.URL().Path.
+// data for a collection item by slug.
+//
+// The slug is read from the matched URL parameter (e.g. r.PathParam("slug")).
 //
 // Takes collectionName (string) which is the name of the collection to fetch
 // from.
+// Takes paramName (string) which is the URL parameter that carries the slug.
 //
 // Returns *goast.AssignStmt which assigns metadata, content AST, excerpt AST,
 // and error from the runtime GetStaticCollectionItem call.
-func buildCollectionItemFetchAssign(collectionName string) *goast.AssignStmt {
-	urlCallExpr := &goast.CallExpr{
-		Fun: &goast.SelectorExpr{X: cachedIdent(RequestVarName), Sel: cachedIdent("URL")},
-	}
-	urlPathExpr := &goast.SelectorExpr{X: urlCallExpr, Sel: cachedIdent("Path")}
+func buildCollectionItemFetchAssign(collectionName, paramName string) *goast.AssignStmt {
+	slugExpr := pathParamExpr(paramName)
 
 	rContextCall := &goast.CallExpr{
 		Fun: &goast.SelectorExpr{X: cachedIdent(RequestVarName), Sel: cachedIdent("Context")},
@@ -558,10 +573,42 @@ func buildCollectionItemFetchAssign(collectionName string) *goast.AssignStmt {
 				Args: []goast.Expr{
 					rContextCall,
 					&goast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("%q", collectionName)},
-					urlPathExpr,
+					slugExpr,
 				},
 			},
 		},
+	}
+}
+
+// pathParamExpr builds the Go expression that reads a slug path parameter.
+//
+// Emits `cmp.Or(r.PathParam(paramName), r.PathParam("*"))`. The wildcard
+// fallback covers chi's native catch-all, which captures the matched URL
+// suffix under "*" rather than the named parameter.
+//
+// Takes paramName (string) which is the named parameter to read first.
+//
+// Returns goast.Expr which evaluates to the parameter value at runtime.
+func pathParamExpr(paramName string) goast.Expr {
+	named := pathParamCall(paramName)
+	if paramName == catchAllParamName {
+		return named
+	}
+	return &goast.CallExpr{
+		Fun:  &goast.SelectorExpr{X: cachedIdent("cmp"), Sel: cachedIdent("Or")},
+		Args: []goast.Expr{named, pathParamCall(catchAllParamName)},
+	}
+}
+
+// pathParamCall builds an `r.PathParam("<name>")` call expression.
+//
+// Takes name (string) which is the parameter name to read.
+//
+// Returns goast.Expr which is the call expression.
+func pathParamCall(name string) goast.Expr {
+	return &goast.CallExpr{
+		Fun:  &goast.SelectorExpr{X: cachedIdent(RequestVarName), Sel: cachedIdent("PathParam")},
+		Args: []goast.Expr{&goast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("%q", name)}},
 	}
 }
 

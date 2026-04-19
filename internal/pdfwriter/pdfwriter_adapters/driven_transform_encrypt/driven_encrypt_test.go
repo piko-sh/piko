@@ -21,6 +21,8 @@ package driven_transform_encrypt_test
 import (
 	"bytes"
 	"context"
+	"errors"
+	mathrand "math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -302,4 +304,198 @@ func TestEncryptTransformer_QpdfRoundtrip(t *testing.T) {
 	decrypted, err := os.ReadFile(decryptedPath)
 	require.NoError(t, err)
 	assert.True(t, bytes.HasPrefix(decrypted, []byte("%PDF-")), "decrypted output should be a valid PDF")
+}
+
+func TestEncryptTransformer_WithRandomSourceProducesDeterministicOutput(t *testing.T) {
+	pdf := buildMinimalPDF(t)
+	options := pdfwriter_dto.EncryptionOptions{
+		Algorithm:     "aes-256",
+		OwnerPassword: "owner-secret",
+		UserPassword:  "user-secret",
+		Permissions:   0xFFFFF0C4,
+	}
+
+	seed := [32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
+
+	first := driven_transform_encrypt.New(driven_transform_encrypt.WithRandomSource(mathrand.NewChaCha8(seed)))
+	resultA, err := first.Transform(context.Background(), pdf, options)
+	require.NoError(t, err)
+
+	second := driven_transform_encrypt.New(driven_transform_encrypt.WithRandomSource(mathrand.NewChaCha8(seed)))
+	resultB, err := second.Transform(context.Background(), pdf, options)
+	require.NoError(t, err)
+
+	assert.True(t, bytes.Equal(resultA, resultB),
+		"deterministic random source should produce byte-identical output across calls")
+}
+
+func TestEncryptTransformer_WithRandomSourceDiffersFromDefault(t *testing.T) {
+	pdf := buildMinimalPDF(t)
+	options := pdfwriter_dto.EncryptionOptions{
+		Algorithm:     "aes-256",
+		OwnerPassword: "owner-secret",
+		UserPassword:  "user-secret",
+		Permissions:   0xFFFFF0C4,
+	}
+
+	seed := [32]byte{99}
+	seeded := driven_transform_encrypt.New(driven_transform_encrypt.WithRandomSource(mathrand.NewChaCha8(seed)))
+	defaulted := driven_transform_encrypt.New()
+
+	resultSeeded, err := seeded.Transform(context.Background(), pdf, options)
+	require.NoError(t, err)
+	resultDefault, err := defaulted.Transform(context.Background(), pdf, options)
+	require.NoError(t, err)
+
+	assert.False(t, bytes.Equal(resultSeeded, resultDefault),
+		"seeded source should produce different output from crypto/rand-backed default")
+}
+
+func TestEncryptTransformer_RejectsExcessivelyNestedObjects(t *testing.T) {
+	w := pdfparse.NewWriter()
+
+	deeplyNested := pdfparse.Arr(pdfparse.Int(0))
+	for range 300 {
+		deeplyNested = pdfparse.Arr(deeplyNested)
+	}
+
+	w.SetObject(catalogNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Catalog")},
+		{Key: "Pages", Value: pdfparse.RefObj(pagesNum, 0)},
+		{Key: "Hostile", Value: deeplyNested},
+	}}))
+	w.SetObject(pagesNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Pages")},
+		{Key: "Kids", Value: pdfparse.Arr()},
+		{Key: "Count", Value: pdfparse.Int(0)},
+	}}))
+	w.SetTrailer(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Root", Value: pdfparse.RefObj(catalogNum, 0)},
+	}})
+
+	pdf, err := w.Write()
+	require.NoError(t, err)
+
+	enc := driven_transform_encrypt.New()
+	_, err = enc.Transform(context.Background(), pdf, pdfwriter_dto.EncryptionOptions{
+		Algorithm:     "aes-256",
+		OwnerPassword: "owner",
+		UserPassword:  "user",
+	})
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, driven_transform_encrypt.ErrObjectNestingTooDeep),
+		"deep nesting must surface ErrObjectNestingTooDeep, got: %v", err)
+}
+
+func TestEncryptTransformer_WithMaxObjectNestingDepthOverride(t *testing.T) {
+	w := pdfparse.NewWriter()
+
+	nested := pdfparse.Arr(pdfparse.Int(0))
+	for range 50 {
+		nested = pdfparse.Arr(nested)
+	}
+
+	w.SetObject(catalogNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Catalog")},
+		{Key: "Pages", Value: pdfparse.RefObj(pagesNum, 0)},
+		{Key: "Nested", Value: nested},
+	}}))
+	w.SetObject(pagesNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Pages")},
+		{Key: "Kids", Value: pdfparse.Arr()},
+		{Key: "Count", Value: pdfparse.Int(0)},
+	}}))
+	w.SetTrailer(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Root", Value: pdfparse.RefObj(catalogNum, 0)},
+	}})
+
+	pdf, err := w.Write()
+	require.NoError(t, err)
+
+	enc := driven_transform_encrypt.New(driven_transform_encrypt.WithMaxObjectNestingDepth(10))
+	_, err = enc.Transform(context.Background(), pdf, pdfwriter_dto.EncryptionOptions{
+		Algorithm:     "aes-256",
+		OwnerPassword: "owner",
+		UserPassword:  "user",
+	})
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, driven_transform_encrypt.ErrObjectNestingTooDeep),
+		"depth 50 must exceed configured limit 10, got: %v", err)
+}
+
+func TestEncryptTransformer_EncryptsStringStreamAndNestedDictValues(t *testing.T) {
+	const contentNum = 4
+
+	w := pdfparse.NewWriter()
+
+	w.SetObject(catalogNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Catalog")},
+		{Key: "Pages", Value: pdfparse.RefObj(pagesNum, 0)},
+		{Key: "Title", Value: pdfparse.Str("Confidential Memo")},
+		{Key: "Metadata", Value: pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+			{Key: "Author", Value: pdfparse.Str("Alice")},
+			{Key: "Tags", Value: pdfparse.Arr(pdfparse.Str("draft"), pdfparse.Str("internal"))},
+		}})},
+	}}))
+	w.SetObject(pagesNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Pages")},
+		{Key: "Kids", Value: pdfparse.Arr(pdfparse.RefObj(pageNum, 0))},
+		{Key: "Count", Value: pdfparse.Int(1)},
+	}}))
+	w.SetObject(pageNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Page")},
+		{Key: "Parent", Value: pdfparse.RefObj(pagesNum, 0)},
+		{Key: "Contents", Value: pdfparse.RefObj(contentNum, 0)},
+		{Key: "MediaBox", Value: pdfparse.Arr(
+			pdfparse.Int(0), pdfparse.Int(0), pdfparse.Int(612), pdfparse.Int(792),
+		)},
+	}}))
+	streamPayload := []byte("BT /F1 12 Tf 100 700 Td (hello world) Tj ET")
+	w.SetObject(contentNum, pdfparse.StreamObj(
+		pdfparse.Dict{Pairs: []pdfparse.DictPair{
+			{Key: "Length", Value: pdfparse.Int(int64(len(streamPayload)))},
+		}},
+		streamPayload,
+	))
+	w.SetTrailer(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Root", Value: pdfparse.RefObj(catalogNum, 0)},
+	}})
+
+	pdf, err := w.Write()
+	require.NoError(t, err)
+
+	enc := driven_transform_encrypt.New()
+	result, err := enc.Transform(context.Background(), pdf, pdfwriter_dto.EncryptionOptions{
+		Algorithm:     "aes-256",
+		OwnerPassword: "owner",
+		UserPassword:  "user",
+		Permissions:   0xFFFFF0C4,
+	})
+	require.NoError(t, err)
+
+	assert.True(t, bytes.HasPrefix(result, []byte("%PDF-")))
+	assert.True(t, bytes.Contains(result, []byte("/Encrypt")))
+	assert.False(t, bytes.Contains(result, streamPayload),
+		"plaintext stream payload must not survive encryption")
+	assert.False(t, bytes.Contains(result, []byte("Confidential Memo")),
+		"plaintext string values must not survive encryption")
+	assert.False(t, bytes.Contains(result, []byte("Alice")),
+		"plaintext nested-dict values must not survive encryption")
+}
+
+func TestEncryptTransformer_WithMaxObjectNestingDepthIgnoresNonPositive(t *testing.T) {
+	enc := driven_transform_encrypt.New(
+		driven_transform_encrypt.WithMaxObjectNestingDepth(0),
+		driven_transform_encrypt.WithMaxObjectNestingDepth(-5),
+	)
+	pdf := buildMinimalPDF(t)
+
+	result, err := enc.Transform(context.Background(), pdf, pdfwriter_dto.EncryptionOptions{
+		Algorithm:     "aes-256",
+		OwnerPassword: "owner",
+		UserPassword:  "user",
+	})
+	require.NoError(t, err, "non-positive overrides must be ignored, leaving the default in force")
+	assert.True(t, bytes.HasPrefix(result, []byte("%PDF-")))
 }

@@ -62,7 +62,7 @@ type earlyInitialisationResult struct {
 }
 
 // Initialise creates and configures the logging system based on the provided
-// configuration. It sets up OpenTelemetry integration, configures output
+// configuration, setting up OpenTelemetry integration and configuring output
 // handlers, integrations, and notifications.
 //
 // Takes ctx (context.Context) which controls cancellation during setup.

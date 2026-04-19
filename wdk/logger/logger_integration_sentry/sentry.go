@@ -36,6 +36,17 @@ import (
 	"piko.sh/piko/wdk/logger/logger_state"
 )
 
+const (
+	// defaultSentryFlushTimeout is the fallback flush deadline applied when the
+	// shutdown context carries no deadline.
+	defaultSentryFlushTimeout = 2 * time.Second
+
+	// maxSentryFlushTimeout caps the flush deadline derived from the shutdown
+	// context to prevent a long-running shutdown from blocking the flush
+	// indefinitely.
+	maxSentryFlushTimeout = 30 * time.Second
+)
+
 var (
 	_ logger_domain.Integration = (*sentryIntegration)(nil)
 
@@ -153,13 +164,11 @@ type Config struct {
 	Debug bool
 }
 
-// Enable sets up the Sentry SDK and adds Sentry as a log handler. This
-// function uses sync.Once to ensure Sentry is only set up once, even if
-// called multiple times.
+// Enable sets up the Sentry SDK and adds Sentry as a log handler. Uses
+// sync.Once to ensure Sentry is only set up once, even if called multiple
+// times.
 //
-// Use this for programmatic Sentry setup. For config-based setup via
-// piko.yaml, simply import this package and configure Sentry in your config
-// file.
+// Use Enable from your func main to set up Sentry.
 //
 // Takes config (Config) which specifies the Sentry configuration settings.
 func Enable(config Config) {
@@ -254,16 +263,49 @@ func initialiseSentryClient(config sentryConfig) error {
 }
 
 // registerSentryShutdownHook registers a shutdown hook to flush Sentry events
-// before the program exits.
+// before the program exits. The shutdown context's deadline is honoured: if
+// the context has a deadline, the remaining time (capped at
+// maxSentryFlushTimeout) is used as the flush budget; otherwise a default of
+// defaultSentryFlushTimeout applies.
 func registerSentryShutdownHook() {
-	logger_domain.RegisterShutdownHook(func() {
-		slog.Debug("Flushing Sentry events for shutdown...")
-		if sentry.Flush(2 * time.Second) {
+	logger_state.AddShutdownHook(func(ctx context.Context) error {
+		flushTimeout := flushTimeoutFromContext(ctx)
+		slog.Debug("Flushing Sentry events for shutdown...",
+			slog.Duration("timeout", flushTimeout))
+		if sentry.Flush(flushTimeout) {
 			slog.Debug("Sentry flush completed successfully.")
-		} else {
-			slog.Warn("Sentry flush timed out. Some events may have been lost.")
+			return nil
 		}
+		slog.Warn("Sentry flush timed out. Some events may have been lost.",
+			slog.Duration("timeout", flushTimeout))
+		return nil
 	})
+}
+
+// flushTimeoutFromContext derives the Sentry flush deadline from ctx.
+//
+// When ctx carries a deadline the remaining time (clamped to
+// maxSentryFlushTimeout) is returned; otherwise defaultSentryFlushTimeout
+// is returned. A non-positive remaining time falls back to a small
+// positive value so sentry.Flush can observe the deadline rather than
+// blocking indefinitely.
+//
+// Takes ctx (context.Context) which may carry a shutdown deadline.
+//
+// Returns time.Duration which is the flush budget.
+func flushTimeoutFromContext(ctx context.Context) time.Duration {
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return defaultSentryFlushTimeout
+	}
+	remaining := time.Until(deadline)
+	if remaining <= 0 {
+		return time.Millisecond
+	}
+	if remaining > maxSentryFlushTimeout {
+		return maxSentryFlushTimeout
+	}
+	return remaining
 }
 
 // createSentryHandler creates a Sentry handler with the given settings.

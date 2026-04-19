@@ -52,7 +52,7 @@ var (
 // TaskProcessingCore contains the shared task processing logic used by both
 // the local channel dispatcher and the Watermill dispatcher.
 //
-// This struct encapsulates:
+// Encapsulates:
 //   - Executor registry and lookup
 //   - Task execution with timeout
 //   - Success/failure handling with retry logic
@@ -84,6 +84,12 @@ type TaskProcessingCore struct {
 
 	// shutdownCh signals persistence goroutines to abort when closed.
 	shutdownCh chan struct{}
+
+	// persistSemaphore bounds the number of concurrent async persistence
+	// goroutines. Each Go() call acquires a permit before spawning; on
+	// saturation the caller falls back to synchronous persistence so the
+	// work still completes but goroutine count stays bounded.
+	persistSemaphore chan struct{}
 
 	// heartbeatStopChans maps task ID to a chan struct{} used to stop the
 	// heartbeat goroutine for that task.
@@ -164,6 +170,7 @@ func NewTaskProcessingCore(
 		DelayedPublisher:   nil,
 		executors:          make(map[string]TaskExecutor),
 		shutdownCh:         make(chan struct{}),
+		persistSemaphore:   make(chan struct{}, config.EffectiveMaxConcurrentPersistJobs()),
 		Config:             config,
 		nodeID:             nodeID,
 		InFlightTasks:      sync.Map{},
@@ -183,7 +190,7 @@ func NewTaskProcessingCore(
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes name (string) which identifies the executor.
-// Takes executor (TaskExecutor) which handles tasks of this type.
+// Takes executor (TaskExecutor) which handles tasks of the named kind.
 //
 // Safe for concurrent use.
 func (c *TaskProcessingCore) RegisterExecutor(ctx context.Context, name string, executor TaskExecutor) {
@@ -530,7 +537,9 @@ func (c *TaskProcessingCore) PublishCompletionEvent(ctx context.Context, task *T
 //
 // Uses async persistence by default; set config.SyncPersistence=true for
 // synchronous mode. During shutdown, automatically falls back to synchronous
-// persistence to avoid data loss.
+// persistence to avoid data loss. When the persist concurrency cap is
+// saturated, the caller also falls back to synchronous persistence so the
+// goroutine count stays bounded and the work still completes.
 //
 // Takes ctx (context.Context) which carries tracing values; cancellation is
 // detached internally so persistence completes independently.
@@ -554,8 +563,14 @@ func (c *TaskProcessingCore) PersistTaskUpdate(ctx context.Context, task *Task) 
 	default:
 	}
 
+	if !c.acquirePersistPermit() {
+		c.persistTaskSync(detachedCtx, task)
+		return
+	}
+
 	taskCopy := *task
 	c.persistWg.Go(func() {
+		defer c.releasePersistPermit()
 		c.persistTaskSync(detachedCtx, &taskCopy)
 	})
 }
@@ -569,7 +584,9 @@ func (c *TaskProcessingCore) PersistTaskUpdate(ctx context.Context, task *Task) 
 //
 // Returns ErrDuplicateTask if a task with the same deduplication key exists,
 // or any other persistence error. During shutdown, automatically falls back
-// to synchronous persistence.
+// to synchronous persistence. When the persist concurrency cap is saturated,
+// the caller also falls back to synchronous persistence so the goroutine count
+// stays bounded.
 //
 // Safe for concurrent use. The spawned goroutine runs until the
 // persistence operation completes or the context is cancelled.
@@ -588,9 +605,14 @@ func (c *TaskProcessingCore) PersistWithDedup(ctx context.Context, task *Task) e
 	default:
 	}
 
+	if !c.acquirePersistPermit() {
+		return c.TaskStore.CreateTaskWithDedup(ctx, task)
+	}
+
 	detachedCtx := context.WithoutCancel(ctx)
 	_, l := logger_domain.From(ctx, log)
 	c.persistWg.Go(func() {
+		defer c.releasePersistPermit()
 		persistCtx, cancel := context.WithTimeoutCause(detachedCtx, 5*time.Second,
 			errors.New("task dedup persist exceeded 5s timeout"))
 		defer cancel()
@@ -903,6 +925,40 @@ func (c *TaskProcessingCore) StartHeartbeat(ctx context.Context, taskID string) 
 	stopCh := make(chan struct{})
 	c.heartbeatStopChans.Store(taskID, stopCh)
 	go c.runHeartbeat(detachedCtx, taskID, stopCh)
+}
+
+// acquirePersistPermit reserves a non-blocking slot in the persist semaphore.
+//
+// Returns true when a slot was acquired and the caller may spawn an async
+// persistence goroutine. Returns false when the semaphore is saturated or
+// unconfigured, signalling the caller to fall back to a synchronous
+// persistence path so backpressure flows through to the dispatcher
+// rather than spawning unbounded goroutines.
+//
+// Returns bool which is true when a permit was acquired.
+func (c *TaskProcessingCore) acquirePersistPermit() bool {
+	if c.persistSemaphore == nil {
+		return false
+	}
+	select {
+	case c.persistSemaphore <- struct{}{}:
+		return true
+	default:
+		return false
+	}
+}
+
+// releasePersistPermit returns a slot to the persist semaphore. Called from
+// deferred function bodies in goroutines that successfully acquired a permit
+// via acquirePersistPermit.
+func (c *TaskProcessingCore) releasePersistPermit() {
+	if c.persistSemaphore == nil {
+		return
+	}
+	select {
+	case <-c.persistSemaphore:
+	default:
+	}
 }
 
 // persistTaskSync synchronously persists the task to the store.

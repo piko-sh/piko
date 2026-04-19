@@ -35,9 +35,9 @@
 //
 // # Design rationale
 //
-// PDF rendering requires CSS layout computation that browsers perform
-// natively but Go does not provide. Rather than shelling out to a headless
-// browser, this package implements a CSS layout engine directly so that
-// Piko can produce paginated PDF output from the same HTML/CSS templates
-// used for web rendering, without external dependencies or child processes.
+// PDF rendering requires CSS layout computation that browsers perform natively but
+// Go does not provide. Rather than shelling out to a headless browser, the layouter
+// implements a CSS layout engine directly so that Piko can produce paginated PDF
+// output from the same HTML/CSS templates used for web rendering, without external
+// dependencies or child processes.
 package layouter_domain

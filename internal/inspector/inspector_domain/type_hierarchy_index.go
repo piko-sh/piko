@@ -116,7 +116,7 @@ func (idx *TypeHierarchyIndex) GetSupertypes(packagePath, typeName string) []Emb
 // Takes packagePath (string) which is the package path of the type.
 // Takes typeName (string) which is the name of the type.
 //
-// Returns []EmbedderInfo which contains all types that embed this type.
+// Returns []EmbedderInfo which contains all types that embed the given type.
 //
 // Safe for concurrent use.
 func (idx *TypeHierarchyIndex) GetSubtypes(packagePath, typeName string) []EmbedderInfo {

@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/config/config_domain"
@@ -73,29 +74,29 @@ var builders = map[string]daemonBuilderFunc{
 	runModeDevInterpreted: buildDevInterpretedDaemon,
 }
 
-// ConfigAndContainer creates the DI container and loads all application
+// ConfigAndContainer creates the DI container and resolves all application
 // configuration as the first phase of setup.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
-// Takes deps (*Dependencies) which provides core dependencies including
-// ConfigProvider and AppRouter.
+// Takes deps (*Dependencies) which provides core dependencies (currently
+// just AppRouter; nil is rejected).
 // Takes opts (...Option) which allows changes to container behaviour.
 //
 // Returns *Container which is the fully configured container ready to build
 // services.
-// Returns error when deps.ConfigProvider or deps.AppRouter is nil, or when
-// the server configuration cannot be loaded.
+// Returns error when deps.AppRouter is nil, or when the server
+// configuration cannot be resolved.
 func ConfigAndContainer(ctx context.Context, deps *Dependencies, opts ...Option) (*Container, error) {
 	ctx, l := logger_domain.From(ctx, log)
-	l.Internal("Bootstrap Phase 1: Initialising container and loading configuration...")
+	l.Internal("Bootstrap Phase 1: Initialising container and resolving configuration...")
 
-	if deps.ConfigProvider == nil || deps.AppRouter == nil {
-		err := errors.New("configProvider and appRouter dependencies cannot be nil")
+	if deps.AppRouter == nil {
+		err := errors.New("appRouter dependency cannot be nil")
 		l.Error("Bootstrap validation failed", logger_domain.Error(err))
 		return nil, fmt.Errorf("validating bootstrap dependencies: %w", err)
 	}
 
-	container := NewContainer(deps.ConfigProvider, opts...)
+	container := NewContainer(opts...)
 
 	container.applyAutoMemoryLimit(ctx)
 
@@ -105,32 +106,27 @@ func ConfigAndContainer(ctx context.Context, deps *Dependencies, opts ...Option)
 		return nil, fmt.Errorf("validating provider configuration: %w", err)
 	}
 
-	l.Internal("Loading and resolving server configuration (piko.yaml)...")
-	loadCtx, err := container.config.LoadConfig(container.configServerDefaults, container.configServerOverrides, container.configResolvers...)
+	l.Internal("Resolving server configuration from programmatic options...")
+	loadCtx, err := resolveServerConfig(&container.serverConfig, container.configServerOverrides, container.configResolvers)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load server configuration: %w", err)
+		return nil, fmt.Errorf("failed to resolve server configuration: %w", err)
 	}
 	summary, _ := config_domain.Summarise(loadCtx)
 	l.Internal(summary)
 
 	if container.websiteConfigOverride != nil {
 		l.Internal("Using programmatic website configuration (WithWebsiteConfig)")
-		container.config.WebsiteConfig = *container.websiteConfigOverride
+		container.websiteConfig = *container.websiteConfigOverride
 	} else {
-		l.Internal("Loading website configuration (config.json)...")
-		if err := container.config.LoadWebsiteConfig(); err != nil {
-			l.Warn("Could not load website config, using defaults.", logger_domain.Error(err))
-			container.config.WebsiteConfig = config.WebsiteConfig{}
-		} else {
-			l.Internal("Website configuration loaded successfully")
-		}
+		l.Internal("No website configuration supplied; using defaults. Pass WithWebsiteConfig to set theme, fonts, locales, and favicons.")
+		container.websiteConfig = config.WebsiteConfig{}
 	}
 
 	resolveFaviconSources(container)
 
 	l.Internal("Initialising logger from configuration...")
 	otelOpts := buildOtelSetupOptions(ctx, container)
-	_, loggerShutdown, err := logger.Initialise(ctx, container.config.ServerConfig.Logger, NewOtelSetupConfig(&container.config.ServerConfig), otelOpts)
+	_, loggerShutdown, err := logger.Initialise(ctx, container.serverConfig.Logger, NewOtelSetupConfig(&container.serverConfig), otelOpts)
 	if err != nil {
 		l.Error("Failed to initialise logger from configuration, continuing with default logger", logger_domain.Error(err))
 	} else {
@@ -177,6 +173,73 @@ func Daemon(ctx context.Context, runMode string, container *Container, deps *Dep
 
 	l.Notice("Daemon successfully bootstrapped and ready to run.")
 	return daemon, nil
+}
+
+// resolveServerConfig populates the supplied target ServerConfig from
+// programmatic overrides and resolver placeholders.
+//
+// piko itself reads no files, env vars, or CLI flags. Only the Defaults,
+// Programmatic, Resolvers, ProgrammaticOverrides and Validation passes
+// from config_domain run here.
+//
+// Takes target (*ServerConfig) which is populated in place.
+// Takes overrides (*ServerConfig) which carries the user's With*
+// option values. May be nil.
+// Takes resolvers ([]config_domain.Resolver) which expand placeholder
+// strings such as "aws-secret:my/key" inside the override values.
+//
+// Returns *config_domain.LoadContext which carries source tracking for
+// the summary.
+// Returns error when merging or path validation fails.
+func resolveServerConfig(target *ServerConfig, overrides *ServerConfig, resolvers []config_domain.Resolver) (*config_domain.LoadContext, error) {
+	opts := config_domain.LoaderOptions{
+		ProgrammaticOverrides: overrides,
+		Resolvers:             resolvers,
+		UseGlobalResolvers:    true,
+		PassOrder: []config_domain.Pass{
+			config_domain.PassDefaults,
+			config_domain.PassProgrammatic,
+			config_domain.PassResolvers,
+			config_domain.PassProgrammaticOverrides,
+			config_domain.PassValidation,
+		},
+	}
+
+	ctx, err := config_domain.Load(context.Background(), target, opts)
+	if err != nil {
+		return nil, fmt.Errorf("resolving server configuration: %w", err)
+	}
+
+	if err := validateBaseDir(target); err != nil {
+		return nil, fmt.Errorf("validating server paths: %w", err)
+	}
+	return ctx, nil
+}
+
+// validateBaseDir checks that the configured base directory exists and is a
+// directory. Defaulted to "." when unset, so users without WithBaseDir get
+// the current working directory.
+//
+// Takes sc (*ServerConfig) which is the resolved server configuration.
+//
+// Returns error when the base directory is missing, inaccessible, or not a
+// directory.
+func validateBaseDir(sc *ServerConfig) error {
+	baseDir := "."
+	if sc.Paths.BaseDir != nil {
+		baseDir = *sc.Paths.BaseDir
+	}
+	info, err := os.Stat(baseDir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("website base directory not found: %s", baseDir)
+		}
+		return fmt.Errorf("cannot access website base directory %s: %w", baseDir, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("baseDir is not a directory: %s", baseDir)
+	}
+	return nil
 }
 
 // buildOtelSetupOptions creates OtelSetupOptions from the container's OTEL

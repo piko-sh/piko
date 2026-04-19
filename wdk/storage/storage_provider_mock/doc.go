@@ -19,10 +19,9 @@
 // Package storage_provider_mock provides an in-memory mock implementation
 // of the storage provider interface for testing and development.
 //
-// This package allows you to exercise storage operations without
-// requiring any external services, filesystem access, or cloud
-// credentials. All data is held in memory and discarded when the
-// provider is garbage-collected.
+// Allows you to exercise storage operations without requiring any external
+// services, filesystem access, or cloud credentials. All data is held in memory
+// and discarded when the provider is garbage-collected.
 //
 // # Usage
 //
@@ -32,7 +31,7 @@
 //	service := storage.NewService("mock")
 //	service.RegisterProvider(ctx, "mock", mock)
 //
-// The returned provider implements [storage.ProviderPort] and can be
-// used anywhere a real storage provider is expected. It is designed
-// for unit tests and local development.
+// The returned provider implements [storage.ProviderPort] and can be used
+// anywhere a real storage provider is expected. It is designed for unit tests
+// and local development.
 package storage_provider_mock

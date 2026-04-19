@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -33,6 +32,7 @@ import (
 	"piko.sh/piko/internal/interp/interp_adapters"
 	"piko.sh/piko/internal/interp/interp_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
@@ -49,6 +49,9 @@ const (
 
 	// slogKeyPath is the structured-logging key for file paths.
 	slogKeyPath = "path"
+
+	// slogKeyDirectory is the structured-logging key for directory paths.
+	slogKeyDirectory = "directory"
 )
 
 // interpreterAdapter wraps *interp_domain.Service to implement
@@ -172,16 +175,23 @@ func (a *interpreterAdapter) HasRegisteredPackage(importPath string) bool {
 // Takes packages (map[string]map[string]string) which maps
 // relative package paths to filename-to-source maps.
 func (a *interpreterAdapter) emitSourceFiles(modulePath string, packages map[string]map[string]string) {
+	sandbox, err := safedisk.NewSandbox(a.bytecodeEmissionDirectory, safedisk.ModeReadWrite)
+	if err != nil {
+		slog.Warn("bytecode emission: failed to open emission sandbox", slogKeyDirectory, a.bytecodeEmissionDirectory, slogKeyError, err)
+		return
+	}
+	defer func() { _ = sandbox.Close() }()
+
 	for relativePath, files := range packages {
-		packageDirectory := filepath.Join(a.bytecodeEmissionDirectory, "source", sanitisePath(modulePath), sanitisePath(relativePath))
-		if err := os.MkdirAll(packageDirectory, directoryPermission); err != nil {
-			slog.Warn("bytecode emission: failed to create source directory", "directory", packageDirectory, slogKeyError, err)
+		packageDirectory := filepath.Join("source", sanitisePath(modulePath), sanitisePath(relativePath))
+		if err := sandbox.MkdirAll(packageDirectory, directoryPermission); err != nil {
+			slog.Warn("bytecode emission: failed to create source directory", slogKeyDirectory, packageDirectory, slogKeyError, err)
 			continue
 		}
 
 		for filename, source := range files {
 			outputPath := filepath.Join(packageDirectory, filename)
-			if err := os.WriteFile(outputPath, []byte(source), filePermission); err != nil {
+			if err := sandbox.WriteFile(outputPath, []byte(source), filePermission); err != nil {
 				slog.Warn("bytecode emission: failed to write source file", slogKeyPath, outputPath, slogKeyError, err)
 			}
 		}
@@ -196,9 +206,16 @@ func (a *interpreterAdapter) emitSourceFiles(modulePath string, packages map[str
 // Takes compiledFileSet (*interp_domain.CompiledFileSet) which
 // is the compiled bytecode to serialise.
 func (a *interpreterAdapter) emitBytecode(packages map[string]map[string]string, compiledFileSet *interp_domain.CompiledFileSet) {
-	bytecodeDirectory := filepath.Join(a.bytecodeEmissionDirectory, "compiled")
-	if err := os.MkdirAll(bytecodeDirectory, directoryPermission); err != nil {
-		slog.Warn("bytecode emission: failed to create bytecode directory", "directory", bytecodeDirectory, slogKeyError, err)
+	sandbox, err := safedisk.NewSandbox(a.bytecodeEmissionDirectory, safedisk.ModeReadWrite)
+	if err != nil {
+		slog.Warn("bytecode emission: failed to open emission sandbox", slogKeyDirectory, a.bytecodeEmissionDirectory, slogKeyError, err)
+		return
+	}
+	defer func() { _ = sandbox.Close() }()
+
+	bytecodeDirectory := "compiled"
+	if err := sandbox.MkdirAll(bytecodeDirectory, directoryPermission); err != nil {
+		slog.Warn("bytecode emission: failed to create bytecode directory", slogKeyDirectory, bytecodeDirectory, slogKeyError, err)
 		return
 	}
 
@@ -208,21 +225,21 @@ func (a *interpreterAdapter) emitBytecode(packages map[string]map[string]string,
 	filename := fmt.Sprintf("bytecode-%s.bin", suffix)
 	outputPath := filepath.Join(bytecodeDirectory, filename)
 
-	if err := os.WriteFile(outputPath, data, filePermission); err != nil {
+	if err := sandbox.WriteFile(outputPath, data, filePermission); err != nil {
 		slog.Warn("bytecode emission: failed to write bytecode file", slogKeyPath, outputPath, slogKeyError, err)
 	}
 
 	manifestFilename := fmt.Sprintf("bytecode-%s.txt", suffix)
 	manifestPath := filepath.Join(bytecodeDirectory, manifestFilename)
 	manifest := strings.Join(sortedPaths, "\n") + "\n"
-	if err := os.WriteFile(manifestPath, []byte(manifest), filePermission); err != nil {
+	if err := sandbox.WriteFile(manifestPath, []byte(manifest), filePermission); err != nil {
 		slog.Warn("bytecode emission: failed to write manifest file", slogKeyPath, manifestPath, slogKeyError, err)
 	}
 
 	asmFilename := fmt.Sprintf("bytecode-%s.pkasm", suffix)
 	asmPath := filepath.Join(bytecodeDirectory, asmFilename)
 	asmContent := compiledFileSet.DisassembleAssembly()
-	if err := os.WriteFile(asmPath, []byte(asmContent), filePermission); err != nil {
+	if err := sandbox.WriteFile(asmPath, []byte(asmContent), filePermission); err != nil {
 		slog.Warn("bytecode emission: failed to write assembly file", slogKeyPath, asmPath, slogKeyError, err)
 	}
 }

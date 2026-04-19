@@ -42,6 +42,12 @@ const (
 
 	// defaultTimeoutDuration is the time limit for sending error notifications.
 	defaultTimeoutDuration = 15 * time.Second
+
+	// defaultMaxGroupedErrors is the maximum number of distinct grouped error
+	// keys held in the debounce window. New groups arriving once the cap is
+	// reached are dropped (with a counter increment) so a flood of unique
+	// errors cannot drive the process to OOM.
+	defaultMaxGroupedErrors = 1000
 )
 
 // hasherPool provides reusable xxhash instances for speed and to make it
@@ -66,12 +72,20 @@ type notificationState struct {
 	// groupedErrors maps error keys to their grouped error data for batching.
 	groupedErrors map[string]*GroupedError
 
+	// droppedErrors counts new error groups that could not be added because
+	// groupedErrors had reached maxGroupedErrors.
+	droppedErrors uint64
+
 	// minLevel is the lowest log level that triggers a notification.
 	minLevel slog.Level
 
 	// debounceDur is the delay before sending grouped messages; default is 10
 	// seconds.
 	debounceDur time.Duration
+
+	// maxGroupedErrors caps the size of groupedErrors to prevent unbounded
+	// memory growth under a flood of unique error sources.
+	maxGroupedErrors int
 
 	// mu guards access to the notification state fields.
 	mu sync.Mutex
@@ -171,8 +185,39 @@ func (h *NotificationHandler) SetDebounceDuration(d time.Duration) {
 	h.state.debounceDur = d
 }
 
+// SetMaxGroupedErrors overrides the cap on distinct grouped error keys.
+//
+// A value <= 0 restores the default. New groups arriving once the cap is
+// reached are dropped, with a counter increment surfaced via
+// DroppedErrorCount.
+//
+// Takes n (int) which is the new cap on distinct grouped error keys.
+//
+// Safe for concurrent use.
+func (h *NotificationHandler) SetMaxGroupedErrors(n int) {
+	h.state.mu.Lock()
+	defer h.state.mu.Unlock()
+	if n <= 0 {
+		h.state.maxGroupedErrors = defaultMaxGroupedErrors
+		return
+	}
+	h.state.maxGroupedErrors = n
+}
+
+// DroppedErrorCount returns the cumulative number of new error groups that
+// could not be added because the debounce window had reached its cap.
+//
+// Returns uint64 which is the running total of dropped error groups.
+//
+// Safe for concurrent use.
+func (h *NotificationHandler) DroppedErrorCount() uint64 {
+	h.state.mu.Lock()
+	defer h.state.mu.Unlock()
+	return h.state.droppedErrors
+}
+
 // GetPendingErrorCount returns the number of unique grouped errors that are
-// waiting to be sent. This method is mainly for test checks.
+// waiting to be sent. Mainly for test checks.
 //
 // Returns int which is the count of pending grouped errors.
 //
@@ -184,7 +229,7 @@ func (h *NotificationHandler) GetPendingErrorCount() int {
 }
 
 // HasPendingBatch returns true if there are any grouped errors waiting to be
-// sent. This method is primarily for test verification.
+// sent. Primarily for test verification.
 //
 // Returns bool which indicates whether pending errors exist in the batch.
 //
@@ -196,7 +241,7 @@ func (h *NotificationHandler) HasPendingBatch() bool {
 }
 
 // GetPendingErrors returns a copy of the current grouped errors map.
-// This method is primarily for test verification and debugging.
+// Primarily for test verification and debugging.
 //
 // Returns map[string]*GroupedError which is a shallow copy of the pending
 // errors. Modifications to the returned map will not affect the handler's
@@ -213,7 +258,7 @@ func (h *NotificationHandler) GetPendingErrors() map[string]*GroupedError {
 }
 
 // GetDebounceDuration returns the current debounce duration.
-// This method is primarily for test verification.
+// Primarily for test verification.
 //
 // Returns time.Duration which is the current debounce interval.
 //
@@ -225,7 +270,7 @@ func (h *NotificationHandler) GetDebounceDuration() time.Duration {
 }
 
 // GetMinLevel returns the minimum log level for notifications.
-// This method is primarily for test verification.
+// Primarily for test verification.
 //
 // Returns slog.Level which is the current minimum notification level.
 //
@@ -253,6 +298,11 @@ func (h *NotificationHandler) groupAndScheduleSend(r *slog.Record) {
 		existing.Count++
 		existing.LastSeen = now
 	} else {
+		if len(h.state.groupedErrors) >= h.state.maxGroupedErrors {
+			h.state.droppedErrors++
+			return
+		}
+
 		var file string
 		var line int
 		if r.PC != 0 {
@@ -313,9 +363,8 @@ func (h *NotificationHandler) sendBatch(batch map[string]*GroupedError) {
 // newNotificationHandlerWithClock creates a notification handler with a custom
 // clock.
 //
-// This function is mainly for testing. It lets you pass in a mock clock to
-// control time-based behaviour. The handler is added to the
-// defaultLifecycleManager for shutdown.
+// Mainly for testing; accepts a mock clock to control time-based behaviour. The
+// handler is added to the defaultLifecycleManager for shutdown.
 //
 // Takes next (slog.Handler) which is the handler to wrap.
 // Takes notificationPort (NotificationPort) which sends notifications.
@@ -347,6 +396,7 @@ func newNotificationHandlerWithOptions(next slog.Handler, notificationPort Notif
 			notificationPort: notificationPort,
 			minLevel:         minLevel,
 			groupedErrors:    make(map[string]*GroupedError),
+			maxGroupedErrors: defaultMaxGroupedErrors,
 			debounceDur:      defaultDebounceDuration,
 			debounceTimer:    nil,
 			clock:            clk,

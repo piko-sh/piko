@@ -182,12 +182,6 @@ table ErrorPageEntryMapItemFB {
   value:ManifestErrorPageEntryFB;
 }
 
-table CollectionFallbackRouteFB {
-  route_patterns:[RoutePatternMapItemFB];
-
-  i18n_strategy:string;
-}
-
 table ManifestFB {
   pages:[PageEntryMapItemFB];
 
@@ -198,8 +192,6 @@ table ManifestFB {
   pdfs:[PdfEntryMapItemFB];
 
   error_pages:[ErrorPageEntryMapItemFB];
-
-  collection_fallback_routes:[CollectionFallbackRouteFB];
 }
 
 root_type ManifestFB;

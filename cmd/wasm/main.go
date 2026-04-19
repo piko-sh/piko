@@ -22,13 +22,14 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"syscall/js"
 	"time"
 
+	"piko.sh/piko/cmd/wasm/internal/wasmrecover"
 	"piko.sh/piko/internal/inspector/inspector_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/render/render_adapters"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/wasm/wasm_adapters"
@@ -154,13 +155,9 @@ func jsInit(_ js.Value, _ []js.Value) any {
 // Returns any which is a Promise that resolves to an
 // AnalyseResponse or rejects with an error message.
 func jsAnalyse(_ js.Value, arguments []js.Value) any {
-	if len(arguments) < 1 {
-		return errorResult("analyse requires a request object")
-	}
-
 	var request wasm_dto.AnalyseRequest
-	if err := unmarshalJSValue(arguments[0], &request); err != nil {
-		return errorResult(fmt.Sprintf(invalidRequestFmt, err))
+	if errMessage := parseRequestSafely("piko.jsAnalyse", arguments, &request, "analyse requires a request object"); errMessage != "" {
+		return rejectedPromise(errMessage)
 	}
 
 	return newPromiseWithTimeout(defaultOperationTimeout, func(ctx context.Context) (any, error) {
@@ -183,13 +180,9 @@ func jsAnalyse(_ js.Value, arguments []js.Value) any {
 // Returns any which is a Promise that resolves to a
 // GenerateFromSourcesResponse or rejects with an error message.
 func jsGenerate(_ js.Value, arguments []js.Value) any {
-	if len(arguments) < 1 {
-		return errorResult("generate requires a request object")
-	}
-
 	var request wasm_dto.GenerateFromSourcesRequest
-	if err := unmarshalJSValue(arguments[0], &request); err != nil {
-		return errorResult(fmt.Sprintf(invalidRequestFmt, err))
+	if errMessage := parseRequestSafely("piko.jsGenerate", arguments, &request, "generate requires a request object"); errMessage != "" {
+		return rejectedPromise(errMessage)
 	}
 
 	return newPromiseWithTimeout(defaultOperationTimeout, func(ctx context.Context) (any, error) {
@@ -213,13 +206,9 @@ func jsGenerate(_ js.Value, arguments []js.Value) any {
 // Returns any which is a Promise that resolves to a
 // RenderFromSourcesResponse or rejects with an error message.
 func jsRender(_ js.Value, arguments []js.Value) any {
-	if len(arguments) < 1 {
-		return errorResult("render requires a request object")
-	}
-
 	var request wasm_dto.RenderFromSourcesRequest
-	if err := unmarshalJSValue(arguments[0], &request); err != nil {
-		return errorResult(fmt.Sprintf(invalidRequestFmt, err))
+	if errMessage := parseRequestSafely("piko.jsRender", arguments, &request, "render requires a request object"); errMessage != "" {
+		return rejectedPromise(errMessage)
 	}
 
 	return newPromiseWithTimeout(defaultOperationTimeout, func(ctx context.Context) (any, error) {
@@ -244,13 +233,9 @@ func jsRender(_ js.Value, arguments []js.Value) any {
 // Returns any which is a Promise that resolves to a
 // DynamicRenderResponse or rejects with an error message.
 func jsDynamicRender(_ js.Value, arguments []js.Value) any {
-	if len(arguments) < 1 {
-		return errorResult("dynamicRender requires a request object")
-	}
-
 	var request wasm_dto.DynamicRenderRequest
-	if err := unmarshalJSValue(arguments[0], &request); err != nil {
-		return errorResult(fmt.Sprintf(invalidRequestFmt, err))
+	if errMessage := parseRequestSafely("piko.jsDynamicRender", arguments, &request, "dynamicRender requires a request object"); errMessage != "" {
+		return rejectedPromise(errMessage)
 	}
 
 	return newPromiseWithTimeout(defaultOperationTimeout, func(ctx context.Context) (any, error) {
@@ -270,16 +255,12 @@ func jsDynamicRender(_ js.Value, arguments []js.Value) any {
 // Returns any which is a Promise that resolves to a
 // CompletionResponse.
 func jsGetCompletions(_ js.Value, arguments []js.Value) any {
-	if len(arguments) < 1 {
-		return errorResult("getCompletions requires a request object")
+	var request wasm_dto.CompletionRequest
+	if errMessage := parseRequestSafely("piko.jsGetCompletions", arguments, &request, "getCompletions requires a request object"); errMessage != "" {
+		return rejectedPromise(errMessage)
 	}
 
 	return newPromise(func() (any, error) {
-		var request wasm_dto.CompletionRequest
-		if err := unmarshalJSValue(arguments[0], &request); err != nil {
-			return nil, fmt.Errorf("invalid request: %w", err)
-		}
-
 		ctx := context.Background()
 		response, err := orchestrator.GetCompletions(ctx, &request)
 		if err != nil {
@@ -298,16 +279,12 @@ func jsGetCompletions(_ js.Value, arguments []js.Value) any {
 //
 // Returns any which is a Promise that resolves to a HoverResponse.
 func jsGetHover(_ js.Value, arguments []js.Value) any {
-	if len(arguments) < 1 {
-		return errorResult("getHover requires a request object")
+	var request wasm_dto.HoverRequest
+	if errMessage := parseRequestSafely("piko.jsGetHover", arguments, &request, "getHover requires a request object"); errMessage != "" {
+		return rejectedPromise(errMessage)
 	}
 
 	return newPromise(func() (any, error) {
-		var request wasm_dto.HoverRequest
-		if err := unmarshalJSValue(arguments[0], &request); err != nil {
-			return nil, fmt.Errorf("invalid request: %w", err)
-		}
-
 		ctx := context.Background()
 		response, err := orchestrator.GetHover(ctx, &request)
 		if err != nil {
@@ -327,16 +304,12 @@ func jsGetHover(_ js.Value, arguments []js.Value) any {
 // Returns any which is a JavaScript Promise that resolves to a
 // ValidateResponse.
 func jsValidate(_ js.Value, arguments []js.Value) any {
-	if len(arguments) < 1 {
-		return errorResult("validate requires a request object")
+	var request wasm_dto.ValidateRequest
+	if errMessage := parseRequestSafely("piko.jsValidate", arguments, &request, "validate requires a request object"); errMessage != "" {
+		return rejectedPromise(errMessage)
 	}
 
 	return newPromise(func() (any, error) {
-		var request wasm_dto.ValidateRequest
-		if err := unmarshalJSValue(arguments[0], &request); err != nil {
-			return nil, fmt.Errorf("invalid request: %w", err)
-		}
-
 		ctx := context.Background()
 		response, err := orchestrator.Validate(ctx, &request)
 		if err != nil {
@@ -352,31 +325,43 @@ func jsValidate(_ js.Value, arguments []js.Value) any {
 // Returns any which is the runtime information as a JavaScript-compatible
 // object, or an error result if the operation fails.
 func jsGetRuntimeInfo(_ js.Value, _ []js.Value) any {
-	ctx := context.Background()
-	info, err := orchestrator.GetRuntimeInfo(ctx)
-	if err != nil {
-		return errorResult(err.Error())
+	var result any
+	if errResult := runSyncSafely("piko.jsGetRuntimeInfo", func() {
+		ctx := context.Background()
+		info, err := orchestrator.GetRuntimeInfo(ctx)
+		if err != nil {
+			result = errorResult(err.Error())
+			return
+		}
+		result = marshalToJS(info)
+	}); errResult != nil {
+		return *errResult
 	}
-
-	return marshalToJS(info)
+	return result
 }
 
 // jsParseTemplate parses a PK template.
 //
-// This function is not yet working. It returns an error to show that the
-// feature is still being built.
+// Not yet working: returns a rejected Promise to indicate that the feature is
+// still being built. The TS typings expose parseTemplate as Promise-returning,
+// so this must be a thenable so JS callers using await observe a structured
+// rejection rather than a TypeError on a plain object.
 //
-// Returns any which is an error result showing the function is not ready.
+// Returns any which is a rejected JavaScript Promise carrying a not-implemented
+// error message.
 func jsParseTemplate(_ js.Value, _ []js.Value) any {
-	return errorResult("parseTemplate not yet implemented")
+	return rejectedPromise("parseTemplate not yet implemented")
 }
 
 // jsRenderPreview renders a template preview.
 //
-// Returns any which is an error result because this feature is not yet
-// implemented.
+// Not yet working: returns a rejected Promise so JS callers awaiting
+// renderPreview observe a structured rejection rather than a TypeError.
+//
+// Returns any which is a rejected JavaScript Promise carrying a not-implemented
+// error message.
 func jsRenderPreview(_ js.Value, _ []js.Value) any {
-	return errorResult("renderPreview not yet implemented")
+	return rejectedPromise("renderPreview not yet implemented")
 }
 
 // newPromise creates a JavaScript Promise that runs the given function.
@@ -506,4 +491,89 @@ func errorResult(message string) js.Value {
 		"success": false,
 		"error":   message,
 	})
+}
+
+// rejectedPromise constructs a JS Promise that immediately rejects with
+// message. Used by synchronous handler prologues so callers awaiting
+// piko.<method>(...) always observe a thenable, even when argument
+// validation fails before any async work runs.
+//
+// Without this helper a synchronous prologue could return a plain object,
+// which JS clients using await would surface as "object is not awaitable"
+// or ".then is not a function" instead of a structured rejection.
+//
+// Takes message (string) which is the rejection reason propagated to the JS
+// caller.
+//
+// Returns js.Value which is a JavaScript Promise rejected with an
+// errorResult-shaped value.
+func rejectedPromise(message string) js.Value {
+	handler := js.FuncOf(func(_ js.Value, arguments []js.Value) any {
+		reject := arguments[1]
+		reject.Invoke(errorResult(message))
+		return nil
+	})
+	defer handler.Release()
+
+	promiseConstructor := js.Global().Get("Promise")
+	return promiseConstructor.New(handler)
+}
+
+// parseRequestSafely unmarshals the first JS argument into target with
+// panic recovery.
+//
+// Untrusted JS values can trigger panics in syscall/js when JSON.stringify
+// rejects values like BigInts or circular references; without recovery
+// those panics tear down the WASM instance instead of returning a
+// structured error to the caller.
+//
+// Takes component (string) which identifies the JS handler for diagnostic
+// logging when a panic is recovered.
+// Takes arguments ([]js.Value) which is the slice of JS values supplied to the
+// handler.
+// Takes target (any) which is a pointer to the destination struct for
+// unmarshalling.
+// Takes missingArgMessage (string) which is the error message returned when no
+// argument was provided.
+//
+// Returns string which is the error message describing why the prologue could
+// not proceed (missing argument, unmarshal failure, or recovered panic); the
+// caller must wrap it in a rejected Promise via rejectedPromise so JS callers
+// awaiting the handler observe a thenable. Returns "" when target was
+// populated successfully and the caller may continue.
+func parseRequestSafely(component string, arguments []js.Value, target any, missingArgMessage string) string {
+	var errMessage string
+	if panicMessage, panicked := wasmrecover.Sync(component, func() {
+		if len(arguments) < 1 {
+			errMessage = missingArgMessage
+			return
+		}
+		if err := unmarshalJSValue(arguments[0], target); err != nil {
+			errMessage = fmt.Sprintf(invalidRequestFmt, err)
+			return
+		}
+	}); panicked {
+		return panicMessage
+	}
+	return errMessage
+}
+
+// runSyncSafely runs operation under a deferred recover that turns any panic
+// into an errorResult addressed to JS land. Used by the synchronous prologue
+// of every JS handler so a malformed JS argument cannot tear down the WASM
+// instance.
+//
+// Takes component (string) which identifies the JS handler for diagnostic
+// logging.
+// Takes operation (func()) which is the synchronous body to run; it should
+// store its result in an enclosing variable.
+//
+// Returns *js.Value which is a non-nil pointer to a recovered errorResult
+// when operation panicked, or nil on a clean run.
+func runSyncSafely(component string, operation func()) *js.Value {
+	if errMessage, panicked := wasmrecover.Sync(component, operation); panicked {
+		r := errorResult(errMessage)
+		return &r
+	}
+	return nil
 }

@@ -355,6 +355,8 @@ type mockSeedExecutor struct {
 	appliedSeedsFn     func(ctx context.Context) ([]querier_dto.AppliedSeed, error)
 	executeSeedFn      func(ctx context.Context, seed querier_dto.SeedRecord) error
 	clearSeedHistoryFn func(ctx context.Context) error
+	acquireSeedLockFn  func(ctx context.Context) error
+	releaseSeedLockFn  func(ctx context.Context) error
 }
 
 func (m *mockSeedExecutor) EnsureSeedTable(ctx context.Context) error {
@@ -381,6 +383,20 @@ func (m *mockSeedExecutor) ExecuteSeed(ctx context.Context, seed querier_dto.See
 func (m *mockSeedExecutor) ClearSeedHistory(ctx context.Context) error {
 	if m.clearSeedHistoryFn != nil {
 		return m.clearSeedHistoryFn(ctx)
+	}
+	return nil
+}
+
+func (m *mockSeedExecutor) AcquireSeedLock(ctx context.Context) error {
+	if m.acquireSeedLockFn != nil {
+		return m.acquireSeedLockFn(ctx)
+	}
+	return nil
+}
+
+func (m *mockSeedExecutor) ReleaseSeedLock(ctx context.Context) error {
+	if m.releaseSeedLockFn != nil {
+		return m.releaseSeedLockFn(ctx)
 	}
 	return nil
 }

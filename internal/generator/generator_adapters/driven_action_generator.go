@@ -22,7 +22,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
@@ -85,7 +84,7 @@ func NewActionGeneratorAdapter(opts ...ActionGeneratorOption) *ActionGeneratorAd
 
 // GenerateActions generates all action code artefacts from the manifest.
 //
-// This method converts the ActionManifest to ActionSpec format and generates:
+// Converts the ActionManifest to ActionSpec format and generates:
 //   - dist/actions/registry.go - action name to handler mapping
 //   - dist/actions/wrappers.go - type-safe wrapper functions
 //   - dist/ts/actions.gen.ts - TypeScript client types
@@ -152,6 +151,8 @@ func (a *ActionGeneratorAdapter) GenerateActions(
 
 // writeFile writes data to a file, creating parent directories as needed
 // and resolving paths relative to the sandbox root when one is configured.
+// When no sandbox is configured, a one-shot sandbox is created at the file's
+// parent directory so writes still go through path-traversal protection.
 //
 // Takes path (string) which specifies the file path to write to.
 // Takes data ([]byte) which contains the content to write.
@@ -165,13 +166,15 @@ func (a *ActionGeneratorAdapter) writeFile(path string, data []byte) error {
 		if err := a.sandbox.MkdirAll(directory, actionDirPermission); err != nil {
 			return fmt.Errorf("creating directory %s: %w", directory, err)
 		}
-		return a.sandbox.WriteFile(relPath, data, actionFilePermission)
+		return a.sandbox.WriteFileAtomic(relPath, data, actionFilePermission)
 	}
 	directory := filepath.Dir(path)
-	if err := os.MkdirAll(directory, actionDirPermission); err != nil {
+	parentSandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
+	if err != nil {
 		return fmt.Errorf("creating directory %s: %w", directory, err)
 	}
-	return os.WriteFile(path, data, actionFilePermission)
+	defer func() { _ = parentSandbox.Close() }()
+	return parentSandbox.WriteFileAtomic(filepath.Base(path), data, actionFilePermission)
 }
 
 // WithActionSandbox injects a sandbox for filesystem operations.

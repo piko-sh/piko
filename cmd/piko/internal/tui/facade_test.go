@@ -19,65 +19,72 @@
 package tui
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"piko.sh/piko/wdk/safedisk"
 )
 
-func TestLoadConfig(t *testing.T) {
-	t.Run("loads config from sandbox", func(t *testing.T) {
-		sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
-		defer func() { _ = sandbox.Close() }()
-		sandbox.AddFile("piko.yaml", []byte("tui:\n  endpoint: \"http://custom:9090\"\n  theme: \"dark\"\n  refreshInterval: \"5s\"\n  title: \"My App\"\n"))
+func writeTempYAML(t *testing.T, dir, name, body string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	require.NoError(t, os.WriteFile(path, []byte(body), 0o600))
+	return path
+}
 
-		tuiConfig, err := LoadConfig("", WithConfigSandbox(sandbox), WithHomeDir("/nonexistent"))
+func TestLoadConfig(t *testing.T) {
+	t.Run("loads config from explicit path", func(t *testing.T) {
+		dir := t.TempDir()
+		path := writeTempYAML(t, dir, "tui.yaml",
+			"endpoint: http://custom:9090\ntheme: dark\nrefreshInterval: 5s\ntitle: My App\n")
+
+		cfg, err := LoadConfig(path, WithHomeDir("/nonexistent"))
 
 		require.NoError(t, err)
-		assert.Equal(t, "http://custom:9090", tuiConfig.Endpoint)
-		assert.Equal(t, "dark", tuiConfig.Theme)
-		assert.Equal(t, "5s", tuiConfig.RefreshInterval)
-		assert.Equal(t, "My App", tuiConfig.Title)
+		assert.Equal(t, "http://custom:9090", cfg.Endpoint)
+		assert.Equal(t, "dark", cfg.Theme)
+		assert.Equal(t, "5s", cfg.RefreshInterval)
+		assert.Equal(t, "My App", cfg.Title)
 	})
 
 	t.Run("returns defaults when no config found", func(t *testing.T) {
-		sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
-		defer func() { _ = sandbox.Close() }()
+		dir := t.TempDir()
+		t.Chdir(dir)
 
-		tuiConfig, err := LoadConfig("", WithConfigSandbox(sandbox), WithHomeDir("/nonexistent"))
+		cfg, err := LoadConfig("", WithHomeDir("/nonexistent"))
 
 		require.NoError(t, err)
-		assert.Equal(t, "http://localhost:8080", tuiConfig.Endpoint)
-		assert.Equal(t, "2s", tuiConfig.RefreshInterval)
-		assert.Equal(t, "default", tuiConfig.Theme)
+		assert.Equal(t, "http://localhost:8080", cfg.Endpoint)
+		assert.Equal(t, "2s", cfg.RefreshInterval)
+		assert.Equal(t, "default", cfg.Theme)
 	})
 
 	t.Run("explicit config path takes precedence", func(t *testing.T) {
-		sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
-		defer func() { _ = sandbox.Close() }()
-		sandbox.AddFile("piko.yaml", []byte("tui:\n  endpoint: \"http://local:1111\"\n"))
-		sandbox.AddFile("custom.yaml", []byte("tui:\n  endpoint: \"http://custom:2222\"\n"))
+		dir := t.TempDir()
+		t.Chdir(dir)
+		writeTempYAML(t, dir, "tui.yaml", "endpoint: http://local:1111\n")
+		customPath := writeTempYAML(t, dir, "custom.yaml", "endpoint: http://custom:2222\n")
 
-		tuiConfig, err := LoadConfig("custom.yaml", WithConfigSandbox(sandbox), WithHomeDir("/nonexistent"))
+		cfg, err := LoadConfig(customPath, WithHomeDir("/nonexistent"))
 
 		require.NoError(t, err)
-		assert.Equal(t, "http://custom:2222", tuiConfig.Endpoint)
+		assert.Equal(t, "http://custom:2222", cfg.Endpoint)
 	})
 
 	t.Run("environment variables override file values", func(t *testing.T) {
-		sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
-		defer func() { _ = sandbox.Close() }()
-		sandbox.AddFile("piko.yaml", []byte("tui:\n  endpoint: \"http://file:3333\"\n  theme: \"light\"\n"))
+		dir := t.TempDir()
+		path := writeTempYAML(t, dir, "tui.yaml",
+			"endpoint: http://file:3333\ntheme: light\n")
 
 		t.Setenv("PIKO_TUI_ENDPOINT", "http://env:4444")
 		t.Setenv("PIKO_TUI_THEME", "retro")
 
-		tuiConfig, err := LoadConfig("", WithConfigSandbox(sandbox), WithHomeDir("/nonexistent"))
+		cfg, err := LoadConfig(path, WithHomeDir("/nonexistent"))
 
 		require.NoError(t, err)
-		assert.Equal(t, "http://env:4444", tuiConfig.Endpoint)
-		assert.Equal(t, "retro", tuiConfig.Theme)
+		assert.Equal(t, "http://env:4444", cfg.Endpoint)
+		assert.Equal(t, "retro", cfg.Theme)
 	})
 }

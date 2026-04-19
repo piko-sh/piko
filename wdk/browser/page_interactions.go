@@ -269,10 +269,7 @@ func (p *Page) Press(keys ...string) *Page {
 //
 // Returns *Page which allows method chaining.
 func (p *Page) Type(text string) *Page {
-	displayText := text
-	if len(displayText) > displayTextMaxLen {
-		displayText = displayText[:displayTextMaxLen] + fmtTruncatedText
-	}
+	displayText := truncateRunes(text, displayTextMaxLen)
 	p.beforeAction("Type", displayText)
 	start := time.Now()
 	err := browser_provider_chromedp.Type(p.actionCtx(), text)

@@ -227,13 +227,13 @@ func parseTTFTables(raw []byte) (map[string][]byte, error) {
 	for i := range numberOfTables {
 		directoryOffset := ttfHeaderSize + i*ttfDirectoryEntrySize
 		tag := string(raw[directoryOffset : directoryOffset+fieldSize32])
-		tableOffset := int(binary.BigEndian.Uint32(
+		tableOffset := int64(binary.BigEndian.Uint32(
 			raw[directoryOffset+hheaMinDataEndOffset : directoryOffset+cmapHeaderLength],
 		))
-		tableLength := int(binary.BigEndian.Uint32(
+		tableLength := int64(binary.BigEndian.Uint32(
 			raw[directoryOffset+cmapHeaderLength : directoryOffset+ttfDirectoryEntrySize],
 		))
-		if tableOffset+tableLength > len(raw) {
+		if tableOffset < 0 || tableLength < 0 || tableOffset+tableLength > int64(len(raw)) {
 			return nil, fmt.Errorf("font_tables: table %q extends beyond file", tag)
 		}
 		tables[tag] = raw[tableOffset : tableOffset+tableLength]

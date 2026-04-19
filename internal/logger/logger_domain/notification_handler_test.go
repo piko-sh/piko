@@ -25,6 +25,7 @@ import (
 	"io"
 	"log/slog"
 	"maps"
+	"strconv"
 	"testing"
 	"time"
 
@@ -355,4 +356,24 @@ func TestNewNotificationHandlerWithClock(t *testing.T) {
 	mockClock.Advance(11 * time.Second)
 
 	require.Len(t, transport.batches, 1)
+}
+
+func TestNotificationHandler_GroupedErrorsCap(t *testing.T) {
+	clk := clock.NewMockClock(time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC))
+	transport := &recordingTransport{}
+	baseHandler := slog.NewJSONHandler(io.Discard, nil)
+
+	lifecycle := logger_domain.NewLifecycleManager()
+	handler := logger_domain.NewNotificationHandlerWithOptions(baseHandler, transport, slog.LevelError, clk, lifecycle)
+
+	const groupCap = 5
+	handler.SetMaxGroupedErrors(groupCap)
+
+	for i := range groupCap * 2 {
+		err := handler.Handle(context.Background(), makeErrorRecord(time.Now().Format(time.RFC3339Nano)+":"+strconv.Itoa(i)))
+		require.NoError(t, err)
+	}
+
+	require.LessOrEqual(t, handler.GetPendingErrorCount(), groupCap, "grouped error map must not exceed cap")
+	require.Equal(t, uint64(groupCap), handler.DroppedErrorCount(), "dropped count should reflect overflow")
 }

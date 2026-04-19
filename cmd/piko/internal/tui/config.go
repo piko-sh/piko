@@ -18,23 +18,19 @@
 
 package tui
 
-// Config holds TUI settings from piko.yaml.
+// Config holds TUI settings loaded from tui.yaml or PIKO_TUI_* environment
+// variables. The config_domain loader populates the fields using the struct
+// tags below.
 type Config struct {
 	// Endpoint is the API endpoint URL for the TUI service.
-	Endpoint string `json:"endpoint" yaml:"endpoint"`
+	Endpoint string `json:"endpoint" yaml:"endpoint" env:"PIKO_TUI_ENDPOINT" default:"http://localhost:8080"`
 
 	// RefreshInterval specifies how often the TUI updates; empty uses the default.
-	RefreshInterval string `json:"refreshInterval" yaml:"refreshInterval"`
+	RefreshInterval string `json:"refreshInterval" yaml:"refreshInterval" env:"PIKO_TUI_REFRESH_INTERVAL" default:"2s"`
 
 	// Theme specifies the visual theme name for the TUI.
-	Theme string `json:"theme" yaml:"theme"`
+	Theme string `json:"theme" yaml:"theme" env:"PIKO_TUI_THEME" default:"default"`
 
 	// Title is the text displayed in the TUI window title bar.
-	Title string `json:"title" yaml:"title"`
-}
-
-// pikoConfig is a minimal representation of piko.yaml for extracting TUI settings.
-type pikoConfig struct {
-	// TUI contains the terminal user interface configuration.
-	TUI Config `json:"tui" yaml:"tui"`
+	Title string `json:"title" yaml:"title" env:"PIKO_TUI_TITLE"`
 }

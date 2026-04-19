@@ -20,15 +20,20 @@ package llm_provider_anthropic
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
+	"sync"
 	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
 
+	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/wdk/logger"
 )
 
@@ -53,21 +58,47 @@ const (
 	// MaxOutputTokensClaude4Opus is the maximum output tokens for Claude 4 Opus
 	// models.
 	MaxOutputTokensClaude4Opus = 32000
+
+	// httpClientTimeout is a top-level HTTP client timeout that bounds requests
+	// even when the caller does not supply a per-request deadline. It is
+	// generous enough to allow long-running completions but prevents stuck
+	// connections from leaking goroutines indefinitely.
+	httpClientTimeout = 30 * time.Minute
 )
 
 // anthropicProvider implements llm_domain.LLMProviderPort for Anthropic Claude.
 type anthropicProvider struct {
-	// client is the Anthropic API client for making requests.
-	client anthropic.Client
+	// closeContext is the provider-level context whose cancellation signals
+	// background stream goroutines to exit.
+	closeContext context.Context
+
+	// closeCancel cancels closeContext on Close to signal in-flight stream
+	// goroutines to wind down.
+	closeCancel context.CancelCauseFunc
+
+	// httpClient is the underlying *http.Client injected into the Anthropic
+	// SDK; retained so tests can verify the configured top-level timeout and
+	// idle connections can be released on Close.
+	httpClient *http.Client
 
 	// defaultModel is the model identifier to use when none is specified.
 	defaultModel string
 
+	// client is the Anthropic API client for making requests.
+	client anthropic.Client
+
 	// config holds the provider configuration settings.
 	config Config
 
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for
+	// them to drain.
+	streamWaitGroup sync.WaitGroup
+
 	// defaultMaxToken is the maximum number of tokens for API requests.
 	defaultMaxToken int
+
+	// closeOnce guards Close so it is idempotent.
+	closeOnce sync.Once
 }
 
 var _ llm_domain.LLMProviderPort = (*anthropicProvider)(nil)
@@ -80,6 +111,8 @@ var _ llm_domain.LLMProviderPort = (*anthropicProvider)(nil)
 // Returns *llm_dto.CompletionResponse which contains the model's response.
 // Returns error when the Anthropic API call fails.
 func (p *anthropicProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.anthropicProvider.Complete")
+
 	ctx, l := logger.From(ctx, log)
 	completeCount.Add(ctx, 1)
 	start := time.Now()
@@ -107,10 +140,26 @@ func (p *anthropicProvider) Complete(ctx context.Context, request *llm_dto.Compl
 	message, err := p.client.Messages.New(ctx, params)
 	if err != nil {
 		completeErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("anthropic completion failed: %w", wrapError(err))
+		wrapped := fmt.Errorf("anthropic completion failed: %w", wrapError(err))
+		return nil, sanitiseProviderError(wrapped, "anthropic request rejected")
 	}
 
 	return p.convertResponse(message, model), nil
+}
+
+// sanitiseProviderError wraps a 4xx provider error in a safeerror so that HTTP
+// edges can sanitise it before returning to the user. Non-4xx errors are
+// returned unchanged so retry classification continues to work.
+//
+// Takes err (error) which is the error to inspect.
+// Takes safeMessage (string) which is shown to end users for 4xx errors.
+//
+// Returns error which is wrapped when err carries a 4xx status code.
+func sanitiseProviderError(err error, safeMessage string) error {
+	if providerErr, ok := errors.AsType[*llm_domain.ProviderError](err); ok && providerErr.StatusCode >= http.StatusBadRequest && providerErr.StatusCode < http.StatusInternalServerError {
+		return safeerror.NewError(safeMessage, err)
+	}
+	return err
 }
 
 // SupportsStreaming reports whether the provider supports streaming.
@@ -223,11 +272,43 @@ func (*anthropicProvider) ListModels(_ context.Context) ([]llm_dto.ModelInfo, er
 	}, nil
 }
 
-// Close releases resources held by the provider.
+// Close releases resources held by the provider, cancelling any in-flight
+// stream goroutines and waiting for them to drain within a bounded timeout.
 //
-// Returns error when resources cannot be released.
-func (*anthropicProvider) Close(_ context.Context) error {
-	return nil
+// Returns error when the provider close drain exceeds its bounded wait.
+//
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
+// signal active stream goroutines, then waits on streamWaitGroup before
+// returning.
+func (p *anthropicProvider) Close(ctx context.Context) error {
+	var closeErr error
+	p.closeOnce.Do(func() {
+		if p.closeCancel != nil {
+			p.closeCancel(errors.New("anthropic provider closing"))
+		}
+
+		done := make(chan struct{})
+		go func() {
+			defer goroutine.RecoverPanic(ctx, "llm.anthropicProvider.Close.wait")
+			p.streamWaitGroup.Wait()
+			close(done)
+		}()
+
+		waitContext, cancel := context.WithTimeoutCause(ctx, 30*time.Second,
+			errors.New("anthropic provider close drain exceeded 30s"))
+		defer cancel()
+
+		select {
+		case <-done:
+		case <-waitContext.Done():
+			closeErr = fmt.Errorf("anthropic provider close timed out: %w", context.Cause(waitContext))
+		}
+
+		if p.httpClient != nil {
+			p.httpClient.CloseIdleConnections()
+		}
+	})
+	return closeErr
 }
 
 // DefaultModel implements LLMProviderPort.DefaultModel.
@@ -588,8 +669,11 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 	}
 	config = config.WithDefaults()
 
+	httpClient := &http.Client{Timeout: httpClientTimeout}
+
 	opts := []option.RequestOption{
 		option.WithAPIKey(config.APIKey),
+		option.WithHTTPClient(httpClient),
 	}
 	if config.BaseURL != "" {
 		opts = append(opts, option.WithBaseURL(config.BaseURL))
@@ -597,8 +681,13 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 
 	client := anthropic.NewClient(opts...)
 
+	closeContext, closeCancel := context.WithCancelCause(context.Background())
+
 	return &anthropicProvider{
 		client:          client,
+		httpClient:      httpClient,
+		closeContext:    closeContext,
+		closeCancel:     closeCancel,
 		config:          config,
 		defaultModel:    config.DefaultModel,
 		defaultMaxToken: config.DefaultMaxTokens,

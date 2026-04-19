@@ -24,9 +24,9 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// WizardBase provides shared state for interactive wizard flows. Embed
-// this struct in your model to get standard cursor, selection, step,
-// abort, and spinner state management.
+// WizardBase provides shared state for interactive wizard flows. Embed in your
+// model to get standard cursor, selection, step, abort, and spinner state
+// management.
 type WizardBase struct {
 	// Selected tracks which items are checked in multi-select steps.
 	Selected []bool

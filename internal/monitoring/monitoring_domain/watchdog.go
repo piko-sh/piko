@@ -208,6 +208,12 @@ const (
 	// watchdog evaluation loop.
 	eventSubscriberBuffer = 64
 
+	// maxEventSubscribers caps the number of concurrent streaming
+	// subscribers attached to the watchdog. Exceeding the cap returns
+	// ErrEventSubscriberCapExceeded so a runaway client cannot grow the
+	// subscriber slice unbounded.
+	maxEventSubscribers = 1000
+
 	// logFieldProfileType is the structured log field key for profile type.
 	logFieldProfileType = "profile_type"
 
@@ -259,6 +265,12 @@ var (
 	// ErrWatchdogStopped is returned by RunContentionDiagnostic when the
 	// watchdog has already been stopped.
 	ErrWatchdogStopped = errors.New("watchdog stopped")
+
+	// ErrEventSubscriberCapExceeded is logged by SubscribeEvents when the
+	// configured maximum number of concurrent subscribers has already been
+	// reached. Existing subscribers continue to receive events; the new
+	// subscription receives a pre-closed channel and a no-op cancel func.
+	ErrEventSubscriberCapExceeded = errors.New("watchdog event subscriber cap exceeded")
 )
 
 var _ WatchdogInspector = (*Watchdog)(nil)
@@ -442,6 +454,17 @@ type WatchdogConfig struct {
 	// DeltaProfilingEnabled enables storing a baseline heap profile alongside
 	// each capture so the user can compute a diff. Default: false.
 	DeltaProfilingEnabled bool
+
+	// IncludeGoroutineStacks toggles per-goroutine stack capture. When enabled,
+	// each goroutine profile firing also writes a human-readable .txt sidecar
+	// containing the full stack of every goroutine (pprof debug=2), alongside
+	// the existing aggregated .pb.gz binary profile.
+	//
+	// Useful when investigating goroutine leaks where you need to know the
+	// exact call site or closure-captured arguments (e.g. which channel a
+	// publisher is blocked on). Disabled by default because the sidecar can be
+	// tens of megabytes per dump for processes with many thousand goroutines.
+	IncludeGoroutineStacks bool
 
 	// Enabled controls whether the watchdog is active. When false, Start is a
 	// no-op.
@@ -793,7 +816,7 @@ func (w *Watchdog) SetProfilingController(controller ProfilingController) {
 
 // Start begins periodic monitoring by spawning a background goroutine that
 // evaluates system metrics on each tick. If the watchdog is disabled via
-// config, this method is a no-op.
+// config, the call is a no-op.
 //
 // The background goroutine runs until Stop is called or the context is
 // cancelled.
@@ -812,6 +835,7 @@ func (w *Watchdog) Start(ctx context.Context) {
 
 	w.resolveHeapThreshold(ctx)
 	w.checkMemProfileRate(ctx)
+	w.checkProfilingController(ctx)
 	w.startedAt = w.clock.Now()
 	w.lastTrendEvaluation = w.startedAt
 
@@ -1104,6 +1128,32 @@ func (w *Watchdog) resolveHeapThreshold(ctx context.Context) {
 	w.heapHighWater = w.initialHeapThreshold
 }
 
+// checkProfilingController warns at startup when the watchdog has no
+// profiling controller wired. Without one, every capture path (continuous
+// profiling, threshold-triggered captures, pre-death snapshot, contention
+// diagnostic) silently no-ops, leaving operators with no profile artefacts
+// when problems occur.
+//
+// The fix is to add piko.WithMonitoringProfiling() to the WithMonitoring
+// option set, which constructs and wires the controller.
+//
+// Concurrency: acquires w.mu briefly to read the profilingController pointer.
+func (w *Watchdog) checkProfilingController(ctx context.Context) {
+	w.mu.Lock()
+	hasController := w.profilingController != nil
+	w.mu.Unlock()
+
+	if hasController {
+		return
+	}
+
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("Watchdog has no profiling controller; all profile captures " +
+		"(continuous, threshold-triggered, pre-death, contention) will be " +
+		"silently dropped. Add piko.WithMonitoringProfiling() to your " +
+		"WithMonitoring options to enable captures.")
+}
+
 // checkMemProfileRate disarms heap and allocs captures when the runtime is
 // not sampling, so threshold triggers do not write empty pprofs and burn the
 // cooldown budget.
@@ -1270,8 +1320,7 @@ func (w *Watchdog) markStartupHistoryStopped(ctx context.Context) {
 		return
 	}
 
-	now := w.clock.Now()
-	file.Entries[len(file.Entries)-1].StoppedAt = &now
+	file.Entries[len(file.Entries)-1].StoppedAt = new(w.clock.Now())
 	if file.Entries[len(file.Entries)-1].Reason == "" {
 		file.Entries[len(file.Entries)-1].Reason = "clean"
 	}
@@ -1308,8 +1357,7 @@ func (w *Watchdog) loop(ctx context.Context) {
 		case <-w.stopCh:
 			return
 		case <-ticker.C():
-			stats := w.systemCollector.GetStats()
-			w.evaluate(ctx, &stats)
+			w.evaluate(ctx, new(w.systemCollector.GetStats()))
 			watchdogLoopIterationsCount.Add(ctx, 1)
 			watchdogLoopLastTickEpochSeconds.Record(ctx, w.clock.Now().Unix())
 		}
@@ -1439,6 +1487,7 @@ func (w *Watchdog) captureAndStoreProfile(ctx context.Context, profileType strin
 	}
 
 	w.writeSidecarMetadata(ctx, profileType, timestamp, capCtx)
+	w.maybeWriteGoroutineStacks(ctx, profileType, timestamp)
 	w.processStoredProfile(ctx, profileType, profileData)
 
 	l.Notice("Watchdog captured and stored diagnostic profile",
@@ -1554,6 +1603,51 @@ func (w *Watchdog) writeSidecarMetadata(ctx context.Context, profileType, timest
 	if err := w.profileStore.writeMetadata(profileType, timestamp, meta); err != nil {
 		_, l := logger_domain.From(ctx, log)
 		l.Warn("Failed to write capture sidecar metadata",
+			String(logFieldProfileType, profileType),
+			logger_domain.Error(err),
+		)
+	}
+}
+
+// maybeWriteGoroutineStacks writes a debug=2 per-goroutine stacks sidecar
+// alongside a goroutine profile capture when WatchdogConfig.IncludeGoroutineStacks
+// is enabled. The .stacks.txt file pairs by base name with the .pb.gz binary
+// profile so consumers can locate either by stripping the matching extension.
+//
+// Failure is logged but never aborts the capture flow -- the binary profile
+// is the primary artefact, the stacks file is supplementary.
+//
+// Takes profileType (string) which identifies the profile category. Only
+// "goroutine" triggers a stacks write today; other types are no-ops so this
+// helper can sit unconditionally on the capture path.
+// Takes timestamp (string) which is the timestamp portion of the profile
+// filename, used to keep the stacks sidecar paired with its binary.
+func (w *Watchdog) maybeWriteGoroutineStacks(ctx context.Context, profileType, timestamp string) {
+	if !w.config.IncludeGoroutineStacks {
+		return
+	}
+	if profileType != profileTypeGoroutine {
+		return
+	}
+
+	profile := pprof.Lookup(profileTypeGoroutine)
+	if profile == nil {
+		return
+	}
+
+	var buf bytes.Buffer
+	if err := profile.WriteTo(&buf, 2); err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Failed to capture goroutine stacks sidecar",
+			String(logFieldProfileType, profileType),
+			logger_domain.Error(err),
+		)
+		return
+	}
+
+	if err := w.profileStore.writeStacks(profileType, timestamp, buf.Bytes()); err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Failed to write goroutine stacks sidecar",
 			String(logFieldProfileType, profileType),
 			logger_domain.Error(err),
 		)

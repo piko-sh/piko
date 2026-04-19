@@ -64,12 +64,12 @@ const (
 // NewDaemonConfig converts the pointer-based ServerConfig into a value-type
 // DaemonConfig for the daemon service.
 //
-// Takes sc (*config.ServerConfig) which provides the server configuration
+// Takes sc (*ServerConfig) which provides the server configuration
 // values to convert.
 //
 // Returns daemon_domain.DaemonConfig which contains the resolved
 // configuration values with defaults applied.
-func NewDaemonConfig(sc *config.ServerConfig) daemon_domain.DaemonConfig {
+func NewDaemonConfig(sc *ServerConfig) daemon_domain.DaemonConfig {
 	return daemon_domain.DaemonConfig{
 		NetworkPort:         deref(sc.Network.Port, "8080"),
 		NetworkAutoNextPort: deref(sc.Network.AutoNextPort, false),
@@ -89,12 +89,12 @@ func NewDaemonConfig(sc *config.ServerConfig) daemon_domain.DaemonConfig {
 // NewLifecyclePathsConfig converts the pointer-based ServerConfig into a
 // value-type LifecyclePathsConfig for the lifecycle service.
 //
-// Takes sc (*config.ServerConfig) which provides the server configuration
+// Takes sc (*ServerConfig) which provides the server configuration
 // values to convert.
 //
 // Returns lifecycle_domain.LifecyclePathsConfig which contains the
 // resolved source directory paths with defaults applied.
-func NewLifecyclePathsConfig(sc *config.ServerConfig) lifecycle_domain.LifecyclePathsConfig {
+func NewLifecyclePathsConfig(sc *ServerConfig) lifecycle_domain.LifecyclePathsConfig {
 	return lifecycle_domain.LifecyclePathsConfig{
 		BaseDir:             deref(sc.Paths.BaseDir, "."),
 		PagesSourceDir:      deref(sc.Paths.PagesSourceDir, "pages"),
@@ -109,12 +109,12 @@ func NewLifecyclePathsConfig(sc *config.ServerConfig) lifecycle_domain.Lifecycle
 // NewAnnotatorPathsConfig converts the pointer-based ServerConfig into a
 // value-type AnnotatorPathsConfig for the annotator service.
 //
-// Takes sc (*config.ServerConfig) which provides the server configuration
+// Takes sc (*ServerConfig) which provides the server configuration
 // values to convert.
 //
 // Returns annotator_domain.AnnotatorPathsConfig which contains the
 // resolved annotator paths with defaults applied.
-func NewAnnotatorPathsConfig(sc *config.ServerConfig) annotator_domain.AnnotatorPathsConfig {
+func NewAnnotatorPathsConfig(sc *ServerConfig) annotator_domain.AnnotatorPathsConfig {
 	return annotator_domain.AnnotatorPathsConfig{
 		PagesSourceDir:    deref(sc.Paths.PagesSourceDir, "pages"),
 		EmailsSourceDir:   deref(sc.Paths.EmailsSourceDir, "emails"),
@@ -130,12 +130,12 @@ func NewAnnotatorPathsConfig(sc *config.ServerConfig) annotator_domain.Annotator
 // NewGeneratorPathsConfig converts the pointer-based ServerConfig into a
 // value-type GeneratorPathsConfig for the generator service.
 //
-// Takes sc (*config.ServerConfig) which provides the server configuration
+// Takes sc (*ServerConfig) which provides the server configuration
 // values to convert.
 //
 // Returns generator_domain.GeneratorPathsConfig which contains the
 // resolved generator paths with defaults applied.
-func NewGeneratorPathsConfig(sc *config.ServerConfig) generator_domain.GeneratorPathsConfig {
+func NewGeneratorPathsConfig(sc *ServerConfig) generator_domain.GeneratorPathsConfig {
 	return generator_domain.GeneratorPathsConfig{
 		BaseDir:        deref(sc.Paths.BaseDir, "."),
 		PagesSourceDir: deref(sc.Paths.PagesSourceDir, "pages"),
@@ -147,12 +147,12 @@ func NewGeneratorPathsConfig(sc *config.ServerConfig) generator_domain.Generator
 // NewOtelSetupConfig converts the pointer-based ServerConfig into a value-type
 // OtelSetupConfig for the OTEL setup.
 //
-// Takes sc (*config.ServerConfig) which provides the server configuration
+// Takes sc (*ServerConfig) which provides the server configuration
 // values to convert.
 //
 // Returns driver_handlers.OtelSetupConfig which contains the resolved
 // OpenTelemetry settings with defaults applied.
-func NewOtelSetupConfig(sc *config.ServerConfig) driver_handlers.OtelSetupConfig {
+func NewOtelSetupConfig(sc *ServerConfig) driver_handlers.OtelSetupConfig {
 	return driver_handlers.OtelSetupConfig{
 		Enabled:         deref(sc.Otlp.Enabled, false),
 		Endpoint:        deref(sc.Otlp.Endpoint, "localhost:4317"),
@@ -168,7 +168,7 @@ func NewOtelSetupConfig(sc *config.ServerConfig) driver_handlers.OtelSetupConfig
 // reporting configuration separately, because the CORP override and reporting
 // source differ between build strategies.
 //
-// Takes sc (*config.ServerConfig) which provides the server configuration
+// Takes sc (*ServerConfig) which provides the server configuration
 // values to convert.
 // Takes shValues (security_adapters.SecurityHeadersValues) which supplies
 // the pre-built security header values.
@@ -178,7 +178,7 @@ func NewOtelSetupConfig(sc *config.ServerConfig) driver_handlers.OtelSetupConfig
 // Returns *daemon_domain.RouterConfig which contains the resolved router
 // configuration with defaults applied.
 func NewRouterConfig(
-	sc *config.ServerConfig,
+	sc *ServerConfig,
 	shValues security_adapters.SecurityHeadersValues,
 	reportingConfig config.ReportingConfig,
 ) *daemon_domain.RouterConfig {

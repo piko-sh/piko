@@ -21,14 +21,16 @@ package deadletter_adapters
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"piko.sh/piko/internal/deadletter/deadletter_domain"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -40,14 +42,28 @@ const (
 
 	// errReadingDeadLetter is the error format for failed dead letter file reads.
 	errReadingDeadLetter = "reading dead letter file: %w"
+
+	// defaultMaxDLQBytes caps the on-disk size of a dead-letter file at
+	// 256 MiB.
+	//
+	// Callers can override via WithMaxDLQBytes. The default protects
+	// against a runaway producer turning the DLQ into a liability.
+	defaultMaxDLQBytes int64 = 256 * 1024 * 1024
 )
+
+// ErrDLQFull is returned by Add when the dead-letter file already exceeds the
+// configured maximum size. Callers should treat this as a backpressure signal
+// rather than a transient error: log the dropped entry and surface a monitoring
+// alert so an operator can drain the queue.
+var ErrDLQFull = errors.New("dead-letter queue exceeded maximum size")
 
 // newlineSeparator is the byte slice used to delimit JSON lines entries in
 // dead letter files.
 var newlineSeparator = []byte("\n")
 
 // DiskDeadLetterQueue is a generic disk-based dead letter queue using JSON
-// lines format.
+// lines format. Entries are appended in O(1) writes and the file is bounded
+// by maxBytes to prevent unbounded growth from a misbehaving producer.
 type DiskDeadLetterQueue[T any] struct {
 	// sandboxFactory creates sandboxes when no sandbox is directly injected.
 	// When non-nil and sandbox is nil, this factory is used instead of
@@ -61,6 +77,10 @@ type DiskDeadLetterQueue[T any] struct {
 	// fileName is the base name for the dead letter file within the sandbox.
 	fileName string
 
+	// maxBytes is the size cap for the dead-letter file; further appends fail
+	// with ErrDLQFull once exceeded.
+	maxBytes int64
+
 	// mu guards access to the dead letter queue state.
 	mu sync.Mutex
 }
@@ -68,12 +88,17 @@ type DiskDeadLetterQueue[T any] struct {
 // DiskDeadLetterOption configures a DiskDeadLetterQueue during creation.
 type DiskDeadLetterOption[T any] func(*DiskDeadLetterQueue[T])
 
-// Add appends an item to the dead letter file.
+// Add appends an item to the dead letter file in O(1) time.
+//
+// The file is opened with O_APPEND and a single JSON-line is written, then
+// fsynced for durability. The mutex serialises concurrent appends so the
+// stat-then-append size check stays consistent for a single process.
 //
 // Takes entry (T) which is the item to store in the dead letter queue.
 //
-// Returns error when the file cannot be read, the entry cannot be marshalled,
-// or the write fails.
+// Returns ErrDLQFull when the on-disk file has exceeded the configured size
+// cap. Returns other errors when the entry cannot be marshalled or the write
+// fails.
 //
 // Safe for concurrent use; protected by a mutex.
 func (d *DiskDeadLetterQueue[T]) Add(ctx context.Context, entry T) error {
@@ -88,28 +113,83 @@ func (d *DiskDeadLetterQueue[T]) Add(ctx context.Context, entry T) error {
 		Data:      entry,
 	}
 
-	existing, err := d.sandbox.ReadFile(d.fileName)
-	if err != nil && !safedisk.IsNotExist(err) {
-		return fmt.Errorf(errReadingDeadLetter, err)
-	}
-
 	line, err := json.Marshal(wrapped)
 	if err != nil {
 		return fmt.Errorf("marshalling dead letter entry: %w", err)
 	}
 
-	data := make([]byte, 0, len(existing)+len(line)+1)
-	data = append(data, existing...)
-	data = append(data, line...)
-	data = append(data, '\n')
+	currentSize, err := d.statSizeUnlocked()
+	if err != nil {
+		return fmt.Errorf(errReadingDeadLetter, err)
+	}
 
-	if err := d.sandbox.WriteFile(d.fileName, data, filePermissions); err != nil {
+	projectedSize := currentSize + int64(len(line)) + 1
+	if d.maxBytes > 0 && projectedSize > d.maxBytes {
+		return fmt.Errorf("%w: would reach %d bytes, cap is %d",
+			ErrDLQFull, projectedSize, d.maxBytes)
+	}
+
+	if err := d.appendLineUnlocked(line); err != nil {
 		return fmt.Errorf("writing dead letter entry: %w", err)
 	}
 
 	l.Warn("Item added to disk dead letter queue",
 		logger_domain.String("entry_id", wrapped.ID),
 		logger_domain.String("file", d.fileName))
+
+	return nil
+}
+
+// statSizeUnlocked reports the current on-disk size of the DLQ file or zero
+// if the file does not yet exist. Must be called with the mutex held.
+//
+// Returns int64 which is the current file size in bytes.
+// Returns error when an unexpected stat error is encountered.
+func (d *DiskDeadLetterQueue[T]) statSizeUnlocked() (int64, error) {
+	info, err := d.sandbox.Stat(d.fileName)
+	if err != nil {
+		if safedisk.IsNotExist(err) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return info.Size(), nil
+}
+
+// appendLineUnlocked appends a JSON-encoded line plus newline to the
+// dead-letter file.
+//
+// Opens the file with O_APPEND so the kernel atomically positions writes
+// at end-of-file even if multiple processes share the file. Must be
+// called with the mutex held.
+//
+// Takes line ([]byte) which is the marshalled entry without trailing newline.
+//
+// Returns error when the file cannot be opened, written, fsynced, or closed.
+func (d *DiskDeadLetterQueue[T]) appendLineUnlocked(line []byte) error {
+	file, err := d.sandbox.OpenFile(d.fileName,
+		os.O_WRONLY|os.O_CREATE|os.O_APPEND, filePermissions)
+	if err != nil {
+		return fmt.Errorf("opening dead letter file for append: %w", err)
+	}
+
+	buffer := make([]byte, 0, len(line)+1)
+	buffer = append(buffer, line...)
+	buffer = append(buffer, '\n')
+
+	if _, writeErr := file.Write(buffer); writeErr != nil {
+		_ = file.Close()
+		return fmt.Errorf("writing dead letter line: %w", writeErr)
+	}
+
+	if syncErr := file.Sync(); syncErr != nil {
+		_ = file.Close()
+		return fmt.Errorf("fsyncing dead letter file: %w", syncErr)
+	}
+
+	if closeErr := file.Close(); closeErr != nil {
+		return fmt.Errorf("closing dead letter file: %w", closeErr)
+	}
 
 	return nil
 }
@@ -164,9 +244,9 @@ func (d *DiskDeadLetterQueue[T]) Get(ctx context.Context, limit int) ([]T, error
 
 // Remove removes entries from the dead letter queue.
 //
-// This method rewrites the file, which is slow but needed for the JSON lines
-// format. Without a way to identify entries, actual removal is not yet
-// supported. Services should create their own DLQ port with ID-based removal.
+// Rewrites the file, which is slow but needed for the JSON lines format. Without
+// a way to identify entries, actual removal is not yet supported. Services should
+// create their own DLQ port with ID-based removal.
 //
 // Takes entries ([]T) which specifies the entries to remove.
 //
@@ -227,7 +307,7 @@ func (d *DiskDeadLetterQueue[T]) Count(_ context.Context) (int, error) {
 //
 // Returns error when the queue file cannot be removed.
 //
-// Safe for concurrent use. The method holds the mutex for the whole operation.
+// Safe for concurrent use. Holds the mutex for the whole operation.
 func (d *DiskDeadLetterQueue[T]) Clear(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -374,6 +454,22 @@ func WithDeadLetterFactory[T any](factory safedisk.Factory) DiskDeadLetterOption
 	}
 }
 
+// WithMaxDLQBytes overrides the size cap on the dead-letter file.
+//
+// Once the file exceeds this many bytes, further Add calls fail with
+// ErrDLQFull. Pass a zero or negative value to disable the cap (not
+// recommended in production).
+//
+// Takes maxBytes (int64) which is the maximum on-disk size in bytes.
+//
+// Returns DiskDeadLetterOption[T] which configures the queue with the given
+// cap.
+func WithMaxDLQBytes[T any](maxBytes int64) DiskDeadLetterOption[T] {
+	return func(d *DiskDeadLetterQueue[T]) {
+		d.maxBytes = maxBytes
+	}
+}
+
 // NewDiskDeadLetterQueue creates a new disk-based dead letter queue.
 //
 // Takes filePath (string) which is the path to the file for storing dead
@@ -388,6 +484,7 @@ func NewDiskDeadLetterQueue[T any](filePath string, opts ...DiskDeadLetterOption
 
 	d := &DiskDeadLetterQueue[T]{
 		fileName: fileName,
+		maxBytes: defaultMaxDLQBytes,
 	}
 
 	for _, opt := range opts {

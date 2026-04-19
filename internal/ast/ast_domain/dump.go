@@ -216,7 +216,7 @@ func dumpAttributes(builder *strings.Builder, node *TemplateNode) {
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which provides the dynamic attributes to write.
 // Takes nodePackageAlias (string) which is the package alias used to filter origin
-// notes that match this package from the output.
+// notes that match the owning package from the output.
 func dumpDynamicAttributes(builder *strings.Builder, node *TemplateNode, nodePackageAlias string) {
 	dynAttrs := node.DynamicAttributes
 	slices.SortFunc(dynAttrs, func(a, b DynamicAttribute) int { return cmp.Compare(a.Name, b.Name) })
@@ -248,8 +248,8 @@ func dumpDynamicAttributes(builder *strings.Builder, node *TemplateNode, nodePac
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which holds the directives to write.
-// Takes nodePackageAlias (string) which excludes directives with this package
-// alias from the detailed output.
+// Takes nodePackageAlias (string) which excludes directives with the owning
+// package alias from the detailed output.
 func dumpDirectives(builder *strings.Builder, node *TemplateNode, nodePackageAlias string) {
 	dumpDirective := func(d *Directive, name string) {
 		if d == nil {

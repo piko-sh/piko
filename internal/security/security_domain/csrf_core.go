@@ -147,9 +147,8 @@ func initialiseHMACPool(secretKey []byte) {
 	}
 }
 
-// resetHMACPoolForTesting clears the HMAC pool. This function is only for use
-// in tests to ensure that tests using different secret keys create fresh HMAC
-// instances.
+// resetHMACPoolForTesting clears the HMAC pool. Only for use in tests to
+// ensure that tests using different secret keys create fresh HMAC instances.
 func resetHMACPoolForTesting() {
 	hmacPool = sync.Pool{}
 }

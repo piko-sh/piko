@@ -45,7 +45,7 @@ type Cache[K comparable, V any] interface {
 	GetIfPresent(ctx context.Context, key K) (V, bool, error)
 
 	// Get returns the value for a key, calling the loader if the key is missing.
-	// This method provides built-in protection against cache stampede (thundering
+	// Provides built-in protection against cache stampede (thundering
 	// herd).
 	//
 	// Takes key (K) which identifies the cached value.
@@ -94,7 +94,7 @@ type Cache[K comparable, V any] interface {
 	// Returns error when the operation fails.
 	Invalidate(ctx context.Context, key K) error
 
-	// Compute atomically computes a new value for the given key based on the
+	// Computes a new value atomically for the given key based on the
 	// current value. The compute function executes while holding a lock on the key.
 	//
 	// When the context is already cancelled or has exceeded its deadline, returns
@@ -366,7 +366,7 @@ type Cache[K comparable, V any] interface {
 
 // ProviderPort defines the driven port for cache adapters in a hexagonal
 // architecture. Each concrete implementation (Otter, Redis, etc.) must satisfy
-// this interface.
+// the contract defined here.
 type ProviderPort[K comparable, V any] interface {
 	Cache[K, V]
 }
@@ -375,7 +375,7 @@ type ProviderPort[K comparable, V any] interface {
 // multi-operation rollback. Providers that implement this can participate
 // in DAL-level transactions with proper rollback semantics.
 //
-// Providers that do not implement this interface can still participate in
+// Providers that do not implement Transactional can still participate in
 // transactions via the generic journal-based fallback provided by
 // BeginTransaction.
 type Transactional[K comparable, V any] interface {
@@ -445,7 +445,7 @@ type Provider interface {
 // Service manages cache providers and creates configured cache instances.
 // It implements io.Closer and cache.Service.
 //
-// CreateNamespace is not part of this interface because Go interfaces
+// CreateNamespace is not part of Service because Go interfaces
 // cannot have generic methods. Use the standalone NewCache function or
 // CacheBuilder instead.
 type Service interface {

@@ -80,8 +80,7 @@ type EntryPoint struct {
 // Virtual pages do not correspond to physical .pk files on disk. They are
 // generated dynamically from collection items such as blog posts or products.
 //
-// This structure carries all the information needed to render the virtual
-// page:
+// Carries all the information needed to render the virtual page:
 //   - Which template to use
 //   - What data to inject as props
 //   - Collection metadata for context
@@ -91,8 +90,8 @@ type VirtualPageSource struct {
 
 	// CollectionContext holds data about the collection item.
 	//
-	// This field is always set. Components can use it to show language
-	// switchers, breadcrumbs, and other navigation elements.
+	// Always set. Components can use it to show language switchers,
+	// breadcrumbs, and other navigation elements.
 	CollectionContext *CollectionContext
 
 	// TemplatePath is the path to the template file that renders this
@@ -118,8 +117,7 @@ type VirtualPageSource struct {
 
 // CollectionContext holds metadata about a collection item.
 //
-// This struct is added to all virtual pages and can be accessed through the
-// component's props.
+// Added to all virtual pages and can be accessed through the component's props.
 type CollectionContext struct {
 	// Metadata holds extra data from the provider.
 	Metadata map[string]any

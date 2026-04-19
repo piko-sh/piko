@@ -20,7 +20,9 @@ package browser
 
 import (
 	"errors"
+	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestIsUnresponsivePageError(t *testing.T) {
@@ -91,6 +93,41 @@ func TestIsUnresponsivePageError(t *testing.T) {
 			got := isUnresponsivePageError(tc.err)
 			if got != tc.want {
 				t.Errorf("isUnresponsivePageError(%v) = %v, want %v", tc.err, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestTruncateRunes(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    string
+		maxRunes int
+		want     string
+	}{
+		{name: "ascii fits", input: "hello", maxRunes: 10, want: "hello"},
+		{name: "ascii truncates", input: "hello world", maxRunes: 5, want: "hello..."},
+		{name: "cjk truncates by runes", input: "你好世界你好世界", maxRunes: 4, want: "你好世界..."},
+		{name: "accented latin truncates by runes", input: "élève élève", maxRunes: 5, want: "élève..."},
+		{name: "exact length no suffix", input: "abcde", maxRunes: 5, want: "abcde"},
+		{name: "zero produces empty", input: "hello", maxRunes: 0, want: ""},
+		{name: "negative produces empty", input: "hello", maxRunes: -1, want: ""},
+		{name: "empty input", input: "", maxRunes: 5, want: ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := truncateRunes(tc.input, tc.maxRunes)
+			if got != tc.want {
+				t.Errorf("truncateRunes(%q, %d) = %q, want %q", tc.input, tc.maxRunes, got, tc.want)
+			}
+			if !utf8.ValidString(got) {
+				t.Errorf("truncateRunes(%q, %d) returned invalid UTF-8: %q", tc.input, tc.maxRunes, got)
+			}
+			if body, ok := strings.CutSuffix(got, fmtTruncatedText); ok {
+				if utf8.RuneCountInString(body) > tc.maxRunes {
+					t.Errorf("truncateRunes(%q, %d) body has %d runes (exceeds limit)", tc.input, tc.maxRunes, utf8.RuneCountInString(body))
+				}
 			}
 		})
 	}

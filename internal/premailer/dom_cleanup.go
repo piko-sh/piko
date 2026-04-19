@@ -81,11 +81,11 @@ func (p *Premailer) collectAnchorTargets() map[string]bool {
 // removeIDs removes id attributes from elements to improve email client
 // support.
 //
-// This method keeps anchor link navigation working while removing unused IDs.
-// It first collects all anchor link targets (such as href="#section") into a
-// map. Then for each element with an id attribute: if the id is used by an
-// anchor link, it wraps the element with an <a name="id"></a> tag; if the id
-// is not used, it removes the attribute.
+// Keeps anchor link navigation working while removing unused IDs. First collects
+// all anchor link targets (such as href="#section") into a map. Then for each
+// element with an id attribute: if the id is used by an anchor link, wraps the
+// element with an <a name="id"></a> tag; if the id is not used, removes the
+// attribute.
 //
 // Gmail strips id attributes but keeps name attributes on <a> tags. Other
 // email clients (Apple Mail, Outlook.com, Yahoo) support both id and name.
@@ -233,7 +233,7 @@ func convertIDToAnchorName(node *ast_domain.TemplateNode, idValue string) {
 // Takes href (string) which is the link URL to check.
 //
 // Returns bool which is true for empty strings, anchor links, and non-HTTP
-// schemes such as mailto:, tel:, or javascript:.
+// schemes such as mailto:, tel:, or JavaScript URLs.
 func shouldSkipLink(href string) bool {
 	if href == "" || strings.HasPrefix(href, "#") {
 		return true

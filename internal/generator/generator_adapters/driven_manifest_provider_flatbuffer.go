@@ -176,25 +176,11 @@ func WithFlatBufferManifestSandbox(sandbox safedisk.Sandbox) FlatBufferManifestP
 // and emails.
 func unpackManifest(fb *gen_fb.ManifestFB) *generator_dto.Manifest {
 	return &generator_dto.Manifest{
-		Pages:                    unpackMap(fb.PagesLength(), fb.Pages, unpackPageEntryMapItem),
-		Partials:                 unpackMap(fb.PartialsLength(), fb.Partials, unpackPartialEntryMapItem),
-		Emails:                   unpackMap(fb.EmailsLength(), fb.Emails, unpackEmailEntryMapItem),
-		Pdfs:                     unpackMap(fb.PdfsLength(), fb.Pdfs, unpackPdfEntryMapItem),
-		ErrorPages:               unpackMap(fb.ErrorPagesLength(), fb.ErrorPages, unpackErrorPageEntryMapItem),
-		CollectionFallbackRoutes: unpackSlice(fb.CollectionFallbackRoutesLength(), fb.CollectionFallbackRoutes, unpackCollectionFallbackRoute),
-	}
-}
-
-// unpackCollectionFallbackRoute converts a FlatBuffer collection fallback
-// route into a domain DTO.
-//
-// Takes fb (*gen_fb.CollectionFallbackRouteFB) which is the FlatBuffer data.
-//
-// Returns generator_dto.CollectionFallbackRoute which holds the route patterns.
-func unpackCollectionFallbackRoute(fb *gen_fb.CollectionFallbackRouteFB) generator_dto.CollectionFallbackRoute {
-	return generator_dto.CollectionFallbackRoute{
-		RoutePatterns: unpackRoutePatterns(fb.RoutePatternsLength(), fb.RoutePatterns),
-		I18nStrategy:  mem.String(fb.I18nStrategy()),
+		Pages:      unpackMap(fb.PagesLength(), fb.Pages, unpackPageEntryMapItem),
+		Partials:   unpackMap(fb.PartialsLength(), fb.Partials, unpackPartialEntryMapItem),
+		Emails:     unpackMap(fb.EmailsLength(), fb.Emails, unpackEmailEntryMapItem),
+		Pdfs:       unpackMap(fb.PdfsLength(), fb.Pdfs, unpackPdfEntryMapItem),
+		ErrorPages: unpackMap(fb.ErrorPagesLength(), fb.ErrorPages, unpackErrorPageEntryMapItem),
 	}
 }
 

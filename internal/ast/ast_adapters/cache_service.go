@@ -202,8 +202,8 @@ func (s *ASTCacheService) Delete(ctx context.Context, key string) error {
 
 // Shutdown stops the cache service in a clean way.
 //
-// If the cache supports shutdown, this method calls its Shutdown method.
-// Otherwise, it does nothing.
+// If the cache supports shutdown, calls its Shutdown method.
+// Otherwise, does nothing.
 func (s *ASTCacheService) Shutdown(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 	if shutdowner, ok := s.cache.(interface {

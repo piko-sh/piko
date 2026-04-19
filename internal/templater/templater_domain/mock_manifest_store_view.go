@@ -33,10 +33,6 @@ type MockManifestStoreView struct {
 	// FindErrorPageFunc is the function called by FindErrorPage.
 	FindErrorPageFunc func(statusCode int, requestPath string) (PageEntryView, bool)
 
-	// GetCollectionFallbackRoutesFunc is the function called by
-	// GetCollectionFallbackRoutes.
-	GetCollectionFallbackRoutesFunc func() []CollectionFallbackRouteView
-
 	// ListPreviewEntriesFunc is the function called by ListPreviewEntries.
 	ListPreviewEntriesFunc func() []PreviewCatalogueEntry
 
@@ -48,10 +44,6 @@ type MockManifestStoreView struct {
 
 	// FindErrorPageCallCount tracks how many times FindErrorPage was called.
 	FindErrorPageCallCount int64
-
-	// GetCollectionFallbackRoutesCallCount tracks how many times
-	// GetCollectionFallbackRoutes was called.
-	GetCollectionFallbackRoutesCallCount int64
 
 	// ListPreviewEntriesCallCount tracks how many times ListPreviewEntries
 	// was called.
@@ -97,18 +89,6 @@ func (m *MockManifestStoreView) FindErrorPage(statusCode int, requestPath string
 		return m.FindErrorPageFunc(statusCode, requestPath)
 	}
 	return nil, false
-}
-
-// GetCollectionFallbackRoutes returns fallback routes from static collections.
-//
-// Returns []CollectionFallbackRouteView, or nil if
-// GetCollectionFallbackRoutesFunc is nil.
-func (m *MockManifestStoreView) GetCollectionFallbackRoutes() []CollectionFallbackRouteView {
-	atomic.AddInt64(&m.GetCollectionFallbackRoutesCallCount, 1)
-	if m.GetCollectionFallbackRoutesFunc != nil {
-		return m.GetCollectionFallbackRoutesFunc()
-	}
-	return nil
 }
 
 // ListPreviewEntries returns all entries that have a Preview function.

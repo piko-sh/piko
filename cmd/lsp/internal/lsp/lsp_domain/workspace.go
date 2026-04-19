@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
@@ -34,10 +35,15 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
+
+// workspaceShutdownTimeout caps how long Close waits for tracked workspace
+// goroutines to finish so a wedged goroutine cannot block server shutdown.
+const workspaceShutdownTimeout = 30 * time.Second
 
 // analysisCompleteParams defines the payload for the custom
 // piko/analysisComplete notification. This notification signals to LSP clients
@@ -103,12 +109,51 @@ type workspace struct {
 	// rootURI is the base path for all files in the workspace folder.
 	rootURI protocol.DocumentURI
 
+	// goroutineWG tracks every goroutine spawned by the workspace so Close
+	// can wait for them to drain. Without this, server shutdown can race
+	// with diagnostic publishes, leaking goroutines under goleak.
+	goroutineWG sync.WaitGroup
+
 	// mu guards access to the workspace fields during concurrent operations.
 	mu sync.RWMutex
 
 	// hasInitialBuild tracks whether the first full build has completed.
 	// Before this is true, all analysis uses the full entry point set.
 	hasInitialBuild bool
+}
+
+// Close waits for every tracked workspace goroutine to finish.
+//
+// Has an upper bound so a wedged goroutine cannot block shutdown. Safe to
+// call multiple times. Caller is expected to have stopped issuing fresh
+// work (e.g. by cancelling the server context) before calling Close.
+//
+// Takes ctx (context.Context) used for diagnostic logging.
+//
+// Returns error when the drain timed out; nil on a clean drain.
+func (w *workspace) Close(ctx context.Context) error {
+	if w == nil {
+		return nil
+	}
+
+	_, l := logger_domain.From(ctx, log)
+
+	done := make(chan struct{})
+	go func() {
+		defer goroutine.RecoverPanic(context.WithoutCancel(ctx), "lsp.workspace.closeWait")
+		w.goroutineWG.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		l.Debug("LSP workspace goroutines drained")
+		return nil
+	case <-time.After(workspaceShutdownTimeout):
+		l.Warn("LSP workspace goroutines did not drain within timeout",
+			logger_domain.String("timeout", workspaceShutdownTimeout.String()))
+		return fmt.Errorf("workspace shutdown timed out after %s", workspaceShutdownTimeout)
+	}
 }
 
 // workspaceDeps bundles dependencies for creating a [workspace].
@@ -207,12 +252,13 @@ func (w *workspace) RemoveDocument(ctx context.Context, uri protocol.DocumentURI
 	w.mu.Unlock()
 
 	if client != nil {
-		go func() {
-			_ = client.PublishDiagnostics(context.WithoutCancel(ctx), &protocol.PublishDiagnosticsParams{
+		detached := context.WithoutCancel(ctx)
+		w.spawnTracked(detached, "lsp.workspace.removeDocument.publishDiagnostics", func() {
+			_ = client.PublishDiagnostics(detached, &protocol.PublishDiagnosticsParams{
 				URI:         uri,
 				Diagnostics: []protocol.Diagnostic{},
 			})
-		}()
+		})
 	}
 
 	l.Debug("Document removed from workspace", logger_domain.String(keyURI, uri.Filename()))
@@ -357,6 +403,23 @@ func (w *workspace) FindAllReferences(ctx context.Context, uri protocol.Document
 		logger_domain.Int("totalReferences", len(allLocations)))
 
 	return allLocations, nil
+}
+
+// spawnTracked starts a goroutine that increments the workspace WaitGroup,
+// wraps operation in goroutine.RecoverPanic so a single panic cannot crash
+// the LSP server, and decrements the WaitGroup on exit.
+//
+// Takes ctx (context.Context) used by RecoverPanic for OTel attribution; the
+// caller is expected to detach from cancellable contexts using
+// context.WithoutCancel when the goroutine should outlive the request.
+// Takes component (string) which identifies the goroutine in panic logs (use
+// the form "lsp.workspace.<name>").
+// Takes operation (func()) which is the function body to run.
+func (w *workspace) spawnTracked(ctx context.Context, component string, operation func()) {
+	w.goroutineWG.Go(func() {
+		defer goroutine.RecoverPanic(ctx, component)
+		operation()
+	})
 }
 
 // runFullAnalysis executes a full project build with all entry points. It
@@ -971,9 +1034,6 @@ func (w *workspace) signalAnalysisComplete(ctx context.Context, uri protocol.Doc
 // Returns []annotator_dto.EntryPoint which contains the entry points for this
 // module.
 // Returns error when module detection or entry point discovery fails.
-//
-// Not safe for concurrent use by itself. Publishes error
-// diagnostics in separate goroutines on failure.
 func (w *workspace) prepareAnalysisInputs(
 	ctx context.Context,
 	uri protocol.DocumentURI,
@@ -983,21 +1043,21 @@ func (w *workspace) prepareAnalysisInputs(
 	filePath, err := uriToPath(uri)
 	if err != nil {
 		err = fmt.Errorf("invalid file URI: %w", err)
-		go w.publishErrorDiagnostic(context.WithoutCancel(ctx), uri, err.Error())
+		w.publishErrorDiagnosticAsync(ctx, uri, err.Error(), "lsp.workspace.prepareAnalysisInputs.uriToPath")
 		return nil, nil, err
 	}
 
 	moduleCtx, err = w.moduleManager.GetContextForFile(ctx, filePath)
 	if err != nil {
 		err = fmt.Errorf("failed to get module context: %w", err)
-		go w.publishErrorDiagnostic(context.WithoutCancel(ctx), uri, err.Error())
+		w.publishErrorDiagnosticAsync(ctx, uri, err.Error(), "lsp.workspace.prepareAnalysisInputs.moduleContext")
 		return nil, nil, err
 	}
 
 	entryPoints, err = moduleCtx.GetEntryPoints(ctx)
 	if err != nil {
 		err = fmt.Errorf("failed to discover project entry points: %w", err)
-		go w.publishErrorDiagnostic(context.WithoutCancel(ctx), uri, err.Error())
+		w.publishErrorDiagnosticAsync(ctx, uri, err.Error(), "lsp.workspace.prepareAnalysisInputs.entryPoints")
 		return nil, nil, err
 	}
 
@@ -1082,11 +1142,11 @@ func (w *workspace) handleNilProjectResult(
 				logger_domain.Error(analysisErr),
 				logger_domain.String(keyURI, uri.Filename()),
 				logger_domain.String("error_type", fmt.Sprintf("%T", analysisErr)))
-			go w.publishErrorDiagnostic(context.WithoutCancel(ctx), uri, fmt.Sprintf("Analysis failed: %s", analysisErr.Error()))
+			w.publishErrorDiagnosticAsync(ctx, uri, fmt.Sprintf("Analysis failed: %s", analysisErr.Error()), "lsp.workspace.handleNilProjectResult.analysisFailed")
 		}
 	} else {
 		l.Error("Analysis produced no result", logger_domain.String(keyURI, uri.Filename()))
-		go w.publishErrorDiagnostic(context.WithoutCancel(ctx), uri, "Analysis completed but produced no result")
+		w.publishErrorDiagnosticAsync(ctx, uri, "Analysis completed but produced no result", "lsp.workspace.handleNilProjectResult.noResult")
 	}
 
 	content, _ := w.docCache.Get(uri)
@@ -1310,6 +1370,25 @@ func (w *workspace) publishDiagnostics(ctx context.Context, uri protocol.Documen
 	} else {
 		l.Info("publishDiagnostics: Successfully published")
 	}
+}
+
+// publishErrorDiagnosticAsync schedules publishErrorDiagnostic on a tracked
+// goroutine using a context that survives the caller's cancellation. Replaces
+// bare `go w.publishErrorDiagnostic(...)` so that workspace shutdown can drain
+// in-flight publishes via Close.
+//
+// Takes ctx (context.Context) which is detached via context.WithoutCancel so
+// the publish completes even after the caller's request finishes.
+// Takes uri (protocol.DocumentURI) which identifies the document to report
+// the error against.
+// Takes message (string) which describes the error to show to the user.
+// Takes component (string) which identifies the call site for panic
+// attribution (use the form "lsp.workspace.<context>").
+func (w *workspace) publishErrorDiagnosticAsync(ctx context.Context, uri protocol.DocumentURI, message, component string) {
+	detached := context.WithoutCancel(ctx)
+	w.spawnTracked(detached, component, func() {
+		w.publishErrorDiagnostic(detached, uri, message)
+	})
 }
 
 // publishErrorDiagnostic sends an error message to the user through the LSP.

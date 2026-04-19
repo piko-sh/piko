@@ -47,13 +47,13 @@ type TypeInfo struct {
 	// Kind is the type category (struct, interface, alias, etc.).
 	Kind string `json:"kind"`
 
-	// Documentation is the doc comment for this type.
+	// Documentation is the doc comment for the type.
 	Documentation string `json:"documentation,omitempty"`
 
 	// Fields contains the struct fields; empty for non-struct types.
 	Fields []FieldInfo `json:"fields,omitempty"`
 
-	// Methods holds the methods defined on this type.
+	// Methods holds the methods defined on the type.
 	Methods []MethodInfo `json:"methods,omitempty"`
 
 	// Location is where the type is defined in the source code.
@@ -77,7 +77,7 @@ type FieldInfo struct {
 	// Documentation is the doc comment for the field.
 	Documentation string `json:"documentation,omitempty"`
 
-	// IsEmbedded indicates whether this field is embedded in its parent struct.
+	// IsEmbedded indicates whether the field is embedded in its parent struct.
 	IsEmbedded bool `json:"isEmbedded,omitempty"`
 }
 

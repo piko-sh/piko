@@ -151,9 +151,9 @@ func (gb *GraphBuilder) Build(ctx context.Context, entryPointPaths []string) (*a
 // DiscoverAllPaths performs a fast, sequential BFS to find all unique file
 // paths reachable from the given entry points.
 //
-// This method orchestrates the discovery process in three steps: resolve
-// initial entry points, traverse the dependency graph via BFS, and return
-// the complete set of discovered paths.
+// Orchestrates the discovery process in three steps: resolve initial entry
+// points, traverse the dependency graph via BFS, and return the complete set
+// of discovered paths.
 //
 // Takes entryPointPaths ([]string) which specifies the starting file paths
 // for discovery.

@@ -106,11 +106,10 @@ func TestGroupedViewComposeNarrow(t *testing.T) {
 func TestGroupedViewToggleRight(t *testing.T) {
 	g := newTestGroup()
 	view := NewGroupedView(nil)
-	show := true
 	body := view.Compose(GroupedViewArgs{
 		Group:      g,
 		Item:       g.items[0],
-		Visibility: GroupVisibilityState{RightOverride: &show},
+		Visibility: GroupVisibilityState{RightOverride: new(true)},
 		Breakpoint: DefaultBreakpoints[1],
 		Width:      130,
 		Height:     30,

@@ -425,6 +425,88 @@ SUFFIX=world`,
 	}
 }
 
+func TestParseDotEnvStreamCycleDetection(t *testing.T) {
+	t.Run("two-step bare mutual cycle returns empty values", func(t *testing.T) {
+		input := "ALPHA=$BETA\nBETA=$ALPHA"
+
+		actual, err := parseDotEnvStream(strings.NewReader(input))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"ALPHA": "", "BETA": ""}, actual)
+	})
+
+	t.Run("two-step braced mutual cycle returns empty values", func(t *testing.T) {
+		input := "A=${B}\nB=${A}"
+
+		actual, err := parseDotEnvStream(strings.NewReader(input))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"A": "", "B": ""}, actual)
+	})
+
+	t.Run("three-step cycle returns empty values", func(t *testing.T) {
+		input := "A=${B}\nB=${C}\nC=${A}"
+
+		actual, err := parseDotEnvStream(strings.NewReader(input))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"A": "", "B": "", "C": ""}, actual)
+	})
+
+	t.Run("cycle does not affect unrelated variables", func(t *testing.T) {
+		input := "A=${B}\nB=${A}\nC=clean"
+
+		actual, err := parseDotEnvStream(strings.NewReader(input))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"A": "", "B": "", "C": "clean"}, actual)
+	})
+}
+
+func TestParseDotEnvStreamSizeLimit(t *testing.T) {
+	t.Run("oversized stream returns ErrDotenvFileTooLarge", func(t *testing.T) {
+		original := MaxDotenvBytes()
+		t.Cleanup(func() { SetMaxDotenvBytes(original) })
+
+		SetMaxDotenvBytes(64)
+		payload := strings.Repeat("X", 128) + "=value"
+
+		_, err := parseDotEnvStream(strings.NewReader(payload))
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, ErrDotenvFileTooLarge), "expected ErrDotenvFileTooLarge, got %v", err)
+	})
+
+	t.Run("stream exactly at the limit is accepted", func(t *testing.T) {
+		original := MaxDotenvBytes()
+		t.Cleanup(func() { SetMaxDotenvBytes(original) })
+
+		payload := "KEY=value"
+		SetMaxDotenvBytes(int64(len(payload)))
+
+		actual, err := parseDotEnvStream(strings.NewReader(payload))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"KEY": "value"}, actual)
+	})
+
+	t.Run("zero cap disables limit", func(t *testing.T) {
+		original := MaxDotenvBytes()
+		t.Cleanup(func() { SetMaxDotenvBytes(original) })
+
+		SetMaxDotenvBytes(0)
+		var builder strings.Builder
+		builder.WriteString("KEY=")
+		builder.WriteString(strings.Repeat("y", 8192))
+
+		actual, err := parseDotEnvStream(strings.NewReader(builder.String()))
+		require.NoError(t, err)
+		assert.Len(t, actual, 1)
+	})
+
+	t.Run("negative cap is treated as disabled", func(t *testing.T) {
+		original := MaxDotenvBytes()
+		t.Cleanup(func() { SetMaxDotenvBytes(original) })
+
+		SetMaxDotenvBytes(-1)
+		assert.Equal(t, int64(0), MaxDotenvBytes())
+	})
+}
+
 func TestDotEnvLookuper_Sandbox(t *testing.T) {
 	t.Run("loads env file from sandbox", func(t *testing.T) {
 		ResetDotEnvCache()

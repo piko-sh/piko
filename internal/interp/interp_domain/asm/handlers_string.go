@@ -27,11 +27,11 @@ import "piko.sh/piko/wdk/asmgen"
 //
 // Go strings are represented as 16-byte headers consisting of a Data pointer at
 // offset +0 and a Length integer at offset +8. The strings base pointer is
-// loaded on demand from the DispatchContext via CTX_STRINGS_BASE, and the
-// string at index i is addressed as stringsBase + i*16. The context register
-// that holds the DispatchContext pointer differs between architectures: R15 on
-// amd64, R19 on arm64. This function selects the correct register name so that
-// the generated comment is accurate for the target architecture.
+// loaded on demand from the DispatchContext via CTX_STRINGS_BASE, and the string at
+// index i is addressed as stringsBase + i*16. The context register that holds the
+// DispatchContext pointer differs between architectures: R15 on amd64, R19 on arm64.
+// Selects the correct register name so that the generated comment is accurate for
+// the target architecture.
 //
 // Takes arch (asmgen.Architecture) which identifies the target architecture.
 //
@@ -300,9 +300,9 @@ func handlerStringIndexToInt() asmgen.HandlerDefinition[BytecodeArchitecturePort
 // register index) and operand B (string register index). The second word, the
 // extension word, carries a signed 16-bit jump offset in bits 8-23. On the
 // not-taken path (ints[A] >= len), the extension word is loaded, the offset is
-// sign-extended from 16 bits to 64 bits, and added to the program counter. On
-// the taken path (ints[A] < len), the program counter is simply incremented past
-// the extension word.
+// sign-extended from 16 bits to 64 bits, and added to the program counter. On the
+// taken path (ints[A] < len), the program counter is incremented past the extension
+// word.
 //
 // Both paths converge at a DISPATCH_NEXT, which this handler emits itself. The
 // fused design avoids three separate dispatches (LenString, LtInt, JumpIfFalse)

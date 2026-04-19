@@ -84,8 +84,8 @@ type WorkflowSummary struct {
 }
 
 // OrchestratorInspector provides read-only access to orchestrator state.
-// The monitoring service uses this interface to show task and workflow data
-// in the TUI without needing direct database access.
+// The monitoring service uses the port to show task and workflow data in the TUI
+// without needing direct database access.
 type OrchestratorInspector interface {
 	// ListTaskSummary returns task counts grouped by status.
 	//

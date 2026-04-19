@@ -38,9 +38,9 @@ const (
 	fieldConversationID = "conversation_id"
 )
 
-// CompletionBuilder provides a fluent API for building and running LLM
-// completion requests. Builder functions like Model, System, and User return
-// this type to allow method chaining.
+// CompletionBuilder provides a fluent API for building and running LLM completion
+// requests. Builder functions like Model, System, and User return the builder to
+// allow method chaining.
 type CompletionBuilder struct {
 	// memory stores conversation history for multi-turn interactions.
 	memory Memory

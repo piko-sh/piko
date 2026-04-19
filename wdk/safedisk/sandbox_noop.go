@@ -71,12 +71,14 @@ func (s *noOpSandbox) Open(name string) (FileHandle, error) {
 	return &File{file: f, name: cleanPath(name)}, nil
 }
 
-// ReadFile reads the entire contents of a file.
+// ReadFile reads the entire contents of a file up to DefaultReadFileMaxBytes.
+// Callers that need a tighter or looser cap should use ReadFileLimit.
 //
 // Takes name (string) which specifies the path to the file to read.
 //
 // Returns []byte which contains the complete file contents.
-// Returns error when the file cannot be opened or read.
+// Returns error when the file cannot be opened or read, or wraps
+// ErrFileExceedsLimit when the file exceeds DefaultReadFileMaxBytes.
 func (s *noOpSandbox) ReadFile(name string) ([]byte, error) {
 	return readFileViaOpen(s.Open, name)
 }
@@ -311,8 +313,25 @@ func (s *noOpSandbox) WriteFileAtomic(name string, data []byte, perm fs.FileMode
 		return fmt.Errorf("renaming temp file: %w", err)
 	}
 
+	syncParentDirectoryFS(directory)
+
 	success = true
 	return nil
+}
+
+// syncParentDirectoryFS fsyncs an absolute parent directory path so that the
+// preceding rename becomes durable on filesystems where metadata is journaled
+// separately from the rename operation. Errors are ignored since the file
+// data was already fsynced and surfacing the error cannot help callers.
+//
+// Takes directory (string) which is the absolute path to the directory to sync.
+func syncParentDirectoryFS(directory string) {
+	dirHandle, err := os.Open(directory) //nolint:gosec // directory path validated by sandbox
+	if err != nil {
+		return
+	}
+	_ = dirHandle.Sync()
+	_ = dirHandle.Close()
 }
 
 // Mkdir creates a directory.

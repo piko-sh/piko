@@ -4115,6 +4115,23 @@ func TestBindMap_NestedStruct(t *testing.T) {
 		assert.Equal(t, "Manchester", order.ShippingAddress.City)
 		assert.Equal(t, "M1 1AA", order.ShippingAddress.Postcode)
 	})
+
+	t.Run("BindJSON rejects oversize payload", func(t *testing.T) {
+		binder := NewASTBinder()
+		binder.SetMaxBindJSONBytes(16)
+
+		var order Order
+		jsonData := []byte(`{"product":"Gadget","quantity":5}`)
+
+		err := binder.BindJSON(context.Background(), &order, jsonData)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrBindJSONTooLarge)
+	})
+
+	t.Run("BindJSON respects default cap", func(t *testing.T) {
+		binder := NewASTBinder()
+		assert.Equal(t, DefaultMaxBindJSONBytes, binder.MaxBindJSONBytes())
+	})
 }
 
 func TestBindMap_NestedStruct_EdgeCases(t *testing.T) {

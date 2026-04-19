@@ -20,10 +20,10 @@ package lsp_domain
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"go.lsp.dev/protocol"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -153,7 +153,7 @@ func (s *Server) handleTypeHierarchySupertypes(ctx context.Context, params any) 
 }
 
 // handleTypeHierarchySubtypes handles typeHierarchy/subtypes requests.
-// Returns the subtypes (types that embed this type) of the given type.
+// Returns the subtypes (embedding types) of the given type.
 //
 // Takes params (any) which should be TypeHierarchySubtypesParams.
 //

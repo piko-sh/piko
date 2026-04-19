@@ -5,6 +5,7 @@
 package partials_badge_63370d86
 
 import (
+	"cmp"
 	"fmt"
 	"html"
 	"sort"
@@ -22,6 +23,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 var _ = partials_style_helper_e0538422.Render
 

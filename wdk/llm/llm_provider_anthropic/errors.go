@@ -20,15 +20,19 @@ package llm_provider_anthropic
 
 import (
 	"errors"
+	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 
 	"piko.sh/piko/internal/llm/llm_domain"
 )
 
-// wrapError wraps an Anthropic SDK error as a *llm_domain.ProviderError,
-// preserving the HTTP status code for retry classification. Non-API errors
-// are returned unchanged.
+// wrapError wraps an Anthropic SDK error as a *llm_domain.ProviderError.
+//
+// Preserves the HTTP status code for retry classification. When the
+// upstream response carries a Retry-After header, its parsed value is
+// propagated so the retry executor can honour the server hint. Non-API
+// errors are returned unchanged.
 //
 // Takes err (error) which is the error to wrap.
 //
@@ -36,12 +40,18 @@ import (
 // is an *anthropic.Error, or the original error otherwise.
 func wrapError(err error) error {
 	if apiErr, ok := errors.AsType[*anthropic.Error](err); ok {
-		return &llm_domain.ProviderError{
+		providerErr := &llm_domain.ProviderError{
 			Provider:   providerNameAnthropic,
 			StatusCode: apiErr.StatusCode,
 			Message:    err.Error(),
 			Err:        err,
 		}
+		if apiErr.Response != nil {
+			providerErr.RetryAfter = llm_domain.ParseRetryAfter(
+				apiErr.Response.Header.Get("Retry-After"), time.Now(),
+			)
+		}
+		return providerErr
 	}
 	return err
 }

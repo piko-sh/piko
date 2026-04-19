@@ -95,7 +95,7 @@ type service struct {
 
 	// cancelFunc cancels the service's internal context, stopping background
 	// goroutines such as the presign RID cache cleanup loop.
-	cancelFunc context.CancelFunc
+	cancelFunc context.CancelCauseFunc
 
 	// getGroup stops repeated fetch requests for the same cache key.
 	getGroup singleflight.Group
@@ -476,7 +476,7 @@ func (s *service) Check(ctx context.Context, checkType healthprobe_dto.CheckType
 // individual providers are collected and returned as a combined error.
 func (s *service) Close(ctx context.Context) error {
 	if s.cancelFunc != nil {
-		s.cancelFunc()
+		s.cancelFunc(errors.New("storage service shutdown"))
 	}
 	if err := s.registry.CloseAll(ctx); err != nil {
 		return fmt.Errorf("closing all storage providers: %w", err)
@@ -851,6 +851,12 @@ func (*service) getObjectViaStream(
 // getObjectViaSingleflight uses a singleflight group to deduplicate
 // concurrent requests for the same object.
 //
+// The singleflight buffer is bounded by SingleflightMemoryThreshold (the same
+// gating threshold used to decide whether to use this path). A provider that
+// reports a small object via Stat but streams more bytes than the threshold
+// is rejected with ErrSingleflightObjectTooLarge so an oversized payload
+// cannot dominate memory.
+//
 // Takes provider (StorageProviderPort) which fetches the object data.
 // Takes providerName (string) which identifies the provider for cache keys.
 // Takes params (storage_dto.GetParams) which specifies the object to fetch.
@@ -865,6 +871,11 @@ func (s *service) getObjectViaSingleflight(
 	ctx, l := logger_domain.From(ctx, log)
 	cacheKey := fmt.Sprintf("%s:%s:%s", providerName, params.Repository, params.Key)
 
+	maxBytes := s.config.SingleflightMemoryThreshold
+	if maxBytes <= 0 {
+		maxBytes = DefaultSingleflightMemoryThreshold
+	}
+
 	result, err, _ := s.getGroup.Do(cacheKey, func() (any, error) {
 		l.Trace("Singleflight cache miss: fetching from underlying provider",
 			logger_domain.String(logFieldKey, params.Key), logger_domain.Int64(logFieldSize, size))
@@ -875,9 +886,13 @@ func (s *service) getObjectViaSingleflight(
 		}
 		defer func() { _ = reader.Close() }()
 
-		data, readErr := io.ReadAll(reader)
+		data, readErr := io.ReadAll(io.LimitReader(reader, maxBytes+1))
 		if readErr != nil {
 			return nil, readErr
+		}
+		if int64(len(data)) > maxBytes {
+			return nil, fmt.Errorf("%w: read at least %d bytes, threshold %d",
+				ErrSingleflightObjectTooLarge, len(data), maxBytes)
 		}
 		return data, nil
 	})
@@ -1029,7 +1044,7 @@ func NewService(ctx context.Context, opts ...ServiceOption) Service {
 
 	ctx, l := logger_domain.From(ctx, log)
 
-	serviceCtx, serviceCancel := context.WithCancel(ctx)
+	serviceCtx, serviceCancel := context.WithCancelCause(ctx)
 
 	if err := config.PresignConfig.EnsureSecret(); err != nil {
 		l.Warn("Failed to initialise presign secret, presigned uploads disabled",
@@ -1083,7 +1098,7 @@ func NewServiceWithDefaultProvider(_ string, opts ...ServiceOption) Service {
 
 	_, l := logger_domain.From(context.Background(), log)
 
-	serviceCtx, serviceCancel := context.WithCancel(context.Background())
+	serviceCtx, serviceCancel := context.WithCancelCause(context.Background())
 
 	if err := config.PresignConfig.EnsureSecret(); err != nil {
 		l.Warn("Failed to initialise presign secret, presigned uploads disabled",

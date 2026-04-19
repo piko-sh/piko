@@ -293,7 +293,7 @@ type Service interface {
 // StorageProviderPort defines the driven port for storage adapters.
 //
 // Each concrete storage implementation (such as S3, GCS, or local disk) must
-// satisfy this interface. It implements io.Closer and provides operations for
+// satisfy the contract. Implements io.Closer and provides operations for
 // object storage including upload, download, copy, and batch operations.
 type StorageProviderPort interface {
 	// Put uploads an object from a reader.

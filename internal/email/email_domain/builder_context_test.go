@@ -92,7 +92,9 @@ func TestTemplatedEmailBuilder_Do_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	cancel(fmt.Errorf("test: simulating cancelled context"))
 
-	err := NewTemplatedEmail[struct{}](s).
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	err = builder.
 		To("user@example.com").
 		Subject("test").
 		Do(ctx)
@@ -116,7 +118,9 @@ func TestTemplatedEmailBuilder_Do_ExpiredContext(t *testing.T) {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), 0, fmt.Errorf("test: simulating expired deadline"))
 	defer cancel()
 
-	err := NewTemplatedEmail[struct{}](s).
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	err = builder.
 		To("user@example.com").
 		Subject("test").
 		Do(ctx)

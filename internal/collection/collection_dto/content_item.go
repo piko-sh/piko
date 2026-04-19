@@ -26,12 +26,12 @@ import (
 
 // ContentItem represents a single piece of content from any provider.
 //
-// This type is the common format for content in the collection system. It
-// provides a standard way to represent content from markdown files, CMS
-// entries, database records, and other data sources. The design supports
-// multiple providers through the Metadata map, stores both raw content and
-// parsed AST forms, and includes built-in support for translations via the
-// Locale and TranslationKey fields.
+// Acts as the common format for content in the collection system. Provides a
+// standard way to represent content from markdown files, CMS entries, database
+// records, and other data sources. The design supports multiple providers
+// through the Metadata map, stores both raw content and parsed AST forms, and
+// includes built-in support for translations via the Locale and TranslationKey
+// fields.
 type ContentItem struct {
 	// Metadata holds key-value pairs from frontmatter, CMS fields, or database
 	// columns. This map lets providers store extra data without changing the

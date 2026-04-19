@@ -27,6 +27,6 @@ var (
 	// Unpack validates the schema hash and returns the raw FlatBuffer payload.
 	Unpack = search_schema.Unpack
 
-	// Validate checks if data was serialised with the current schema version.
+	// Validate reports whether data was serialised with the current schema version.
 	Validate = search_schema.Validate
 )

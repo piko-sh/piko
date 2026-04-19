@@ -20,16 +20,15 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"gopkg.in/yaml.v3"
 
 	"piko.sh/piko/cmd/piko/internal/tui/tui_adapters/provider_grpc"
 	"piko.sh/piko/cmd/piko/internal/tui/tui_domain"
 	"piko.sh/piko/cmd/piko/internal/tui/tui_dto"
+	"piko.sh/piko/internal/config/config_domain"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safedisk"
 )
 
 // TUI provides the main entry point to the terminal monitoring interface.
@@ -65,9 +64,6 @@ func (t *TUI) Close() error {
 
 // loadConfigOptions holds optional settings for LoadConfig.
 type loadConfigOptions struct {
-	// sandbox provides isolated disk access for loading configuration files.
-	sandbox safedisk.Sandbox
-
 	// homeDir is the path to the user's home directory.
 	homeDir string
 }
@@ -103,17 +99,6 @@ func New(opts ...Option) (*TUI, error) {
 	}, nil
 }
 
-// WithConfigSandbox injects a sandbox for reading config files.
-//
-// Takes sandbox (safedisk.Sandbox) which provides sandboxed file system access.
-//
-// Returns LoadConfigOption which applies the sandbox to config loading.
-func WithConfigSandbox(sandbox safedisk.Sandbox) LoadConfigOption {
-	return func(o *loadConfigOptions) {
-		o.sandbox = sandbox
-	}
-}
-
 // WithHomeDir overrides the user home directory used for config search.
 //
 // Takes directory (string) which specifies the directory path to use as the home
@@ -127,17 +112,18 @@ func WithHomeDir(directory string) LoadConfigOption {
 	}
 }
 
-// LoadConfig loads TUI configuration from a piko.yaml file, searching standard
-// locations and applying environment variable overrides.
+// LoadConfig loads TUI configuration using the user-facing config_domain
+// loader, with PIKO_TUI_* environment variables and tui.yaml file support.
 //
-// When configPath is not empty, it is checked first. Otherwise, the function
-// searches ./piko.yaml and then $HOME/.config/piko/piko.yaml in order.
+// When configPath is not empty, that file is loaded directly. Otherwise the
+// loader searches ./tui.yaml and then $HOME/.config/piko/tui.yaml.
 //
-// Environment variables (PIKO_TUI_*) override file values.
+// Precedence (lowest to highest): struct-tag defaults, file values,
+// PIKO_TUI_* environment variables.
 //
 // Takes configPath (string) which is an optional path to the config file.
 // Takes opts (...LoadConfigOption) which provides optional configuration
-// such as WithConfigSandbox for testing.
+// such as WithHomeDir for testing.
 //
 // Returns Config which contains the loaded configuration with defaults applied.
 // Returns error when the config file cannot be read or parsed.
@@ -147,9 +133,23 @@ func LoadConfig(configPath string, opts ...LoadConfigOption) (Config, error) {
 		opt(o)
 	}
 
-	paths := buildConfigSearchPaths(configPath, o.homeDir)
-	tuiConfig := searchAndLoadConfig(paths, o)
-	applyConfigEnvOverrides(&tuiConfig)
+	filePaths := discoverConfigFiles(configPath, o.homeDir)
+
+	loaderOpts := config_domain.LoaderOptions{
+		FilePaths:          filePaths,
+		StrictFile:         false,
+		UseGlobalResolvers: false,
+		PassOrder: []config_domain.Pass{
+			config_domain.PassDefaults,
+			config_domain.PassFiles,
+			config_domain.PassEnv,
+		},
+	}
+
+	var tuiConfig Config
+	if _, err := config_domain.Load(context.Background(), &tuiConfig, loaderOpts); err != nil {
+		return Config{}, fmt.Errorf("loading TUI config: %w", err)
+	}
 	return tuiConfig, nil
 }
 
@@ -190,94 +190,43 @@ func initialiseProviders(tuiConfig *tui_dto.Config, providers *tui_domain.Provid
 	l.Debug("Using gRPC monitoring providers", logger.String("endpoint", tuiConfig.MonitoringEndpoint))
 }
 
-// buildConfigSearchPaths assembles the ordered list of config file paths to
-// try, from the explicit path, then the working directory, then the user
-// home config directory.
+// discoverConfigFiles returns the existing tui.yaml paths to feed to the
+// config_domain loader.
+//
+// When configPath is non-empty it is the only file loaded. Otherwise the
+// loader looks in the user's home config directory first (lowest
+// precedence) and then the working directory (highest precedence) so a
+// project-local tui.yaml wins over the global one.
 //
 // Takes configPath (string) which is an optional explicit config file path.
 // Takes homeDir (string) which overrides the user home directory when non-empty.
 //
-// Returns []string which lists the paths to search in priority order.
-func buildConfigSearchPaths(configPath, homeDir string) []string {
-	var paths []string
+// Returns []string which lists existing config files in load order
+// (lowest-to-highest precedence; later files override earlier).
+func discoverConfigFiles(configPath, homeDir string) []string {
 	if configPath != "" {
-		paths = append(paths, configPath)
+		if _, err := os.Stat(configPath); err == nil {
+			return []string{configPath}
+		}
+		return nil
 	}
-	paths = append(paths, "piko.yaml")
 
+	var candidates []string
 	if homeDir == "" {
 		if home, err := os.UserHomeDir(); err == nil {
 			homeDir = home
 		}
 	}
 	if homeDir != "" {
-		paths = append(paths, filepath.Join(homeDir, ".config", "piko", "piko.yaml"))
+		candidates = append(candidates, filepath.Join(homeDir, ".config", "piko", "tui.yaml"))
 	}
-	return paths
-}
+	candidates = append(candidates, "tui.yaml")
 
-// searchAndLoadConfig tries each path in order, returning the TUI config from
-// the first successfully parsed file, or a default config if none is found.
-//
-// Takes paths ([]string) which lists the config file paths to try.
-// Takes o (*loadConfigOptions) which provides optional sandbox access.
-//
-// Returns Config which is the loaded or default configuration.
-func searchAndLoadConfig(paths []string, o *loadConfigOptions) Config {
-	readFile := configFileReader(o)
-
-	for _, path := range paths {
-		data, err := readFile(path)
-		if err != nil {
-			continue
-		}
-		var pikoConfig pikoConfig
-		if err := yaml.Unmarshal(data, &pikoConfig); err != nil {
-			continue
-		}
-		return pikoConfig.TUI
-	}
-
-	return Config{
-		Endpoint:        "http://localhost:8080",
-		RefreshInterval: "2s",
-		Theme:           "default",
-	}
-}
-
-// configFileReader returns a function that reads a file using the sandbox when
-// available, or os.ReadFile otherwise.
-//
-// Takes o (*loadConfigOptions) which provides optional sandbox access.
-//
-// Returns func(string) ([]byte, error) which reads file contents from the
-// appropriate source.
-func configFileReader(o *loadConfigOptions) func(string) ([]byte, error) {
-	if o.sandbox != nil {
-		return func(path string) ([]byte, error) {
-			return o.sandbox.ReadFile(o.sandbox.RelPath(path))
+	var existing []string
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err == nil {
+			existing = append(existing, path)
 		}
 	}
-	return func(path string) ([]byte, error) {
-		return os.ReadFile(path) //nolint:gosec // trusted config path
-	}
-}
-
-// applyConfigEnvOverrides applies PIKO_TUI_* environment variable overrides
-// to the given TUI configuration.
-//
-// Takes tuiConfig (*Config) which is the configuration to modify in place.
-func applyConfigEnvOverrides(tuiConfig *Config) {
-	if v := os.Getenv("PIKO_TUI_ENDPOINT"); v != "" {
-		tuiConfig.Endpoint = v
-	}
-	if v := os.Getenv("PIKO_TUI_REFRESH_INTERVAL"); v != "" {
-		tuiConfig.RefreshInterval = v
-	}
-	if v := os.Getenv("PIKO_TUI_THEME"); v != "" {
-		tuiConfig.Theme = v
-	}
-	if v := os.Getenv("PIKO_TUI_TITLE"); v != "" {
-		tuiConfig.Title = v
-	}
+	return existing
 }

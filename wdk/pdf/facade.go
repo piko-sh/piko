@@ -21,6 +21,7 @@ package pdf
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/layouter/layouter_dto"
@@ -237,12 +238,28 @@ func NewTransformerRegistry() *TransformerRegistry {
 	return pdfwriter_domain.NewPdfTransformerRegistry()
 }
 
+// EncryptOption configures the encrypt transformer at construction time.
+type EncryptOption = driven_transform_encrypt.Option
+
+// WithEncryptRandomSource overrides the cryptographic randomness source used
+// during encryption.
+//
+// Takes r (io.Reader) which supplies random bytes for IVs, salts, and keys.
+//
+// Returns EncryptOption which can be passed to NewEncryptTransformer.
+func WithEncryptRandomSource(r io.Reader) EncryptOption {
+	return driven_transform_encrypt.WithRandomSource(r)
+}
+
 // NewEncryptTransformer creates an AES-256 PDF encryption transformer.
 // Configure it via EncryptionOptions when building the TransformConfig.
 //
+// Takes opts (...EncryptOption) which override defaults; production callers
+// can omit them.
+//
 // Returns TransformerPort which can be registered with a TransformerRegistry.
-func NewEncryptTransformer() TransformerPort {
-	return driven_transform_encrypt.New()
+func NewEncryptTransformer(opts ...EncryptOption) TransformerPort {
+	return driven_transform_encrypt.New(opts...)
 }
 
 // NewPadesSignTransformer creates a PAdES digital signature transformer.

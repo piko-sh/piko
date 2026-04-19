@@ -81,9 +81,8 @@ const (
 // when the cap is exactly hit (an indication the response was likely
 // truncated and should not be trusted).
 //
-// Takes body (io.ReadCloser) which is the HTTP response body; the
-// caller still owns Close (this function only drains, the deferred
-// Close in the caller still runs).
+// Takes body (io.ReadCloser) which is the HTTP response body; the caller still
+// owns Close (only drains here, the deferred Close in the caller still runs).
 //
 // Returns []byte with the body bytes (possibly truncated to the cap).
 // Returns error wrapping ErrProfileBodyTooLarge when the body is at
@@ -670,8 +669,8 @@ func captureProfilerMetadata(
 //
 // Takes pipeline (pipelineConfig) which holds pipeline settings.
 // Takes outputSandbox (safedisk.Sandbox) which writes output files.
-// Takes status (*profiler.ServerStatus) which provides the download
-// path; if nil or tracing is disabled, the function returns immediately.
+// Takes status (*profiler.ServerStatus) which provides the download path; if
+// nil or tracing is disabled, returns immediately.
 func captureRollingTrace(
 	ctx context.Context,
 	pipeline pipelineConfig,

@@ -21,11 +21,10 @@ package email_dto
 // EmailAssetRequest represents a declarative request from a rendered email
 // template for an asset to be fetched and attached to the final email.
 //
-// This struct is populated during PML rendering when <pml-img> components
-// encounter local asset references (e.g., "assets/logo.png"). The email
-// builder uses these requests to query the registry, retrieve the appropriate
-// transformed variant, and attach it with the specified Content-ID for CID
-// embedding.
+// Populated during PML rendering when <pml-img> components encounter local asset
+// references (e.g., "assets/logo.png"). The email builder uses these requests to
+// query the registry, retrieve the appropriate transformed variant, and attach it
+// with the specified Content-ID for CID embedding.
 type EmailAssetRequest struct {
 	// SourcePath is the original path to the asset in the project
 	// (e.g., "assets/images/logo.png"). It is used to query the registry

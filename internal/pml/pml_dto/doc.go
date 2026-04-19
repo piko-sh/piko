@@ -19,18 +19,7 @@
 // Package pml_dto holds configuration structs for the PikoML templating
 // engine.
 //
-// These structs are typically populated from the `pml` section of a piko.yaml
-// configuration file and control how PikoML templates are parsed, validated,
-// and rendered.
-//
-// # Configuration example
-//
-// In piko.yaml:
-//
-//	pml:
-//	  validationLevel: strict
-//	  breakpoint: "480px"
-//	  overrideAttributes:
-//	    pml-p:
-//	      font-family: "Arial, sans-serif"
+// These structs are populated programmatically by the framework's bootstrap
+// pipeline and control how PikoML templates are parsed, validated, and
+// rendered.
 package pml_dto

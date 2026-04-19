@@ -61,8 +61,8 @@ type sfcCompiler struct {
 	// into compiled output. When nil, raw CSS is used as-is.
 	cssPreProcessor CSSPreProcessorPort
 
-	// moduleName is the Go module name from go.mod, such as
-	// "github.com/org/repo". Used to resolve @/ aliases in asset paths.
+	// moduleName is the Go module name from go.mod, such as a GitHub-hosted
+	// module path. Used to resolve @/ aliases in asset paths.
 	moduleName string
 }
 
@@ -84,8 +84,8 @@ type sfcCompilationContext struct {
 	// registry holds the component registry for tracking dependencies.
 	registry *RegistryContext
 
-	// moduleName is the Go module name from go.mod, such as
-	// "github.com/org/repo". Used to resolve @/ aliases in asset paths.
+	// moduleName is the Go module name from go.mod, such as a GitHub-hosted
+	// module path. Used to resolve @/ aliases in asset paths.
 	moduleName string
 
 	// cssPreProcessor resolves CSS @import statements before CSS is embedded
@@ -820,10 +820,10 @@ func buildClassName(rawTag string) string {
 // prependPreambleToAST modifies the AST by adding imports at the start and
 // wrapping existing statements in an IIFE.
 //
-// This function extracts imports from the source code using AST-based parsing
-// rather than regex. This handles all valid JavaScript import syntax including
-// multi-line imports, aliased imports, and type imports. It converts @/ alias
-// paths to served asset paths.
+// Extracts imports from the source code using AST-based parsing rather than
+// regex. Handles all valid JavaScript import syntax including multi-line
+// imports, aliased imports, and type imports. Converts @/ alias paths to served
+// asset paths.
 //
 // When enabledBehaviours includes "animation", a side-effect import for the
 // animation extension is prepended before the core import so that the
@@ -1042,16 +1042,15 @@ func isIdentifierChar(c byte) bool {
 }
 
 // separateImportsFromAST walks the AST statements and separates SImport
-// statements from all other statements. This is used to place imports at
-// module top level while wrapping other code in an IIFE.
+// statements from all other statements. Used to place imports at module top
+// level while wrapping other code in an IIFE.
 //
 // esbuild stores import information in two places:
 // 1. ImportRecords - contains path, range, and metadata for each import
 // 2. Parts[].Stmts - contains SImport statements with ImportRecordIndex
 //
-// This function extracts SImport statements from Parts[].Stmts so they can
-// be placed at module top level, while other statements get wrapped in an
-// IIFE.
+// Extracts SImport statements from Parts[].Stmts so they can be placed at
+// module top level, while other statements get wrapped in an IIFE.
 //
 // Takes statements ([]js_ast.Stmt) which contains all statements from the parsed
 // AST.

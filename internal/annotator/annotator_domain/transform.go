@@ -645,16 +645,37 @@ func detectCaptchaUsage(templateAST *ast_domain.TemplateAST) bool {
 }
 
 // nodeHasCaptcha recursively checks a node and its children for piko:captcha.
+// Recursion is capped at maxAnnotatorDepth so a pathological tree cannot
+// overflow the Go stack.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check, including
 // its children.
 //
 // Returns bool which is true if the node or any descendant is piko:captcha.
 func nodeHasCaptcha(node *ast_domain.TemplateNode) bool {
+	return nodeHasCaptchaAt(node, 0)
+}
+
+// nodeHasCaptchaAt is the depth-tracked recursion behind nodeHasCaptcha.
+//
+// Takes node (*ast_domain.TemplateNode) which is the node to check.
+// Takes depth (int) which is the current recursion depth, capped at
+// maxAnnotatorDepth.
+//
+// Returns bool which is true if the node or any descendant is piko:captcha.
+func nodeHasCaptchaAt(node *ast_domain.TemplateNode, depth int) bool {
+	if depth >= maxAnnotatorDepth {
+		return false
+	}
 	if node.TagName == "piko:captcha" {
 		return true
 	}
-	return slices.ContainsFunc(node.Children, nodeHasCaptcha)
+	for _, child := range node.Children {
+		if nodeHasCaptchaAt(child, depth+1) {
+			return true
+		}
+	}
+	return false
 }
 
 // performStaticAnalysis walks the AST in post-order to mark which nodes are
@@ -710,7 +731,7 @@ func analyseNodeForStaticity(node *ast_domain.TemplateNode) {
 //   - It has no partial invocation.
 //   - All its children are also fully prerenderable.
 //
-// This function must be called after analyseNodeForStaticity sets IsStatic.
+// Must be called after analyseNodeForStaticity sets IsStatic.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 func analyseNodeForPrerenderability(node *ast_domain.TemplateNode) {

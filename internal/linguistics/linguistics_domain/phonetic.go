@@ -21,6 +21,7 @@ package linguistics_domain
 import (
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 const (
@@ -54,7 +55,7 @@ const (
 // Double Metaphone algorithm. It matches words that sound alike but are spelt
 // differently, such as "Stephen" and "Steven", or "night" and "knight".
 type PhoneticEncoder struct {
-	// maxLength is the maximum number of characters in the output code.
+	// maxLength is the maximum length in runes of the output code.
 	maxLength int
 }
 
@@ -170,10 +171,28 @@ func (p *PhoneticEncoder) processCharacter(word string, current int, primary *st
 //
 // Returns string which is the code shortened to the encoder's maximum length.
 func (p *PhoneticEncoder) finalisePhoneticCode(code string) string {
-	if len(code) > p.maxLength {
-		return code[:p.maxLength]
+	return TruncateRunes(code, p.maxLength)
+}
+
+// TruncateRunes shortens s to at most maxRunes runes. The function is
+// rune-aware so it never cuts through a multi-byte UTF-8 sequence, making it
+// safe for Cyrillic, accented Latin, CJK, and other non-ASCII text.
+//
+// Takes s (string) which is the input to truncate.
+// Takes maxRunes (int) which is the maximum number of runes the result may
+// contain. Values of zero or below produce an empty string.
+//
+// Returns string which is at most maxRunes runes long. If s is already short
+// enough, s is returned unchanged.
+func TruncateRunes(s string, maxRunes int) string {
+	if maxRunes <= 0 {
+		return ""
 	}
-	return code
+	if utf8.RuneCountInString(s) <= maxRunes {
+		return s
+	}
+	runes := []rune(s)
+	return string(runes[:maxRunes])
 }
 
 // handleC processes the letter 'C' based on the letters that follow it.

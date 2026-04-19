@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -38,9 +39,15 @@ import (
 	"piko.sh/piko/internal/seo/seo_adapters"
 )
 
+// defaultMaxConcurrentSEOJobs is the fallback semaphore size for SEO artefact
+// regeneration. It scales with the host's CPU count so smaller machines do not
+// stack goroutines beyond what they can serve, while larger hosts can absorb
+// bursty hot-reload traffic without blocking.
+var defaultMaxConcurrentSEOJobs = runtime.NumCPU()
+
 // DaemonServiceDeps contains all dependencies needed to create a DaemonService.
-// This struct-based dependency injection pattern improves testability by making
-// dependencies explicit and easier to mock.
+// Struct-based dependency injection improves testability by making dependencies
+// explicit and easier to mock.
 //
 // Build-triggered operations (asset manifest, interpreted mode, routing)
 // are handled by the lifecycle service. The daemon focuses on HTTP serving,
@@ -141,6 +148,14 @@ type daemonService struct {
 
 	// stopChan signals the service to begin shutdown when Stop is called.
 	stopChan chan struct{}
+
+	// seoSemaphore bounds the number of in-flight SEO artefact regeneration
+	// goroutines.
+	//
+	// Buffered to MaxConcurrentSEOJobs; each launch acquires a slot, each
+	// completion releases it. A nil channel means SEO processing is
+	// unconfigured.
+	seoSemaphore chan struct{}
 
 	// seoCancel stops SEO work when the service shuts down.
 	seoCancel context.CancelCauseFunc
@@ -421,6 +436,11 @@ func (ds *daemonService) processNotification(ctx context.Context, notification *
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which provides the
 // annotation data to turn into SEO artefacts.
+//
+// Acquires a slot from the SEO semaphore before launching the goroutine so
+// that bursty build notifications (typical in dev-mode hot reload) cannot
+// stack regenerations without bound. The acquire short-circuits when the
+// daemon's SEO context has been cancelled during shutdown.
 func (ds *daemonService) processSEOArtefacts(result *annotator_dto.ProjectAnnotationResult) {
 	if ds.seoService == nil {
 		return
@@ -429,7 +449,12 @@ func (ds *daemonService) processSEOArtefacts(result *annotator_dto.ProjectAnnota
 	ctx, l := logger_domain.From(ds.seoCtx, log)
 	l.Trace("Regenerating SEO artefacts after build...")
 
+	if !ds.acquireSEOSlot(ctx) {
+		return
+	}
+
 	ds.seoWg.Go(func() {
+		defer ds.releaseSEOSlot()
 		translator := seo_adapters.NewProjectViewTranslator()
 		projectView := translator.Translate(result)
 		if err := ds.seoService.GenerateArtefacts(ctx, projectView); err != nil {
@@ -440,6 +465,58 @@ func (ds *daemonService) processSEOArtefacts(result *annotator_dto.ProjectAnnota
 		}
 		l.Trace("SEO artefacts regenerated successfully.")
 	})
+}
+
+// acquireSEOSlot reserves a permit on the SEO semaphore, blocking until one
+// becomes free or the daemon's SEO context is cancelled.
+//
+// Takes ctx (context.Context) which carries the SEO cancellation signal.
+//
+// Returns bool which is true when a slot was acquired; false when shutdown
+// was triggered before a slot became available, in which case the caller
+// must skip launching the SEO goroutine.
+func (ds *daemonService) acquireSEOSlot(ctx context.Context) bool {
+	if ds.seoSemaphore == nil {
+		return true
+	}
+
+	select {
+	case ds.seoSemaphore <- struct{}{}:
+		return true
+	default:
+	}
+
+	_, l := logger_domain.From(ctx, log)
+	l.Trace("SEO semaphore saturated, waiting for a free slot",
+		logger_domain.Int("max_concurrent_jobs", cap(ds.seoSemaphore)),
+	)
+
+	select {
+	case ds.seoSemaphore <- struct{}{}:
+		return true
+	case <-ctx.Done():
+		cause := context.Cause(ctx)
+		causeMessage := "unknown"
+		if cause != nil {
+			causeMessage = cause.Error()
+		}
+		l.Trace("Skipping SEO regeneration; SEO context cancelled before a slot was free",
+			logger_domain.String("cause", causeMessage),
+		)
+		return false
+	}
+}
+
+// releaseSEOSlot returns a permit to the SEO semaphore so that another
+// build-triggered regeneration may proceed.
+func (ds *daemonService) releaseSEOSlot() {
+	if ds.seoSemaphore == nil {
+		return
+	}
+	select {
+	case <-ds.seoSemaphore:
+	default:
+	}
 }
 
 // NewService creates a configured daemon service using dependency injection.
@@ -464,6 +541,14 @@ func NewService(ctx context.Context, deps *DaemonServiceDeps) DaemonService {
 
 	seoCtx, seoCancel := context.WithCancelCause(ctx)
 
+	maxSEOJobs := deps.DaemonConfig.MaxConcurrentSEOJobs
+	if maxSEOJobs <= 0 {
+		maxSEOJobs = defaultMaxConcurrentSEOJobs
+	}
+	if maxSEOJobs <= 0 {
+		maxSEOJobs = 1
+	}
+
 	return &daemonService{
 		daemonConfig:        deps.DaemonConfig,
 		watchMode:           deps.WatchMode,
@@ -480,6 +565,7 @@ func NewService(ctx context.Context, deps *DaemonServiceDeps) DaemonService {
 		stopChan:            make(chan struct{}),
 		stopOnce:            sync.Once{},
 		seoWg:               sync.WaitGroup{},
+		seoSemaphore:        make(chan struct{}, maxSEOJobs),
 		seoCtx:              seoCtx,
 		seoCancel:           seoCancel,
 	}

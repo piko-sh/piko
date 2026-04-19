@@ -66,8 +66,7 @@ type IntrospectionCacheEntry struct {
 }
 
 // CurrentIntrospectionCacheVersion is the version identifier for the cache
-// entry format. Increment this constant when making breaking changes to
-// IntrospectionCacheEntry.
+// entry format. Increment when making breaking changes to IntrospectionCacheEntry.
 const CurrentIntrospectionCacheVersion = 1
 
 // IsValid checks if this cache entry is still valid to use.

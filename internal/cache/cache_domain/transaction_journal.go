@@ -57,16 +57,14 @@ type journalEntry[K comparable, V any] struct {
 // rollback. Mutations are applied immediately to the inner cache but
 // recorded so they can be reversed.
 //
-// Synchronous loader methods (Get, BulkGet) snapshot keys before
-// delegating, so loader-triggered population is rolled back correctly.
-// Asynchronous methods (Refresh, BulkRefresh) cannot be journalled
-// because the cache write happens after the method returns - callers
-// should avoid these within transactions if rollback correctness is
-// required.
+// Synchronous loader methods (Get, BulkGet) snapshot keys before delegating, so
+// loader-triggered population is rolled back correctly. Asynchronous methods
+// (Refresh, BulkRefresh) cannot be journalled because the cache write happens
+// after return; callers should avoid these within transactions if rollback
+// correctness is required.
 //
-// This type is NOT safe for concurrent use. It is designed to be used
-// within a single goroutine that holds an external lock (e.g. the DAL
-// mutex).
+// NOT safe for concurrent use. Designed to be used within a single goroutine
+// that holds an external lock (e.g. the DAL mutex).
 type transactionJournal[K comparable, V any] struct {
 	// inner is the underlying cache that receives all operations.
 	inner ProviderPort[K, V]
@@ -252,8 +250,8 @@ func (t *transactionJournal[K, V]) Invalidate(ctx context.Context, key K) error 
 	return t.inner.Invalidate(ctx, key)
 }
 
-// Compute atomically updates a key, snapshotting the key's prior
-// state.
+// Compute computes a new value atomically for a key, snapshotting the key's
+// prior state.
 //
 // Takes key (K) which identifies the cache entry to update.
 // Takes fn (func) which receives the current value and presence
@@ -412,9 +410,8 @@ func (t *transactionJournal[K, V]) BulkGet(ctx context.Context, keys []K, bulkLo
 	return t.inner.BulkGet(ctx, keys, bulkLoader)
 }
 
-// BulkRefresh triggers asynchronous refresh for the given
-// keys, bypassing the undo journal because the actual cache
-// writes happen after this method returns.
+// BulkRefresh triggers asynchronous refresh for the given keys, bypassing the
+// undo journal because the actual cache writes happen after return.
 //
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader[K, V]) which fetches new values

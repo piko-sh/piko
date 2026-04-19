@@ -190,7 +190,7 @@ type Expression interface {
 	// Takes length (int) which specifies the span in bytes.
 	SetLocation(location Location, length int)
 
-	// GetGoAnnotation returns the Go generator annotation for this field.
+	// GetGoAnnotation returns the Go generator annotation for the node.
 	//
 	// Returns *GoGeneratorAnnotation which contains Go-specific code generation
 	// settings, or nil if no annotation is set.

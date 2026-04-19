@@ -19,26 +19,21 @@
 // Package safedisk provides sandboxed filesystem operations using
 // Go 1.24's os.Root.
 //
-// This package is the security boundary for all filesystem
-// operations in Piko. It prevents path traversal attacks by
-// restricting file access to configured directories using
-// kernel-level protection (openat2 with RESOLVE_BENEATH on
-// Linux). This guards against symlink escapes and TOCTOU race
-// conditions as well.
+// Acts as the security boundary for all filesystem operations in Piko.
+// Prevents path traversal attacks by restricting file access to configured
+// directories using kernel-level protection (openat2 with RESOLVE_BENEATH on
+// Linux), guarding against symlink escapes and TOCTOU race conditions as well.
 //
-// Sandboxes can be created in read-only or read-write mode.
-// The [Factory] restricts sandboxes to allowed paths, with the
-// current working directory always implicitly permitted. Atomic
-// file writes are supported via CreateTemp followed by Rename
-// within the same sandbox.
+// Sandboxes can be created in read-only or read-write mode. The [Factory]
+// restricts sandboxes to allowed paths, with the current working directory
+// always implicitly permitted. Atomic file writes are supported via CreateTemp
+// followed by Rename within the same sandbox.
 //
-// All [Sandbox] methods and the [Factory] are safe for concurrent
-// use. Individual [File] handles should not be shared without
-// external synchronisation, consistent with standard [os.File]
-// behaviour.
+// All [Sandbox] methods and the [Factory] are safe for concurrent use.
+// Individual [File] handles should not be shared without external
+// synchronisation, consistent with standard [os.File] behaviour.
 //
-// When Enabled is false in [FactoryConfig], the factory creates
-// no-op sandboxes that provide the same API without kernel-level
-// protection. Do not use no-op mode in production where security
-// is required.
+// When Enabled is false in [FactoryConfig], the factory creates no-op sandboxes
+// that provide the same API without kernel-level protection. Do not use no-op
+// mode in production where security is required.
 package safedisk

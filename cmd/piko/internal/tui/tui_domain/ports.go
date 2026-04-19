@@ -46,12 +46,12 @@ type Provider interface {
 }
 
 // RefreshableProvider extends Provider with support for periodic data refresh.
-// Most providers implement this interface to allow automatic data updates.
+// Most providers implement it to allow automatic data updates.
 type RefreshableProvider interface {
 	Provider
 
 	// Refresh fetches the latest data from the data source.
-	// This method is called periodically by the TUI service.
+	// Called periodically by the TUI service.
 	//
 	// Takes ctx (context.Context) for cancellation.
 	//

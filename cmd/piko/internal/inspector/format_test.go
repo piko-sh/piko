@@ -52,8 +52,8 @@ func TestFormatTimeSince(t *testing.T) {
 	}{
 		{now.Add(-5 * time.Second), "5s ago"},
 		{now.Add(-2 * time.Hour), "2h ago"},
-		{now.Add(time.Minute), EmDashGlyph},
-		{time.Time{}, EmDashGlyph},
+		{now.Add(time.Minute), hyphenGlyph},
+		{time.Time{}, hyphenGlyph},
 	}
 	for _, c := range cases {
 		if got := FormatTimeSince(now, c.past); got != c.want {
@@ -86,7 +86,7 @@ func TestFormatDetailTime(t *testing.T) {
 		in   time.Time
 		want string
 	}{
-		{time.Time{}, EmDashGlyph},
+		{time.Time{}, hyphenGlyph},
 		{time.Date(2026, 4, 25, 12, 0, 0, 0, time.UTC), "2026-04-25 12:00:00"},
 	}
 	for _, c := range cases {

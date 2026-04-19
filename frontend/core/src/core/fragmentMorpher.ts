@@ -32,6 +32,21 @@ const DOCUMENT_FRAGMENT_NODE = 11;
 const doc = typeof document === 'undefined' ? undefined : document;
 
 /**
+ * Walk an inserted subtree and force-upgrade any custom elements within it.
+ *
+ * @param node - The freshly inserted root node.
+ */
+function upgradeCustomElements(node: Node): void {
+    if (typeof customElements === 'undefined' || typeof customElements.upgrade !== 'function') {
+        return;
+    }
+    if (node.nodeType !== ELEMENT_NODE && node.nodeType !== DOCUMENT_FRAGMENT_NODE) {
+        return;
+    }
+    customElements.upgrade(node);
+}
+
+/**
  * Key used to identify and match nodes during morphing.
  */
 export type NodeKey = string | number | null;
@@ -482,7 +497,11 @@ function syncToAttrs(fromEl: HTMLElement, toEl: HTMLElement, ctx: MorphAttrsCont
             continue;
         }
         if (fromEl.getAttributeNS(toAttr.namespaceURI, toAttr.localName) !== toAttr.value) {
-            fromEl.setAttributeNS(toAttr.namespaceURI, toAttr.name, toAttr.value);
+            if (toAttr.namespaceURI) {
+                fromEl.setAttributeNS(toAttr.namespaceURI, toAttr.name, toAttr.value);
+            } else {
+                fromEl.setAttribute(toAttr.name, toAttr.value);
+            }
         }
     }
 }
@@ -536,19 +555,15 @@ function morphAttrs(fromEl: HTMLElement, toEl: HTMLElement, options?: MorphOptio
 
 /**
  * Determine whether a node is significant for morphing purposes.
- * Whitespace-only text nodes and non-standard node types are insignificant.
+ * Only non-standard node types (e.g. processing instructions) are insignificant.
  *
  * @param node - The node to check.
  * @returns True if the node should participate in morphing.
  */
 function isSignificantNode(node: Node): boolean {
-    if (node.nodeType !== ELEMENT_NODE && node.nodeType !== TEXT_NODE && node.nodeType !== COMMENT_NODE) {
-        return false;
-    }
-    if (node.nodeType === TEXT_NODE && !node.nodeValue?.trim()) {
-        return false;
-    }
-    return true;
+    return node.nodeType === ELEMENT_NODE
+        || node.nodeType === TEXT_NODE
+        || node.nodeType === COMMENT_NODE;
 }
 
 /**
@@ -594,23 +609,25 @@ function discardUnmatchedNodes(
     fromNodesByKey: Map<NodeKey, Node>,
     unkeyedFromNodes: Node[],
     unkeyedFromIndex: number,
+    skippedUnkeyed: Node[],
     options: MorphOptions
 ): void {
-    fromNodesByKey.forEach(nodeToDiscard => {
+    const discard = (nodeToDiscard: Node) => {
+        if (!nodeToDiscard.parentNode) {
+            return;
+        }
         if (options.onBeforeNodeDiscarded?.(nodeToDiscard) !== false) {
-            nodeToDiscard.parentNode?.removeChild(nodeToDiscard);
+            nodeToDiscard.parentNode.removeChild(nodeToDiscard);
             options.onNodeDiscarded?.(nodeToDiscard);
         }
-    });
+    };
 
-    let unkeyedIndex = unkeyedFromIndex;
-    while (unkeyedIndex < unkeyedFromNodes.length) {
-        const nodeToDiscard = unkeyedFromNodes[unkeyedIndex];
-        if (options.onBeforeNodeDiscarded?.(nodeToDiscard) !== false) {
-            nodeToDiscard.parentNode?.removeChild(nodeToDiscard);
-            options.onNodeDiscarded?.(nodeToDiscard);
-        }
-        unkeyedIndex++;
+    fromNodesByKey.forEach(discard);
+    for (const skipped of skippedUnkeyed) {
+        discard(skipped);
+    }
+    for (let i = unkeyedFromIndex; i < unkeyedFromNodes.length; i++) {
+        discard(unkeyedFromNodes[i]);
     }
 }
 
@@ -624,6 +641,8 @@ interface ChildMatchState {
     unkeyedFromNodes: Node[];
     /** Current index into the unkeyed array. */
     unkeyedFromIndex: number;
+    /** Unkeyed entries that were skipped past during matching and need to be discarded. */
+    skippedUnkeyed: Node[];
 }
 
 /**
@@ -651,10 +670,13 @@ function findFromMatch(
         return null;
     }
 
-    if (state.unkeyedFromIndex < state.unkeyedFromNodes.length) {
-        const potentialMatch = state.unkeyedFromNodes[state.unkeyedFromIndex];
+    for (let i = state.unkeyedFromIndex; i < state.unkeyedFromNodes.length; i++) {
+        const potentialMatch = state.unkeyedFromNodes[i];
         if (compareNodeNames(potentialMatch, toChild)) {
-            state.unkeyedFromIndex++;
+            for (let j = state.unkeyedFromIndex; j < i; j++) {
+                state.skippedUnkeyed.push(state.unkeyedFromNodes[j]);
+            }
+            state.unkeyedFromIndex = i + 1;
             return potentialMatch;
         }
     }
@@ -673,7 +695,7 @@ function findFromMatch(
 function morphChildren(fromEl: HTMLElement, toEl: HTMLElement, isParentPreserved: boolean, options: MorphOptions) {
     const getNodeKey = options.getNodeKey ?? defaultGetNodeKey;
     const {fromNodesByKey, unkeyedFromNodes} = buildFromNodeMaps(fromEl, getNodeKey);
-    const state: ChildMatchState = {fromNodesByKey, unkeyedFromNodes, unkeyedFromIndex: 0};
+    const state: ChildMatchState = {fromNodesByKey, unkeyedFromNodes, unkeyedFromIndex: 0, skippedUnkeyed: []};
 
     let fromChild = fromEl.firstChild;
 
@@ -713,12 +735,13 @@ function morphChildren(fromEl: HTMLElement, toEl: HTMLElement, isParentPreserved
             }
             if (options.onBeforeNodeAdded?.(newNode) !== false) {
                 fromEl.insertBefore(newNode, fromChild);
+                upgradeCustomElements(newNode);
                 options.onNodeAdded?.(newNode);
             }
         }
     }
 
-    discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, state.unkeyedFromIndex, options);
+    discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, state.unkeyedFromIndex, state.skippedUnkeyed, options);
 }
 
 /**

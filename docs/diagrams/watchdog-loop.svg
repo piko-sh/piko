@@ -1,0 +1,101 @@
+<svg viewBox="0 0 660 360" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="wdl-title wdl-desc">
+  <title id="wdl-title">The watchdog tick, threshold, capture, and notify loop</title>
+  <desc id="wdl-desc">Every check interval the watchdog reads runtime metrics for heap, RSS, goroutines, file descriptors, and scheduler latency. It compares each metric to its configured threshold. On a breach it captures the matching profile type to disk along with a sidecar JSON, pushes a typed event into the in-memory ring, and forwards the event to the optional notifier. On no breach it returns to the tick. Cooldowns and rotation budgets keep the capture rate bounded.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-fail" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#ff5f57" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-mute" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#475569" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="20" y="40" width="120" height="60" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M30,40 H130 A10,10 0 0 1 140,50 V60 H20 V50 A10,10 0 0 1 30,40 Z" fill="#364049"/>
+  <text x="80" y="54" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">tick</text>
+  <text x="80" y="76" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">CheckInterval</text>
+  <text x="80" y="92" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">default 500ms</text>
+
+  <line x1="146" y1="70" x2="170" y2="70" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="174" y="40" width="160" height="60" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M184,40 H324 A10,10 0 0 1 334,50 V60 H174 V50 A10,10 0 0 1 184,40 Z" fill="#1C544F"/>
+  <text x="254" y="54" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">read runtime metrics</text>
+  <text x="254" y="74" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">heap, RSS, goroutines</text>
+  <text x="254" y="88" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">FDs, scheduler latency</text>
+
+  <line x1="340" y1="70" x2="364" y2="70" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="368" y="40" width="160" height="60" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M378,40 H518 A10,10 0 0 1 528,50 V60 H368 V50 A10,10 0 0 1 378,40 Z" fill="#1C544F"/>
+  <text x="448" y="54" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">compare to thresholds</text>
+  <text x="448" y="74" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="9">heap &gt;= 0.85 * limit?</text>
+  <text x="448" y="88" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="9">FDs  &gt;= 0.80 * rlimit?</text>
+
+  
+  <path d="M448,104 Q448,140 80,140 Q80,128 80,104" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" fill="none" marker-end="url(#arrow-mute)"/>
+  <text x="260" y="155" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9" font-weight="600">no breach: keep ticking</text>
+
+  
+  <line x1="448" y1="106" x2="448" y2="172" stroke="#ff5f57" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow-fail)"/>
+  <text x="468" y="135" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="10" font-weight="600">breach</text>
+
+  
+  <rect x="368" y="178" width="160" height="64" rx="10" fill="#2B333B" stroke="#ff5f57" stroke-width="1.5"/>
+  <path d="M378,178 H518 A10,10 0 0 1 528,188 V198 H368 V188 A10,10 0 0 1 378,178 Z" fill="#364049"/>
+  <text x="448" y="192" text-anchor="middle" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="10" font-weight="600">capture</text>
+  <text x="448" y="212" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">profile + sidecar</text>
+  <text x="448" y="226" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="9">heap-1714312987.pprof</text>
+  <text x="448" y="238" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="9">heap-1714312987.json</text>
+
+  
+  <line x1="448" y1="246" x2="448" y2="266" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="186" y="270" width="160" height="60" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M196,270 H336 A10,10 0 0 1 346,280 V290 H186 V280 A10,10 0 0 1 196,270 Z" fill="#1C544F"/>
+  <text x="266" y="284" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">event ring</text>
+  <text x="266" y="304" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">in-memory, typed</text>
+  <text x="266" y="318" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="9">piko watchdog events</text>
+
+  
+  <rect x="368" y="270" width="160" height="60" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M378,270 H518 A10,10 0 0 1 528,280 V290 H368 V280 A10,10 0 0 1 378,270 Z" fill="#1C544F"/>
+  <text x="448" y="284" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">notifier (optional)</text>
+  <text x="448" y="304" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">Slack, PagerDuty,</text>
+  <text x="448" y="318" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">webhook, email</text>
+
+  <line x1="368" y1="298" x2="346" y2="298" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="546" y="178" width="100" height="152" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M556,178 H636 A10,10 0 0 1 646,188 V198 H546 V188 A10,10 0 0 1 556,178 Z" fill="#364049"/>
+  <text x="596" y="192" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">uploader</text>
+  <text x="596" y="216" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">optional</text>
+  <text x="596" y="232" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">remote storage</text>
+  <text x="596" y="252" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">runs after</text>
+  <text x="596" y="266" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">local write</text>
+
+  <line x1="528" y1="210" x2="546" y2="210" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="20" y="178" width="160" height="152" rx="10" fill="#1C544F"/>
+  <text x="100" y="194" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">budgets</text>
+  <text x="32" y="216" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">cooldown</text>
+  <text x="32" y="230" fill="#A7F0E9" font-family="monospace" font-size="9">default 2m / type</text>
+  <text x="32" y="252" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">rotation</text>
+  <text x="32" y="266" fill="#A7F0E9" font-family="monospace" font-size="9">default 5 files / type</text>
+  <text x="32" y="288" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">warning budget</text>
+  <text x="32" y="302" fill="#A7F0E9" font-family="monospace" font-size="9">10 / window</text>
+  <text x="32" y="322" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">stops flapping</text>
+
+  <text x="330" y="350" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">Continuous profiling and contention diagnostics run on separate timers, sharing the same store and notifier.</text>
+</svg>

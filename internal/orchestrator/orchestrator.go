@@ -89,7 +89,7 @@ type Config struct {
 	DispatcherInterval time.Duration
 }
 
-// Validate checks that the configuration is valid.
+// Validate reports whether the configuration is consistent.
 //
 // Returns error when TaskStore or EventBus is nil.
 func (c *Config) Validate() error {

@@ -27,14 +27,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/component/component_dto"
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
 
 func TestWithCSRFTokenMaxAge(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithCSRFTokenMaxAge(24 * time.Hour)
 	opt(c)
@@ -44,7 +43,7 @@ func TestWithCSRFTokenMaxAge(t *testing.T) {
 
 func TestWithCSRFTokenMaxAge_ZeroValue(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithCSRFTokenMaxAge(0)
 	opt(c)
@@ -54,7 +53,7 @@ func TestWithCSRFTokenMaxAge_ZeroValue(t *testing.T) {
 
 func TestWithCSRFTokenMaxAge_Negative(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithCSRFTokenMaxAge(-5 * time.Minute)
 	opt(c)
@@ -64,7 +63,7 @@ func TestWithCSRFTokenMaxAge_Negative(t *testing.T) {
 
 func TestWithCSRFTokenMaxAge_SubSecond(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithCSRFTokenMaxAge(500 * time.Millisecond)
 	opt(c)
@@ -74,14 +73,14 @@ func TestWithCSRFTokenMaxAge_SubSecond(t *testing.T) {
 
 func TestWithCSRFTokenMaxAge_ViaNewContainer(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider(), WithCSRFTokenMaxAge(48*time.Hour))
+	c := NewContainer(WithCSRFTokenMaxAge(48 * time.Hour))
 
 	assert.Equal(t, 48*time.Hour, c.csrfTokenMaxAge)
 }
 
 func TestWithTrustedProxies(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithTrustedProxies("10.0.0.0/8", "192.168.0.0/16")
 	opt(c)
@@ -91,7 +90,7 @@ func TestWithTrustedProxies(t *testing.T) {
 
 func TestWithTrustedProxies_SingleCIDR(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithTrustedProxies("172.16.0.0/12")
 	opt(c)
@@ -101,7 +100,7 @@ func TestWithTrustedProxies_SingleCIDR(t *testing.T) {
 
 func TestWithTrustedProxies_Empty(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithTrustedProxies()
 	opt(c)
@@ -111,7 +110,7 @@ func TestWithTrustedProxies_Empty(t *testing.T) {
 
 func TestWithTrustedProxies_OverwritesPrevious(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	WithTrustedProxies("10.0.0.0/8")(c)
 	WithTrustedProxies("192.168.0.0/16")(c)
@@ -121,14 +120,14 @@ func TestWithTrustedProxies_OverwritesPrevious(t *testing.T) {
 
 func TestWithTrustedProxies_ViaNewContainer(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider(), WithTrustedProxies("10.0.0.0/8", "172.16.0.0/12"))
+	c := NewContainer(WithTrustedProxies("10.0.0.0/8", "172.16.0.0/12"))
 
 	assert.Equal(t, []string{"10.0.0.0/8", "172.16.0.0/12"}, c.configServerOverrides.Security.RateLimit.TrustedProxies)
 }
 
 func TestWithCloudflareEnabled_True(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithCloudflareEnabled(true)
 	opt(c)
@@ -138,7 +137,7 @@ func TestWithCloudflareEnabled_True(t *testing.T) {
 
 func TestWithCloudflareEnabled_False(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithCloudflareEnabled(false)
 	opt(c)
@@ -148,7 +147,7 @@ func TestWithCloudflareEnabled_False(t *testing.T) {
 
 func TestWithCloudflareEnabled_ToggleTrueThenFalse(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	WithCloudflareEnabled(true)(c)
 	assert.True(t, deref(c.configServerOverrides.Security.RateLimit.CloudflareEnabled, false))
@@ -159,14 +158,14 @@ func TestWithCloudflareEnabled_ToggleTrueThenFalse(t *testing.T) {
 
 func TestWithCloudflareEnabled_ViaNewContainer(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider(), WithCloudflareEnabled(true))
+	c := NewContainer(WithCloudflareEnabled(true))
 
 	assert.True(t, deref(c.configServerOverrides.Security.RateLimit.CloudflareEnabled, false))
 }
 
 func TestWithRateLimitEnabled_True(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithRateLimitEnabled(true)
 	opt(c)
@@ -176,7 +175,7 @@ func TestWithRateLimitEnabled_True(t *testing.T) {
 
 func TestWithRateLimitEnabled_False(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithRateLimitEnabled(false)
 	opt(c)
@@ -186,7 +185,7 @@ func TestWithRateLimitEnabled_False(t *testing.T) {
 
 func TestWithRateLimitEnabled_ToggleFalseThenTrue(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	WithRateLimitEnabled(false)(c)
 	assert.False(t, deref(c.configServerOverrides.Security.RateLimit.Enabled, false))
@@ -197,7 +196,7 @@ func TestWithRateLimitEnabled_ToggleFalseThenTrue(t *testing.T) {
 
 func TestWithRateLimitEnabled_ViaNewContainer(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider(), WithRateLimitEnabled(true))
+	c := NewContainer(WithRateLimitEnabled(true))
 
 	assert.True(t, deref(c.configServerOverrides.Security.RateLimit.Enabled, false))
 }
@@ -211,7 +210,7 @@ func (r *stubResolver) Resolve(_ context.Context, value string) (string, error) 
 
 func TestWithConfigResolvers_Single(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	r := &stubResolver{prefix: "env:"}
 	opt := WithConfigResolvers(r)
@@ -223,7 +222,7 @@ func TestWithConfigResolvers_Single(t *testing.T) {
 
 func TestWithConfigResolvers_Multiple(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	r1 := &stubResolver{prefix: "env:"}
 	r2 := &stubResolver{prefix: "file:"}
@@ -237,7 +236,7 @@ func TestWithConfigResolvers_Multiple(t *testing.T) {
 
 func TestWithConfigResolvers_Appends(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	r1 := &stubResolver{prefix: "env:"}
 	r2 := &stubResolver{prefix: "vault:"}
@@ -252,7 +251,7 @@ func TestWithConfigResolvers_Appends(t *testing.T) {
 
 func TestWithConfigResolvers_Empty(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithConfigResolvers()
 	opt(c)
@@ -263,7 +262,7 @@ func TestWithConfigResolvers_Empty(t *testing.T) {
 func TestWithConfigResolvers_ViaNewContainer(t *testing.T) {
 	t.Parallel()
 	r := &stubResolver{prefix: "ssm:"}
-	c := NewContainer(config.NewConfigProvider(), WithConfigResolvers(r))
+	c := NewContainer(WithConfigResolvers(r))
 
 	require.Len(t, c.configResolvers, 1)
 	assert.Equal(t, "ssm:", c.configResolvers[0].GetPrefix())
@@ -271,7 +270,7 @@ func TestWithConfigResolvers_ViaNewContainer(t *testing.T) {
 
 func TestWithExperimentalPrerendering_True(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithExperimentalPrerendering(true)
 	opt(c)
@@ -281,7 +280,7 @@ func TestWithExperimentalPrerendering_True(t *testing.T) {
 
 func TestWithExperimentalPrerendering_False(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithExperimentalPrerendering(false)
 	opt(c)
@@ -291,7 +290,7 @@ func TestWithExperimentalPrerendering_False(t *testing.T) {
 
 func TestWithExperimentalPrerendering_ToggleTrueThenFalse(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	WithExperimentalPrerendering(true)(c)
 	assert.True(t, c.experimentalPrerendering)
@@ -302,14 +301,14 @@ func TestWithExperimentalPrerendering_ToggleTrueThenFalse(t *testing.T) {
 
 func TestWithExperimentalPrerendering_ViaNewContainer(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider(), WithExperimentalPrerendering(true))
+	c := NewContainer(WithExperimentalPrerendering(true))
 
 	assert.True(t, c.experimentalPrerendering)
 }
 
 func TestWithExperimentalCommentStripping_True(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithExperimentalCommentStripping(true)
 	opt(c)
@@ -319,7 +318,7 @@ func TestWithExperimentalCommentStripping_True(t *testing.T) {
 
 func TestWithExperimentalCommentStripping_False(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithExperimentalCommentStripping(false)
 	opt(c)
@@ -329,7 +328,7 @@ func TestWithExperimentalCommentStripping_False(t *testing.T) {
 
 func TestWithExperimentalCommentStripping_ToggleTrueThenFalse(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	WithExperimentalCommentStripping(true)(c)
 	assert.True(t, c.experimentalCommentStripping)
@@ -340,14 +339,14 @@ func TestWithExperimentalCommentStripping_ToggleTrueThenFalse(t *testing.T) {
 
 func TestWithExperimentalCommentStripping_ViaNewContainer(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider(), WithExperimentalCommentStripping(true))
+	c := NewContainer(WithExperimentalCommentStripping(true))
 
 	assert.True(t, c.experimentalCommentStripping)
 }
 
 func TestWithComponents_Single(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	comp := component_dto.ComponentDefinition{TagName: "my-button"}
 	opt := WithComponents(comp)
@@ -359,7 +358,7 @@ func TestWithComponents_Single(t *testing.T) {
 
 func TestWithComponents_Multiple(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	components := []component_dto.ComponentDefinition{
 		{TagName: "my-button"},
@@ -378,7 +377,7 @@ func TestWithComponents_Multiple(t *testing.T) {
 
 func TestWithComponents_Appends(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	WithComponents(component_dto.ComponentDefinition{TagName: "comp-a"})(c)
 	WithComponents(component_dto.ComponentDefinition{TagName: "comp-b"})(c)
@@ -390,7 +389,7 @@ func TestWithComponents_Appends(t *testing.T) {
 
 func TestWithComponents_Empty(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithComponents()
 	opt(c)
@@ -400,7 +399,7 @@ func TestWithComponents_Empty(t *testing.T) {
 
 func TestWithComponents_PreservesAllFields(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	comp := component_dto.ComponentDefinition{
 		TagName:    "uikit-card",
@@ -421,7 +420,7 @@ func TestWithComponents_PreservesAllFields(t *testing.T) {
 func TestWithComponents_ViaNewContainer(t *testing.T) {
 	t.Parallel()
 	comp := component_dto.ComponentDefinition{TagName: "my-widget"}
-	c := NewContainer(config.NewConfigProvider(), WithComponents(comp))
+	c := NewContainer(WithComponents(comp))
 
 	require.Len(t, c.externalComponents, 1)
 	assert.Equal(t, "my-widget", c.externalComponents[0].TagName)
@@ -429,7 +428,7 @@ func TestWithComponents_ViaNewContainer(t *testing.T) {
 
 func TestWithSandboxFactory(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.sandboxFactory)
 
@@ -445,7 +444,7 @@ func TestWithSandboxFactory(t *testing.T) {
 
 func TestWithSandboxFactory_OverwritesPrevious(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	factory1 := func(name, baseDir string, mode safedisk.Mode) (safedisk.Sandbox, error) {
 		return nil, nil
@@ -463,7 +462,7 @@ func TestWithSandboxFactory_OverwritesPrevious(t *testing.T) {
 
 func TestWithSandboxFactory_NilFactory(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	opt := WithSandboxFactory(nil)
 	opt(c)
@@ -476,7 +475,7 @@ func TestWithSandboxFactory_ViaNewContainer(t *testing.T) {
 	factory := func(name, baseDir string, mode safedisk.Mode) (safedisk.Sandbox, error) {
 		return nil, nil
 	}
-	c := NewContainer(config.NewConfigProvider(), WithSandboxFactory(factory))
+	c := NewContainer(WithSandboxFactory(factory))
 
 	assert.NotNil(t, c.sandboxFactory)
 }
@@ -591,7 +590,7 @@ func TestMonitoringOptions_Combined(t *testing.T) {
 
 func TestRateLimitOptions_Combined(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider(),
+	c := NewContainer(
 		WithRateLimitEnabled(true),
 		WithCloudflareEnabled(true),
 		WithTrustedProxies("10.0.0.0/8", "172.16.0.0/12"),
@@ -605,7 +604,7 @@ func TestRateLimitOptions_Combined(t *testing.T) {
 
 func TestExperimentalOptions_Combined(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider(),
+	c := NewContainer(
 		WithExperimentalPrerendering(true),
 		WithExperimentalCommentStripping(true),
 	)
@@ -616,7 +615,7 @@ func TestExperimentalOptions_Combined(t *testing.T) {
 
 func TestWithComponents_PreservesMetadataFields(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	comp := component_dto.ComponentDefinition{
 		TagName:    "piko-counter",
@@ -637,7 +636,7 @@ func TestWithComponents_PreservesMetadataFields(t *testing.T) {
 
 func TestHasExternalModuleComponents_WithModulePath(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	WithComponents(component_dto.ComponentDefinition{
 		TagName:    "piko-card",
@@ -649,7 +648,7 @@ func TestHasExternalModuleComponents_WithModulePath(t *testing.T) {
 
 func TestHasExternalModuleComponents_WithoutModulePath(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	WithComponents(component_dto.ComponentDefinition{
 		TagName: "my-button",
@@ -660,7 +659,7 @@ func TestHasExternalModuleComponents_WithoutModulePath(t *testing.T) {
 
 func TestHasExternalModuleComponents_Empty(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.False(t, c.hasExternalModuleComponents())
 }

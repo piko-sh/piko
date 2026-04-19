@@ -292,6 +292,68 @@ describe('FetchClient', () => {
         });
     });
 
+    describe('get() with onHeadersReceived', () => {
+        it('fires onHeadersReceived once after a successful response', async () => {
+            const response = mockResponse({ok: true, text: 'hi'});
+            vi.mocked(mockHttp.fetch).mockResolvedValue(response);
+            const onHeadersReceived = vi.fn();
+
+            await client.get('/api/data', {onHeadersReceived});
+
+            expect(onHeadersReceived).toHaveBeenCalledTimes(1);
+        });
+
+        it('fires onHeadersReceived before any onProgress', async () => {
+            const chunk = new Uint8Array([1, 2, 3]);
+            const response = mockResponse({
+                ok: true,
+                headers: {'Content-Length': chunk.length.toString()},
+                body: createChunkedStream([chunk]),
+                text: 'data'
+            });
+            vi.mocked(mockHttp.fetch).mockResolvedValue(response);
+
+            const events: string[] = [];
+            const onHeadersReceived = vi.fn(() => events.push('headers'));
+            const onProgress = vi.fn(() => events.push('progress'));
+
+            await client.get('/api/data', {onHeadersReceived, onProgress});
+
+            expect(events[0]).toBe('headers');
+            expect(events).toContain('progress');
+        });
+
+        it('does not fire onHeadersReceived when response is not ok', async () => {
+            const response = mockResponse({ok: false, status: 500});
+            vi.mocked(mockHttp.fetch).mockResolvedValue(response);
+            const onHeadersReceived = vi.fn();
+
+            await client.get('/api/error', {onHeadersReceived});
+
+            expect(onHeadersReceived).not.toHaveBeenCalled();
+        });
+
+        it('does not fire onHeadersReceived on network error', async () => {
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            vi.mocked(mockHttp.fetch).mockRejectedValue(new TypeError('Failed to fetch'));
+            const onHeadersReceived = vi.fn();
+
+            await client.get('/api/data', {onHeadersReceived});
+
+            expect(onHeadersReceived).not.toHaveBeenCalled();
+            consoleSpy.mockRestore();
+        });
+
+        it('does not fire onHeadersReceived on AbortError', async () => {
+            const abortError = new DOMException('aborted', 'AbortError');
+            vi.mocked(mockHttp.fetch).mockRejectedValue(abortError);
+            const onHeadersReceived = vi.fn();
+
+            await expect(client.get('/api/data', {onHeadersReceived})).rejects.toBe(abortError);
+            expect(onHeadersReceived).not.toHaveBeenCalled();
+        });
+    });
+
     describe('post()', () => {
         it('sends a POST request and returns the response', async () => {
             const response = mockResponse({ok: true, text: '{"id": 1}'});

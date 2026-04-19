@@ -57,7 +57,6 @@ func TestFacadeAPI(t *testing.T) {
 		"WithMemoryRegistryCache":    WithMemoryRegistryCache,
 		"WithOrchestratorService":    WithOrchestratorService,
 		"WithRegistryService":        WithRegistryService,
-		"WithServerConfigDefaults":   WithServerConfigDefaults,
 
 		"New":         New,
 		"WithSymbols": ((*SSRServer)(nil)).WithSymbols,

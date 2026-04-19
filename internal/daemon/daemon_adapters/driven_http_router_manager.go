@@ -206,7 +206,7 @@ func NewRouterManager(routerManagerConfig *RouterManagerConfig) *RouterManager {
 }
 
 // ServeHTTP handles an HTTP request by passing it to the current router.
-// This method satisfies the http.Handler interface.
+// Satisfies the http.Handler interface.
 //
 // Takes w (http.ResponseWriter) which receives the HTTP response.
 // Takes r (*http.Request) which contains the incoming HTTP request.

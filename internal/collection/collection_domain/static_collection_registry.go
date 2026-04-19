@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"piko.sh/piko/internal/ast/ast_adapters"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -38,18 +39,37 @@ const (
 	// logKeyCollection is the log attribute key for collection names.
 	logKeyCollection = "collection"
 
-	// logKeyRoute is the log key for the route path of a collection item.
-	logKeyRoute = "route"
-
-	// routeSeparator is the forward slash used to split route paths into parts.
-	routeSeparator = "/"
-
 	// errFmtGettingCollectionBlob is the format string used when a collection
 	// blob cannot be retrieved from the registry.
 	errFmtGettingCollectionBlob = "getting collection blob for %q: %w"
 
-	// metadataKeyURL is the metadata key for the URL of a collection item.
+	// metadataKeyURL is the metadata key carrying the original URL of a
+	// collection item. Read by metadataToContentItems so downstream
+	// navigation/sitemap builders can surface the URL on ContentItem.URL.
 	metadataKeyURL = "URL"
+
+	// rootIndexSlug is the canonical slug for an index file at a collection
+	// root. Lookups whose normalised path is empty resolve to this slug so
+	// requests like "/" or "/<collection>/" reach the root index.
+	rootIndexSlug = "index"
+
+	// pathSeparator is the forward slash used in slug paths.
+	pathSeparator = "/"
+
+	// maxLookupSlugBytes caps the length of a runtime lookup key. Defends
+	// against pathological URL captures from being used as map keys or log
+	// fields.
+	maxLookupSlugBytes = 1024
+
+	// MaxStaticCollectionItems caps the number of items decoded from an
+	// embedded FlatBuffer blob. Mirrors the encoder cap as defence-in-depth
+	// so a malformed or hostile embedded blob cannot allocate unbounded
+	// slices and maps at registration time.
+	MaxStaticCollectionItems = 100_000
+
+	// logKeyItemIndex is the log attribute key for the position of an item
+	// inside a collection blob.
+	logKeyItemIndex = "item_index"
 )
 
 var (
@@ -83,14 +103,14 @@ var (
 	}
 )
 
-// cachedAST holds the decoded content and excerpt ASTs for a single route.
+// cachedAST holds the decoded content and excerpt ASTs for a single item.
 // The renderer never mutates decoded AST nodes, so these are safe to share
 // across concurrent requests.
 type cachedAST struct {
-	// content holds the decoded main content AST for the route.
+	// content holds the decoded main content AST for the item.
 	content *ast_domain.TemplateAST
 
-	// excerpt holds the decoded excerpt AST for the route, or nil if absent.
+	// excerpt holds the decoded excerpt AST for the item, or nil if absent.
 	excerpt *ast_domain.TemplateAST
 }
 
@@ -106,13 +126,15 @@ type staticCollectionData struct {
 	// tree that lives for the process lifetime.
 	navigation sync.Map
 
-	// astCache stores decoded ASTs per route so that repeated requests for
-	// the same route avoid FlatBuffer decoding entirely. Keys are route
-	// strings, values are *cachedAST.
+	// astCache stores decoded ASTs per item so repeated requests for the
+	// same slug avoid FlatBuffer decoding entirely. Keys are slug strings,
+	// values are *cachedAST.
 	astCache sync.Map
 
-	// routeIndex maps URL routes to indices in items for O(1) metadata lookup.
-	routeIndex map[string]int
+	// slugIndex maps item slugs to indices in items for O(1) metadata lookup.
+	// Items are keyed by slug (not URL) so the same collection item can be
+	// rendered at multiple URL prefixes by different consuming pages.
+	slugIndex map[string]int
 
 	// blob is the raw FlatBuffer binary for single-item AST lookups.
 	blob []byte
@@ -143,31 +165,32 @@ func (*defaultStaticCollectionRegistry) Register(ctx context.Context, collection
 	RegisterStaticCollectionBlob(ctx, collectionName, data)
 }
 
-// GetItem retrieves a single item from the named collection.
+// GetItem retrieves a single item from the named collection by slug.
 // Implements StaticCollectionRegistryPort.
 //
 // Takes ctx (context.Context) which carries logging context for trace/request
 // ID propagation.
 // Takes collectionName (string) which identifies the collection to search.
-// Takes route (string) which specifies the item's route path.
+// Takes slug (string) which is the item's canonical identifier (e.g.
+// "anthropic" for content/integrations/anthropic.md).
 //
 // Returns *CollectionItemResult which contains the decoded item data.
 // Returns error when the collection cannot be loaded or the item is not found.
-func (r *defaultStaticCollectionRegistry) GetItem(ctx context.Context, collectionName, route string) (*CollectionItemResult, error) {
+func (r *defaultStaticCollectionRegistry) GetItem(ctx context.Context, collectionName, slug string) (*CollectionItemResult, error) {
 	data, err := getCollectionData(collectionName)
 	if err != nil {
 		return nil, fmt.Errorf(errFmtGettingCollectionBlob, collectionName, err)
 	}
 
-	metadata, contentAST, excerptAST, err := getItemFromData(ctx, r.encoder, r.astDecoder, data, collectionName, route)
+	metadata, contentAST, excerptAST, err := getItemFromData(ctx, r.encoder, r.astDecoder, data, collectionName, slug)
 	if err != nil {
-		return nil, fmt.Errorf("getting item from collection %q at route %q: %w", collectionName, route, err)
+		return nil, fmt.Errorf("getting item from collection %q at slug %q: %w", collectionName, slug, err)
 	}
 
 	_, l := logger_domain.From(ctx, log)
 	l.Trace("GetItem: item found successfully",
 		logger_domain.String(logKeyCollection, collectionName),
-		logger_domain.String(logKeyRoute, route))
+		logger_domain.String(logKeySlug, slug))
 
 	return &CollectionItemResult{
 		Metadata:   metadata,
@@ -306,23 +329,22 @@ func NewDefaultASTDecoder() ASTDecoderPort {
 // Safe for concurrent use during package initialisation. Uses a mutex to
 // protect the registry.
 func RegisterStaticCollectionBlob(ctx context.Context, collectionName string, data []byte) {
-	items, routeIndex := decodeAllItemMetadata(data)
+	ctx, l := logger_domain.From(ctx, log)
+	items, slugIndex := decodeAllItemMetadata(ctx, data)
 
 	staticCollectionRegistry.mu.Lock()
 	defer staticCollectionRegistry.mu.Unlock()
 
 	collData := &staticCollectionData{
-		blob:       data,
-		items:      items,
-		routeIndex: routeIndex,
+		blob:      data,
+		items:     items,
+		slugIndex: slugIndex,
 	}
 	staticCollectionRegistry.collections[collectionName] = collData
 
 	if ptr := sliceDataPointer(items); ptr != 0 {
 		staticItemsByPointer.Store(ptr, collData)
 	}
-
-	_, l := logger_domain.From(ctx, log)
 	l.Internal("Static collection blob registered",
 		logger_domain.String(logKeyCollection, collectionName),
 		logger_domain.Int("blob_size", len(data)),
@@ -330,27 +352,28 @@ func RegisterStaticCollectionBlob(ctx context.Context, collectionName string, da
 }
 
 // GetStaticCollectionItem retrieves a single item from a static collection by
-// route.
+// slug.
 //
-// Metadata is returned from the pre-decoded route index (zero allocation).
+// Metadata is returned from the pre-decoded slug index (zero allocation).
 // ASTs are decoded per-request from FlatBuffer bytes because the rendering
 // pipeline may mutate nodes.
 //
 // Takes collectionName (string) which is the collection identifier.
-// Takes route (string) which is the URL/route to look up (e.g.
-// "/docs/actions").
+// Takes slug (string) which is the item's slug (e.g. "anthropic" for
+// content/integrations/anthropic.md). Generated page code reads this from the
+// matched URL parameter (defaults to {slug}; configurable via p-param).
 //
 // Returns metadata (map[string]any) which is the pre-decoded JSON metadata.
 // Returns contentAST (*ast_domain.TemplateAST) which is the decoded
 // content AST from FlatBuffer bytes.
 // Returns excerptAST (*ast_domain.TemplateAST) which is the decoded
 // excerpt AST from FlatBuffer bytes, or nil if not present.
-// Returns err (error) when the collection or route is not found.
-func GetStaticCollectionItem(ctx context.Context, collectionName, route string) (metadata map[string]any, contentAST *ast_domain.TemplateAST, excerptAST *ast_domain.TemplateAST, err error) {
+// Returns err (error) when the collection or slug is not found.
+func GetStaticCollectionItem(ctx context.Context, collectionName, slug string) (metadata map[string]any, contentAST *ast_domain.TemplateAST, excerptAST *ast_domain.TemplateAST, err error) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("GetStaticCollectionItem called",
 		logger_domain.String(logKeyCollection, collectionName),
-		logger_domain.String(logKeyRoute, route))
+		logger_domain.String(logKeySlug, slug))
 
 	data, err := getCollectionData(collectionName)
 	if err != nil {
@@ -361,14 +384,14 @@ func GetStaticCollectionItem(ctx context.Context, collectionName, route string) 
 	}
 
 	metadata, contentAST, excerptAST, err = getItemFromData(
-		ctx, staticCollectionRegistry.encoder, &defaultASTDecoder{}, data, collectionName, route)
+		ctx, staticCollectionRegistry.encoder, &defaultASTDecoder{}, data, collectionName, slug)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	l.Trace("GetStaticCollectionItem: item found successfully",
 		logger_domain.String(logKeyCollection, collectionName),
-		logger_domain.String(logKeyRoute, route))
+		logger_domain.String(logKeySlug, slug))
 
 	return metadata, contentAST, excerptAST, nil
 }
@@ -471,9 +494,8 @@ func HasStaticCollection(collectionName string) bool {
 // ResetStaticCollectionRegistry clears the static collection registry for test
 // isolation.
 //
-// This function should only be called from tests. It clears all registered
-// static collections and their pre-decoded data so that tests start with a
-// clean state.
+// Should only be called from tests. Clears all registered static collections
+// and their pre-decoded data so that tests start with a clean state.
 //
 // Safe for use from any goroutine, but not concurrently with other registry
 // operations.
@@ -485,59 +507,87 @@ func ResetStaticCollectionRegistry() {
 }
 
 // decodeAllItemMetadata decodes every item's JSON metadata from a FlatBuffer
-// blob and builds a route index for O(1) lookups.
+// blob and builds a slug index for O(1) lookups.
 //
+// The FlatBuffer "route" field holds the item's slug (the schema field is named
+// "route" for legacy reasons; semantically it is now a slug). Items are looked
+// up by slug at runtime so multiple consuming pages can render the same item
+// at different URL prefixes. The decoded item count is capped against
+// MaxStaticCollectionItems so a malformed or hostile embedded blob cannot
+// allocate unbounded slices and maps at registration time. Items whose slug
+// fails structural validation, or whose metadata fails to unmarshal, are
+// dropped with a warning log so silent corruption does not propagate.
+//
+// Takes ctx (context.Context) which carries the logger for warning diagnostics.
 // Takes blob ([]byte) which contains the encoded collection data.
 //
 // Returns []map[string]any which holds pre-decoded metadata for each item.
-// Returns map[string]int which maps URL routes to item indices.
-func decodeAllItemMetadata(blob []byte) ([]map[string]any, map[string]int) {
+// Returns map[string]int which maps item slugs to their indices in the items
+// slice.
+func decodeAllItemMetadata(ctx context.Context, blob []byte) ([]map[string]any, map[string]int) {
+	_, l := logger_domain.From(ctx, log)
+
 	payload, err := collection_schema.Unpack(blob)
 	if err != nil {
+		l.Warn("Skipping collection blob: schema version mismatch", logger_domain.Error(err))
 		return nil, nil
 	}
 
 	coll := coll_fb.GetRootAsStaticCollectionFB(payload, 0)
 	itemsLength := coll.ItemsLength()
+	if itemsLength > MaxStaticCollectionItems {
+		l.Warn("Truncating collection blob: item count exceeds cap",
+			logger_domain.Int("blob_items", itemsLength),
+			logger_domain.Int("max_items", MaxStaticCollectionItems))
+		itemsLength = MaxStaticCollectionItems
+	}
 
 	items := make([]map[string]any, 0, itemsLength)
-	routeIndex := make(map[string]int, itemsLength)
+	slugIndex := make(map[string]int, itemsLength)
 
 	for i := range itemsLength {
 		item := &coll_fb.ContentItemFB{}
 		if !coll.Items(item, i) {
+			l.Warn("Skipping collection item: FlatBuffer Items returned false",
+				logger_domain.Int(logKeyItemIndex, i))
 			continue
 		}
 
 		metadataJSON := item.MetadataJsonBytes()
 		var metadata map[string]any
 		if err := cache_domain.CacheAPI.Unmarshal(metadataJSON, &metadata); err != nil {
+			l.Warn("Skipping collection item: metadata JSON unmarshal failed",
+				logger_domain.Int(logKeyItemIndex, i),
+				logger_domain.Error(err))
 			continue
 		}
 		if metadata == nil {
 			metadata = make(map[string]any)
 		}
 
-		route := string(item.Route())
-		if route != "" {
-			routeIndex[route] = len(items)
-			if _, ok := metadata[metadataKeyURL]; !ok {
-				metadata[metadataKeyURL] = route
-			}
-		} else if url, ok := metadata[metadataKeyURL].(string); ok {
-			routeIndex[url] = len(items)
+		slug := string(item.Route())
+		if slug == "" {
+			l.Warn("Skipping collection item: empty slug",
+				logger_domain.Int(logKeyItemIndex, i))
+			continue
 		}
+		if !utf8.ValidString(slug) {
+			l.Warn("Skipping collection item: slug is not valid UTF-8",
+				logger_domain.Int(logKeyItemIndex, i))
+			continue
+		}
+		slugIndex[slug] = len(items)
 
 		items = append(items, metadata)
 	}
 
-	return items, routeIndex
+	return items, slugIndex
 }
 
 // getItemFromData retrieves a single item using the pre-decoded route index
 // for metadata and the AST cache for decoded content trees.
 //
-// On the first request for a given route the ASTs are decoded from the
+// On the first request for a given slug the ASTs are decoded from the
 // FlatBuffer blob and stored in the cache. Subsequent requests return the
 // cached trees with zero allocations.
 //
@@ -545,7 +595,7 @@ func decodeAllItemMetadata(blob []byte) ([]map[string]any, map[string]int) {
 // Takes decoder (ASTDecoderPort) which decodes AST bytes.
 // Takes data (*staticCollectionData) which holds the pre-decoded collection.
 // Takes collectionName (string) which identifies the collection for logging.
-// Takes route (string) which is the URL path to look up.
+// Takes slug (string) which identifies the item to look up.
 //
 // Returns metadata (map[string]any) which is the pre-decoded metadata.
 // Returns contentAST (*ast_domain.TemplateAST) which is the decoded content.
@@ -556,18 +606,20 @@ func getItemFromData(
 	encoder CollectionEncoderPort,
 	decoder ASTDecoderPort,
 	data *staticCollectionData,
-	collectionName, route string,
+	collectionName, slug string,
 ) (metadata map[string]any, contentAST *ast_domain.TemplateAST, excerptAST *ast_domain.TemplateAST, err error) {
-	metadata = resolveMetadata(encoder, data, route)
+	slug = normaliseLookupSlug(slug)
 
-	if value, ok := data.astCache.Load(route); ok {
+	metadata = resolveMetadata(encoder, data, slug)
+
+	if value, ok := data.astCache.Load(slug); ok {
 		if cached, valid := value.(*cachedAST); valid {
 			return metadata, cached.content, cached.excerpt, nil
 		}
 	}
 
 	_, contentASTBytes, excerptASTBytes, lookupErr := lookupItemWithEncoder(
-		ctx, encoder, data.blob, collectionName, route)
+		ctx, encoder, data.blob, collectionName, slug)
 	if lookupErr != nil {
 		return nil, nil, nil, lookupErr
 	}
@@ -577,34 +629,51 @@ func getItemFromData(
 		return nil, nil, nil, err
 	}
 
-	data.astCache.Store(route, &cachedAST{content: content, excerpt: excerpt})
+	data.astCache.Store(slug, &cachedAST{content: content, excerpt: excerpt})
 
 	return metadata, content, excerpt, nil
 }
 
-// resolveMetadata looks up pre-decoded metadata for a route, trying several
-// route variants before falling back to a full encoder decode.
+// normaliseLookupSlug aligns a runtime lookup key with stored slugs.
+//
+// Strips a leading slash, trims a trailing slash (chi catch-all captures may
+// include either), resolves an empty result to rootIndexSlug so the root
+// index page is reachable, and caps length at maxLookupSlugBytes so a
+// hostile caller cannot flood log fields or map keys.
+//
+// Takes slug (string) which is the raw lookup key from the request.
+//
+// Returns string which is the normalised slug ready for slugIndex / encoder
+// lookups.
+func normaliseLookupSlug(slug string) string {
+	slug = strings.TrimPrefix(slug, pathSeparator)
+	slug = strings.TrimSuffix(slug, pathSeparator)
+	if slug == "" {
+		return rootIndexSlug
+	}
+	if len(slug) > maxLookupSlugBytes {
+		slug = slug[:maxLookupSlugBytes]
+	}
+	return slug
+}
+
+// resolveMetadata looks up pre-decoded metadata for an item by slug. The
+// previous implementation accepted URL-style paths and tried trailing-slash /
+// /index variants; lookups are now slug-only so a single direct map check
+// suffices.
 //
 // Takes encoder (CollectionEncoderPort) which decodes items from the blob.
 // Takes data (*staticCollectionData) which holds the pre-decoded collection.
-// Takes route (string) which is the URL path to look up.
+// Takes slug (string) which identifies the collection item to look up.
 //
-// Returns map[string]any which is the metadata for the route, or nil if not
+// Returns map[string]any which is the metadata for the slug, or nil if not
 // found.
-func resolveMetadata(encoder CollectionEncoderPort, data *staticCollectionData, route string) map[string]any {
-	index, found := data.routeIndex[route]
-	if !found {
-		index, found = data.routeIndex[strings.TrimSuffix(route, routeSeparator)]
-	}
-	if !found && strings.HasSuffix(route, routeSeparator) {
-		index, found = data.routeIndex[strings.TrimSuffix(route, routeSeparator)+"/index"]
-	}
-
-	if found {
+func resolveMetadata(encoder CollectionEncoderPort, data *staticCollectionData, slug string) map[string]any {
+	if index, found := data.slugIndex[slug]; found {
 		return data.items[index]
 	}
 
-	metadataJSON, _, _, _ := encoder.DecodeCollectionItem(data.blob, route)
+	metadataJSON, _, _, _ := encoder.DecodeCollectionItem(data.blob, slug)
 	if metadataJSON == nil {
 		return nil
 	}
@@ -665,42 +734,31 @@ func getCollectionData(collectionName string) (*staticCollectionData, error) {
 }
 
 // lookupItemWithEncoder performs a binary search lookup in the encoded
-// collection data, falling back to an "/index" suffix when the route ends with
-// a separator.
+// collection data by slug.
 //
 // Takes encoder (CollectionEncoderPort) which decodes items from the blob.
 // Takes blob ([]byte) which is the encoded collection data to search.
 // Takes collectionName (string) which identifies the collection for logging.
-// Takes route (string) which is the URL path to look up.
+// Takes slug (string) which is the item identifier to look up.
 //
 // Returns metadataJSON ([]byte) which is the raw JSON metadata for the
 // matched item.
 // Returns contentASTBytes ([]byte) which is the encoded content AST.
 // Returns excerptASTBytes ([]byte) which is the encoded excerpt AST.
-// Returns err (error) when the item cannot be found at the given route.
-func lookupItemWithEncoder(ctx context.Context, encoder CollectionEncoderPort, blob []byte, collectionName, route string) (metadataJSON, contentASTBytes, excerptASTBytes []byte, err error) {
+// Returns err (error) when the item cannot be found.
+func lookupItemWithEncoder(ctx context.Context, encoder CollectionEncoderPort, blob []byte, collectionName, slug string) (metadataJSON, contentASTBytes, excerptASTBytes []byte, err error) {
 	_, l := logger_domain.From(ctx, log)
 	l.Trace("lookupItemWithEncoder: looking up item",
 		logger_domain.String(logKeyCollection, collectionName),
-		logger_domain.String(logKeyRoute, route))
+		logger_domain.String(logKeySlug, slug))
 
-	metadataJSON, contentASTBytes, excerptASTBytes, err = encoder.DecodeCollectionItem(blob, route)
-
-	if err != nil && strings.HasSuffix(route, routeSeparator) {
-		indexRoute := strings.TrimSuffix(route, routeSeparator) + "/index"
-		l.Trace("lookupItemWithEncoder: trying fallback index route",
-			logger_domain.String(logKeyCollection, collectionName),
-			logger_domain.String("original_route", route),
-			logger_domain.String("fallback_route", indexRoute))
-		metadataJSON, contentASTBytes, excerptASTBytes, err = encoder.DecodeCollectionItem(blob, indexRoute)
-	}
-
+	metadataJSON, contentASTBytes, excerptASTBytes, err = encoder.DecodeCollectionItem(blob, slug)
 	if err != nil {
 		l.Trace("lookupItemWithEncoder: item not found",
 			logger_domain.String(logKeyCollection, collectionName),
-			logger_domain.String(logKeyRoute, route),
+			logger_domain.String(logKeySlug, slug),
 			logger_domain.Error(err))
-		return nil, nil, nil, fmt.Errorf("failed to find item at route %q in collection %q: %w", route, collectionName, err)
+		return nil, nil, nil, fmt.Errorf("finding item %q in collection %q: %w", slug, collectionName, err)
 	}
 
 	return metadataJSON, contentASTBytes, excerptASTBytes, nil

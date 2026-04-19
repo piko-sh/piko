@@ -84,6 +84,6 @@ Once defined, you can use your component in any of your server-side `.pk` files 
 
 To learn more about component creation, refer to the official Piko documentation:
 
-*   **[Introduction to client components](https://piko.sh/docs/guide/client-components)**
+*   **[Introduction to client components](https://piko.sh/docs/reference/client-components)**
 *   **[Component patterns](https://piko.sh/docs/guide/component-patterns)**
-*   **[Directives](https://piko.sh/docs/guide/directives)**
+*   **[Directives](https://piko.sh/docs/reference/directives)**

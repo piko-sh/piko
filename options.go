@@ -34,8 +34,9 @@ import (
 	"piko.sh/piko/internal/highlight/highlight_domain"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/image/image_domain"
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_domain"
+	"piko.sh/piko/internal/logger/logger_dto"
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/notification/notification_domain"
@@ -83,6 +84,15 @@ const (
 	// Use this for headless CMS scenarios where resources are served to
 	// frontends on different origins.
 	CORPCrossOrigin = "cross-origin"
+
+	// WatchdogPriorityNormal is informational; safe to ignore in alerting.
+	WatchdogPriorityNormal = monitoring_domain.WatchdogPriorityNormal
+
+	// WatchdogPriorityHigh warrants prompt investigation.
+	WatchdogPriorityHigh = monitoring_domain.WatchdogPriorityHigh
+
+	// WatchdogPriorityCritical indicates imminent system instability.
+	WatchdogPriorityCritical = monitoring_domain.WatchdogPriorityCritical
 )
 
 // CSSResetOption is a functional option for configuring the CSS reset feature.
@@ -405,18 +415,6 @@ func WithConfigResolvers(resolvers ...ConfigResolver) Option {
 // Returns Option which configures the shutdown drain delay.
 func WithShutdownDrainDelay(delay time.Duration) Option {
 	return bootstrap.WithShutdownDrainDelay(delay)
-}
-
-// WithServerConfigDefaults returns an option that sets the default server
-// configuration values. Use this to set sensible defaults for development,
-// such as enabling automatic port selection.
-//
-// Takes serverConfigDefaults (*ServerConfig) which specifies the default
-// values to use for server settings.
-//
-// Returns Option which configures the bootstrap with server defaults.
-func WithServerConfigDefaults(serverConfigDefaults *ServerConfig) Option {
-	return bootstrap.WithServerConfigDefaults(serverConfigDefaults)
 }
 
 // WithCacheProvider registers a named cache provider instance with the default
@@ -1713,6 +1711,24 @@ func WithWatchdogDeltaProfiling() WatchdogOption {
 	return bootstrap.WithWatchdogDeltaProfiling()
 }
 
+// WithWatchdogIncludeGoroutineStacks toggles per-goroutine stack capture.
+// When enabled, each goroutine profile firing also writes a human-readable
+// .stacks.txt sidecar containing the full stack of every goroutine
+// (pprof debug=2 output), alongside the existing aggregated .pb.gz binary
+// profile.
+//
+// Useful when investigating goroutine leaks where you need to know the exact
+// call site or closure-captured arguments (e.g. which channel a publisher is
+// blocked on). Disabled by default because the sidecar can be tens of
+// megabytes per dump for processes with many thousand goroutines.
+//
+// Takes enabled (bool) which toggles the feature.
+//
+// Returns WatchdogOption which configures the stacks sidecar capture.
+func WithWatchdogIncludeGoroutineStacks(enabled bool) WatchdogOption {
+	return bootstrap.WithWatchdogIncludeGoroutineStacks(enabled)
+}
+
 // WithWatchdogRSSThresholdPercent sets the fraction of the cgroup memory limit
 // above which RSS triggers a profile capture. Default: 0.85.
 //
@@ -1871,17 +1887,6 @@ type WatchdogEventType = monitoring_domain.WatchdogEventType
 
 // WatchdogEventPriority indicates the urgency of a watchdog event.
 type WatchdogEventPriority = monitoring_domain.WatchdogEventPriority
-
-const (
-	// WatchdogPriorityNormal is informational; safe to ignore in alerting.
-	WatchdogPriorityNormal = monitoring_domain.WatchdogPriorityNormal
-
-	// WatchdogPriorityHigh warrants prompt investigation.
-	WatchdogPriorityHigh = monitoring_domain.WatchdogPriorityHigh
-
-	// WatchdogPriorityCritical indicates imminent system instability.
-	WatchdogPriorityCritical = monitoring_domain.WatchdogPriorityCritical
-)
 
 // WithWatchdogNotifier sets the notification delivery mechanism for watchdog
 // events. When set, the watchdog sends notifications to external systems when
@@ -2782,7 +2787,7 @@ func WithValidator(v bootstrap.StructValidator) Option {
 // WithJSONProvider activates a JSON encoding provider, replacing the default
 // standard-library implementation for the entire application.
 //
-// Takes provider (pikojson.Provider) which supplies the JSON implementation.
+// Takes provider (json.Provider) which supplies the JSON implementation.
 //
 // Returns Option which activates the provider during bootstrap.
 //
@@ -2793,7 +2798,7 @@ func WithValidator(v bootstrap.StructValidator) Option {
 //	ssr := piko.New(
 //	    piko.WithJSONProvider(sonicjson.New()),
 //	)
-func WithJSONProvider(provider pikojson.Provider) Option {
+func WithJSONProvider(provider json.Provider) Option {
 	return func(*bootstrap.Container) {
 		provider.Activate()
 	}
@@ -2998,4 +3003,719 @@ func IsAuthenticated(r *RequestData) bool {
 // Returns Option which registers the collectors.
 func WithBackendAnalytics(collectors ...AnalyticsCollector) Option {
 	return bootstrap.WithBackendAnalytics(collectors...)
+}
+
+// CaptchaOptions groups the captcha provider's per-deployment settings.
+// The provider implementation itself is selected via WithDefaultCaptchaProvider
+// and registered via WithCaptchaProvider.
+type CaptchaOptions = bootstrap.CaptchaOptions
+
+// WithPublicDomain sets the public domain used for CORS allowed origins and
+// absolute URLs. Empty string allows all origins.
+//
+// Takes domain (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithPublicDomain(domain string) Option {
+	return bootstrap.WithPublicDomain(domain)
+}
+
+// WithForceHTTPS enables redirection from HTTP to HTTPS.
+//
+// Takes enabled (bool) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithForceHTTPS(enabled bool) Option {
+	return bootstrap.WithForceHTTPS(enabled)
+}
+
+// WithRequestTimeout sets the maximum duration for dynamic HTTP requests.
+// Zero disables the timeout middleware.
+//
+// Takes d (time.Duration) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithRequestTimeout(d time.Duration) Option {
+	return bootstrap.WithRequestTimeout(d)
+}
+
+// WithMaxConcurrentRequests sets the maximum number of in-flight requests
+// the server will process simultaneously. Zero disables the limit.
+//
+// Takes n (int) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithMaxConcurrentRequests(n int) Option {
+	return bootstrap.WithMaxConcurrentRequests(n)
+}
+
+// WithActionMaxBodyBytes sets the maximum size in bytes for action request
+// bodies.
+//
+// Takes n (int64) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithActionMaxBodyBytes(n int64) Option {
+	return bootstrap.WithActionMaxBodyBytes(n)
+}
+
+// WithMaxMultipartFormBytes sets the maximum in-memory size for multipart
+// form data.
+//
+// Takes n (int64) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithMaxMultipartFormBytes(n int64) Option {
+	return bootstrap.WithMaxMultipartFormBytes(n)
+}
+
+// WithDefaultMaxSSEDuration sets the maximum lifetime for SSE connections
+// that do not specify their own limit. Zero means unlimited.
+//
+// Takes d (time.Duration) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithDefaultMaxSSEDuration(d time.Duration) Option {
+	return bootstrap.WithDefaultMaxSSEDuration(d)
+}
+
+// WithAutoNextPort enables automatic port selection for the main HTTP server
+// when the configured port is already in use.
+//
+// Takes enabled (bool) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithAutoNextPort(enabled bool) Option {
+	return bootstrap.WithAutoNextPort(enabled)
+}
+
+// WithEncryptionKey sets the base64-encoded 32-byte encryption key for the
+// default local AES-GCM crypto provider.
+//
+// Takes key (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithEncryptionKey(key string) Option {
+	return bootstrap.WithEncryptionKey(key)
+}
+
+// WithDataKeyCacheTTL configures how long decrypted data keys are cached for
+// KMS providers. Zero disables caching.
+//
+// Takes d (time.Duration) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithDataKeyCacheTTL(d time.Duration) Option {
+	return bootstrap.WithDataKeyCacheTTL(d)
+}
+
+// WithDataKeyCacheMaxSize sets the maximum number of cached data keys.
+//
+// Takes n (int) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithDataKeyCacheMaxSize(n int) Option {
+	return bootstrap.WithDataKeyCacheMaxSize(n)
+}
+
+// WithSecurityHeaders sets the HTTP security header policy. Pass a fully
+// populated SecurityHeadersConfig.
+//
+// Takes headers (SecurityHeadersConfig) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithSecurityHeaders(headers SecurityHeadersConfig) Option {
+	return bootstrap.WithSecurityHeaders(headers)
+}
+
+// WithCookieSecurity sets the secure cookie defaults applied to all cookies
+// the framework writes.
+//
+// Takes cookies (CookieSecurityConfig) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithCookieSecurity(cookies CookieSecurityConfig) Option {
+	return bootstrap.WithCookieSecurity(cookies)
+}
+
+// WithRateLimit sets the request rate limiting configuration. Disabled by
+// default; pass Enabled=true to activate.
+//
+// Takes rl (RateLimitConfig) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithRateLimit(rl RateLimitConfig) Option {
+	return bootstrap.WithRateLimit(rl)
+}
+
+// WithSandbox configures filesystem sandboxing for Piko internals.
+//
+// Takes s (SandboxConfig) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithSandbox(s SandboxConfig) Option {
+	return bootstrap.WithSandbox(s)
+}
+
+// WithReporting configures the Reporting-Endpoints HTTP header.
+//
+// Takes r (ReportingConfig) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithReporting(r ReportingConfig) Option {
+	return bootstrap.WithReporting(r)
+}
+
+// WithCaptcha sets the per-deployment captcha settings (site key, secret,
+// score threshold).
+//
+// Takes opts (CaptchaOptions) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithCaptcha(opts CaptchaOptions) Option {
+	return bootstrap.WithCaptcha(opts)
+}
+
+// WithAWSKMS configures AWS Key Management Service settings.
+//
+// Takes k (AWSKMSConfig) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithAWSKMS(k AWSKMSConfig) Option {
+	return bootstrap.WithAWSKMS(k)
+}
+
+// WithGCPKMS configures Google Cloud KMS settings.
+//
+// Takes k (GCPKMSConfig) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithGCPKMS(k GCPKMSConfig) Option {
+	return bootstrap.WithGCPKMS(k)
+}
+
+// WithDeprecatedKeyIDs lists key IDs that remain valid for decryption but
+// are not used for new encryption.
+//
+// Takes ids (...string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithDeprecatedKeyIDs(ids ...string) Option {
+	return bootstrap.WithDeprecatedKeyIDs(ids...)
+}
+
+// WithLogLevel sets the application log level. Accepts standard slog level
+// strings: "debug", "info", "warn", "error".
+//
+// PIKO_LOG_LEVEL environment variable, when set, overrides this option for
+// the bootstrap logger before any options apply.
+//
+// Takes level (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithLogLevel(level string) Option {
+	return bootstrap.WithLogLevel(level)
+}
+
+// WithLogger replaces the entire logger configuration.
+//
+// Takes cfg (logger_dto.Config) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithLogger(cfg logger_dto.Config) Option {
+	return bootstrap.WithLogger(cfg)
+}
+
+// WithDatabaseDriver selects the database backend.
+// Valid values: "sqlite" (default), "postgres", "d1".
+//
+// Takes driver (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithDatabaseDriver(driver string) Option {
+	return bootstrap.WithDatabaseDriver(driver)
+}
+
+// WithPostgresURL sets the PostgreSQL connection URL.
+//
+// Takes url (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithPostgresURL(url string) Option {
+	return bootstrap.WithPostgresURL(url)
+}
+
+// WithPostgresMaxConns sets the maximum number of connections in the
+// PostgreSQL pool.
+//
+// Takes n (int32) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithPostgresMaxConns(n int32) Option {
+	return bootstrap.WithPostgresMaxConns(n)
+}
+
+// WithPostgresMinConns sets the minimum number of connections kept in the
+// PostgreSQL pool.
+//
+// Takes n (int32) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithPostgresMinConns(n int32) Option {
+	return bootstrap.WithPostgresMinConns(n)
+}
+
+// WithD1APIToken sets the Cloudflare API token used for D1 access.
+//
+// Takes token (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithD1APIToken(token string) Option {
+	return bootstrap.WithD1APIToken(token)
+}
+
+// WithD1AccountID sets the Cloudflare account ID for D1 access.
+//
+// Takes id (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithD1AccountID(id string) Option {
+	return bootstrap.WithD1AccountID(id)
+}
+
+// WithD1DatabaseID sets the D1 database UUID.
+//
+// Takes id (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithD1DatabaseID(id string) Option {
+	return bootstrap.WithD1DatabaseID(id)
+}
+
+// WithOTLP replaces the entire OpenTelemetry Protocol exporter configuration.
+//
+// Takes o (OtlpConfig) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithOTLP(o OtlpConfig) Option {
+	return bootstrap.WithOTLP(o)
+}
+
+// WithOTLPEnabled controls whether OTLP exporting is active.
+//
+// Takes enabled (bool) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithOTLPEnabled(enabled bool) Option {
+	return bootstrap.WithOTLPEnabled(enabled)
+}
+
+// WithOTLPEndpoint sets the OTLP collector endpoint.
+//
+// Takes endpoint (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithOTLPEndpoint(endpoint string) Option {
+	return bootstrap.WithOTLPEndpoint(endpoint)
+}
+
+// WithOTLPProtocol sets the OTLP transport protocol.
+// Valid values: "grpc", "http", "https".
+//
+// Takes protocol (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithOTLPProtocol(protocol string) Option {
+	return bootstrap.WithOTLPProtocol(protocol)
+}
+
+// WithOTLPTraceSampleRate sets the fraction of traces to sample (0.0 to 1.0).
+//
+// Takes rate (float64) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithOTLPTraceSampleRate(rate float64) Option {
+	return bootstrap.WithOTLPTraceSampleRate(rate)
+}
+
+// WithOTLPHeaders sets the HTTP headers sent with OTLP requests.
+//
+// Takes headers (map[string]string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithOTLPHeaders(headers map[string]string) Option {
+	return bootstrap.WithOTLPHeaders(headers)
+}
+
+// WithOTLPInsecureTLS controls whether TLS certificate verification is
+// disabled for the OTLP connection.
+//
+// Takes insecure (bool) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithOTLPInsecureTLS(insecure bool) Option {
+	return bootstrap.WithOTLPInsecureTLS(insecure)
+}
+
+// WithHealthEnabled controls whether the health probe server starts.
+//
+// Takes enabled (bool) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithHealthEnabled(enabled bool) Option {
+	return bootstrap.WithHealthEnabled(enabled)
+}
+
+// WithHealthBindAddress sets the network address to bind the health probe
+// server to.
+//
+// Takes addr (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithHealthBindAddress(addr string) Option {
+	return bootstrap.WithHealthBindAddress(addr)
+}
+
+// WithHealthMetricsEnabled controls whether the Prometheus metrics endpoint
+// is exposed on the health probe server.
+//
+// Takes enabled (bool) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithHealthMetricsEnabled(enabled bool) Option {
+	return bootstrap.WithHealthMetricsEnabled(enabled)
+}
+
+// WithHealthMetricsPath sets the URL path for the Prometheus metrics
+// endpoint.
+//
+// Takes path (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithHealthMetricsPath(path string) Option {
+	return bootstrap.WithHealthMetricsPath(path)
+}
+
+// WithHealthLivePath sets the URL path for the liveness probe endpoint.
+//
+// Takes path (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithHealthLivePath(path string) Option {
+	return bootstrap.WithHealthLivePath(path)
+}
+
+// WithHealthReadyPath sets the URL path for the readiness probe endpoint.
+//
+// Takes path (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithHealthReadyPath(path string) Option {
+	return bootstrap.WithHealthReadyPath(path)
+}
+
+// WithHealthCheckTimeout sets the maximum time for each individual health
+// check.
+//
+// Takes d (time.Duration) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithHealthCheckTimeout(d time.Duration) Option {
+	return bootstrap.WithHealthCheckTimeout(d)
+}
+
+// WithHealthAutoNextPort enables automatic port selection for the health
+// probe server.
+//
+// Takes enabled (bool) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithHealthAutoNextPort(enabled bool) Option {
+	return bootstrap.WithHealthAutoNextPort(enabled)
+}
+
+// WithHealthProbePort sets the port for the health probe server.
+//
+// Takes port (int) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithHealthProbePort(port int) Option {
+	return bootstrap.WithHealthProbePort(port)
+}
+
+// WithBaseDir sets the root directory of the website project.
+//
+// Takes dir (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithBaseDir(dir string) Option {
+	return bootstrap.WithBaseDir(dir)
+}
+
+// WithComponentsSourceDir sets the directory for .pkc/.sfc component files.
+//
+// Takes dir (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithComponentsSourceDir(dir string) Option {
+	return bootstrap.WithComponentsSourceDir(dir)
+}
+
+// WithPagesSourceDir sets the directory for page definition files.
+//
+// Takes dir (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithPagesSourceDir(dir string) Option {
+	return bootstrap.WithPagesSourceDir(dir)
+}
+
+// WithPartialsSourceDir sets the directory for partial definition files.
+//
+// Takes dir (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithPartialsSourceDir(dir string) Option {
+	return bootstrap.WithPartialsSourceDir(dir)
+}
+
+// WithEmailsSourceDir sets the directory for email template source files.
+//
+// Takes dir (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithEmailsSourceDir(dir string) Option {
+	return bootstrap.WithEmailsSourceDir(dir)
+}
+
+// WithPdfsSourceDir sets the directory for PDF template source files.
+//
+// Takes dir (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithPdfsSourceDir(dir string) Option {
+	return bootstrap.WithPdfsSourceDir(dir)
+}
+
+// WithE2ESourceDir sets the directory for E2E test pages and partials.
+//
+// Takes dir (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithE2ESourceDir(dir string) Option {
+	return bootstrap.WithE2ESourceDir(dir)
+}
+
+// WithAssetsSourceDir sets the directory for asset files.
+//
+// Takes dir (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithAssetsSourceDir(dir string) Option {
+	return bootstrap.WithAssetsSourceDir(dir)
+}
+
+// WithI18nSourceDir sets the directory containing locale and translation
+// JSON files.
+//
+// Takes dir (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithI18nSourceDir(dir string) Option {
+	return bootstrap.WithI18nSourceDir(dir)
+}
+
+// WithBaseServePath sets the URL path prefix for serving pages.
+//
+// Takes path (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithBaseServePath(path string) Option {
+	return bootstrap.WithBaseServePath(path)
+}
+
+// WithPartialServePath sets the URL path prefix for serving partials.
+//
+// Takes path (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithPartialServePath(path string) Option {
+	return bootstrap.WithPartialServePath(path)
+}
+
+// WithActionServePath sets the URL path prefix for server actions.
+//
+// Takes path (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithActionServePath(path string) Option {
+	return bootstrap.WithActionServePath(path)
+}
+
+// WithLibServePath sets the URL path prefix for serving internal library
+// files.
+//
+// Takes path (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithLibServePath(path string) Option {
+	return bootstrap.WithLibServePath(path)
+}
+
+// WithDistServePath sets the URL path prefix for serving frontend
+// distribution files.
+//
+// Takes path (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithDistServePath(path string) Option {
+	return bootstrap.WithDistServePath(path)
+}
+
+// WithArtefactServePath sets the URL path prefix for serving compiled
+// assets.
+//
+// Takes path (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithArtefactServePath(path string) Option {
+	return bootstrap.WithArtefactServePath(path)
+}
+
+// WithDefaultServeMode selects the default page serving mode.
+// Valid values: "preview" (dynamic) or "render" (static).
+//
+// Takes mode (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithDefaultServeMode(mode string) Option {
+	return bootstrap.WithDefaultServeMode(mode)
+}
+
+// WithStoragePresign replaces the entire presigned URL configuration.
+//
+// Takes p (StoragePresignConfig) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithStoragePresign(p StoragePresignConfig) Option {
+	return bootstrap.WithStoragePresign(p)
+}
+
+// WithStoragePresignSecret sets the HMAC secret for signing presign tokens.
+//
+// Takes secret (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithStoragePresignSecret(secret string) Option {
+	return bootstrap.WithStoragePresignSecret(secret)
+}
+
+// WithStoragePresignDefaultExpiry sets the default validity duration for
+// presigned URLs.
+//
+// Takes d (time.Duration) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithStoragePresignDefaultExpiry(d time.Duration) Option {
+	return bootstrap.WithStoragePresignDefaultExpiry(d)
+}
+
+// WithStoragePresignMaxExpiry sets the maximum validity duration for
+// presigned URLs.
+//
+// Takes d (time.Duration) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithStoragePresignMaxExpiry(d time.Duration) Option {
+	return bootstrap.WithStoragePresignMaxExpiry(d)
+}
+
+// WithStoragePresignDefaultMaxSize sets the default maximum upload size in
+// bytes.
+//
+// Takes size (int64) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithStoragePresignDefaultMaxSize(size int64) Option {
+	return bootstrap.WithStoragePresignDefaultMaxSize(size)
+}
+
+// WithStoragePresignMaxMaxSize sets the absolute maximum upload size in
+// bytes.
+//
+// Takes size (int64) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithStoragePresignMaxMaxSize(size int64) Option {
+	return bootstrap.WithStoragePresignMaxMaxSize(size)
+}
+
+// WithStoragePresignRateLimit sets the per-IP rate limit for presigned upload
+// requests.
+//
+// Takes rpm (int) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithStoragePresignRateLimit(rpm int) Option {
+	return bootstrap.WithStoragePresignRateLimit(rpm)
+}
+
+// WithI18nDefaultLocale sets the default locale used for internationalisation.
+//
+// Takes locale (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithI18nDefaultLocale(locale string) Option {
+	return bootstrap.WithI18nDefaultLocale(locale)
+}
+
+// WithSRI controls whether Subresource Integrity (SRI) hashes are added to
+// script and link tags in rendered HTML. Enabled by default; disable for
+// development environments where assets change frequently.
+//
+// Takes enabled (bool) which controls whether integrity attributes are emitted.
+//
+// Returns Option which configures the SRI setting.
+func WithSRI(enabled bool) Option {
+	return bootstrap.WithSRI(enabled)
+}
+
+// WithExperimentalPrerendering toggles prerendering of pages during build.
+//
+// When enabled, eligible pages are rendered to HTML at build time rather than
+// per request. Email templates are never prerendered regardless of this
+// setting.
+//
+// Takes enabled (bool) which specifies whether prerendering is active.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithExperimentalPrerendering(enabled bool) Option {
+	return bootstrap.WithExperimentalPrerendering(enabled)
+}
+
+// WithExperimentalCommentStripping toggles stripping of HTML comments from generated output.
+//
+// When enabled, <!-- ... --> comments are omitted from rendered HTML.
+//
+// Takes enabled (bool) which specifies whether comment stripping is active.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithExperimentalCommentStripping(enabled bool) Option {
+	return bootstrap.WithExperimentalCommentStripping(enabled)
+}
+
+// WithExperimentalDwarfLineDirectives toggles DWARF-compatible line
+// directives in generated Go code.
+//
+// When enabled, the generator emits "//line file:line" (no space) which the
+// Go compiler embeds in DWARF debug info, allowing debuggers like Delve to
+// map breakpoints back to .pk source files. Disabled by default; the
+// generator emits a plain "// line file:line" comment.
+//
+// Takes enabled (bool) which specifies whether DWARF line directives are
+// active.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithExperimentalDwarfLineDirectives(enabled bool) Option {
+	return bootstrap.WithExperimentalDwarfLineDirectives(enabled)
 }

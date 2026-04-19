@@ -355,7 +355,7 @@ func packPackage(b *flatbuffers.Builder, pkg *inspector_dto.Package) flatbuffers
 // packNamedTypeEntry packs a key-value pair into a FlatBuffers table.
 //
 // Takes b (*flatbuffers.Builder) which is the buffer to write to.
-// Takes key (string) which is the name for this type entry.
+// Takes key (string) which is the name of the entry.
 // Takes value (*inspector_dto.Type) which is the type data to pack.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the packed entry.

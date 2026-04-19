@@ -38,9 +38,12 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-var _ email.ProviderPort = (*MailchimpTransactionalProvider)(nil)
-
 const (
+	// maxMailchimpResponseBytes caps the bytes read from a Mailchimp
+	// Transactional reply, guarding against hostile or runaway responses while
+	// staying generous enough for legitimate per-recipient result arrays.
+	maxMailchimpResponseBytes = 4 * 1024 * 1024
+
 	// defaultCallsPerSecond is the default rate limit. Mailchimp Transactional
 	// allows 10 concurrent connections per API key, so a conservative per-second
 	// limit keeps usage well within bounds.
@@ -113,6 +116,12 @@ const (
 	// logKeyTo is the log attribute key for email recipient addresses.
 	logKeyTo = "to"
 )
+
+var _ email.ProviderPort = (*MailchimpTransactionalProvider)(nil)
+
+// ErrMailchimpResponseTooLarge indicates the Mailchimp Transactional response
+// body exceeded the maximum allowed size and was truncated before parsing.
+var ErrMailchimpResponseTooLarge = errors.New("mailchimp transactional response body exceeded maximum allowed size")
 
 // MailchimpTransactionalProvider implements the EmailProviderPort interface for
 // the Mailchimp Transactional (formerly Mandrill) email service.
@@ -351,7 +360,7 @@ func (p *MailchimpTransactionalProvider) SendBulk(ctx context.Context, emails []
 }
 
 // Close releases resources held by the provider. The HTTP client is stateless,
-// so this method does nothing.
+// so the call does nothing.
 //
 // Returns error when cleanup fails, though this always returns nil.
 func (*MailchimpTransactionalProvider) Close(_ context.Context) error {
@@ -576,11 +585,17 @@ func (p *MailchimpTransactionalProvider) doSendRequest(ctx context.Context, requ
 	if err != nil {
 		return nil, fmt.Errorf("failed to send HTTP request: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer func() {
+		_, _ = io.Copy(io.Discard, httpResp.Body)
+		_ = httpResp.Body.Close()
+	}()
 
-	respBody, err := io.ReadAll(httpResp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(httpResp.Body, maxMailchimpResponseBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	if len(respBody) > maxMailchimpResponseBytes {
+		return nil, fmt.Errorf("mailchimp transactional response truncated at %d bytes: %w", maxMailchimpResponseBytes, ErrMailchimpResponseTooLarge)
 	}
 
 	if httpResp.StatusCode != http.StatusOK {

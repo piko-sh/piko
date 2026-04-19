@@ -37,11 +37,11 @@ const approxProfileConfigSize = 128
 // metadataCache wraps the cache hexagon to provide artefact metadata caching
 // for the Registry service. It implements registry_domain.MetadataCache.
 //
-// This adapter lets the Registry use the cache hexagon's features (multiple
-// providers, transformations) while keeping the MetadataCache interface.
+// Lets the Registry use the cache hexagon's features (multiple providers,
+// transformations) while keeping the MetadataCache interface.
 //
 // The adapter uses Cache[string, *ArtefactMeta] for full compile-time type
-// safety. The cache hexagon creates this typed instance using the factory
+// safety. The cache hexagon creates the typed instance using the factory
 // blueprint pattern, which allows:
 //
 //  1. Full type safety with no runtime type assertions needed.

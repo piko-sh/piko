@@ -14,6 +14,9 @@ The email package provides multi-provider email delivery with fluent builders, t
 | SendGrid | `email_provider_sendgrid` | SendGrid API |
 | AWS SES | `email_provider_ses` | Amazon SES |
 | Postmark | `email_provider_postmark` | Postmark API |
+| Mailgun | `email_provider_mailgun` | Mailgun API |
+| Gmail | `email_provider_gmail` | Gmail API |
+| Mailchimp Transactional | `email_provider_mailchimp_transactional` | Mailchimp Transactional / Mandrill |
 | Stdout | `email_provider_stdout` | Development (prints to console) |
 | Disk | `email_provider_disk` | Development (writes to files) |
 | Mock | `email_provider_mock` | Unit testing |
@@ -35,8 +38,8 @@ provider, err := email_provider_smtp.NewSMTPProvider(ctx, email_provider_smtp.SM
 })
 
 svc := email.NewService("smtp")
-svc.RegisterProvider("smtp", provider)
-svc.SetDefaultProvider("smtp")
+svc.RegisterProvider(ctx, "smtp", provider)
+svc.SetDefaultProvider(ctx, "smtp")
 ```
 
 ### Sending emails
@@ -86,7 +89,7 @@ emails := []*email.SendParams{
     {To: []string{"alice@example.com"}, Subject: "Newsletter", BodyHTML: "<p>Update...</p>"},
     {To: []string{"bob@example.com"}, Subject: "Newsletter", BodyHTML: "<p>Update...</p>"},
 }
-err := svc.SendBulk(ctx, log, emails)
+err := svc.SendBulk(ctx, emails)
 ```
 
 ### Dispatcher configuration

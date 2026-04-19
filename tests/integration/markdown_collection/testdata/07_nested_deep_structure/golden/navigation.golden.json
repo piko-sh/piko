@@ -22,7 +22,7 @@
         {
           "children": [
             {
-              "id": "reference",
+              "id": "api/reference",
               "title": "API Reference",
               "section": "api",
               "url": "/docs/api/reference",
@@ -41,7 +41,7 @@
             {
               "children": [
                 {
-                  "id": "first-steps",
+                  "id": "getting-started/basics/first-steps",
                   "title": "First Steps",
                   "section": "getting-started",
                   "subsection": "basics",
@@ -50,7 +50,7 @@
                   "order": 999
                 },
                 {
-                  "id": "install",
+                  "id": "getting-started/basics/install",
                   "title": "Installation Guide",
                   "section": "getting-started",
                   "subsection": "basics",

@@ -1,5 +1,8 @@
-<svg viewBox="0 0 420 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <text x="95" y="14" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="11" font-weight="600" letter-spacing="1">BEFORE</text>
+<svg viewBox="0 0 420 150" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="one-binary-title one-binary-desc">
+  <title id="one-binary-title">Before and after: Go API plus Next.js versus one Piko binary</title>
+  <desc id="one-binary-desc">On the left, a traditional split architecture with a Go API box and a Next.js box connected across a CORS boundary, deployed separately. On the right, a single Piko binary containing both concerns, deployed once.</desc>
+  <text x="104" y="14" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11" font-weight="600" letter-spacing="1">BEFORE</text>
 
   <g>
     <rect x="18" y="24" width="80" height="44" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
@@ -13,19 +16,19 @@
     <text x="150" y="58" text-anchor="middle" fill="#92A1AF" font-family="monospace" font-size="9">:3000</text>
   </g>
 
-  <line x1="58" y1="68" x2="58" y2="82" stroke="#485461" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="150" y1="68" x2="150" y2="82" stroke="#485461" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="58" y1="68" x2="58" y2="82" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="150" y1="68" x2="150" y2="82" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
 
   <g>
     <rect x="18" y="82" width="172" height="36" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
     <text x="104" y="105" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">CORS / API gateway</text>
   </g>
 
-  <text x="104" y="138" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">2 services</text>
+  <text x="104" y="128" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10">2 services</text>
 
-  <text x="232" y="75" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="22">&#x2192;</text>
+  <text x="232" y="75" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="22">&#x2192;</text>
 
-  <text x="340" y="14" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600" letter-spacing="1">AFTER</text>
+  <text x="340" y="14" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="11" font-weight="600" letter-spacing="1">AFTER</text>
 
   <g>
     <rect x="272" y="24" width="136" height="76" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
@@ -37,11 +40,11 @@
     <text x="340" y="95" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="9">:8080</text>
   </g>
 
-  <line x1="340" y1="100" x2="340" y2="112" stroke="#6BD5CC" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="340" y1="100" x2="340" y2="112" stroke="#0F766E" stroke-width="1.5" stroke-linecap="round"/>
 
   <g>
     <rect x="298" y="112" width="84" height="26" rx="6" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
     <text x="340" y="129" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">1 binary</text>
   </g>
-  <text x="340" y="148" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10">1 deploy</text>
+  <text x="340" y="148" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10">1 deploy</text>
 </svg>

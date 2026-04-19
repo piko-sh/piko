@@ -5,6 +5,7 @@
 package pages_main_594861c5
 
 import (
+	"cmp"
 	"fmt"
 	"html"
 	"sort"
@@ -24,6 +25,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 var _ = partials_counter_widget_19b82542.Render
 var _ = partials_toggle_button_16eaf585.Render

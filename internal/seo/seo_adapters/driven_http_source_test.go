@@ -20,8 +20,10 @@ package seo_adapters
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -300,4 +302,99 @@ func TestHTTPSourceAdapter_FetchURLs_SingleURL(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, urls, 1)
 	assert.Equal(t, "/", urls[0].Location)
+}
+
+func TestHTTPSourceAdapter_FetchURLs_RejectsResponseLargerThanCap(t *testing.T) {
+	t.Parallel()
+
+	const responseCap = int64(256)
+	padding := strings.Repeat("a", int(responseCap)+512)
+	body := `[{"loc": "/oversized", "title": "` + padding + `"}]`
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(body))
+	}))
+	defer server.Close()
+
+	adapter := &HTTPSourceAdapter{
+		httpClient:       server.Client(),
+		breaker:          newHTTPSourceCircuitBreaker(),
+		maxResponseBytes: responseCap,
+	}
+
+	_, err := adapter.FetchURLs(context.Background(), server.URL)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrSitemapResponseTooLarge)
+	assert.Contains(t, err.Error(), "256")
+}
+
+func TestHTTPSourceAdapter_FetchURLs_AcceptsResponseAtExactlyCap(t *testing.T) {
+	t.Parallel()
+
+	body := []byte(`[{"loc": "/"}]`)
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write(body)
+	}))
+	defer server.Close()
+
+	adapter := &HTTPSourceAdapter{
+		httpClient:       server.Client(),
+		breaker:          newHTTPSourceCircuitBreaker(),
+		maxResponseBytes: int64(len(body)),
+	}
+
+	urls, err := adapter.FetchURLs(context.Background(), server.URL)
+	require.NoError(t, err)
+	require.Len(t, urls, 1)
+	assert.Equal(t, "/", urls[0].Location)
+}
+
+func TestHTTPSourceAdapter_FetchURLs_DisabledCapAcceptsLargeResponse(t *testing.T) {
+	t.Parallel()
+
+	padding := strings.Repeat("b", 4096)
+	body := `[{"loc": "/big", "title": "` + padding + `"}]`
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(body))
+	}))
+	defer server.Close()
+
+	adapter := &HTTPSourceAdapter{
+		httpClient:       server.Client(),
+		breaker:          newHTTPSourceCircuitBreaker(),
+		maxResponseBytes: 0,
+	}
+
+	urls, err := adapter.FetchURLs(context.Background(), server.URL)
+	require.NoError(t, err)
+	require.Len(t, urls, 1)
+	assert.Equal(t, "/big", urls[0].Location)
+}
+
+func TestNewHTTPSourceAdapter_ApplyMaxResponseBytesOption(t *testing.T) {
+	t.Parallel()
+
+	adapter, ok := NewHTTPSourceAdapter(WithHTTPSourceMaxResponseBytes(2048)).(*HTTPSourceAdapter)
+	require.True(t, ok, "expected concrete *HTTPSourceAdapter")
+	assert.Equal(t, int64(2048), adapter.maxResponseBytes)
+}
+
+func TestNewHTTPSourceAdapter_DefaultsResponseCap(t *testing.T) {
+	t.Parallel()
+
+	adapter, ok := NewHTTPSourceAdapter().(*HTTPSourceAdapter)
+	require.True(t, ok, "expected concrete *HTTPSourceAdapter")
+	assert.Equal(t, defaultMaxSitemapResponseBytes, adapter.maxResponseBytes)
+}
+
+func TestErrSitemapResponseTooLarge_IsSentinel(t *testing.T) {
+	t.Parallel()
+
+	wrapped := errors.Join(errors.New("preceding"), ErrSitemapResponseTooLarge)
+	assert.ErrorIs(t, wrapped, ErrSitemapResponseTooLarge)
 }

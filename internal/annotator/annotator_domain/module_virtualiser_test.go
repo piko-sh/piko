@@ -983,63 +983,43 @@ func TestCalculateVirtualManifestKey(t *testing.T) {
 		name        string
 		vps         *annotator_dto.VirtualPageSource
 		baseDir     string
+		slug        string
 		expectedKey string
 	}{
 		{
-			name: "uses URL from page metadata when present",
+			name: "substitutes slug into the template path's dynamic param",
 			vps: &annotator_dto.VirtualPageSource{
-				InitialProps: map[string]any{
-					"page": map[string]any{
-						collection_dto.MetaKeyURL: "/blog/my-post",
-					},
-				},
 				TemplatePath: "/project/pages/blog/{slug}.pk",
 			},
 			baseDir:     "/project",
+			slug:        "my-post",
 			expectedKey: "pages/blog/my-post.pk",
 		},
 		{
-			name: "falls back to relative path when no URL in metadata",
+			name: "returns relative path when slug is empty",
 			vps: &annotator_dto.VirtualPageSource{
-				InitialProps: map[string]any{},
 				TemplatePath: "/project/pages/index.pk",
 			},
 			baseDir:     "/project",
+			slug:        "",
 			expectedKey: "pages/index.pk",
 		},
 		{
-			name: "replaces dynamic param with slug when slug is present",
+			name: "substitutes slug for any dynamic param name",
 			vps: &annotator_dto.VirtualPageSource{
-				InitialProps: map[string]any{
-					"page": map[string]any{
-						collection_dto.MetaKeySlug: "hello-world",
-					},
-				},
-				TemplatePath: "/project/pages/blog/{slug}.pk",
+				TemplatePath: "/project/pages/learn/{topic}.pk",
 			},
 			baseDir:     "/project",
-			expectedKey: "pages/blog/hello-world.pk",
+			slug:        "go-collections",
+			expectedKey: "pages/learn/go-collections.pk",
 		},
 		{
-			name: "returns relative path when no slug and no URL",
+			name: "returns template path directly when Rel fails",
 			vps: &annotator_dto.VirtualPageSource{
-				InitialProps: map[string]any{
-					"page": map[string]any{
-						"Title": "Test",
-					},
-				},
-				TemplatePath: "/project/pages/static.pk",
-			},
-			baseDir:     "/project",
-			expectedKey: "pages/static.pk",
-		},
-		{
-			name: "uses template path directly when Rel fails",
-			vps: &annotator_dto.VirtualPageSource{
-				InitialProps: map[string]any{},
 				TemplatePath: "relative/path.pk",
 			},
 			baseDir:     "/project",
+			slug:        "",
 			expectedKey: "relative/path.pk",
 		},
 	}
@@ -1047,72 +1027,96 @@ func TestCalculateVirtualManifestKey(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			key := vc.calculateVirtualManifestKey(tc.vps, tc.baseDir)
+			key := vc.calculateVirtualManifestKey(tc.vps, tc.baseDir, tc.slug)
 			assert.Equal(t, tc.expectedKey, key)
 		})
 	}
 }
 
-func TestCalculateVirtualRoute(t *testing.T) {
+func TestExtractItemSlug(t *testing.T) {
 	t.Parallel()
-	vc := &virtualisationContext{}
 
 	testCases := []struct {
-		name          string
-		vps           *annotator_dto.VirtualPageSource
-		expectedRoute string
+		name     string
+		vps      *annotator_dto.VirtualPageSource
+		expected string
 	}{
 		{
-			name: "uses route override when present",
+			name: "reads slug from page metadata",
 			vps: &annotator_dto.VirtualPageSource{
-				RouteOverride: "/custom/route",
 				InitialProps: map[string]any{
 					"page": map[string]any{
-						collection_dto.MetaKeyURL: "/from-metadata",
+						collection_dto.MetaKeySlug: "hello-world",
 					},
 				},
 			},
-			expectedRoute: "/custom/route",
+			expected: "hello-world",
 		},
 		{
-			name: "uses URL from page metadata when no override",
+			name: "returns empty string when no page metadata",
 			vps: &annotator_dto.VirtualPageSource{
-				RouteOverride: "",
-				InitialProps: map[string]any{
-					"page": map[string]any{
-						collection_dto.MetaKeyURL: "/blog/test-post",
-					},
-				},
+				InitialProps: map[string]any{},
 			},
-			expectedRoute: "/blog/test-post",
+			expected: "",
 		},
 		{
-			name: "returns empty when no override and no URL",
+			name: "returns empty string when page has no slug",
 			vps: &annotator_dto.VirtualPageSource{
-				RouteOverride: "",
-				InitialProps:  map[string]any{},
-			},
-			expectedRoute: "",
-		},
-		{
-			name: "returns empty when page map has no URL key",
-			vps: &annotator_dto.VirtualPageSource{
-				RouteOverride: "",
 				InitialProps: map[string]any{
 					"page": map[string]any{
 						"Title": "Test",
 					},
 				},
 			},
-			expectedRoute: "",
+			expected: "",
+		},
+		{
+			name: "ignores any URL field; slug is the canonical identifier",
+			vps: &annotator_dto.VirtualPageSource{
+				InitialProps: map[string]any{
+					"page": map[string]any{
+						collection_dto.MetaKeyURL: "/blog/test-post",
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name:     "returns empty string when vps is nil",
+			vps:      nil,
+			expected: "",
+		},
+		{
+			name:     "returns empty string when InitialProps is nil",
+			vps:      &annotator_dto.VirtualPageSource{InitialProps: nil},
+			expected: "",
+		},
+		{
+			name: "returns empty string when page entry is wrong type",
+			vps: &annotator_dto.VirtualPageSource{
+				InitialProps: map[string]any{
+					"page": "not a map",
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "returns empty string when slug entry is wrong type",
+			vps: &annotator_dto.VirtualPageSource{
+				InitialProps: map[string]any{
+					"page": map[string]any{
+						collection_dto.MetaKeySlug: 42,
+					},
+				},
+			},
+			expected: "",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			route := vc.calculateVirtualRoute(tc.vps)
-			assert.Equal(t, tc.expectedRoute, route)
+			assert.Equal(t, tc.expected, extractItemSlug(tc.vps))
 		})
 	}
 }
@@ -1357,9 +1361,9 @@ func TestCreateVirtualInstance(t *testing.T) {
 		},
 	}
 
-	instance := vc.createVirtualInstance(ep, "/project")
+	instance := vc.createVirtualInstance(t.Context(), ep, "/project")
 
-	assert.Equal(t, "/blog/test-post", instance.Route)
+	assert.Equal(t, "test-post", instance.Slug)
 	assert.Equal(t, "pages/blog/test-post.pk", instance.ManifestKey)
 	assert.NotNil(t, instance.InitialProps)
 }
@@ -2377,7 +2381,7 @@ func TestVirtualiserWithVirtualPageSource(t *testing.T) {
 	require.NotNil(t, blogComp)
 	assert.True(t, blogComp.IsPage)
 	require.Len(t, blogComp.VirtualInstances, 1)
-	assert.Equal(t, "/blog/test-post", blogComp.VirtualInstances[0].Route)
+	assert.Equal(t, "test-post", blogComp.VirtualInstances[0].Slug)
 	assert.Equal(t, "pages/blog/test-post.pk", blogComp.VirtualInstances[0].ManifestKey)
 }
 

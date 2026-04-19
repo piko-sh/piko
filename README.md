@@ -4,9 +4,9 @@
 
 **Drop your JavaScript frontend. Ship one Go binary.**
 
-Piko compiles .pk templates to typed Go code. No Node.js. No runtime template parsing. One `go build` and you're done.
+Piko compiles .pk templates to typed Go code. No Node.js. No runtime template parsing. One `go build` finishes the job.
 
-<img src="docs/mascot.png" alt="Piko" width="480"/>
+<img src="docs/images/mascot.png" alt="Piko" width="480"/>
 
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -26,13 +26,13 @@ Piko compiles .pk templates to typed Go code. No Node.js. No runtime template pa
 
 ---
 
-> **Alpha:** Piko is under active development. Expect breaking changes between releases. The API will stabilise by version 0.5.0, targeting a 1.0.0 release after that.
+> **Alpha:** Piko is under active development. Expect breaking changes between releases. The API stabilises at version 0.5.0, with a 1.0.0 release after that.
 
 ---
 
 ## About
 
-If you run Go on the backend and React, Vue, Next.js, or Nuxt on the frontend, you maintain two codebases in two languages with two build systems and two deploys. Your Go structs get serialised to JSON, then re-typed in TypeScript, then validated again on the client. A field rename means updating both sides and hoping nothing falls through.
+If you run Go on the backend and React, Vue, Next.js, or Nuxt on the frontend, you maintain two codebases in two languages. That means two build systems and two deploys. Your Go structs get serialised to JSON, then re-typed in TypeScript, then validated again on the client. A field rename means updating both sides and hoping nothing falls through.
 
 Piko removes the frontend codebase. You write `.pk` templates alongside your Go code. The generator compiles them to Go source. Your types flow from struct definition to rendered HTML without a serialisation layer or API contract in between.
 
@@ -66,7 +66,7 @@ func main() {
 
 ### .pk templates compile to Go
 
-`.pk` files look like Vue single-file components: a `<template>`, a `<script type="application/x-go">` block, and optional `<style>`. But they are not interpreted at runtime.
+`.pk` files look like Vue single-file components, with a `<template>`, a `<script type="application/x-go">` block, and optional `<style>`. The runtime does not interpret them.
 
 The Piko generator statically analyses your Go types and compiles each template into Go source code. A `p-if` becomes a Go `if`. A `p-for` becomes a Go `for`. A comparison like `state.Count == 1` compiles to a direct integer comparison because the generator already knows the type. The generated code has no reflection and no `interface{}` boxing.
 
@@ -86,7 +86,7 @@ The `.pk` template format is the same whether you are rendering a web page, a tr
 
 ---
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
@@ -117,7 +117,7 @@ air   # Compiles .pk templates and starts the dev server with hot reload
 
 Each page is a `.pk` file with three blocks: a `<template>` for HTML, a `<script type="application/x-go">` block for Go logic, and an optional `<style>` for scoped CSS. The Go block defines a `Response` struct and a `Render` function. Whatever `Render` returns becomes `state` in the template.
 
-The template directives (`p-if`, `p-for`, `p-key`, `:class`, `p-on:click`) will look familiar if you have used Vue. The difference is that these compile to Go, not JavaScript. The generated code has direct field access with no type assertions or map lookups at runtime.
+The template directives (`p-if`, `p-for`, `p-key`, `:class`, `p-on:click`) look familiar if you have used Vue. The difference is that these compile to Go, not JavaScript. The generated code has direct field access with no type assertions or map lookups at runtime.
 
 ```html
 <!-- pages/customers.pk -->
@@ -188,7 +188,7 @@ Actions are RPC-style calls from the frontend to the server. Your template calls
 
 <img src="docs/diagrams/actions-rpc.svg" alt="Left: .pk template calling action.customer.create with name and email. Right: Go method receiving those same arguments. No REST layer in between." width="600"/>
 
-Actions support multiple transports (HTTP, SSE), structured error types that map to HTTP status codes (`ValidationError` → 422, `NotFoundError` → 404, `ForbiddenError` → 403), file uploads, and per-action middleware.
+Actions support multiple transports (HTTP, SSE), structured error types that map to HTTP status codes (`ValidationError` -> 422, `NotFoundError` -> 404, `ForbiddenError` -> 403), file uploads, and per-action middleware.
 
 ### Email templates
 
@@ -239,46 +239,46 @@ Loose content is automatically wrapped in the required `pml-row`/`pml-col` struc
 
 ---
 
-## IDE Support
+## IDE support
 
 Piko includes IDE plugins and a language server for `.pk` templates. Because the generator statically analyses your Go types, the IDE can provide hover documentation, completions, and diagnostics inside your templates, the same way it would in a normal Go file.
 
-- **VS Code** - Syntax highlighting, completions, and diagnostics ([plugin](plugins/vscode/))
+- **VS Code** - Syntax colouring, completions, and diagnostics ([plugin](plugins/vscode/))
 - **JetBrains** - Full support for JetBrains IDEs ([plugin](plugins/idea/))
 - **Language Server** - LSP implementation for any compatible editor
 
-The LSP currently requires around 512MB to 1GB of RAM. JetBrains users should install [LSP4IJ](https://plugins.jetbrains.com/plugin/23257-lsp4ij) and use GoLand or IntelliJ IDEA, as the plugin embeds their Go language system for full type support.
+The LSP currently requires around 512 MB to 1 GB of RAM. JetBrains users should install [LSP4IJ](https://plugins.jetbrains.com/plugin/23257-lsp4ij) and use GoLand or IntelliJ IDEA, as the plugin embeds their Go language system for full type support.
 
 ### Hover documentation
 
 Hover over `props` or `state` references in a template to see the full Go struct definition, including field names, types, and struct tags.
 
-<img src="docs/ide-1.png" alt="IDE hover popup showing the Go struct definition for a pagination component's Props type, with fields CurrentPage, TotalPages, TotalItems, ItemsPerPage, BasePath, and QueryParams" width="830"/>
+<img src="docs/images/ide-1.png" alt="IDE hover popup showing the Go struct definition for a pagination component's Props type, with fields CurrentPage, TotalPages, TotalItems, ItemsPerPage, BasePath, and QueryParams" width="830"/>
 
 ### Autocomplete
 
 Get context-aware completions for all available properties, with their types displayed inline.
 
-<img src="docs/ide-2.png" alt="IDE autocomplete dropdown listing available props fields - BasePath (string), CurrentPage (int), ItemsPerPage (int), QueryParams (string), TotalItems (int), TotalPages (int)" width="830"/>
+<img src="docs/images/ide-2.png" alt="IDE autocomplete dropdown listing available props fields - BasePath (string), CurrentPage (int), ItemsPerPage (int), QueryParams (string), TotalItems (int), TotalPages (int)" width="830"/>
 
 ### Property validation
 
 Reference a property that does not exist and the IDE flags it.
 
-<img src="docs/ide-3.png" alt="IDE error tooltip showing 'Property DoesNotExist does not exist on type partials_pagination Props' when accessing an invalid property in a template" width="830"/>
+<img src="docs/images/ide-3.png" alt="IDE error tooltip showing 'Property DoesNotExist does not exist on type partials_pagination Props' when accessing an invalid property in a template" width="830"/>
 
 ### Type checking
 
-Type mismatches in template expressions are caught at compile time.  
+The compiler flags type mismatches in template expressions at compile time.  
 Here, comparing a `string` field to an `int` field produces an inline diagnostic.
 
-<img src="docs/ide-4.png" alt="IDE error tooltip showing 'Invalid operation: cannot strictly compare type string to int' when comparing props.BasePath to props.TotalPages in a template expression" width="830"/>
+<img src="docs/images/ide-4.png" alt="IDE error tooltip showing 'Invalid operation: cannot strictly compare type string to int' when comparing two props of different types in a template expression" width="830"/>
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please read the [Contributing Guide](CONTRIBUTING.md) for details on our development process, how to submit pull requests, and coding standards.
+Contributions are welcome. Read the [Contributing Guide](CONTRIBUTING.md) for details on the Piko development process, how to submit pull requests, and coding standards.
 
 ---
 

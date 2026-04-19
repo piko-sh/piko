@@ -471,7 +471,6 @@ func TestWebhookCollector_RevenueAndNewFields(t *testing.T) {
 	}
 	wc.Start(context.Background())
 
-	rev := maths.NewMoneyFromString("49.99", "GBP")
 	ev := &analytics_dto.Event{
 		Hostname:   "shop.example.com",
 		URL:        "/checkout?ref=email",
@@ -479,7 +478,7 @@ func TestWebhookCollector_RevenueAndNewFields(t *testing.T) {
 		EventName:  "purchase",
 		StatusCode: 200,
 		Type:       analytics_dto.EventCustom,
-		Revenue:    &rev,
+		Revenue:    new(maths.NewMoneyFromString("49.99", "GBP")),
 		Timestamp:  time.Now(),
 	}
 	if err := wc.Collect(context.Background(), ev); err != nil {

@@ -19,11 +19,10 @@
 // Package crypto_streaming provides streaming encryption primitives
 // for envelope encryption with constant memory usage.
 //
-// This package exposes the low-level AES-GCM streaming readers and
-// writers used by cloud KMS providers (AWS KMS, GCP KMS) to implement
-// envelope encryption. Most applications should use the high-level
-// streaming methods on the crypto service (EncryptStream,
-// DecryptStream) rather than these primitives directly.
+// Exposes the low-level AES-GCM streaming readers and writers used by cloud
+// KMS providers (AWS KMS, GCP KMS) to implement envelope encryption. Most
+// applications should use the high-level streaming methods on the crypto
+// service (EncryptStream, DecryptStream) rather than these primitives directly.
 //
 // # Envelope encryption pattern
 //

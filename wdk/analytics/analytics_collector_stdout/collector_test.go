@@ -51,7 +51,6 @@ func TestCollector_CollectReturnsNil(t *testing.T) {
 
 func TestCollector_CollectWithAllFields(t *testing.T) {
 	c := NewCollector()
-	revenue := maths.NewMoneyFromString("49.99", "GBP")
 	event := &analytics_dto.Event{
 		Hostname:   "example.com",
 		URL:        "/checkout?ref=email",
@@ -65,7 +64,7 @@ func TestCollector_CollectWithAllFields(t *testing.T) {
 		ClientIP:   "192.168.1.1",
 		Referrer:   "https://google.com",
 		Duration:   150 * time.Millisecond,
-		Revenue:    &revenue,
+		Revenue:    new(maths.NewMoneyFromString("49.99", "GBP")),
 		Properties: map[string]string{"plan": "pro", "source": "organic"},
 		Timestamp:  time.Now(),
 	}
@@ -129,7 +128,6 @@ func TestAppendOptionalFields_Empty(t *testing.T) {
 }
 
 func TestAppendOptionalFields_AllSet(t *testing.T) {
-	revenue := maths.NewMoneyFromString("10.00", "USD")
 	event := &analytics_dto.Event{
 		Hostname:   "example.com",
 		URL:        "/page",
@@ -139,7 +137,7 @@ func TestAppendOptionalFields_AllSet(t *testing.T) {
 		ClientIP:   "10.0.0.1",
 		Referrer:   "https://ref.com",
 		Duration:   100 * time.Millisecond,
-		Revenue:    &revenue,
+		Revenue:    new(maths.NewMoneyFromString("10.00", "USD")),
 	}
 	fields := appendOptionalFields(nil, event)
 	if len(fields) != 9 {

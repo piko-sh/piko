@@ -710,8 +710,8 @@ func (rc *referenceCollector) matchesTarget(defLocation ast_domain.Location, sou
 }
 
 // findReferencesToSymbol searches the document for all references to a symbol
-// identified by its definition location and source path. This method is used
-// by both single-file reference search and workspace-wide reference search.
+// identified by its definition location and source path. Used by both single-file
+// reference search and workspace-wide reference search.
 //
 // Takes targetDefinitionLocation (ast_domain.Location) which
 // identifies the symbol's definition location.

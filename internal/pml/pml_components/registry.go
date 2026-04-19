@@ -47,13 +47,30 @@ var _ pml_domain.ComponentRegistry = (*componentRegistry)(nil)
 //
 // Returns pml_domain.Component which is the registered component.
 //
-// Panics if no component is registered with the given tag name.
+// Panics if no component is registered with the given tag name. The caller
+// must have invariant proof that the component exists; otherwise prefer
+// Lookup, which returns an error and never panics.
 func (r *componentRegistry) MustGet(tagName string) pml_domain.Component {
 	comp, ok := r.Get(tagName)
 	if !ok {
 		panic("component not found in registry: " + tagName)
 	}
 	return comp
+}
+
+// Lookup returns the component registered with the given tag name.
+//
+// Takes tagName (string) which identifies the component to retrieve.
+//
+// Returns pml_domain.Component which is the registered component.
+// Returns error which wraps pml_domain.ErrComponentNotFound when not
+// registered.
+func (r *componentRegistry) Lookup(tagName string) (pml_domain.Component, error) {
+	comp, ok := r.Get(tagName)
+	if !ok {
+		return nil, fmt.Errorf("%w: %q", pml_domain.ErrComponentNotFound, tagName)
+	}
+	return comp, nil
 }
 
 // Register adds a component implementation to the registry.

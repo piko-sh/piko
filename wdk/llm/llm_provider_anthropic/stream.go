@@ -20,7 +20,6 @@ package llm_provider_anthropic
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -28,6 +27,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
 
 	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/wdk/logger"
 )
@@ -72,6 +72,8 @@ type streamState struct {
 // Spawns a goroutine to process the stream and send events on the returned
 // channel. The channel is closed when the stream completes or errors.
 func (p *anthropicProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.anthropicProvider.Stream")
+
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
 
@@ -87,13 +89,35 @@ func (p *anthropicProvider) Stream(ctx context.Context, request *llm_dto.Complet
 		logger.Int("message_count", len(request.Messages)),
 	)
 
-	stream := p.client.Messages.NewStreaming(ctx, params)
+	streamContext := p.streamContext(ctx)
+	stream := p.client.Messages.NewStreaming(streamContext, params)
 
 	events := make(chan llm_dto.StreamEvent)
 
-	go p.processStream(ctx, stream, events, model)
+	p.streamWaitGroup.Add(1)
+	go p.processStream(streamContext, stream, events, model)
 
 	return events, nil
+}
+
+// streamContext returns a context that is cancelled when either the caller's
+// context is cancelled or the provider is closed.
+//
+// Takes ctx (context.Context) which is the caller's context.
+//
+// Returns context.Context which carries the merged cancellation signal.
+func (p *anthropicProvider) streamContext(ctx context.Context) context.Context {
+	if p.closeContext == nil {
+		return ctx
+	}
+	merged, cancel := context.WithCancelCause(ctx)
+	stopWatch := context.AfterFunc(p.closeContext, func() {
+		cancel(context.Cause(p.closeContext))
+	})
+	context.AfterFunc(merged, func() {
+		stopWatch()
+	})
+	return merged
 }
 
 // processStream reads from the Anthropic stream and converts events.
@@ -103,6 +127,7 @@ func (p *anthropicProvider) Stream(ctx context.Context, request *llm_dto.Complet
 // events.
 // Takes model (string) which identifies the model name for response metadata.
 func (p *anthropicProvider) processStream(ctx context.Context, stream *ssestream.Stream[anthropic.MessageStreamEventUnion], events chan<- llm_dto.StreamEvent, model string) {
+	defer p.streamWaitGroup.Done()
 	defer close(events)
 	defer goroutine.RecoverPanic(ctx, "llm.anthropicProcessStream")
 	start := time.Now()
@@ -134,11 +159,17 @@ func (p *anthropicProvider) processStream(ctx context.Context, stream *ssestream
 
 	if err := stream.Err(); err != nil {
 		streamErrorCount.Add(ctx, 1)
-		events <- llm_dto.NewErrorEvent(fmt.Errorf("anthropic stream error: %w", wrapError(err)))
+		select {
+		case events <- llm_dto.NewErrorEvent(fmt.Errorf("anthropic stream error: %w", wrapError(err))):
+		case <-ctx.Done():
+		}
 		return
 	}
 
-	events <- llm_dto.NewDoneEvent(p.buildFinalResponse(state))
+	select {
+	case events <- llm_dto.NewDoneEvent(p.buildFinalResponse(state)):
+	case <-ctx.Done():
+	}
 }
 
 // handleStreamEvent processes a single stream event and returns the delta if
@@ -260,7 +291,10 @@ func (*anthropicProvider) sendEvent(ctx context.Context, events chan<- llm_dto.S
 	case events <- event:
 		return true
 	case <-ctx.Done():
-		events <- llm_dto.NewErrorEvent(context.Cause(ctx))
+		select {
+		case events <- llm_dto.NewErrorEvent(context.Cause(ctx)):
+		default:
+		}
 		return false
 	}
 }

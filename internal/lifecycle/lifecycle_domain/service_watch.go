@@ -172,6 +172,7 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 	}
 
 	if ls.interpretedOrchestrator != nil && ls.interpretedOrchestrator.IsInitialised() && ls.coordinatorService != nil {
+		ls.rebuildWG.Add(1)
 		go ls.executeTargetedRebuild(ctx, fec.relPath)
 		return
 	}
@@ -405,7 +406,11 @@ func (ls *lifecycleService) removeEntryPoint(entryPointPath string) {
 // file (e.g. "pages/login.pk").
 //
 // Designed to run in a goroutine so the watch loop is not blocked.
+//
+// The caller must Add(1) on rebuildWG before launching this goroutine; this
+// function Done()s the WaitGroup on exit.
 func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath string) {
+	defer ls.rebuildWG.Done()
 	defer goroutine.RecoverPanic(ctx, "lifecycle.executeTargetedRebuild")
 	ctx, l := logger_domain.From(ctx, log)
 

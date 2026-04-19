@@ -42,13 +42,13 @@ This is the content of the post...
 ```piko
 <!-- pages/blog/{slug}.pk -->
 <template p-collection="blog" p-provider="markdown">
-  <layout is="layout" :server.page_title="state.Title">
+  <piko:partial is="layout" :server.page_title="state.Title">
     <article>
       <h1>{{ state.Title }}</h1>
       <time>{{ state.Date }}</time>
       <piko:content />
     </article>
-  </layout>
+  </piko:partial>
 </template>
 
 <script type="application/x-go">

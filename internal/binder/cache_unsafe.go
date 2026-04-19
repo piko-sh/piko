@@ -221,8 +221,8 @@ func (*binderCache) buildFieldInfo(field *reflect.StructField, fieldType, effect
 //
 // Returns uintptr which is a unique key for the type.
 //
-// This function uses unsafe to extract the data pointer from a reflect.Type
-// interface. This is safe because:
+// Uses unsafe to extract the data pointer from a reflect.Type interface. This
+// is safe because:
 //
 //  1. Stable layout: Go's interface layout is (type, data) and this is stable
 //     across Go versions. This is part of the runtime and used by the reflect
@@ -252,11 +252,11 @@ func typeKey(t reflect.Type) uintptr {
 	return (*iface)(unsafe.Pointer(&t)).data
 }
 
-// buildFieldIndex creates the full index path for a field by adding its
+// buildFieldIndex creates the full index path for a field by appending its
 // position to the parent's index path.
 //
 // Takes parentIndex ([]int) which is the index path of the parent field.
-// Takes index (int) which is this field's position within its parent.
+// Takes index (int) which is the field's position within its parent.
 //
 // Returns []int which is the complete index path for the field.
 func buildFieldIndex(parentIndex []int, index int) []int {

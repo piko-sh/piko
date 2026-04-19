@@ -174,7 +174,7 @@ func (c *Container) buildStorageServiceOpts() []storage_domain.ServiceOption {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	var opts []storage_domain.ServiceOption
 
-	tempSandbox, err := c.createSandbox("storage-temp", filepath.Join(deref(c.config.ServerConfig.Paths.BaseDir, "."), ".piko", "tmp"), safedisk.ModeReadWrite)
+	tempSandbox, err := c.createSandbox("storage-temp", filepath.Join(deref(c.serverConfig.Paths.BaseDir, "."), ".piko", "tmp"), safedisk.ModeReadWrite)
 	if err != nil {
 		l.Warn("Failed to create storage temp sandbox, using fallback",
 			logger_domain.Error(err))
@@ -183,8 +183,8 @@ func (c *Container) buildStorageServiceOpts() []storage_domain.ServiceOption {
 	}
 
 	presignBaseURL := c.storagePresignBaseURL
-	if presignBaseURL == "" && c.config != nil {
-		if configURL := deref(c.config.ServerConfig.Storage.Presign.BaseURL, ""); configURL != "" {
+	if presignBaseURL == "" {
+		if configURL := deref(c.serverConfig.Storage.Presign.BaseURL, ""); configURL != "" {
 			presignBaseURL = configURL
 		}
 	}
@@ -193,8 +193,8 @@ func (c *Container) buildStorageServiceOpts() []storage_domain.ServiceOption {
 	}
 
 	publicBaseURL := c.storagePublicBaseURL
-	if publicBaseURL == "" && c.config != nil {
-		if configURL := deref(c.config.ServerConfig.Storage.PublicBaseURL, ""); configURL != "" {
+	if publicBaseURL == "" {
+		if configURL := deref(c.serverConfig.Storage.PublicBaseURL, ""); configURL != "" {
 			publicBaseURL = configURL
 		}
 	}
@@ -254,7 +254,7 @@ func (c *Container) selectStorageBaseProvider() (baseName string, baseProvider s
 		}
 	} else {
 		baseName = storage_dto.StorageProviderDefault
-		storageDir := filepath.Join(deref(c.config.ServerConfig.Paths.BaseDir, "."), config.PikoInternalPath, "storage")
+		storageDir := filepath.Join(deref(c.serverConfig.Paths.BaseDir, "."), config.PikoInternalPath, "storage")
 		storageSandbox, sandboxErr := c.createSandbox("storage-disk-provider", storageDir, safedisk.ModeReadWrite)
 		if sandboxErr != nil {
 			return "", nil, fmt.Errorf("failed to create storage sandbox: %w", sandboxErr)

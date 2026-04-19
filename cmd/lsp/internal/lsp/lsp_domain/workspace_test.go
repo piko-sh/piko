@@ -1123,3 +1123,79 @@ func TestPublishErrorDiagnostic_ClientReturnsError(t *testing.T) {
 
 	ws.publishErrorDiagnostic(context.Background(), "file:///test.pk", "error message")
 }
+
+func TestWorkspace_Close_DrainsAllGoroutines(t *testing.T) {
+	t.Parallel()
+
+	ws := createTestWorkspace()
+
+	const goroutines = 10
+	finished := make(chan struct{}, goroutines)
+	for range goroutines {
+		ws.spawnTracked(t.Context(), "lsp.workspace.test", func() {
+			time.Sleep(20 * time.Millisecond)
+			finished <- struct{}{}
+		})
+	}
+
+	if err := ws.Close(t.Context()); err != nil {
+		t.Fatalf("Close returned an error: %v", err)
+	}
+
+	if got := len(finished); got != goroutines {
+		t.Fatalf("expected %d goroutines to finish before Close returned, got %d", goroutines, got)
+	}
+}
+
+func TestWorkspace_Close_RecoversFromPanic(t *testing.T) {
+	t.Parallel()
+
+	ws := createTestWorkspace()
+
+	ws.spawnTracked(t.Context(), "lsp.workspace.test.panic", func() {
+		panic("simulated workspace panic")
+	})
+
+	if err := ws.Close(t.Context()); err != nil {
+		t.Fatalf("Close returned an error: %v", err)
+	}
+}
+
+func TestWorkspace_Close_NilSafe(t *testing.T) {
+	t.Parallel()
+
+	var ws *workspace
+	if err := ws.Close(t.Context()); err != nil {
+		t.Fatalf("Close on nil workspace returned an error: %v", err)
+	}
+}
+
+func TestWorkspace_PublishErrorDiagnosticAsync_Tracked(t *testing.T) {
+	t.Parallel()
+
+	receivedURIs := make(chan protocol.DocumentURI, 1)
+	client := &mockClient{
+		PublishDiagnosticsFunc: func(_ context.Context, params *protocol.PublishDiagnosticsParams) error {
+			receivedURIs <- params.URI
+			return nil
+		},
+	}
+	ws := createTestWorkspace()
+	ws.setClient(client)
+
+	uri := protocol.DocumentURI("file:///drain.pk")
+	ws.publishErrorDiagnosticAsync(t.Context(), uri, "boom", "lsp.workspace.test")
+
+	if err := ws.Close(t.Context()); err != nil {
+		t.Fatalf("Close returned an error: %v", err)
+	}
+
+	select {
+	case got := <-receivedURIs:
+		if got != uri {
+			t.Fatalf("expected %s, got %s", uri, got)
+		}
+	default:
+		t.Fatal("publishErrorDiagnosticAsync did not run before Close drained")
+	}
+}

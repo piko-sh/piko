@@ -80,8 +80,7 @@ type prodDaemonBuilder struct {
 }
 
 // build assembles the production daemon by calling a series of helper methods.
-// This method follows the Extract Method pattern, with each step handled by a
-// focused helper.
+// Follows the Extract Method pattern, with each step handled by a focused helper.
 //
 // Returns daemon_domain.DaemonService which is the fully assembled daemon.
 // Returns error when any build step fails.
@@ -151,14 +150,14 @@ func (b *prodDaemonBuilder) buildTemplater(ctx context.Context) error {
 	store, err := templater_adapters.NewManifestStore(
 		ctx,
 		manifestProvider,
-		templater_adapters.WithBaseDir(deref(b.c.config.ServerConfig.Paths.BaseDir, ".")),
+		templater_adapters.WithBaseDir(deref(b.c.serverConfig.Paths.BaseDir, ".")),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to load and link production manifest: %w", err)
 	}
 	b.store = store
 
-	defaultLocale := deref(b.c.config.ServerConfig.I18nDefaultLocale, "en")
+	defaultLocale := deref(b.c.serverConfig.I18nDefaultLocale, "en")
 	compiledRunner := templater_adapters.NewCompiledManifestRunner(b.store, b.i18nService, defaultLocale)
 
 	astCacheService, err := b.bootstrapASTCacheService(ctx)
@@ -222,7 +221,7 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 	}
 
 	lifecycleService, err := b.c.createLifecycleService(&lifecycleServiceConfig{
-		PathsConfig: NewLifecyclePathsConfig(&b.deps.ConfigProvider.ServerConfig),
+		PathsConfig: NewLifecyclePathsConfig(&b.c.serverConfig),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create lifecycle service: %w", err)
@@ -235,8 +234,8 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 
 	runInitialTasksInBackground(appCtx, l, lifecycleService)
 
-	daemonConfig := NewDaemonConfig(&b.deps.ConfigProvider.ServerConfig)
-	if b.deps.ConfigProvider.ServerConfig.HealthProbe.ShutdownDrainDelay == nil {
+	daemonConfig := NewDaemonConfig(&b.c.serverConfig)
+	if b.c.serverConfig.HealthProbe.ShutdownDrainDelay == nil {
 		daemonConfig.ShutdownDrainDelay = defaultShutdownDrainDelay
 	}
 	serverAdapter, tlsCleanup, err := daemon_adapters.NewServerAdapterFromTLSConfig(
@@ -254,7 +253,7 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 
 	return daemon_domain.NewService(ctx, &daemon_domain.DaemonServiceDeps{
 		DaemonConfig:      daemonConfig,
-		WatchMode:         b.deps.ConfigProvider.ServerConfig.Build.WatchMode,
+		WatchMode:         b.c.serverConfig.Build.WatchMode,
 		Server:            serverAdapter,
 		FinalRouter:       b.finalRouter,
 		SEOService:        seoService,
@@ -276,7 +275,7 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 // Returns ast_domain.ASTCacheService which is the configured cache service.
 // Returns error when the cache service cannot be created.
 func (b *prodDaemonBuilder) bootstrapASTCacheService(ctx context.Context) (ast_domain.ASTCacheService, error) {
-	serverConfig := b.deps.ConfigProvider.ServerConfig
+	serverConfig := b.c.serverConfig
 	astCacheConfig := ast_adapters.ASTCacheConfig{
 		L1CacheCapacity: config.DefaultL1CacheCapacity,
 		L1CacheTTL:      time.Duration(config.DefaultL1CacheTTLMinutes) * time.Minute,

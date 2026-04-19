@@ -21,7 +21,10 @@ package ast_domain
 // Provides a pooled arena allocator that replaces per-object sync.Pool
 // operations with a single arena allocation per request.
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 const (
 	// initialNodeCount is the initial capacity for template nodes in a render arena.
@@ -88,13 +91,29 @@ var (
 	// initialRootNodesCounts holds the initial bucket counts for root node slab allocation.
 	initialRootNodesCounts = [14]int{8, 8, 8, 4, 4, 4, 4, 4, 2, 2, 2, 2, 2, 2}
 
-	// arenaPool is the single sync.Pool for arena instances.
-	arenaPool = sync.Pool{
+	// arenaPool holds the active sync.Pool for arena instances. Wrapped in
+	// atomic.Pointer so ResetArenaPool can swap in a fresh pool without
+	// racing concurrent Get/Put callers (a direct struct-copy assignment of
+	// sync.Pool tears the (local, localSize) pair under the race detector
+	// and crashes in sync.indexLocal).
+	arenaPool atomic.Pointer[sync.Pool]
+)
+
+func init() {
+	arenaPool.Store(newArenaPool())
+}
+
+// newArenaPool builds a fresh sync.Pool whose New func returns a default
+// RenderArena. Used by init and ResetArenaPool to populate arenaPool.
+//
+// Returns *sync.Pool which is the freshly constructed pool.
+func newArenaPool() *sync.Pool {
+	return &sync.Pool{
 		New: func() any {
 			return newRenderArena()
 		},
 	}
-)
+}
 
 // slabBucket holds pre-allocated backing arrays for slices of a specific capacity.
 type slabBucket[T any] struct {
@@ -626,7 +645,7 @@ func (a *RenderArena) resetRootNodesSlabs() {
 // Returns *RenderArena which is a reusable arena, either from the pool or
 // newly created.
 func GetArena() *RenderArena {
-	arena, ok := arenaPool.Get().(*RenderArena)
+	arena, ok := arenaPool.Load().Get().(*RenderArena)
 	if !ok {
 		return newRenderArena()
 	}
@@ -641,16 +660,13 @@ func PutArena(arena *RenderArena) {
 		return
 	}
 	arena.Reset()
-	arenaPool.Put(arena)
+	arenaPool.Load().Put(arena)
 }
 
-// ResetArenaPool clears the arena pool for test isolation.
+// ResetArenaPool atomically swaps in a fresh arena pool for test isolation.
+// Safe to call concurrently with Get/Put.
 func ResetArenaPool() {
-	arenaPool = sync.Pool{
-		New: func() any {
-			return newRenderArena()
-		},
-	}
+	arenaPool.Store(newArenaPool())
 }
 
 // newRenderArena creates a new arena with default initial sizes.

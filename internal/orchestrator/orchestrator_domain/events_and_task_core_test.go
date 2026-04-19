@@ -1769,3 +1769,213 @@ func TestTaskProcessingCore_Stats_IncludesFatalFailed(t *testing.T) {
 	ps := core.Stats()
 	assert.Equal(t, int64(2), ps.FatalFailed, "Stats() should return TasksFatalFailed in FatalFailed field")
 }
+
+type slowMockTaskStore struct {
+	gate         chan struct{}
+	inFlight     atomic.Int64
+	peakInFlight atomic.Int64
+}
+
+func newSlowMockTaskStore() *slowMockTaskStore {
+	return &slowMockTaskStore{
+		gate: make(chan struct{}),
+	}
+}
+
+func (s *slowMockTaskStore) trackEntry() {
+	current := s.inFlight.Add(1)
+	for {
+		peak := s.peakInFlight.Load()
+		if current <= peak || s.peakInFlight.CompareAndSwap(peak, current) {
+			break
+		}
+	}
+}
+
+func (s *slowMockTaskStore) trackExit() {
+	s.inFlight.Add(-1)
+}
+
+func (s *slowMockTaskStore) PeakInFlight() int64 {
+	return s.peakInFlight.Load()
+}
+
+func (s *slowMockTaskStore) Release() {
+	close(s.gate)
+}
+
+func (s *slowMockTaskStore) blockUntilReleased(ctx context.Context) {
+	select {
+	case <-s.gate:
+	case <-ctx.Done():
+	}
+}
+
+func (s *slowMockTaskStore) CreateTask(_ context.Context, _ *Task) error    { return nil }
+func (s *slowMockTaskStore) CreateTasks(_ context.Context, _ []*Task) error { return nil }
+func (s *slowMockTaskStore) UpdateTask(ctx context.Context, _ *Task) error {
+	s.trackEntry()
+	defer s.trackExit()
+	s.blockUntilReleased(ctx)
+	return nil
+}
+func (s *slowMockTaskStore) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
+	return nil, nil
+}
+func (s *slowMockTaskStore) GetWorkflowStatus(_ context.Context, _ string) (bool, error) {
+	return false, nil
+}
+func (s *slowMockTaskStore) PromoteScheduledTasks(_ context.Context) (int, error) { return 0, nil }
+func (s *slowMockTaskStore) PendingTaskCount(_ context.Context) (int64, error)    { return 0, nil }
+func (s *slowMockTaskStore) CreateTaskWithDedup(ctx context.Context, _ *Task) error {
+	s.trackEntry()
+	defer s.trackExit()
+	s.blockUntilReleased(ctx)
+	return nil
+}
+func (s *slowMockTaskStore) RecoverStaleTasks(_ context.Context, _ time.Duration, _ int, _ string) (int, error) {
+	return 0, nil
+}
+func (s *slowMockTaskStore) GetStaleProcessingTaskCount(_ context.Context, _ time.Duration) (int64, error) {
+	return 0, nil
+}
+func (s *slowMockTaskStore) UpdateTaskHeartbeat(_ context.Context, _ string) error { return nil }
+func (s *slowMockTaskStore) ClaimStaleTasksForRecovery(_ context.Context, _ string, _ time.Duration, _ time.Duration, _ int) ([]RecoveryClaimedTask, error) {
+	return nil, nil
+}
+func (s *slowMockTaskStore) RecoverClaimedTasks(_ context.Context, _ string, _ int, _ string) (int, error) {
+	return 0, nil
+}
+func (s *slowMockTaskStore) ReleaseRecoveryLeases(_ context.Context, _ string) (int, error) {
+	return 0, nil
+}
+func (s *slowMockTaskStore) CreateWorkflowReceipt(_ context.Context, _, _, _ string) error {
+	return nil
+}
+func (s *slowMockTaskStore) ResolveWorkflowReceipts(_ context.Context, _, _ string) (int, error) {
+	return 0, nil
+}
+func (s *slowMockTaskStore) GetPendingReceiptsByNode(_ context.Context, _ string) ([]PendingReceipt, error) {
+	return nil, nil
+}
+func (s *slowMockTaskStore) CleanupOldResolvedReceipts(_ context.Context, _ time.Time) (int, error) {
+	return 0, nil
+}
+func (s *slowMockTaskStore) TimeoutStaleReceipts(_ context.Context, _ time.Time) (int, error) {
+	return 0, nil
+}
+func (s *slowMockTaskStore) ListFailedTasks(_ context.Context) ([]*Task, error) {
+	return nil, nil
+}
+func (s *slowMockTaskStore) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore TaskStore) error) error {
+	return fn(ctx, s)
+}
+
+func TestPersistFanout_RespectsConcurrencyLimit(t *testing.T) {
+	t.Parallel()
+
+	const persistCap = 4
+
+	store := newSlowMockTaskStore()
+
+	config := DefaultDispatcherConfig()
+	config.MaxConcurrentPersistJobs = persistCap
+	core := NewTaskProcessingCore(config, nil, store, nil)
+
+	t.Cleanup(func() {
+		shutdownCtx, cancel := context.WithTimeoutCause(context.Background(),
+			5*time.Second, errors.New("test cleanup persist shutdown timeout"))
+		defer cancel()
+		store.Release()
+		_ = core.Shutdown(shutdownCtx)
+	})
+
+	for i := range persistCap {
+		core.PersistTaskUpdate(context.Background(), &Task{
+			ID:         fmt.Sprintf("task-%d", i),
+			WorkflowID: "wf-1",
+			Status:     StatusComplete,
+			Payload:    map[string]any{},
+		})
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if store.inFlight.Load() >= int64(persistCap) {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	assert.Equal(t, int64(persistCap), store.inFlight.Load(),
+		"all async permits should be in flight together, none more")
+	assert.Equal(t, int64(persistCap), store.PeakInFlight(),
+		"peak should equal cap when only async dispatches were issued")
+}
+
+func TestPersistFanout_FallsBackToSyncWhenSaturated(t *testing.T) {
+	t.Parallel()
+
+	const persistCap = 2
+
+	store := newSlowMockTaskStore()
+
+	config := DefaultDispatcherConfig()
+	config.MaxConcurrentPersistJobs = persistCap
+	core := NewTaskProcessingCore(config, nil, store, nil)
+
+	t.Cleanup(func() {
+		shutdownCtx, cancel := context.WithTimeoutCause(context.Background(),
+			5*time.Second, errors.New("test cleanup persist shutdown timeout"))
+		defer cancel()
+		store.Release()
+		_ = core.Shutdown(shutdownCtx)
+	})
+
+	for i := range persistCap {
+		core.PersistTaskUpdate(context.Background(), &Task{
+			ID:         fmt.Sprintf("async-%d", i),
+			WorkflowID: "wf-1",
+			Status:     StatusComplete,
+			Payload:    map[string]any{},
+		})
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if store.inFlight.Load() >= int64(persistCap) {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	require.Equal(t, int64(persistCap), store.inFlight.Load(),
+		"async dispatches should occupy all permits before saturation test runs")
+
+	syncDone := make(chan struct{})
+	go func() {
+		core.PersistTaskUpdate(context.Background(), &Task{
+			ID:         "sync-fallback",
+			WorkflowID: "wf-1",
+			Status:     StatusComplete,
+			Payload:    map[string]any{},
+		})
+		close(syncDone)
+	}()
+
+	deadline = time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if store.inFlight.Load() > int64(persistCap) {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	assert.GreaterOrEqual(t, store.inFlight.Load(), int64(persistCap+1),
+		"saturated caller should run synchronously and add to in-flight count")
+
+	select {
+	case <-syncDone:
+		t.Fatal("synchronous fallback should still be blocked on the gate")
+	default:
+	}
+}

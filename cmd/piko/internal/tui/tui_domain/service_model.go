@@ -760,8 +760,7 @@ func (m *Model) toggleMenuColumn() {
 	v := m.groupVisibility[g.ID()]
 	bp := PickBreakpoint(DefaultBreakpoints, m.width, m.height)
 	current := columnVisible(v.LeftOverride, bp.ShowsLeftByDefault)
-	next := !current
-	v.LeftOverride = &next
+	v.LeftOverride = new(!current)
 	m.groupVisibility[g.ID()] = v
 }
 
@@ -775,8 +774,7 @@ func (m *Model) toggleDetailColumn() {
 	v := m.groupVisibility[g.ID()]
 	bp := PickBreakpoint(DefaultBreakpoints, m.width, m.height)
 	current := columnVisible(v.RightOverride, bp.ShowsRightByDefault)
-	next := !current
-	v.RightOverride = &next
+	v.RightOverride = new(!current)
 	m.groupVisibility[g.ID()] = v
 }
 

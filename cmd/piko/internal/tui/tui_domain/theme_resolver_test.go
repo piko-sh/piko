@@ -95,15 +95,10 @@ func TestResolveThemeNilRegistryUsesGlobal(t *testing.T) {
 
 func buildTestRegistry() *ThemeRegistry {
 	registry := NewThemeRegistry()
-	classic := buildClassicTheme()
-	dark := buildDarkTheme()
-	light := buildLightTheme()
-	mono := buildMonoTheme()
-	noColor := buildNoColorTheme()
-	registry.Register(&classic)
-	registry.Register(&dark)
-	registry.Register(&light)
-	registry.Register(&mono)
-	registry.Register(&noColor)
+	registry.Register(new(buildClassicTheme()))
+	registry.Register(new(buildDarkTheme()))
+	registry.Register(new(buildLightTheme()))
+	registry.Register(new(buildMonoTheme()))
+	registry.Register(new(buildNoColorTheme()))
 	return registry
 }

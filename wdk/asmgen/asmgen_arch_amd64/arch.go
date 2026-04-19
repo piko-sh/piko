@@ -117,7 +117,7 @@ func (*AMD64Arch) LoadImmediate(e *asmgen.Emitter, value, destination string) {
 	inst(e, "MOVQ", value+", "+destination)
 }
 
-// Return emits a RET instruction.
+// Return emits a RET instruction. Returns from the current function.
 //
 // Takes e (*asmgen.Emitter) which is the output buffer.
 func (*AMD64Arch) Return(e *asmgen.Emitter) { e.Instruction("RET") }

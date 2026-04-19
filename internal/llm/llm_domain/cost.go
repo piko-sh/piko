@@ -129,7 +129,7 @@ func NewCostCalculatorWithPricing(table *llm_dto.PricingTable, opts ...CostCalcu
 	return cc
 }
 
-// Calculate computes the cost from usage for a given model and provider.
+// Calculate calculates the cost from usage for a given model and provider.
 //
 // Takes model (string) which is the model identifier.
 // Takes provider (string) which is the provider name.

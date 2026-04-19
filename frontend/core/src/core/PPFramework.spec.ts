@@ -486,14 +486,14 @@ describe('PPFramework', () => {
       expect(loaderBarElement!.style.width).toBe('0%');
     });
 
-    it('updateProgressBar should update loader bar width', () => {
+    it('updateProgressBar should update loader bar width and stay monotonic', () => {
       PPFramework.updateProgressBar(50);
       expect(loaderBarElement!.style.display).toBe('block');
       expect(loaderBarElement!.style.width).toBe('50%');
       PPFramework.updateProgressBar(110);
       expect(loaderBarElement!.style.width).toBe('100%');
       PPFramework.updateProgressBar(-10);
-      expect(loaderBarElement!.style.width).toBe('0%');
+      expect(loaderBarElement!.style.width).toBe('100%');
     });
 
     it('displayError should show and then hide an error message', async () => {

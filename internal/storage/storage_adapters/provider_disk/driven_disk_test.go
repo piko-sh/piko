@@ -599,6 +599,26 @@ func TestDiskProvider_Put_WriteFailure(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to write data to temporary file")
 	})
+
+	t.Run("returns error when temp file fsync fails", func(t *testing.T) {
+		t.Parallel()
+
+		sandbox := safedisk.NewMockSandbox("/sandbox", safedisk.ModeReadWrite)
+		defer func() { _ = sandbox.Close() }()
+		sandbox.NextTempFileSyncErr = errors.New("fsync failed")
+		provider, _ := NewDiskProvider(Config{Sandbox: sandbox})
+
+		params := &storage_dto.PutParams{
+			Repository: "repo",
+			Key:        "file.txt",
+			Reader:     bytes.NewReader([]byte("data")),
+		}
+
+		err := provider.Put(context.Background(), params)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to fsync temporary file")
+	})
 }
 
 func TestDiskProvider_Get_ByteRange(t *testing.T) {

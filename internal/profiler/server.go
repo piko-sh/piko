@@ -31,6 +31,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/json"
 )
 
@@ -161,6 +162,7 @@ func StartServer(config Config) (*ServerHandle, error) {
 	}
 
 	go func() {
+		defer goroutine.RecoverPanic(context.Background(), "profiler.httpServer")
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			handle.reportError(fmt.Errorf("profiling server failed: %w", err))
 		}

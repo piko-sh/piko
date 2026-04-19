@@ -26,14 +26,13 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// LocalProviderFactory creates ephemeral encryption providers for envelope
-// encryption. This is used by the crypto service to create temporary providers
-// configured with data keys.
+// LocalProviderFactory creates ephemeral encryption providers for envelope encryption.
+// Used by the crypto service to create temporary providers configured with data keys.
 //
 // The factory pattern allows the domain to request providers with specific key
-// material without knowing how those providers are implemented. This maintains
-// the Dependency Inversion Principle - the domain depends on this interface,
-// not on concrete implementations.
+// material without knowing how those providers are implemented. Maintains the
+// Dependency Inversion Principle - the domain depends on the abstraction, not
+// on concrete implementations.
 type LocalProviderFactory interface {
 	// CreateWithKey creates a new encryption provider configured with the given
 	// key material. This is used for envelope encryption where each batch
@@ -96,7 +95,7 @@ type EncryptionProvider interface {
 	// immediate use and the encrypted key for storage.
 	// Returns error when key generation fails.
 	//
-	// Optional: not all providers need to implement this method. The local
+	// Optional: not all providers need to implement the operation. The local
 	// provider uses the master key directly.
 	GenerateDataKey(ctx context.Context, request *crypto_dto.GenerateDataKeyRequest) (*crypto_dto.DataKey, error)
 
@@ -242,9 +241,8 @@ type CryptoServicePort interface {
 	// key if keyID is empty. The caller writes plaintext to the returned
 	// WriteCloser, and encrypted data is written to the provided output Writer.
 	//
-	// This method is designed for encrypting large files without loading them
-	// entirely into memory. Memory usage remains constant regardless of stream
-	// size.
+	// Designed for encrypting large files without loading them entirely into
+	// memory. Memory usage remains constant regardless of stream size.
 	//
 	// Takes output (io.Writer) which receives the encrypted data.
 	// Takes keyID (string) which specifies the encryption key, or empty for the
@@ -257,8 +255,8 @@ type CryptoServicePort interface {
 	// DecryptStream decrypts a data stream.
 	// The caller reads plaintext from the returned ReadCloser.
 	//
-	// This method automatically detects the envelope format (v1 or v2) and sets up
-	// the appropriate decryption pipeline. Suitable for decrypting large files.
+	// Automatically detects the envelope format (v1 or v2) and sets up the
+	// appropriate decryption pipeline. Suitable for decrypting large files.
 	DecryptStream(ctx context.Context, input io.Reader) (io.ReadCloser, error)
 
 	// NewEncrypt creates a new encryption builder.

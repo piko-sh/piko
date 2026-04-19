@@ -278,13 +278,12 @@ func TestCollector_RevenueMapping(t *testing.T) {
 
 	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
-	revenue := maths.NewMoneyFromString("49.99", "GBP")
 	event := &analytics_dto.Event{
 		EventName:  "purchase",
 		Path:       "/checkout",
 		StatusCode: 200,
 		Type:       analytics_dto.EventCustom,
-		Revenue:    &revenue,
+		Revenue:    new(maths.NewMoneyFromString("49.99", "GBP")),
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}

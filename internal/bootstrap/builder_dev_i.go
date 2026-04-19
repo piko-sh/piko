@@ -163,27 +163,10 @@ func (b *interpretedDaemonBuilder) build(ctx context.Context) (daemon_domain.Dae
 
 	b.prepareProviders(ctx)
 
-	bridge := b.c.GetArtefactBridge()
-	eventBus := b.c.GetEventBus()
-
-	factory, err := b.c.GetSandboxFactory()
+	buildService, err := b.assembleBuildService()
 	if err != nil {
-		return nil, fmt.Errorf("getting sandbox factory for interpreted build service: %w", err)
+		return nil, err
 	}
-
-	buildPathsConfig := b.buildLifecyclePathsConfig()
-	buildService := lifecycle_adapters.NewBuildService(
-		b.c.GetConfigProvider(),
-		buildPathsConfig,
-		b.registryService,
-		b.orchestratorService,
-		bridge,
-		eventBus,
-		b.renderer,
-		b.resolver,
-		b.c.externalComponents,
-		factory,
-	)
 
 	l.Internal("Performing initial asset seeding and processing...")
 	result, err := buildService.RunBuild(ctx)
@@ -211,6 +194,38 @@ func (b *interpretedDaemonBuilder) build(ctx context.Context) (daemon_domain.Dae
 	}
 
 	return b.buildFinalDaemon(ctx)
+}
+
+// assembleBuildService constructs the lifecycle build service from the
+// container's resolved dependencies.
+//
+// Returns lifecycle_domain.BuilderAdapter which is ready to run an initial
+// asset seeding pass.
+// Returns error when the event bus or sandbox factory cannot be resolved.
+func (b *interpretedDaemonBuilder) assembleBuildService() (lifecycle_domain.BuilderAdapter, error) {
+	bridge := b.c.GetArtefactBridge()
+	eventBus, err := b.c.GetEventBus()
+	if err != nil {
+		return nil, fmt.Errorf("getting event bus for interpreted build service: %w", err)
+	}
+
+	factory, err := b.c.GetSandboxFactory()
+	if err != nil {
+		return nil, fmt.Errorf("getting sandbox factory for interpreted build service: %w", err)
+	}
+
+	return lifecycle_adapters.NewBuildService(
+		&b.c.websiteConfig,
+		b.buildLifecyclePathsConfig(),
+		b.registryService,
+		b.orchestratorService,
+		bridge,
+		eventBus,
+		b.renderer,
+		b.resolver,
+		b.c.externalComponents,
+		factory,
+	), nil
 }
 
 // resolveServices fills the builder with all needed service dependencies
@@ -370,7 +385,7 @@ func (b *interpretedDaemonBuilder) createInterpretedAnnotatorService(ctx context
 func (b *interpretedDaemonBuilder) createAnnotatorReaderAndProcessor(
 	resolver resolver_domain.ResolverPort,
 ) (annotator_domain.FSReaderPort, *annotator_domain.CSSProcessor, error) {
-	serverConfig := b.c.config.ServerConfig
+	serverConfig := b.c.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
 	sandboxFactory, err := safedisk.NewFactory(safedisk.FactoryConfig{
 		Enabled:      deref(serverConfig.Security.Sandbox.Enabled, true),
@@ -431,7 +446,7 @@ func (b *interpretedDaemonBuilder) createAnnotatorServiceInstance(
 		FSReader:            fsReader,
 		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(typeInspectorManager),
 		CSSProcessor:        cssProcessor,
-		PathsConfig:         NewAnnotatorPathsConfig(&b.c.config.ServerConfig),
+		PathsConfig:         NewAnnotatorPathsConfig(&b.c.serverConfig),
 		AssetsConfig:        b.c.GetAssetsConfig(),
 		Cache:               annotator_adapters.NewComponentCache(),
 		CompilationLogLevel: slog.LevelWarn,
@@ -459,13 +474,13 @@ func (b *interpretedDaemonBuilder) prepareProviders(ctx context.Context) {
 //
 // Returns error when the absolute project root path cannot be found.
 func (b *interpretedDaemonBuilder) buildTemplaterAndRunner() error {
-	projectRoot, err := filepath.Abs(deref(b.deps.ConfigProvider.ServerConfig.Paths.BaseDir, "."))
+	projectRoot, err := filepath.Abs(deref(b.c.serverConfig.Paths.BaseDir, "."))
 	if err != nil {
 		return fmt.Errorf("failed to get absolute project root: %w", err)
 	}
 
 	genPathsConfig := b.buildGeneratorPathsConfig()
-	i18nLocale := deref(b.c.config.ServerConfig.I18nDefaultLocale, "en")
+	i18nLocale := deref(b.c.serverConfig.I18nDefaultLocale, "en")
 
 	orchFactory, orchFactoryErr := b.c.GetSandboxFactory()
 	if orchFactoryErr != nil {
@@ -486,7 +501,7 @@ func (b *interpretedDaemonBuilder) buildTemplaterAndRunner() error {
 		},
 	)
 
-	defaultLocale := deref(b.c.config.ServerConfig.I18nDefaultLocale, "en")
+	defaultLocale := deref(b.c.serverConfig.I18nDefaultLocale, "en")
 	b.runner = templater_adapters.NewInterpretedManifestRunner(
 		b.i18nService,
 		make(map[string]*templater_adapters.PageEntry),
@@ -555,14 +570,14 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 
 	b.routerManager = daemon_adapters.NewRouterManager(&daemon_adapters.RouterManagerConfig{
 		RouterConfig:  b.buildRouterConfig(),
-		RouteSettings: buildRouteSettings(&b.deps.ConfigProvider.ServerConfig),
-		CSPConfig:     buildCSPRuntimeConfig(b.c, b.deps),
+		RouteSettings: buildRouteSettings(&b.c.serverConfig),
+		CSPConfig:     buildCSPRuntimeConfig(b.c),
 		Deps: &daemon_domain.HTTPHandlerDependencies{
 			Templater: b.templaterService,
 			Validator: b.c.GetValidator(),
 		},
 		CSRFService:      b.csrfService,
-		SiteSettings:     &b.deps.ConfigProvider.WebsiteConfig,
+		SiteSettings:     &b.c.websiteConfig,
 		Actions:          b.c.GetActionRegistry(),
 		CacheMiddleware:  nil,
 		RegistryService:  b.registryService,
@@ -587,8 +602,7 @@ func (b *interpretedDaemonBuilder) setupDevEventBroadcaster() {
 	if b.c.IsDevWidgetEnabled() || b.c.IsDevHotreloadEnabled() {
 		b.devEventBroadcaster = daemon_adapters.NewDevEventBroadcaster()
 		shutdown.Register(b.c.GetAppContext(), "DevEventBroadcaster", func(_ context.Context) error {
-			b.devEventBroadcaster.Close()
-			return nil
+			return b.devEventBroadcaster.Close()
 		})
 	}
 }
@@ -605,7 +619,7 @@ func (b *interpretedDaemonBuilder) wireDevAPIOptionalDeps(ctx context.Context) {
 // Returns *daemon_domain.RouterConfig which contains the assembled router
 // settings.
 func (b *interpretedDaemonBuilder) buildRouterConfig() *daemon_domain.RouterConfig {
-	serverConfig := b.deps.ConfigProvider.ServerConfig
+	serverConfig := b.c.serverConfig
 
 	securityHeaders := serverConfig.Security.Headers
 	corpOverride := b.c.GetCrossOriginResourcePolicy()
@@ -706,7 +720,7 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 		return nil, fmt.Errorf("failed to start lifecycle service: %w", err)
 	}
 
-	daemonConfig := NewDaemonConfig(&b.deps.ConfigProvider.ServerConfig)
+	daemonConfig := NewDaemonConfig(&b.c.serverConfig)
 	daemonConfig.DevelopmentMode = true
 	daemonConfig.NetworkAutoNextPort = true
 	daemonConfig.HealthAutoNextPort = true
@@ -718,7 +732,7 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 
 	return &daemon_domain.DaemonServiceDeps{
 		DaemonConfig:        daemonConfig,
-		WatchMode:           b.deps.ConfigProvider.ServerConfig.Build.WatchMode,
+		WatchMode:           b.c.serverConfig.Build.WatchMode,
 		Server:              serverAdapter,
 		OrchestratorService: b.orchestratorService,
 		FinalRouter:         b.routerManager,
@@ -886,7 +900,7 @@ func (b *interpretedDaemonBuilder) discoverInitialEntryPoints(ctx context.Contex
 		return nil, errors.New("cannot discover entry points: no resolver provided")
 	}
 
-	serverConfig := b.deps.ConfigProvider.ServerConfig
+	serverConfig := b.c.serverConfig
 	entryPointMap := make(map[string]annotator_dto.EntryPoint)
 
 	if err := b.discoverSourceDir(ctx, deref(serverConfig.Paths.PagesSourceDir, "pages"), true, false, entryPointMap); err != nil {
@@ -923,7 +937,7 @@ func (b *interpretedDaemonBuilder) discoverSourceDir(
 		return nil
 	}
 
-	serverConfig := b.deps.ConfigProvider.ServerConfig
+	serverConfig := b.c.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
 	absDir := filepath.Join(baseDir, directory)
 
@@ -1098,7 +1112,7 @@ func (b *interpretedDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_dom
 // Returns lifecycle_domain.LifecyclePathsConfig which holds the resolved path
 // values for file system operations.
 func (b *interpretedDaemonBuilder) buildLifecyclePathsConfig() lifecycle_domain.LifecyclePathsConfig {
-	paths := b.deps.ConfigProvider.ServerConfig.Paths
+	paths := b.c.serverConfig.Paths
 	return lifecycle_domain.LifecyclePathsConfig{
 		BaseDir:             deref(paths.BaseDir, "."),
 		PagesSourceDir:      deref(paths.PagesSourceDir, "pages"),
@@ -1116,7 +1130,7 @@ func (b *interpretedDaemonBuilder) buildLifecyclePathsConfig() lifecycle_domain.
 // Returns generator_domain.GeneratorPathsConfig which holds the resolved path
 // values for the generator.
 func (b *interpretedDaemonBuilder) buildGeneratorPathsConfig() generator_domain.GeneratorPathsConfig {
-	paths := b.deps.ConfigProvider.ServerConfig.Paths
+	paths := b.c.serverConfig.Paths
 	return generator_domain.GeneratorPathsConfig{
 		BaseDir:        deref(paths.BaseDir, "."),
 		PagesSourceDir: deref(paths.PagesSourceDir, "pages"),

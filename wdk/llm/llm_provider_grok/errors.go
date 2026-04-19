@@ -25,7 +25,10 @@ import (
 )
 
 // rewrapError converts ProviderError instances from "openai" to "grok".
-// Non-ProviderError errors pass through unchanged.
+//
+// Non-ProviderError errors pass through unchanged. The Retry-After hint is
+// preserved so callers can honour the upstream server's wait
+// recommendation.
 //
 // Takes err (error) which is the error to inspect and potentially rewrap.
 //
@@ -42,6 +45,7 @@ func rewrapError(err error) error {
 			StatusCode: pe.StatusCode,
 			Message:    pe.Message,
 			Err:        pe.Err,
+			RetryAfter: pe.RetryAfter,
 		}
 	}
 

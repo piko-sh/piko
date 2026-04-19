@@ -20,7 +20,7 @@ package config_domain
 
 import (
 	"encoding"
-	"encoding/json"
+	stdjson "encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -100,7 +100,7 @@ func tryUnmarshal(field reflect.Value, configValue string) (bool, error) {
 	if unmarshaler, ok := ptr.(encoding.TextUnmarshaler); ok {
 		return true, unmarshaler.UnmarshalText([]byte(configValue))
 	}
-	if unmarshaler, ok := ptr.(json.Unmarshaler); ok {
+	if unmarshaler, ok := ptr.(stdjson.Unmarshaler); ok {
 		return true, unmarshaler.UnmarshalJSON([]byte(configValue))
 	}
 	if unmarshaler, ok := ptr.(encoding.BinaryUnmarshaler); ok {
@@ -122,7 +122,7 @@ func isUnmarshaler(value reflect.Value) bool {
 	}
 	ptr := value.Addr().Interface()
 	_, isTextUnmarshaler := ptr.(encoding.TextUnmarshaler)
-	_, isJSONUnmarshaler := ptr.(json.Unmarshaler)
+	_, isJSONUnmarshaler := ptr.(stdjson.Unmarshaler)
 	_, isBinaryUnmarshaler := ptr.(encoding.BinaryUnmarshaler)
 	return isTextUnmarshaler || isJSONUnmarshaler || isBinaryUnmarshaler
 }

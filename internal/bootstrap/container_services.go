@@ -71,7 +71,7 @@ func (c *Container) createDefaultCSRFService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default CSRFService with cookie source...")
 	secret := c.csrfSecretKeyProvider()
-	serverConfig := c.config.ServerConfig
+	serverConfig := c.serverConfig
 
 	cookieSource := c.csrfCookieSourceOverride
 	if cookieSource == nil {
@@ -198,7 +198,7 @@ func (c *Container) GetCSPPolicy() string {
 		return c.cspBuilder.Build()
 	}
 
-	if csp := deref(c.config.ServerConfig.Security.Headers.ContentSecurityPolicy, ""); csp != "" {
+	if csp := deref(c.serverConfig.Security.Headers.ContentSecurityPolicy, ""); csp != "" {
 		return csp
 	}
 
@@ -231,7 +231,7 @@ func (c *Container) GetReportingConfig() config.ReportingConfig {
 		}
 	}
 
-	return c.config.ServerConfig.Security.Reporting
+	return c.serverConfig.Security.Reporting
 }
 
 // GetPMLTransformer returns the PikoMarkupLanguage transformer, creating it
@@ -352,7 +352,7 @@ func (c *Container) GetI18nService() (i18n_domain.Service, error) {
 func (c *Container) createDefaultI18nService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default I18nService...")
-	serverConfig := c.config.ServerConfig
+	serverConfig := c.serverConfig
 
 	i18nSandbox, err := c.createSandbox("i18n-source", deref(serverConfig.Paths.BaseDir, "."), safedisk.ModeReadOnly)
 	if err != nil {
@@ -491,7 +491,7 @@ func (c *Container) SetDefaultImageTransformer(name string) {
 //
 // Takes imageConfig (*image_domain.ImageConfig) which contains the complete
 // settings including providers, predefined variants, and service options.
-// If imageConfig is nil, the method returns without making changes.
+// Returns without making changes when imageConfig is nil.
 func (c *Container) SetImageConfig(imageConfig *image_domain.ImageConfig) {
 	if imageConfig == nil {
 		return
@@ -643,7 +643,7 @@ func (c *Container) createDefaultSEOService() {
 
 	seoService, err := seo_domain.NewSEOService(
 		seoConfig,
-		deref(c.config.ServerConfig.I18nDefaultLocale, "en"),
+		deref(c.serverConfig.I18nDefaultLocale, "en"),
 		storageAdapter,
 		httpSourceAdapter,
 		seoOpts...,

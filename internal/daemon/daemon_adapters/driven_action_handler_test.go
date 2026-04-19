@@ -41,6 +41,7 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
 )
@@ -294,6 +295,69 @@ func TestActionHandler_ParseRequestBody(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "decoding request body")
 	})
+
+	t.Run("rejects deeply nested JSON", func(t *testing.T) {
+		var builder strings.Builder
+		depth := defaultMaxJSONBodyDepth + 1
+		builder.WriteString(`{"k":`)
+		for range depth - 1 {
+			builder.WriteString(`{"k":`)
+		}
+		builder.WriteString(`null`)
+		for range depth {
+			builder.WriteByte('}')
+		}
+		body := builder.String()
+		request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		request.ContentLength = int64(len(body))
+
+		_, err := handler.parseRequestBody(request)
+
+		require.Error(t, err)
+		assert.ErrorIs(t, err, errJSONDepthExceeded)
+	})
+}
+
+func TestValidateJSONStructuralDepth(t *testing.T) {
+	t.Parallel()
+
+	t.Run("accepts payload at limit", func(t *testing.T) {
+		t.Parallel()
+
+		var builder strings.Builder
+		for range 5 {
+			builder.WriteString(`{"k":`)
+		}
+		builder.WriteString(`null`)
+		for range 5 {
+			builder.WriteByte('}')
+		}
+		assert.NoError(t, validateJSONStructuralDepth([]byte(builder.String()), 5))
+	})
+
+	t.Run("rejects payload over limit", func(t *testing.T) {
+		t.Parallel()
+
+		var builder strings.Builder
+		for range 6 {
+			builder.WriteString(`{"k":`)
+		}
+		builder.WriteString(`null`)
+		for range 6 {
+			builder.WriteByte('}')
+		}
+		err := validateJSONStructuralDepth([]byte(builder.String()), 5)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, errJSONDepthExceeded)
+	})
+
+	t.Run("ignores braces inside string literals", func(t *testing.T) {
+		t.Parallel()
+
+		body := `{"escape":"a\"{{{{{{","real":[1,2,3]}`
+		assert.NoError(t, validateJSONStructuralDepth([]byte(body), 4))
+	})
 }
 
 func TestActionHandler_ParseMultipartBody(t *testing.T) {
@@ -462,15 +526,39 @@ func TestActionHandler_WriteJSON(t *testing.T) {
 func TestActionHandler_WriteError(t *testing.T) {
 	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
-	t.Run("writes error response", func(t *testing.T) {
+	t.Run("development mode exposes raw error details", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		err := errors.New("database connection failed")
 
-		handler.writeError(recorder, http.StatusInternalServerError, "Internal Server Error", err)
+		handler.writeError(recorder, http.StatusInternalServerError, "Internal Server Error", err, true)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 		assert.Contains(t, recorder.Body.String(), "Internal Server Error")
 		assert.Contains(t, recorder.Body.String(), "database connection failed")
+	})
+
+	t.Run("production mode hides raw error details for plain errors", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		err := errors.New("database connection failed")
+
+		handler.writeError(recorder, http.StatusInternalServerError, "Internal Server Error", err, false)
+
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+		assert.Contains(t, recorder.Body.String(), "Internal Server Error")
+		assert.NotContains(t, recorder.Body.String(), "database connection failed")
+		assert.Contains(t, recorder.Body.String(), "An internal error occurred")
+	})
+
+	t.Run("production mode surfaces SafeMessage when error implements safeerror.Error", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		err := safeerror.NewError("user-friendly hint", errors.New("internal connection bounced"))
+
+		handler.writeError(recorder, http.StatusInternalServerError, "Internal Server Error", err, false)
+
+		body := recorder.Body.String()
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+		assert.Contains(t, body, "user-friendly hint")
+		assert.NotContains(t, body, "internal connection bounced")
 	})
 }
 
@@ -559,6 +647,48 @@ func TestActionHandler_HandleBatch(t *testing.T) {
 		handler.Mount(r, "/_piko/actions")
 
 		body := `{invalid}`
+		request := httptest.NewRequest(http.MethodPost, "/_piko/actions/_batch", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+
+		r.ServeHTTP(recorder, request)
+
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("rejects unknown fields in batch request", func(t *testing.T) {
+		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+		r := chi.NewRouter()
+		handler.Mount(r, "/_piko/actions")
+
+		body := `{"actions":[],"unexpected":true}`
+		request := httptest.NewRequest(http.MethodPost, "/_piko/actions/_batch", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+
+		r.ServeHTTP(recorder, request)
+
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("rejects deeply nested batch payload", func(t *testing.T) {
+		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+		r := chi.NewRouter()
+		handler.Mount(r, "/_piko/actions")
+
+		var builder strings.Builder
+		builder.WriteString(`{"actions":[{"name":"x","args":`)
+		depth := defaultMaxJSONBodyDepth + 2
+		for range depth {
+			builder.WriteString(`{"k":`)
+		}
+		builder.WriteString(`null`)
+		for range depth {
+			builder.WriteByte('}')
+		}
+		builder.WriteString(`}]}`)
+
+		body := builder.String()
 		request := httptest.NewRequest(http.MethodPost, "/_piko/actions/_batch", strings.NewReader(body))
 		request.Header.Set("Content-Type", "application/json")
 		recorder := httptest.NewRecorder()
@@ -1191,7 +1321,7 @@ func TestCheckRateLimit_ActionNotRateLimitable_ReturnsTrue(t *testing.T) {
 	t.Parallel()
 
 	handler := NewActionHandler(nil, 1024, &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{Allowed: true}, nil
 		},
 	}, security_dto.RateLimitValues{Enabled: true}, false, nil, nil)
@@ -1207,7 +1337,7 @@ func TestCheckRateLimit_NilRateLimit_ReturnsTrue(t *testing.T) {
 	t.Parallel()
 
 	handler := NewActionHandler(nil, 1024, &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{Allowed: true}, nil
 		},
 	}, security_dto.RateLimitValues{Enabled: true}, false, nil, nil)
@@ -1690,7 +1820,7 @@ func TestNewActionHandler_WithRateLimit_CreatesMiddleware(t *testing.T) {
 	t.Parallel()
 
 	handler := NewActionHandler(nil, 1024, &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{Allowed: true}, nil
 		},
 	}, security_dto.RateLimitValues{Enabled: true}, false, nil, nil)
@@ -1961,4 +2091,88 @@ func TestActionHandler_WriteCaptchaError(t *testing.T) {
 	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
 	body := recorder.Body.String()
 	assert.Contains(t, body, "CAPTCHA_FAILED")
+}
+
+func TestExecuteSingleAction_CaptchaRateLimited_Returns429(t *testing.T) {
+	t.Parallel()
+
+	captchaSvc := &mockCaptchaService{enabled: true, verifyErr: captcha_dto.ErrRateLimited}
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, captchaSvc)
+	handler.Register(ActionHandlerEntry{
+		Name:   "captcha.action",
+		Method: http.MethodPost,
+		Create: func() any { return mockCaptchaAction{} },
+		Invoke: func(_ context.Context, _ any, _ map[string]any) (any, error) {
+			return "ok", nil
+		},
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+	result := handler.executeSingleAction(t.Context(), request, daemon_dto.BatchActionItem{
+		Name: "captcha.action",
+		Args: map[string]any{"_captcha_token": "rate-limited-token"},
+	})
+
+	assert.Equal(t, http.StatusTooManyRequests, result.Status)
+	assert.Equal(t, "RATE_LIMITED", result.Code)
+	assert.Equal(t, "Too many captcha attempts", result.Error)
+	assert.Equal(t, "captcha.action", result.Name)
+}
+
+func TestExecuteSingleAction_CaptchaFailure_Returns403(t *testing.T) {
+	t.Parallel()
+
+	captchaSvc := &mockCaptchaService{enabled: true, verifyErr: captcha_dto.ErrVerificationFailed}
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, captchaSvc)
+	handler.Register(ActionHandlerEntry{
+		Name:   "captcha.action",
+		Method: http.MethodPost,
+		Create: func() any { return mockCaptchaAction{} },
+		Invoke: func(_ context.Context, _ any, _ map[string]any) (any, error) {
+			return "ok", nil
+		},
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+	result := handler.executeSingleAction(t.Context(), request, daemon_dto.BatchActionItem{
+		Name: "captcha.action",
+		Args: map[string]any{"_captcha_token": "bad-token"},
+	})
+
+	assert.Equal(t, http.StatusForbidden, result.Status)
+	assert.Equal(t, "CAPTCHA_FAILED", result.Code)
+	assert.Equal(t, "Captcha validation failed", result.Error)
+	assert.Equal(t, "captcha.action", result.Name)
+}
+
+func TestHandleBatch_CaptchaRateLimited_Returns429InResults(t *testing.T) {
+	t.Parallel()
+
+	captchaSvc := &mockCaptchaService{enabled: true, verifyErr: captcha_dto.ErrRateLimited}
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, captchaSvc)
+	handler.Register(ActionHandlerEntry{
+		Name:   "captcha.action",
+		Method: http.MethodPost,
+		Create: func() any { return mockCaptchaAction{} },
+		Invoke: func(_ context.Context, _ any, _ map[string]any) (any, error) {
+			return "ok", nil
+		},
+	})
+
+	r := chi.NewRouter()
+	handler.Mount(r, "/_piko/actions")
+
+	body := `{"actions":[{"name":"captcha.action","args":{"_captcha_token":"rate-limited"}}]}`
+	request := httptest.NewRequest(http.MethodPost, "/_piko/actions/_batch", strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	r.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	responseBody := recorder.Body.String()
+	assert.Contains(t, responseBody, `"success":false`)
+	assert.Contains(t, responseBody, `"code":"RATE_LIMITED"`)
+	assert.Contains(t, responseBody, `"status":429`)
+	assert.NotContains(t, responseBody, `"code":"CAPTCHA_FAILED"`)
 }

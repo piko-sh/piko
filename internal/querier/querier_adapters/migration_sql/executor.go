@@ -21,6 +21,7 @@ package migration_sql
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -28,34 +29,6 @@ import (
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
-
-// queryRunner is the common interface satisfied by both *sql.DB and *sql.Conn,
-// allowing the executor to route operations through a pinned connection when
-// an advisory lock is held.
-type queryRunner interface {
-	// ExecContext executes a query without returning rows.
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-
-	// QueryContext executes a query that returns rows.
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-
-	// BeginTx starts a new transaction with the given options.
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
-}
-
-// Executor implements MigrationExecutorPort using database/sql. It works for
-// both SQLite and PostgreSQL via the DialectConfig strategy.
-type Executor struct {
-	// database holds the underlying database connection pool.
-	database *sql.DB
-
-	// pinnedConnection holds a dedicated connection used when an advisory lock
-	// is held, ensuring all operations run on the same session.
-	pinnedConnection *sql.Conn
-
-	// dialectConfig holds the dialect-specific SQL and locking behaviour.
-	dialectConfig DialectConfig
-}
 
 const (
 	// insertPlaceholderVersion holds the 1-based placeholder index for the version column.
@@ -97,7 +70,45 @@ const (
 	// clearDirtyPlaceholderVersion holds the 1-based placeholder index for
 	// the version column in the clearDirty UPDATE statement.
 	clearDirtyPlaceholderVersion = 3
+
+	// defaultStatementCapacity is the initial slice capacity used when collecting
+	// split statements. It avoids the first few allocations for typical
+	// migration files without over-allocating for empty inputs.
+	defaultStatementCapacity = 8
 )
+
+// ErrMalformedSQLStatement is returned when migration SQL contains
+// unterminated string literals, unterminated dollar-quoted blocks, or
+// unterminated block comments. Callers can detect this with errors.Is.
+var ErrMalformedSQLStatement = errors.New("malformed SQL statement")
+
+// queryRunner is the common interface satisfied by both *sql.DB and *sql.Conn,
+// allowing the executor to route operations through a pinned connection when
+// an advisory lock is held.
+type queryRunner interface {
+	// ExecContext executes a query without returning rows.
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+
+	// QueryContext executes a query that returns rows.
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+
+	// BeginTx starts a new transaction with the given options.
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+}
+
+// Executor implements MigrationExecutorPort using database/sql. It works for
+// both SQLite and PostgreSQL via the DialectConfig strategy.
+type Executor struct {
+	// database holds the underlying database connection pool.
+	database *sql.DB
+
+	// pinnedConnection holds a dedicated connection used when an advisory lock
+	// is held, ensuring all operations run on the same session.
+	pinnedConnection *sql.Conn
+
+	// dialectConfig holds the dialect-specific SQL and locking behaviour.
+	dialectConfig DialectConfig
+}
 
 var _ querier_domain.MigrationExecutorPort = (*Executor)(nil)
 
@@ -332,25 +343,226 @@ func (executor *Executor) executePreMigrationStatements(ctx context.Context) err
 	return nil
 }
 
-// splitStatements splits migration SQL content on semicolons and returns
-// only the non-empty, trimmed statements. This is used by both transactional
-// and non-transactional execution paths to provide consistent statement-level
-// tracking across all dialects.
+// statementSplitter holds the state for splitStatements as a small state
+// machine. It keeps the per-mode scanners small so each one stays well below
+// the cognitive-complexity threshold.
+type statementSplitter struct {
+	// current accumulates the runes of the statement currently being scanned.
+	current strings.Builder
+
+	// statements collects flushed statements in input order.
+	statements []string
+
+	// runes is the full input decoded as a rune slice for index-based scanning.
+	runes []rune
+
+	// index is the cursor into runes for the next rune to scan.
+	index int
+}
+
+// writeRune appends r to the current statement buffer. The wrapper exists so
+// the unhandled-error linter only sees one ignored WriteRune call site rather
+// than many; (*strings.Builder).WriteRune is documented to always return nil.
+//
+// Takes r (rune) which is the rune to append.
+func (s *statementSplitter) writeRune(r rune) {
+	_, _ = s.current.WriteRune(r)
+}
+
+// writeRange appends runes[start:end] to the current statement buffer.
+//
+// Takes start (int) which is the inclusive start index.
+// Takes end (int) which is the exclusive end index.
+func (s *statementSplitter) writeRange(start, end int) {
+	_, _ = s.current.WriteString(string(s.runes[start:end]))
+}
+
+// flush trims and emits the buffered statement when non-empty.
+func (s *statementSplitter) flush() {
+	stmt := strings.TrimSpace(s.current.String())
+	s.current.Reset()
+	if stmt != "" {
+		s.statements = append(s.statements, stmt)
+	}
+}
+
+// scanLineComment consumes a "-- ..." comment up to and excluding the newline.
+func (s *statementSplitter) scanLineComment() {
+	s.writeRune(s.runes[s.index])
+	s.writeRune(s.runes[s.index+1])
+	s.index += 2
+	for s.index < len(s.runes) && s.runes[s.index] != '\n' {
+		s.writeRune(s.runes[s.index])
+		s.index++
+	}
+}
+
+// scanBlockComment consumes a "/* ... */" block comment.
+//
+// Returns error wrapping ErrMalformedSQLStatement when the comment never
+// terminates.
+func (s *statementSplitter) scanBlockComment() error {
+	s.writeRune(s.runes[s.index])
+	s.writeRune(s.runes[s.index+1])
+	s.index += 2
+	for s.index < len(s.runes) {
+		if s.runes[s.index] == '*' && s.index+1 < len(s.runes) && s.runes[s.index+1] == '/' {
+			s.writeRune(s.runes[s.index])
+			s.writeRune(s.runes[s.index+1])
+			s.index += 2
+			return nil
+		}
+		s.writeRune(s.runes[s.index])
+		s.index++
+	}
+	return fmt.Errorf("unterminated block comment: %w", ErrMalformedSQLStatement)
+}
+
+// scanSingleQuotedString consumes a '...' literal, treating '' as an
+// embedded quote.
+//
+// Returns error which wraps ErrMalformedSQLStatement when the literal never
+// terminates.
+func (s *statementSplitter) scanSingleQuotedString() error {
+	s.writeRune(s.runes[s.index])
+	s.index++
+	for s.index < len(s.runes) {
+		if s.runes[s.index] != '\'' {
+			s.writeRune(s.runes[s.index])
+			s.index++
+			continue
+		}
+		if s.index+1 < len(s.runes) && s.runes[s.index+1] == '\'' {
+			s.writeRune(s.runes[s.index])
+			s.writeRune(s.runes[s.index+1])
+			s.index += 2
+			continue
+		}
+		s.writeRune(s.runes[s.index])
+		s.index++
+		return nil
+	}
+	return fmt.Errorf("unterminated string literal: %w", ErrMalformedSQLStatement)
+}
+
+// scanDollarQuotedBlock consumes a $tag$ ... $tag$ block when the current
+// position opens such a block.
+//
+// Returns bool which is true when a block was consumed, false otherwise.
+// Returns error which wraps ErrMalformedSQLStatement when the block never
+// terminates.
+func (s *statementSplitter) scanDollarQuotedBlock() (bool, error) {
+	tag, advance, ok := readDollarQuoteTag(s.runes, s.index)
+	if !ok {
+		return false, nil
+	}
+	s.writeRange(s.index, s.index+advance)
+	s.index += advance
+	for s.index < len(s.runes) {
+		if s.runes[s.index] == '$' {
+			closeTag, closeAdvance, closeOk := readDollarQuoteTag(s.runes, s.index)
+			if closeOk && closeTag == tag {
+				s.writeRange(s.index, s.index+closeAdvance)
+				s.index += closeAdvance
+				return true, nil
+			}
+		}
+		s.writeRune(s.runes[s.index])
+		s.index++
+	}
+	return true, fmt.Errorf("unterminated dollar-quoted block (tag=%q): %w", tag, ErrMalformedSQLStatement)
+}
+
+// step processes a single token from the input, advancing s.index.
+//
+// Returns error wrapping ErrMalformedSQLStatement on a malformed lex token.
+func (s *statementSplitter) step() error {
+	c := s.runes[s.index]
+	switch {
+	case c == '-' && s.index+1 < len(s.runes) && s.runes[s.index+1] == '-':
+		s.scanLineComment()
+		return nil
+	case c == '/' && s.index+1 < len(s.runes) && s.runes[s.index+1] == '*':
+		return s.scanBlockComment()
+	case c == '\'':
+		return s.scanSingleQuotedString()
+	case c == '$':
+		consumed, err := s.scanDollarQuotedBlock()
+		if err != nil {
+			return err
+		}
+		if !consumed {
+			s.writeRune(c)
+			s.index++
+		}
+		return nil
+	case c == ';':
+		s.flush()
+		s.index++
+		return nil
+	default:
+		s.writeRune(c)
+		s.index++
+		return nil
+	}
+}
+
+// splitStatements splits migration SQL content into individual statements,
+// honouring SQL lexical structure so that semicolons inside string literals,
+// dollar-quoted blocks, and comments are not treated as statement
+// terminators. Empty statements are skipped.
+//
+// The splitter recognises:
+//   - Single-quoted string literals with '' as an embedded quote.
+//   - PostgreSQL dollar-quoted blocks with optional tag, e.g. $$ ... $$,
+//     $tag$ ... $tag$.
+//   - "--" line comments through to end-of-line.
+//   - "/* ... */" block comments (non-nested).
 //
 // Takes content (string) which holds the raw migration SQL.
 //
 // Returns []string which holds the individual non-empty SQL statements.
-func splitStatements(content string) []string {
-	raw := strings.Split(content, ";")
-	statements := make([]string, 0, len(raw))
-	for _, stmt := range raw {
-		stmt = strings.TrimSpace(stmt)
-		if stmt == "" {
-			continue
-		}
-		statements = append(statements, stmt)
+// Returns error which wraps ErrMalformedSQLStatement when an unterminated
+// string, dollar-quote, or block comment is detected.
+func splitStatements(content string) ([]string, error) {
+	splitter := &statementSplitter{
+		statements: make([]string, 0, defaultStatementCapacity),
+		runes:      []rune(content),
 	}
-	return statements
+	for splitter.index < len(splitter.runes) {
+		if err := splitter.step(); err != nil {
+			return nil, err
+		}
+	}
+	splitter.flush()
+	return splitter.statements, nil
+}
+
+// readDollarQuoteTag detects whether position start in runes is the start of
+// a dollar-quote token (e.g. $$ or $tag$).
+//
+// Takes runes ([]rune) which holds the SQL content as runes.
+// Takes start (int) which is the index of the leading '$' rune.
+//
+// Returns string which is the inner tag (empty for $$).
+// Returns int which is the number of runes consumed for the full token.
+// Returns bool which is true when start indeed marks a dollar-quote token.
+func readDollarQuoteTag(runes []rune, start int) (string, int, bool) {
+	if start >= len(runes) || runes[start] != '$' {
+		return "", 0, false
+	}
+	end := start + 1
+	for end < len(runes) && runes[end] != '$' {
+		c := runes[end]
+		if c != '_' && (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
+			return "", 0, false
+		}
+		end++
+	}
+	if end >= len(runes) {
+		return "", 0, false
+	}
+	return string(runes[start+1 : end]), end - start + 1, true
 }
 
 // execStatements splits migration SQL on semicolons and executes each non-empty
@@ -377,7 +589,10 @@ func (*Executor) execStatements(
 	version int64,
 	skipUpTo int,
 ) (statementsExecuted int, err error) {
-	statements := splitStatements(content)
+	statements, splitError := splitStatements(content)
+	if splitError != nil {
+		return 0, fmt.Errorf("splitting migration %d statements: %w", version, splitError)
+	}
 
 	for i, stmt := range statements {
 		if i <= skipUpTo {
@@ -490,7 +705,10 @@ func (executor *Executor) executeWithoutTransactionUp(
 		}
 	}
 
-	statements := splitStatements(string(migration.Content))
+	statements, splitError := splitStatements(string(migration.Content))
+	if splitError != nil {
+		return fmt.Errorf("splitting migration %d statements: %w", migration.Version, splitError)
+	}
 	skipUpTo := migration.SkipUpTo
 
 	for i, stmt := range statements {
@@ -511,8 +729,8 @@ func (executor *Executor) executeWithoutTransactionUp(
 }
 
 // executeWithoutTransactionDown handles non-transactional down migrations.
-// Down migrations do not use dirty state tracking since they simply delete
-// the history record on success.
+// Down migrations do not use dirty state tracking since they delete the history
+// record on success.
 //
 // Takes migration (querier_dto.MigrationRecord) which holds the migration SQL
 // and metadata.

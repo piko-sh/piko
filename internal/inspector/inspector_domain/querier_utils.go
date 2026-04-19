@@ -180,10 +180,9 @@ func (ti *TypeQuerier) GetAllFieldsAndMethods(baseType goast.Expr, importerPacka
 	return result
 }
 
-// FindFileWithImportAlias searches through all files in a package to find
-// which file contains the specified import alias that maps to the given
-// canonical package path. This is used to determine the correct file context
-// for resolving aliased types.
+// FindFileWithImportAlias searches through all files in a package to find which
+// file contains the specified import alias that maps to the given canonical
+// package path. Determines the correct file context for resolving aliased types.
 //
 // Takes packagePath (string) which specifies the package to search within.
 // Takes alias (string) which is the import alias to find.
@@ -416,9 +415,9 @@ func (ti *TypeQuerier) DebugDTO() map[string][]string {
 // DebugPackageDTO returns a detailed string representation of a package's
 // data as stored in the TypeData cache.
 //
-// This function is a debugging tool for verifying the output of the
-// serialisation stage. It formats every piece of information, including types,
-// fields, methods, functions, and file-scoped import maps.
+// Acts as a debugging tool for verifying the output of the serialisation stage.
+// It formats every piece of information, including types, fields, methods,
+// functions, and file-scoped import maps.
 //
 // Takes packagePath (string) which specifies the import path of the package to
 // inspect.

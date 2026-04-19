@@ -210,7 +210,7 @@ func (m *BudgetManager) UnreserveBudget(ctx context.Context, scope string, cost 
 }
 
 // RecordUsage records actual usage after a request completes.
-// This method also triggers alert callbacks if thresholds are reached.
+// Also triggers alert callbacks if thresholds are reached.
 //
 // Takes scope (string) which identifies the budget scope.
 // Takes cost (*llm_dto.CostEstimate) which is the actual cost to record.

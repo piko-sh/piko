@@ -444,7 +444,7 @@ func dlqEntriesListSection(entries []DLQEntry, cursor int, entryMode bool) inspe
 	for i, e := range entries {
 		label := e.ID
 		if label == "" {
-			label = "—"
+			label = "-"
 		}
 		marker := DoubleSpace
 		if entryMode && i == cursor {

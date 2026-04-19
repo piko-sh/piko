@@ -16,41 +16,28 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package config defines the application's configuration structures and
-// serves as the main entry point for loading configuration.
+// Package config holds piko's internal value-type definitions for the
+// configuration domains the framework cares about (network, security,
+// paths, storage, database, OTLP, build, and so on). These are plain Go
+// structs consumed by With* options on piko.New and by the bootstrap
+// pipeline; they are not part of piko's public API.
 //
-// It aggregates all configuration types used throughout the Piko framework.
-// Structs are populated by the config_domain loader, which reads values
-// from struct tags, files, environment variables, and command-line flags
-// in a prioritised order.
+// Users never reference these types directly. Configure the framework via
+// With* functional options passed to piko.New. The sole env-var carve-out
+// is PIKO_LOG_LEVEL, which is read directly in piko.New and applied via
+// WithLogLevel before user options are processed.
 //
-// # Configuration sources
+// # Precedence
 //
-// Configuration values are loaded in the following order of precedence
-// (highest to lowest):
+// During bootstrap (highest to lowest):
 //
-//  1. Programmatic overrides (WithXxx functional options)
-//  2. Command-line flags (--flag=value)
-//  3. Environment variables (PIKO_*)
-//  4. Local config file (piko.local.yaml)
-//  5. Environment-specific config (piko-{env}.yaml)
-//  6. Base config file (piko.yaml)
-//  7. Struct tag defaults
-//  8. Programmatic defaults
+//  1. Programmatic overrides (individual With* options)
+//  2. Resolved placeholder strings (e.g. "aws-secret:my/key")
+//  3. Programmatic defaults
+//  4. Struct-tag defaults
 //
-// # Usage
-//
-//	provider := config.NewConfigProvider()
-//	ctx, err := provider.LoadConfig(&config.ServerConfig{}, nil)
-//	if err != nil {
-//	    return err
-//	}
-//	// Access loaded configuration
-//	port := provider.ServerConfig.Network.Port
-//
-// # Integration
-//
-// The config package integrates with [config_domain] for the loading mechanics
-// and [config_adapters] for secret resolution from external providers such as
-// AWS Secrets Manager, HashiCorp Vault, and Kubernetes secrets.
+// No file or env loading happens at the framework level. If you want
+// file/env-driven configuration for your own application, use the
+// user-facing utility at [piko.sh/piko/wdk/config] which exposes the
+// underlying loader machinery.
 package config

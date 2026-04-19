@@ -60,7 +60,7 @@ func (k PartKind) String() string {
 // It supports ${expression} syntax and @linked.message references.
 type TemplatePart struct {
 	// Expression is the parsed AST for PartExpression, set at render time.
-	// This field is not stored; it is filled in when rendering.
+	// Not stored; filled in when rendering.
 	Expression ast_domain.Expression
 
 	// Literal holds the static text when Kind is PartLiteral.

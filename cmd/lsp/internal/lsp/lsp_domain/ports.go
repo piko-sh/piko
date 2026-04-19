@@ -40,8 +40,8 @@ type LSPServerPort interface {
 }
 
 // WorkspacePort abstracts the workspace for handler testing.
-// This interface enables unit testing of handlers without requiring a full
-// workspace with coordinator and module manager dependencies.
+// Enables unit testing of handlers without requiring a full workspace with
+// coordinator and module manager dependencies.
 type WorkspacePort interface {
 	// GetDocument retrieves a document from the workspace cache.
 	//
@@ -74,7 +74,7 @@ type WorkspacePort interface {
 	RunAnalysisForURI(ctx context.Context, uri protocol.DocumentURI) (*document, error)
 
 	// GetDocumentForCompletion returns a document suitable for completion
-	// requests. Unlike RunAnalysisForURI, this method waits for any in-flight
+	// requests. Unlike RunAnalysisForURI, waits for any in-flight
 	// analysis to complete instead of cancelling it.
 	//
 	// Takes ctx (context.Context) which provides cancellation support.

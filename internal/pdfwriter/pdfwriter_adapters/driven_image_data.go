@@ -43,6 +43,16 @@ const (
 	// maxImageSize is the upper bound for image data reads to guard against
 	// excessively large images (100 MiB).
 	maxImageSize = 100 << 20
+
+	// base64DecodeNumerator and base64DecodeDenominator approximate the decoded
+	// length of a base64 string: every four input characters decode to three
+	// bytes, so the decoded size is len(encoded) * 3 / 4. The estimate is used
+	// only to short-circuit oversized payloads before the full decode runs.
+	base64DecodeNumerator = 3
+
+	// base64DecodeDenominator is the denominator paired with
+	// base64DecodeNumerator for the size estimate.
+	base64DecodeDenominator = 4
 )
 
 var (
@@ -57,6 +67,11 @@ var (
 	// errImageUnsupportedFormat is returned when the image data cannot be
 	// identified as a supported format (JPEG or PNG).
 	errImageUnsupportedFormat = errors.New("unsupported image format")
+
+	// ErrImageDataTooLarge is returned when image bytes exceed the maximum
+	// allowed size, indicating that the source has overflowed maxImageSize
+	// rather than been silently truncated.
+	ErrImageDataTooLarge = errors.New("image data exceeds maximum allowed size")
 )
 
 var (
@@ -144,9 +159,12 @@ func (a *RegistryImageDataAdapter) GetImageData(ctx context.Context, source stri
 	}
 	defer func() { _ = dataReader.Close() }()
 
-	data, err := io.ReadAll(io.LimitReader(dataReader, maxImageSize))
+	data, err := io.ReadAll(io.LimitReader(dataReader, maxImageSize+1))
 	if err != nil {
 		return nil, "", fmt.Errorf("reading image data for '%s': %w", source, err)
+	}
+	if int64(len(data)) > maxImageSize {
+		return nil, "", fmt.Errorf("reading image data for '%s' (limit %d bytes): %w", source, maxImageSize, ErrImageDataTooLarge)
 	}
 
 	format := detectImageFormat(data)
@@ -225,9 +243,17 @@ func (a *DataURIImageDataAdapter) GetImageData(ctx context.Context, source strin
 	header := source[len("data:"):commaIndex]
 	encoded := source[commaIndex+1:]
 
+	estimatedDecoded := int64(len(encoded)) * base64DecodeNumerator / base64DecodeDenominator
+	if estimatedDecoded > maxImageSize {
+		return nil, "", fmt.Errorf("data URI base64 payload (estimated %d bytes, limit %d): %w", estimatedDecoded, int64(maxImageSize), ErrImageDataTooLarge)
+	}
+
 	data, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, "", fmt.Errorf("decoding base64 data URI: %w", err)
+	}
+	if int64(len(data)) > maxImageSize {
+		return nil, "", fmt.Errorf("data URI image data (%d bytes, limit %d): %w", len(data), int64(maxImageSize), ErrImageDataTooLarge)
 	}
 
 	format := detectImageFormat(data)

@@ -63,7 +63,7 @@ func FormatGCCPUFraction(fraction float64) string {
 }
 
 // FormatNanosAsDuration renders a nanosecond count as a friendly Go
-// duration. Returns the EmDashGlyph for non-positive values so the
+// duration. Returns a hyphen for non-positive values so the
 // caller can show "Last GC" with a glyph rather than a stale 1970 timestamp.
 //
 // Takes nanoseconds (int64) which is the nanosecond count.
@@ -71,7 +71,7 @@ func FormatGCCPUFraction(fraction float64) string {
 // Returns string with the formatted duration or EmDashGlyph.
 func FormatNanosAsDuration(nanoseconds int64) string {
 	if nanoseconds <= 0 {
-		return EmDashGlyph
+		return hyphenGlyph
 	}
 	return time.Duration(nanoseconds).String()
 }

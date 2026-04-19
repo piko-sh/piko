@@ -171,13 +171,11 @@ func TestLifecycleTestBuilder(t *testing.T) {
 		require.NotNil(t, service)
 	})
 
-	t.Run("builder with config provider", func(t *testing.T) {
+	t.Run("builder with website config", func(t *testing.T) {
 		t.Parallel()
 
-		cp := &config.Provider{}
-
 		service := newLifecycleTestBuilder().
-			WithConfigProvider(cp).
+			WithWebsiteConfig(config.WebsiteConfig{}).
 			Build()
 
 		require.NotNil(t, service)
@@ -851,6 +849,38 @@ func TestLifecycleService_discoverAssetFiles(t *testing.T) {
 		files := service.discoverAssetFiles(context.Background(), []string{})
 
 		assert.Empty(t, files)
+	})
+
+	t.Run("ctx cancellation does not deadlock walkers", func(t *testing.T) {
+		t.Parallel()
+
+		mockFS := NewMockFileSystem()
+		mockFS.AddDir("/project/assets")
+		for i := range fileEventChannelBuffer * 4 {
+			mockFS.AddFile(fmt.Sprintf("/project/assets/file-%05d.css", i), []byte("body{}"))
+		}
+
+		deps := newLifecycleTestBuilder().GetDeps()
+		deps.FileSystem = mockFS
+		deps.PathsConfig.BaseDir = "/project"
+		deps.PathsConfig.AssetsSourceDir = "assets"
+
+		service := mustBuildLifecycleService(t, deps)
+
+		ctx, cancel := context.WithCancelCause(context.Background())
+		cancel(errors.New("test triggered cancellation before discovery completes"))
+
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			service.discoverAssetFiles(ctx, []string{"/project/assets"})
+		}()
+
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Fatal("discoverAssetFiles deadlocked when context was cancelled before consumer started")
+		}
 	})
 }
 

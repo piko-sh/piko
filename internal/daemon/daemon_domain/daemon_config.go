@@ -58,6 +58,14 @@ type DaemonConfig struct {
 	// This gives load balancers time to deregister the instance.
 	ShutdownDrainDelay time.Duration
 
+	// MaxConcurrentSEOJobs caps the number of SEO artefact regenerations that
+	// may run at once.
+	//
+	// Rapid build notifications (such as dev-mode hot reloads) otherwise stack
+	// goroutines without bound. Zero or negative values resolve to a sensible
+	// default in NewService.
+	MaxConcurrentSEOJobs int
+
 	// NetworkAutoNextPort enables automatic port selection when the default
 	// port is already in use.
 	NetworkAutoNextPort bool

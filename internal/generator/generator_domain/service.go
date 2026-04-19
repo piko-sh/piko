@@ -58,9 +58,9 @@ const (
 // This package contains generated Piko component files.
 `
 
-	// DirPermission is the permission mode for creating directories (rwxr-x---).
+	// DirectoryPermission is the permission mode for creating directories (rwxr-x---).
 	// Uses 0750: owner rwx, group rx, others none.
-	DirPermission = 0750
+	DirectoryPermission = 0750
 
 	// FilePermission is the file mode for new files (owner read-write, group
 	// read). Uses 0640: owner rw, group r, others none.
@@ -233,9 +233,9 @@ type generatorServiceOptions struct {
 	enableDwarfLineDirectives bool
 }
 
-// Generate orchestrates the full annotation and generation pipeline for a
-// single entry-point component. It is a convenience wrapper for development
-// and single-file builds.
+// Generate runs the full annotation and generation pipeline for a single
+// entry-point component. A convenience wrapper for development and single-file
+// builds.
 //
 // Takes request (generator_dto.GenerateRequest) which specifies the source path
 // and generation options.
@@ -585,9 +585,8 @@ func (s *generatorService) runAnnotationPhase(
 // generateStaticCollections creates binary collection files for all static
 // collections.
 //
-// This method gets collection data from the VirtualModule (created during
-// annotation), groups items by collection, and writes binary files to
-// dist/collections/{collectionName}/.
+// Gets collection data from the VirtualModule (created during annotation), groups
+// items by collection, and writes binary files to dist/collections/{collectionName}/.
 //
 // Takes projectResult (*annotator_dto.ProjectAnnotationResult) which contains
 // the virtual module with collection data.
@@ -668,8 +667,8 @@ func (s *generatorService) emitCollections(
 // generateSearchIndexes generates search index binaries for all static
 // collections.
 //
-// This method builds inverted indexes for Fast and Smart modes, enabling
-// zero-copy full-text search with BM25 ranking at runtime.
+// Builds inverted indexes for Fast and Smart modes, enabling zero-copy full-text
+// search with BM25 ranking at runtime.
 //
 // Takes collectionItems (map[string][]collection_dto.ContentItem) which maps
 // collection names to their content items.
@@ -967,6 +966,7 @@ func (s *generatorService) processComponentWorker(
 			CanonicalGoPackagePath:    vc.CanonicalGoPackagePath,
 			VirtualInstances:          convertVirtualInstances(vc.VirtualInstances),
 			CollectionName:            vc.Source.CollectionName,
+			CollectionParamName:       vc.Source.CollectionParamName,
 			VerifyGeneratedCode:       config.CompilerVerifyGeneratedCode,
 			ModuleName:                s.resolver.GetModuleName(),
 			IsEmail:                   vc.IsEmail,
@@ -1473,19 +1473,9 @@ func convertVirtualInstanceToContentItem(instance annotator_dto.VirtualPageInsta
 	}
 
 	item := collection_dto.ContentItem{
-		ID:             "",
-		Slug:           "",
-		Locale:         "",
-		TranslationKey: "",
-		Metadata:       make(map[string]any),
-		RawContent:     "",
-		ContentAST:     nil,
-		ExcerptAST:     nil,
-		URL:            instance.Route,
-		ReadingTime:    0,
-		CreatedAt:      "",
-		UpdatedAt:      "",
-		PublishedAt:    "",
+		ID:       instance.Slug,
+		Slug:     instance.Slug,
+		Metadata: make(map[string]any),
 	}
 
 	if pageData, ok := instance.InitialProps["page"].(map[string]any); ok {
@@ -1604,7 +1594,7 @@ func ensureDistPackageExists(ctx context.Context, baseDir string, sandbox safedi
 
 	l.Internal("Placeholder 'dist/generated.go' not found. Ensuring it and its parent directory exist.")
 
-	if err := baseSandbox.MkdirAll(distDir, DirPermission); err != nil {
+	if err := baseSandbox.MkdirAll(distDir, DirectoryPermission); err != nil {
 		return fmt.Errorf("failed to create dist directory at '%s': %w", outputDistDir, err)
 	}
 

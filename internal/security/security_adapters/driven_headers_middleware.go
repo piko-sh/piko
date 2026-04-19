@@ -256,7 +256,7 @@ type headerStripperWriter struct {
 }
 
 // WriteHeader writes the HTTP status code after removing any headers that
-// should be stripped. Later calls to this method are ignored.
+// should be stripped. Later calls are ignored.
 //
 // Takes statusCode (int) which specifies the HTTP status code to write.
 func (w *headerStripperWriter) WriteHeader(statusCode int) {

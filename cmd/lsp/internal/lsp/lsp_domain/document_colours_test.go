@@ -1138,6 +1138,130 @@ func TestConvertCharPosToLineCol(t *testing.T) {
 	}
 }
 
+func TestConvertCharPosToLineCol_UTF16Compliance(t *testing.T) {
+	testCases := []struct {
+		name       string
+		content    string
+		charPos    int
+		expectLine int
+		expectCol  int
+	}{
+		{
+			name:       "after BMP CJK rune counts as one UTF-16 unit",
+			content:    "a世b",
+			charPos:    4,
+			expectLine: 0,
+			expectCol:  2,
+		},
+		{
+			name:       "after supplementary emoji counts as surrogate pair",
+			content:    "a\U0001F389b",
+			charPos:    5,
+			expectLine: 0,
+			expectCol:  3,
+		},
+		{
+			name:       "BMP CJK on second line",
+			content:    "hello\n世",
+			charPos:    9,
+			expectLine: 1,
+			expectCol:  1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			line, column := convertCharPosToLineColumn(tc.content, tc.charPos)
+			if line != tc.expectLine {
+				t.Errorf("line = %d, want %d", line, tc.expectLine)
+			}
+			if column != tc.expectCol {
+				t.Errorf("column = %d, want %d", column, tc.expectCol)
+			}
+		})
+	}
+}
+
+func TestByteOffsetToUTF16Column_ASCII(t *testing.T) {
+	testCases := []struct {
+		name       string
+		line       string
+		byteOffset int
+		expectCol  int
+	}{
+		{name: "start", line: "hello world", byteOffset: 0, expectCol: 0},
+		{name: "middle", line: "hello world", byteOffset: 5, expectCol: 5},
+		{name: "end", line: "hello world", byteOffset: 11, expectCol: 11},
+		{name: "past end clamps to length", line: "abc", byteOffset: 100, expectCol: 3},
+		{name: "empty line", line: "", byteOffset: 0, expectCol: 0},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := byteOffsetToUTF16Column(tc.line, tc.byteOffset)
+			if got != tc.expectCol {
+				t.Errorf("byteOffsetToUTF16Column(%q, %d) = %d, want %d",
+					tc.line, tc.byteOffset, got, tc.expectCol)
+			}
+		})
+	}
+}
+
+func TestByteOffsetToUTF16Column_MultiByteRune(t *testing.T) {
+	line := "a世b"
+	got := byteOffsetToUTF16Column(line, 4)
+	if got != 2 {
+		t.Errorf("byteOffsetToUTF16Column past CJK rune = %d, want 2", got)
+	}
+
+	got = byteOffsetToUTF16Column(line, 1)
+	if got != 1 {
+		t.Errorf("byteOffsetToUTF16Column before CJK rune = %d, want 1", got)
+	}
+}
+
+func TestByteOffsetToUTF16Column_SupplementaryEmoji(t *testing.T) {
+	line := "a\U0001F389b"
+	got := byteOffsetToUTF16Column(line, 5)
+	if got != 3 {
+		t.Errorf("byteOffsetToUTF16Column past emoji = %d, want 3 (surrogate pair)", got)
+	}
+
+	got = byteOffsetToUTF16Column(line, 1)
+	if got != 1 {
+		t.Errorf("byteOffsetToUTF16Column before emoji = %d, want 1", got)
+	}
+
+	got = byteOffsetToUTF16Column(line, len(line))
+	if got != 4 {
+		t.Errorf("byteOffsetToUTF16Column past emoji and trailing char = %d, want 4", got)
+	}
+}
+
+func TestUTF16UnitsForRune(t *testing.T) {
+	testCases := []struct {
+		name      string
+		runeValue rune
+		expect    int
+	}{
+		{name: "ASCII", runeValue: 'a', expect: 1},
+		{name: "BMP CJK", runeValue: '世', expect: 1},
+		{name: "BMP boundary", runeValue: 0xFFFF, expect: 1},
+		{name: "first supplementary", runeValue: 0x10000, expect: 2},
+		{name: "emoji party popper", runeValue: '\U0001F389', expect: 2},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := utf16UnitsForRune(tc.runeValue)
+			if got != tc.expect {
+				t.Errorf("utf16UnitsForRune(%U) = %d, want %d",
+					tc.runeValue, got, tc.expect)
+			}
+		})
+	}
+}
+
 func TestFindClosingParen(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -1269,7 +1393,7 @@ func TestMatchHexColor(t *testing.T) {
 	}
 }
 
-func TestParseRGBColor(t *testing.T) {
+func TestParseRGBColour(t *testing.T) {
 	testCases := []struct {
 		match       *colorFuncMatch
 		name        string
@@ -1314,7 +1438,7 @@ func TestParseRGBColor(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			color, ok := parseRGBColor(tc.match)
+			color, ok := parseRGBColour(tc.match)
 
 			if ok != tc.expectOK {
 				t.Errorf("ok = %v, want %v", ok, tc.expectOK)
@@ -1765,7 +1889,7 @@ func TestMatchColorFunc(t *testing.T) {
 	}
 }
 
-func TestBuildColorInfo(t *testing.T) {
+func TestBuildColourInfo(t *testing.T) {
 	testCases := []struct {
 		match         *colorFuncMatch
 		name          string
@@ -1827,7 +1951,7 @@ func TestBuildColorInfo(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := buildColorInfo(tc.content, tc.match, tc.baseLine, tc.baseCol, tc.color)
+			result := buildColourInfo(tc.content, tc.match, tc.baseLine, tc.baseCol, tc.color)
 
 			if result.Range.Start.Line != tc.wantStartLine {
 				t.Errorf("Start.Line = %d, want %d", result.Range.Start.Line, tc.wantStartLine)
@@ -2028,7 +2152,7 @@ func TestMatchHSLFunc(t *testing.T) {
 	}
 }
 
-func TestParseHSLColor(t *testing.T) {
+func TestParseHSLColour(t *testing.T) {
 	testCases := []struct {
 		match       *colorFuncMatch
 		name        string
@@ -2090,7 +2214,7 @@ func TestParseHSLColor(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			color, ok := parseHSLColor(tc.match)
+			color, ok := parseHSLColour(tc.match)
 
 			if ok != tc.expectOK {
 				t.Errorf("ok = %v, want %v", ok, tc.expectOK)

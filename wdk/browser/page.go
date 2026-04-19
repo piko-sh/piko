@@ -27,6 +27,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/chromedp/chromedp"
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
@@ -91,6 +92,29 @@ const (
 	// with page recreation.
 	maxWaitForRetries = 2
 )
+
+// truncateRunes shortens s to at most maxRunes runes, appending "..." when the
+// original string was longer. The function is rune-aware so it never cuts
+// through a multi-byte UTF-8 sequence, which keeps display text valid for
+// CJK, accented, and other non-ASCII content.
+//
+// Takes s (string) which is the input to truncate.
+// Takes maxRunes (int) which is the maximum number of runes the result may
+// contain before the suffix is appended. Values of zero or below produce an
+// empty string.
+//
+// Returns string which is at most maxRunes runes long when s already fits,
+// otherwise the first maxRunes runes followed by "...".
+func truncateRunes(s string, maxRunes int) string {
+	if maxRunes <= 0 {
+		return ""
+	}
+	if utf8.RuneCountInString(s) <= maxRunes {
+		return s
+	}
+	runes := []rune(s)
+	return string(runes[:maxRunes]) + fmtTruncatedText
+}
 
 // Navigate goes to a path on the test server.
 //
@@ -756,10 +780,7 @@ func (p *Page) GetDimensions(selector string) *Dimensions {
 //
 // Returns *Page which allows method chaining.
 func (p *Page) Eval(js string) *Page {
-	displayJS := js
-	if len(displayJS) > displayTextMaxLen {
-		displayJS = displayJS[:displayTextMaxLen] + fmtTruncatedText
-	}
+	displayJS := truncateRunes(js, displayTextMaxLen)
 	p.beforeAction("Eval", displayJS)
 	start := time.Now()
 	err := browser_provider_chromedp.Eval(p.actionCtx(), "", js)
@@ -776,10 +797,7 @@ func (p *Page) Eval(js string) *Page {
 //
 // Returns any which is the result of running the JavaScript code.
 func (p *Page) EvalReturn(js string) any {
-	displayJS := js
-	if len(displayJS) > displayTextMaxLen {
-		displayJS = displayJS[:displayTextMaxLen] + fmtTruncatedText
-	}
+	displayJS := truncateRunes(js, displayTextMaxLen)
 	p.beforeAction("EvalReturn", displayJS)
 	start := time.Now()
 
@@ -960,7 +978,7 @@ func (p *Page) actionCtx() *browser_provider_chromedp.ActionContext {
 }
 
 // recreatePage closes the current page and creates a fresh one.
-// This is used to recover from unresponsive CDP connections.
+// Recovers from unresponsive CDP connections.
 //
 // Returns error when the browser fails to create a new incognito page.
 func (p *Page) recreatePage() error {

@@ -76,7 +76,7 @@ func (c *Container) createDefaultCryptoService() {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Creating default CryptoService...")
 
-	securityConfig := c.config.ServerConfig.Security
+	securityConfig := c.serverConfig.Security
 
 	providerName, baseProvider, activeKeyID, err := c.selectCryptoProvider(ctx, &securityConfig)
 	if err != nil {

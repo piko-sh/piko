@@ -138,9 +138,13 @@ type VirtualComponent struct {
 	IsCatchAllError bool
 }
 
-// VirtualPageInstance represents a single page generated from a collection
-// template. Multiple instances can share the same compiled VirtualComponent but
-// have different routes and props.
+// VirtualPageInstance represents one page generated from a collection
+// template.
+//
+// Multiple instances can share the same compiled VirtualComponent but have
+// different identities and props. The concrete URL for each instance is
+// computed by the manifest builder by substituting Slug into the consuming
+// page's route pattern, so this DTO intentionally does not carry a route.
 type VirtualPageInstance struct {
 	// InitialProps holds page instance properties such as page metadata,
 	// content AST, excerpt AST, and raw content. Nil means no properties.
@@ -150,6 +154,9 @@ type VirtualPageInstance struct {
 	// "pages/blog/test-post.pk").
 	ManifestKey string
 
-	// Route is the URL path for this page instance (e.g. "/blog/test-post").
-	Route string
+	// Slug identifies the collection item that backs this instance (e.g.
+	// "test-post"), used for runtime lookup via GetStaticCollectionItem and
+	// substituted into the consuming page's URL pattern to compute the
+	// per-item route.
+	Slug string
 }

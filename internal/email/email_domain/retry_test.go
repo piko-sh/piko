@@ -303,15 +303,12 @@ func TestDispatcher_Retry_ExponentialBackoffTimingIsCorrect(t *testing.T) {
 	waitForAttempts(t, provider, subject, 4, "Third retry (InitialDelay * BackoffFactor^2)")
 }
 
-func waitForRetryReady(t *testing.T, ctx context.Context, d *EmailDispatcher, clk *clock.MockClock) {
+func waitForRetryReady(t *testing.T, ctx context.Context, d *EmailDispatcher, _ *clock.MockClock) {
 	t.Helper()
 	require.Eventually(t, func() bool {
 		stats, err := d.GetProcessingStats(ctx)
 		return err == nil && stats.RetryQueueSize > 0
 	}, 5*time.Second, time.Millisecond, "retry item should be queued")
-
-	snap := clk.TimerCount()
-	clk.AwaitTimerSetup(snap, 2*time.Second)
 }
 
 func waitForAttempts(t *testing.T, provider *controlledFakeProvider, subject string, expected int, message string) {

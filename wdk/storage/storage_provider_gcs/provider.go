@@ -913,27 +913,88 @@ func startDeleteWorkers(ctx context.Context, concurrency int, jobs <-chan delete
 	for range concurrency {
 		go func() {
 			defer wg.Done()
-			for job := range jobs {
-				err := g.Remove(ctx, storage.GetParams{
-					Repository:      params.Repository,
-					Key:             job.key,
-					ByteRange:       nil,
-					TransformConfig: nil,
-				})
-				results <- deleteJobResult{key: job.key, err: err}
-				if err != nil && !params.ContinueOnError {
-					for job := range jobs {
-						_ = job
-					}
-					return
-				}
-			}
+			runDeleteWorker(ctx, jobs, results, g, params)
 		}()
 	}
 	go func() {
 		wg.Wait()
 		close(results)
 	}()
+}
+
+// runDeleteWorker consumes delete jobs and publishes results until either the
+// jobs channel closes or ctx is cancelled.
+//
+// When a job returns an error and ContinueOnError is false, the worker drains
+// the remaining jobs so the producer is not left blocked, then exits.
+//
+// Takes ctx (context.Context) which controls cancellation of the worker loop.
+// Takes jobs (<-chan deleteJob) which provides delete jobs for the worker to
+// consume.
+// Takes results (chan<- deleteJobResult) which receives the outcome of each
+// delete attempt.
+// Takes g (*GCSProvider) which performs the underlying GCS delete operation.
+// Takes params (storage.RemoveManyParams) which supplies repository and error
+// handling settings.
+func runDeleteWorker(ctx context.Context, jobs <-chan deleteJob, results chan<- deleteJobResult, g *GCSProvider, params storage.RemoveManyParams) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case job, ok := <-jobs:
+			if !ok {
+				return
+			}
+			if !processDeleteJob(ctx, job, jobs, results, g, params) {
+				return
+			}
+		}
+	}
+}
+
+// processDeleteJob runs a single delete and forwards its result.
+//
+// Takes ctx (context.Context) which controls cancellation of the operation.
+// Takes job (deleteJob) which is the delete job to execute.
+// Takes jobs (<-chan deleteJob) which is drained on a fatal error when
+// ContinueOnError is false.
+// Takes results (chan<- deleteJobResult) which receives the outcome of the
+// delete attempt.
+// Takes g (*GCSProvider) which performs the underlying GCS delete operation.
+// Takes params (storage.RemoveManyParams) which supplies repository and error
+// handling settings.
+//
+// Returns bool which is true to keep the worker running, or false to stop
+// (because of ctx cancellation or a fatal error when ContinueOnError is false).
+func processDeleteJob(ctx context.Context, job deleteJob, jobs <-chan deleteJob, results chan<- deleteJobResult, g *GCSProvider, params storage.RemoveManyParams) bool {
+	err := g.Remove(ctx, storage.GetParams{
+		Repository:      params.Repository,
+		Key:             job.key,
+		ByteRange:       nil,
+		TransformConfig: nil,
+	})
+	select {
+	case results <- deleteJobResult{key: job.key, err: err}:
+	case <-ctx.Done():
+		return false
+	}
+	if err != nil && !params.ContinueOnError {
+		discardRemaining(jobs)
+		return false
+	}
+	return true
+}
+
+// discardRemaining drains the jobs channel without dispatching the entries.
+//
+// The worker calls this on a fatal error when ContinueOnError is false so
+// the producer can finish closing the channel without blocking.
+//
+// Takes ch (<-chan T) which is the channel to drain.
+func discardRemaining[T any](ch <-chan T) {
+	for range ch {
+		_ = 1
+	}
 }
 
 // queueUploadJobs creates a buffered channel of upload jobs from the given
@@ -975,35 +1036,81 @@ func startUploadWorkers(ctx context.Context, concurrency int, jobs <-chan upload
 	for range concurrency {
 		go func() {
 			defer wg.Done()
-			for job := range jobs {
-				putParam := &storage.PutParams{
-					Repository:           params.Repository,
-					Key:                  job.spec.Key,
-					Reader:               job.spec.Reader,
-					Size:                 job.spec.Size,
-					ContentType:          job.spec.ContentType,
-					TransformConfig:      params.TransformConfig,
-					MultipartConfig:      nil,
-					Metadata:             nil,
-					HashAlgorithm:        "",
-					ExpectedHash:         "",
-					UseContentAddressing: false,
-				}
-				err := g.Put(ctx, putParam)
-				results <- uploadJobResult{key: job.spec.Key, err: err}
-				if err != nil && !params.ContinueOnError {
-					for job := range jobs {
-						_ = job
-					}
-					return
-				}
-			}
+			runUploadWorker(ctx, jobs, results, g, params)
 		}()
 	}
 	go func() {
 		wg.Wait()
 		close(results)
 	}()
+}
+
+// runUploadWorker consumes upload jobs and publishes results until either the
+// jobs channel closes or ctx is cancelled.
+//
+// Takes ctx (context.Context) which controls cancellation of the worker loop.
+// Takes jobs (<-chan uploadJob) which provides upload jobs for the worker to
+// consume.
+// Takes results (chan<- uploadJobResult) which receives the outcome of each
+// upload attempt.
+// Takes g (*GCSProvider) which performs the underlying GCS upload operation.
+// Takes params (*storage.PutManyParams) which supplies repository and error
+// handling settings.
+func runUploadWorker(ctx context.Context, jobs <-chan uploadJob, results chan<- uploadJobResult, g *GCSProvider, params *storage.PutManyParams) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case job, ok := <-jobs:
+			if !ok {
+				return
+			}
+			if !processUploadJob(ctx, job, jobs, results, g, params) {
+				return
+			}
+		}
+	}
+}
+
+// processUploadJob runs a single put and forwards its result.
+//
+// Takes ctx (context.Context) which controls cancellation of the operation.
+// Takes job (uploadJob) which is the upload job to execute.
+// Takes jobs (<-chan uploadJob) which is drained on a fatal error when
+// ContinueOnError is false.
+// Takes results (chan<- uploadJobResult) which receives the outcome of the
+// upload attempt.
+// Takes g (*GCSProvider) which performs the underlying GCS put operation.
+// Takes params (*storage.PutManyParams) which supplies repository and error
+// handling settings.
+//
+// Returns bool which is true to keep the worker running, or false to stop
+// (because of ctx cancellation or a fatal error when ContinueOnError is false).
+func processUploadJob(ctx context.Context, job uploadJob, jobs <-chan uploadJob, results chan<- uploadJobResult, g *GCSProvider, params *storage.PutManyParams) bool {
+	putParam := &storage.PutParams{
+		Repository:           params.Repository,
+		Key:                  job.spec.Key,
+		Reader:               job.spec.Reader,
+		Size:                 job.spec.Size,
+		ContentType:          job.spec.ContentType,
+		TransformConfig:      params.TransformConfig,
+		MultipartConfig:      nil,
+		Metadata:             nil,
+		HashAlgorithm:        "",
+		ExpectedHash:         "",
+		UseContentAddressing: false,
+	}
+	err := g.Put(ctx, putParam)
+	select {
+	case results <- uploadJobResult{key: job.spec.Key, err: err}:
+	case <-ctx.Done():
+		return false
+	}
+	if err != nil && !params.ContinueOnError {
+		discardRemaining(jobs)
+		return false
+	}
+	return true
 }
 
 // collectBatchResults gathers job results from a channel into a batch result.

@@ -112,9 +112,7 @@ func (s *fieldSearcher) reset() {
 	s.initialPackagePath = ""
 	s.initialFilePath = ""
 	s.querier = nil
-	for k := range s.visited {
-		delete(s.visited, k)
-	}
+	clear(s.visited)
 }
 
 // search finds a field by looking through a type and its embedded types.

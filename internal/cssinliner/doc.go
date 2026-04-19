@@ -18,11 +18,10 @@
 
 // Package cssinliner provides CSS @import resolution and processing.
 //
-// It recursively inlines imported stylesheets into a single merged AST,
-// detects circular dependencies, caches parsed files to avoid redundant
-// work, and optionally minifies the output. This package is shared between
-// the annotator (which layers selector scoping on top) and the compiler
-// (which uses inlining only).
+// It recursively inlines imported stylesheets into a single merged AST, detects
+// circular dependencies, caches parsed files to avoid redundant work, and
+// optionally minifies the output. Shared between the annotator (which layers
+// selector scoping on top) and the compiler (which uses inlining only).
 //
 // # Dual API
 //

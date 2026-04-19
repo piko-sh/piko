@@ -56,7 +56,7 @@ type InterpretedManifestRunner struct {
 }
 
 // JITCompiler defines the contract for on-demand template compilation.
-// InterpretedBuildOrchestrator implements this interface.
+// InterpretedBuildOrchestrator implements the port.
 type JITCompiler interface {
 	// JITCompile compiles the file at the given path on demand.
 	//
@@ -66,7 +66,7 @@ type JITCompiler interface {
 	JITCompile(ctx context.Context, relPath string) error
 
 	// GetCachedEntry retrieves a compiled page entry from the cache.
-	// This method uses proper locking when reading shared state.
+	// Uses proper locking when reading shared state.
 	//
 	// Takes relPath (string) which is the path to look up in the cache.
 	//

@@ -20,6 +20,7 @@ package provider_otter
 
 import (
 	"context"
+	"errors"
 	"iter"
 	"maps"
 	"slices"
@@ -257,14 +258,14 @@ func (ti *TagIndex[K]) GetTags(key K) []string {
 // OtterAdapter is a driven adapter that uses the maypok86/otter/v2 library to
 // provide caching. It implements io.Closer.
 type OtterAdapter[K comparable, V any] struct {
-	// client is the Otter cache instance that stores data.
-	client *otter.Cache[K, V]
+	// wal is the write-ahead log for persistence. Nil if persistence is disabled.
+	wal wal_domain.WAL[K, V]
 
-	// tagIndex maps tags to cache keys for tag-based invalidation.
-	tagIndex *TagIndex[K]
+	// snapshot is the store used to save state. Nil if saving is turned off.
+	snapshot wal_domain.SnapshotStore[K, V]
 
-	// schema specifies which fields can be searched.
-	schema *cache_dto.SearchSchema
+	// fieldExtractor extracts field values from cached items.
+	fieldExtractor *FieldExtractor[V]
 
 	// invertedIndex maps search terms to keys for full-text search.
 	invertedIndex *InvertedIndex[K]
@@ -275,17 +276,14 @@ type OtterAdapter[K comparable, V any] struct {
 	// vectorIndexes holds HNSW indexes for vector similarity search.
 	vectorIndexes map[string]*VectorIndex[K]
 
-	// fieldExtractor extracts field values from cached items.
-	fieldExtractor *FieldExtractor[V]
+	// client is the Otter cache instance that stores data.
+	client *otter.Cache[K, V]
 
-	// wal is the write-ahead log for persistence. Nil if persistence is disabled.
-	wal wal_domain.WAL[K, V]
+	// schema specifies which fields can be searched.
+	schema *cache_dto.SearchSchema
 
-	// snapshot is the store used to save state. Nil if saving is turned off.
-	snapshot wal_domain.SnapshotStore[K, V]
-
-	// walEnabled indicates whether write-ahead log persistence is active.
-	walEnabled bool
+	// tagIndex maps tags to cache keys for tag-based invalidation.
+	tagIndex *TagIndex[K]
 
 	// snapshotThreshold is the number of WAL entries before a checkpoint is made.
 	// When this limit is reached, a snapshot is saved and the WAL is cleared.
@@ -295,6 +293,13 @@ type OtterAdapter[K comparable, V any] struct {
 	// RLock, checkpoint acquires Lock, ensuring the snapshot contains all WAL
 	// entries before truncation.
 	checkpointMu sync.RWMutex
+
+	// closeOnce guards single execution of Close to prevent double-checkpoint
+	// and double-close on the WAL or snapshot store.
+	closeOnce sync.Once
+
+	// walEnabled indicates whether write-ahead log persistence is active.
+	walEnabled bool
 }
 
 // GetIfPresent returns the value for the given key if present in the cache.
@@ -445,8 +450,8 @@ func (a *OtterAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	return nil
 }
 
-// Compute atomically updates the value in the cache using the provided
-// function.
+// Compute computes and atomically updates the value in the cache using the
+// provided function.
 //
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the old value and
@@ -849,36 +854,60 @@ func (a *OtterAdapter[K, V]) collectSnapshotEntries() []wal_domain.Entry[K, V] {
 
 // Close releases all resources held by the cache.
 //
+// closeOnce guarantees that the final checkpoint and underlying store
+// closes happen exactly once; subsequent invocations return the captured
+// error without re-running the close path.
+//
 // Takes ctx (context.Context) which is accepted for interface conformance but
 // not checked, as in-memory operations are non-blocking.
 //
-// Returns error which is always nil for the in-memory adapter.
-//
-// Safe for concurrent use. Performs a final checkpoint before closing the WAL
-// and snapshot store if WAL is enabled.
+// Returns error which contains any joined errors from closing the WAL and
+// snapshot store; nil when the cache is purely in-memory.
 func (a *OtterAdapter[K, V]) Close(ctx context.Context) error {
 	_, l := logger_domain.From(ctx, log)
 
-	if a.walEnabled {
-		a.checkpointMu.Lock()
-		if a.wal != nil && a.snapshot != nil && a.wal.EntryCount() > 0 {
-			a.performCheckpointLocked()
+	var closeErr error
+	a.closeOnce.Do(func() {
+		if a.walEnabled {
+			closeErr = a.closePersistenceLocked(l)
 		}
-		a.checkpointMu.Unlock()
+		a.client.StopAllGoroutines()
+	})
+	return closeErr
+}
 
-		if a.wal != nil {
-			if err := a.wal.Close(); err != nil {
-				l.Warn("Failed to close WAL", logger_domain.Error(err))
-			}
-		}
-		if a.snapshot != nil {
-			if err := a.snapshot.Close(); err != nil {
-				l.Warn("Failed to close snapshot store", logger_domain.Error(err))
-			}
+// closePersistenceLocked finalises the WAL by checkpointing any pending
+// entries, closing the WAL and snapshot store, and joining any errors from
+// the two closes.
+//
+// Takes l (logger_domain.Logger) which receives warnings about close failures.
+//
+// Returns error which is the joined set of WAL/snapshot close errors, or
+// nil when both close cleanly.
+//
+// Concurrency: acquires checkpointMu while flushing pending WAL entries before
+// closing the WAL and snapshot stores.
+func (a *OtterAdapter[K, V]) closePersistenceLocked(l logger_domain.Logger) error {
+	a.checkpointMu.Lock()
+	if a.wal != nil && a.snapshot != nil && a.wal.EntryCount() > 0 {
+		a.performCheckpointLocked()
+	}
+	a.checkpointMu.Unlock()
+
+	var walErr, snapshotErr error
+	if a.wal != nil {
+		if err := a.wal.Close(); err != nil {
+			l.Warn("Failed to close WAL", logger_domain.Error(err))
+			walErr = err
 		}
 	}
-	a.client.StopAllGoroutines()
-	return nil
+	if a.snapshot != nil {
+		if err := a.snapshot.Close(); err != nil {
+			l.Warn("Failed to close snapshot store", logger_domain.Error(err))
+			snapshotErr = err
+		}
+	}
+	return errors.Join(walErr, snapshotErr)
 }
 
 // SetExpiresAfter sets the expiration duration for a key.

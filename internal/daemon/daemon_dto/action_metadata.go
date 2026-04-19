@@ -28,7 +28,7 @@ import (
 // ActionMetadata is embedded in action structs to provide access to request
 // metadata and response building capabilities.
 //
-// Actions embed this type to gain access to:
+// Embed in an action struct to gain access to:
 //   - HTTP request metadata via Request()
 //   - Response building via Response()
 //
@@ -64,8 +64,8 @@ func (m *ActionMetadata) Response() *ResponseWriter {
 //
 // Takes request (*RequestMetadata) which provides the request context.
 //
-// Called by the framework to inject request metadata. This method is
-// intentionally unexported in the public API to prevent user modification.
+// Called by the framework to inject request metadata. Intentionally unexported
+// in the public API to prevent user modification.
 func (m *ActionMetadata) SetRequest(request *RequestMetadata) {
 	m.request = request
 }
@@ -74,8 +74,7 @@ func (m *ActionMetadata) SetRequest(request *RequestMetadata) {
 //
 // Takes response (*ResponseWriter) which provides the response writer instance.
 //
-// This method is intentionally unexported in the public API to prevent
-// user modification.
+// Intentionally unexported in the public API to prevent user modification.
 func (m *ActionMetadata) SetResponse(response *ResponseWriter) {
 	m.response = response
 }

@@ -1,0 +1,63 @@
+<svg viewBox="0 0 620 380" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="rp-title rp-desc">
+  <title id="rp-title">Routing precedence: static wins over dynamic wins over catch-all</title>
+  <desc id="rp-desc">Three tiers of routing rules stacked from highest to lowest priority. Tier 1 matches literal paths such as pages/about.pk. Tier 2 matches dynamic segments such as pages/blog/{slug}.pk. Tier 3 matches catch-all segments such as pages/api/{path}*.pk. A single URL flows down the tiers and lands in the first tier that matches.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="220" y="20" width="180" height="46" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="220" y="20" width="180" height="18" fill="#364049"/>
+  <text x="310" y="33" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">incoming request</text>
+  <text x="310" y="58" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">GET /blog/hello-world</text>
+
+  <line x1="310" y1="70" x2="310" y2="92" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="20" y="96" width="580" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <rect x="20" y="96" width="580" height="24" fill="#1C544F"/>
+  <text x="36" y="112" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Tier 1 &#183; static segments win</text>
+  <text x="584" y="112" text-anchor="end" fill="#FFEE9C" font-family="monospace" font-size="10">highest priority</text>
+
+  <rect x="36" y="128" width="180" height="30" rx="6" fill="#1C544F"/>
+  <text x="126" y="146" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">pages/about.pk</text>
+  <rect x="228" y="128" width="180" height="30" rx="6" fill="#1C544F"/>
+  <text x="318" y="146" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">pages/blog/featured.pk</text>
+  <rect x="420" y="128" width="168" height="30" rx="6" fill="#1C544F"/>
+  <text x="504" y="146" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">pages/admin/users.pk</text>
+
+  <text x="310" y="182" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">If no literal match, fall through to the next tier.</text>
+
+  <line x1="310" y1="188" x2="310" y2="204" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="20" y="208" width="580" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <rect x="20" y="208" width="580" height="24" fill="#1C544F"/>
+  <text x="36" y="224" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Tier 2 &#183; dynamic segments (more segments first)</text>
+  <text x="584" y="224" text-anchor="end" fill="#A7F0E9" font-family="monospace" font-size="10">middle priority</text>
+
+  <rect x="36" y="240" width="180" height="30" rx="6" fill="#1C544F" stroke="#6BD5CC" stroke-width="1"/>
+  <text x="126" y="258" text-anchor="middle" fill="#FFEE9C" font-family="monospace" font-size="10">pages/blog/{slug}.pk</text>
+  <rect x="228" y="240" width="180" height="30" rx="6" fill="#1C544F"/>
+  <text x="318" y="258" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">pages/{category}/index.pk</text>
+  <rect x="420" y="240" width="168" height="30" rx="6" fill="#1C544F"/>
+  <text x="504" y="258" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">pages/users/{id}.pk</text>
+
+  <text x="126" y="286" text-anchor="middle" fill="#A16207" font-family="system-ui, sans-serif" font-size="9" font-weight="600">this one matches &#8592;</text>
+
+  <line x1="310" y1="290" x2="310" y2="306" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="20" y="310" width="580" height="50" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="20" y="310" width="580" height="22" fill="#364049"/>
+  <text x="36" y="324" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Tier 3 &#183; catch-all (last resort)</text>
+  <text x="584" y="324" text-anchor="end" fill="#92A1AF" font-family="monospace" font-size="10">lowest priority</text>
+
+  <text x="150" y="350" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">pages/api/{path}*.pk</text>
+  <text x="400" y="350" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">pages/{path}*.pk  (root catch-all)</text>
+
+  <text x="310" y="375" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">Highlighted file wins because it matches the request with the highest-priority tier available.</text>
+</svg>

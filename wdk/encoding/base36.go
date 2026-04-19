@@ -72,7 +72,7 @@ func DecodeUint64Base36(input string) (uint64, error) {
 func init() {
 	enc, err := NewEncoding(base36Alphabet)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to initialise Base36Encoding: %v", err))
+		panic(fmt.Sprintf("failed to initialise Base36Encoding from compile-time alphabet: %v", err))
 	}
 	Base36Encoding = enc
 }

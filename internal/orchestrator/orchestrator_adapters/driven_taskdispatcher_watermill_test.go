@@ -20,7 +20,9 @@ package orchestrator_adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -310,9 +312,12 @@ func Test_watermillTaskDispatcher_Start_SubscribesHandlers(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	assert.Equal(t, 1, eventBus.getHandlerCount(orchestrator_domain.TopicTaskDispatchHigh))
-	assert.Equal(t, 1, eventBus.getHandlerCount(orchestrator_domain.TopicTaskDispatchNormal))
-	assert.Equal(t, 1, eventBus.getHandlerCount(orchestrator_domain.TopicTaskDispatchLow))
+	assert.Equal(t, 1, eventBus.getHandlerCount(orchestrator_domain.TopicTaskDispatchHigh),
+		"high topic should register a single subscription handler regardless of WatermillHighHandlers")
+	assert.Equal(t, 1, eventBus.getHandlerCount(orchestrator_domain.TopicTaskDispatchNormal),
+		"normal topic should register a single subscription handler regardless of WatermillNormalHandlers")
+	assert.Equal(t, 1, eventBus.getHandlerCount(orchestrator_domain.TopicTaskDispatchLow),
+		"low topic should register a single subscription handler regardless of WatermillLowHandlers")
 
 	cancel(fmt.Errorf("test: cleanup"))
 
@@ -632,4 +637,106 @@ func Test_watermillTaskDispatcher_WithClock(t *testing.T) {
 		withWatermillClock(mockClock))
 
 	assert.Equal(t, mockClock, dispatcher.Clock)
+}
+
+type recordingSlogHandler struct {
+	mu      sync.Mutex
+	records []slog.Record
+}
+
+func (*recordingSlogHandler) Enabled(_ context.Context, _ slog.Level) bool {
+	return true
+}
+
+func (h *recordingSlogHandler) Handle(_ context.Context, r slog.Record) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.records = append(h.records, r.Clone())
+	return nil
+}
+
+func (h *recordingSlogHandler) WithAttrs(_ []slog.Attr) slog.Handler { return h }
+func (h *recordingSlogHandler) WithGroup(_ string) slog.Handler      { return h }
+
+func (h *recordingSlogHandler) findMessage(level slog.Level, substring string) (slog.Record, bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, r := range h.records {
+		if r.Level == level && containsString(r.Message, substring) {
+			return r, true
+		}
+	}
+	return slog.Record{}, false
+}
+
+func containsString(haystack, needle string) bool {
+	if needle == "" {
+		return true
+	}
+	for i := 0; i+len(needle) <= len(haystack); i++ {
+		if haystack[i:i+len(needle)] == needle {
+			return true
+		}
+	}
+	return false
+}
+
+func withCapturingLogger(t *testing.T) *recordingSlogHandler {
+	t.Helper()
+	handler := &recordingSlogHandler{}
+	previous := slog.Default()
+	slog.SetDefault(slog.New(handler))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	return handler
+}
+
+func Test_watermillTaskDispatcher_runRecoveryLoop_LogsWarningOnFailure(t *testing.T) {
+	handler := withCapturingLogger(t)
+
+	mockClock := clockpkg.NewMockClock(time.Now())
+
+	config := orchestrator_domain.DefaultDispatcherConfig()
+	config.RecoveryInterval = 100 * time.Millisecond
+
+	recoveryError := errors.New("simulated stale recovery failure")
+	store := &orchestrator_domain.MockTaskStore{}
+	store.RunAtomicFunc = func(ctx context.Context, fn func(ctx context.Context, transactionStore orchestrator_domain.TaskStore) error) error {
+		return fn(ctx, store)
+	}
+	store.ClaimStaleTasksForRecoveryFunc = func(_ context.Context, _ string, _, _ time.Duration, _ int) ([]orchestrator_domain.RecoveryClaimedTask, error) {
+		return nil, recoveryError
+	}
+
+	eventBus := newMockEventBus()
+	dispatcher := newWatermillTaskDispatcher(config, eventBus, store,
+		withWatermillClock(mockClock))
+
+	ctx, cancel := context.WithCancelCause(t.Context())
+	dispatcher.runCtx = ctx
+	dispatcher.cancel = cancel
+
+	dispatcher.wg.Add(1)
+	loopDone := make(chan struct{})
+	go func() {
+		dispatcher.runRecoveryLoop()
+		close(loopDone)
+	}()
+
+	require.True(t, mockClock.AwaitTimerSetup(0, time.Second),
+		"runRecoveryLoop must register its ticker with the mock clock")
+
+	mockClock.Advance(config.RecoveryInterval)
+
+	require.Eventually(t, func() bool {
+		_, found := handler.findMessage(slog.LevelWarn, "stale task recovery failed")
+		return found
+	}, 2*time.Second, 10*time.Millisecond,
+		"expected a warning log when stale task recovery fails")
+
+	cancel(errors.New("test cleanup"))
+	select {
+	case <-loopDone:
+	case <-time.After(2 * time.Second):
+		t.Fatal("recovery loop did not exit after context cancellation")
+	}
 }

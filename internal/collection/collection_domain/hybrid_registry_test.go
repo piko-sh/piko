@@ -973,3 +973,30 @@ func TestRevalidateHybridCollectionWithDeps_ProviderNotHybridCapable(t *testing.
 		t.Error("Expected error for non-hybrid-capable provider")
 	}
 }
+
+func TestTryResetHybridRegistry_Success(t *testing.T) {
+	if err := TryResetHybridRegistry(); err != nil {
+		t.Fatalf("TryResetHybridRegistry returned unexpected error: %v", err)
+	}
+
+	config := collection_dto.DefaultHybridConfig()
+	RegisterHybridSnapshot(context.Background(), "provider", "collection", []byte("data"), "etag", config)
+
+	if !HasHybridCollection("provider", "collection") {
+		t.Fatal("expected collection to be registered before reset")
+	}
+
+	if err := TryResetHybridRegistry(); err != nil {
+		t.Fatalf("TryResetHybridRegistry returned unexpected error: %v", err)
+	}
+
+	if HasHybridCollection("provider", "collection") {
+		t.Error("expected collection to be cleared after reset")
+	}
+}
+
+func TestResetHybridRegistry_NoPanicOnRepeatedReset(t *testing.T) {
+	for range 3 {
+		ResetHybridRegistry()
+	}
+}

@@ -95,12 +95,15 @@ func (s *osSandbox) Open(name string) (FileHandle, error) {
 	return &File{file: f, name: cleanName}, nil
 }
 
-// ReadFile reads the entire contents of a file within the sandbox.
+// ReadFile reads the entire contents of a file within the sandbox up to
+// DefaultReadFileMaxBytes. Callers that need a tighter or looser cap should
+// use ReadFileLimit.
 //
 // Takes name (string) which specifies the path to the file to read.
 //
 // Returns []byte which contains the complete file contents.
-// Returns error when the file cannot be opened or read.
+// Returns error when the file cannot be opened or read, or wraps
+// ErrFileExceedsLimit when the file exceeds DefaultReadFileMaxBytes.
 func (s *osSandbox) ReadFile(name string) ([]byte, error) {
 	return readFileViaOpen(s.Open, name)
 }
@@ -342,6 +345,8 @@ func (s *osSandbox) WriteFileAtomic(name string, data []byte, perm fs.FileMode) 
 		return fmt.Errorf("renaming temp file: %w", err)
 	}
 
+	s.syncParentDirectory(directory)
+
 	success = true
 	return nil
 }
@@ -481,18 +486,20 @@ func (s *osSandbox) Rename(oldpath, newpath string) error {
 	cleanOld := cleanPath(oldpath)
 	cleanNew := cleanPath(newpath)
 
-	if _, err := s.root.Lstat(cleanOld); err != nil {
-		return fmt.Errorf("safedisk: source path %q: %w", cleanOld, err)
-	}
-
 	absOld := filepath.Join(s.rootPath, cleanOld)
 	absNew := filepath.Join(s.rootPath, cleanNew)
 
+	if !isWithinRoot(s.rootPath, absOld) {
+		return fmt.Errorf("safedisk: source path %q escapes sandbox root", oldpath)
+	}
 	if !isWithinRoot(s.rootPath, absNew) {
 		return fmt.Errorf("safedisk: destination path %q escapes sandbox root", newpath)
 	}
 
-	return os.Rename(absOld, absNew)
+	if err := os.Rename(absOld, absNew); err != nil {
+		return fmt.Errorf("safedisk: rename %q to %q: %w", cleanOld, cleanNew, err)
+	}
+	return nil
 }
 
 // Chmod changes the permissions of a file within the sandbox.
@@ -659,6 +666,31 @@ func (s *osSandbox) RelPath(path string) string {
 	}
 
 	return path
+}
+
+// syncParentDirectory fsyncs the parent directory after a rename.
+//
+// Without this step, the rename may not be durable on disk after a crash
+// on filesystems with journaled metadata only (such as ext4 with default
+// mount options), allowing the file to vanish even though the rename
+// returned successfully.
+//
+// The sync is best-effort. Any failure is silently ignored because the data
+// itself was already fsynced before rename, so loss is bounded to the metadata
+// flush. Surfacing the error would not let callers do anything useful.
+//
+// Takes directory (string) which is the cleaned relative path of the parent
+// directory within the sandbox.
+func (s *osSandbox) syncParentDirectory(directory string) {
+	if directory == "" {
+		directory = currentDir
+	}
+	dirHandle, err := s.root.OpenFile(directory, os.O_RDONLY, 0)
+	if err != nil {
+		return
+	}
+	_ = dirHandle.Sync()
+	_ = dirHandle.Close()
 }
 
 // checkClosed returns errClosed if the sandbox has been closed.

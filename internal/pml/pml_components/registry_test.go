@@ -119,6 +119,29 @@ func TestMustGet_Panic(t *testing.T) {
 	})
 }
 
+func TestPMLRegistry_Get_ReturnsErrorOnMissing(t *testing.T) {
+	t.Parallel()
+
+	registry := NewRegistry()
+
+	component, err := registry.Lookup("pml-nonexistent")
+	require.Error(t, err)
+	require.ErrorIs(t, err, pml_domain.ErrComponentNotFound)
+	require.Nil(t, component)
+}
+
+func TestPMLRegistry_Lookup_ReturnsRegisteredComponent(t *testing.T) {
+	t.Parallel()
+
+	registry := NewRegistry()
+	component := NewImage()
+	require.NoError(t, registry.Register(context.Background(), component))
+
+	retrieved, err := registry.Lookup("pml-img")
+	require.NoError(t, err)
+	require.Equal(t, component, retrieved)
+}
+
 func TestGetAll(t *testing.T) {
 	registry := NewRegistry()
 

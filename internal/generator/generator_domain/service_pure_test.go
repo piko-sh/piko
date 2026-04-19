@@ -85,7 +85,7 @@ func TestIsCollectionTemplate(t *testing.T) {
 					CollectionName: "docs",
 				},
 				VirtualInstances: []annotator_dto.VirtualPageInstance{
-					{Route: "/docs/intro"},
+					{Slug: "intro"},
 				},
 			},
 			want: true,
@@ -119,7 +119,7 @@ func TestIsCollectionTemplate(t *testing.T) {
 					CollectionName: "",
 				},
 				VirtualInstances: []annotator_dto.VirtualPageInstance{
-					{Route: "/docs/intro"},
+					{Slug: "intro"},
 				},
 			},
 			want: false,
@@ -147,22 +147,22 @@ func TestConvertVirtualInstanceToContentItem(t *testing.T) {
 			name: "nil InitialProps returns false",
 			instance: annotator_dto.VirtualPageInstance{
 				InitialProps: nil,
-				Route:        "/test",
+				Slug:         "test",
 			},
 			wantOK: false,
 		},
 		{
-			name: "empty InitialProps returns true with URL preserved",
+			name: "empty InitialProps returns true with slug preserved",
 			instance: annotator_dto.VirtualPageInstance{
 				InitialProps: map[string]any{},
-				Route:        "/blog/hello",
+				Slug:         "hello",
 			},
 			wantOK: true,
 			checkFunction: func(t *testing.T, item any) {
 				t.Helper()
 				ci, ok := item.(checkableItem)
 				require.True(t, ok, "expected checkableItem type assertion to succeed")
-				assert.Equal(t, "/blog/hello", ci.url)
+				assert.Equal(t, "hello", ci.slug)
 				assert.NotNil(t, ci.metadata)
 				assert.Empty(t, ci.metadata)
 			},
@@ -175,7 +175,7 @@ func TestConvertVirtualInstanceToContentItem(t *testing.T) {
 						"title": "Hello World",
 					},
 				},
-				Route: "/blog/hello",
+				Slug: "hello",
 			},
 			wantOK: true,
 			checkFunction: func(t *testing.T, item any) {
@@ -191,7 +191,7 @@ func TestConvertVirtualInstanceToContentItem(t *testing.T) {
 				InitialProps: map[string]any{
 					"page": "not a map",
 				},
-				Route: "/blog/hello",
+				Slug: "hello",
 			},
 			wantOK: true,
 			checkFunction: func(t *testing.T, item any) {
@@ -207,7 +207,7 @@ func TestConvertVirtualInstanceToContentItem(t *testing.T) {
 				InitialProps: map[string]any{
 					"contentAST": &ast_domain.TemplateAST{},
 				},
-				Route: "/blog/hello",
+				Slug: "hello",
 			},
 			wantOK: true,
 			checkFunction: func(t *testing.T, item any) {
@@ -223,7 +223,7 @@ func TestConvertVirtualInstanceToContentItem(t *testing.T) {
 				InitialProps: map[string]any{
 					"excerptAST": &ast_domain.TemplateAST{},
 				},
-				Route: "/blog/hello",
+				Slug: "hello",
 			},
 			wantOK: true,
 			checkFunction: func(t *testing.T, item any) {
@@ -239,7 +239,7 @@ func TestConvertVirtualInstanceToContentItem(t *testing.T) {
 				InitialProps: map[string]any{
 					"rawContent": "# Hello",
 				},
-				Route: "/blog/hello",
+				Slug: "hello",
 			},
 			wantOK: true,
 			checkFunction: func(t *testing.T, item any) {
@@ -257,7 +257,7 @@ func TestConvertVirtualInstanceToContentItem(t *testing.T) {
 			assert.Equal(t, tc.wantOK, ok)
 			if ok && tc.checkFunction != nil {
 				tc.checkFunction(t, checkableItem{
-					url:        item.URL,
+					slug:       item.Slug,
 					metadata:   item.Metadata,
 					rawContent: item.RawContent,
 					contentAST: item.ContentAST,
@@ -272,7 +272,7 @@ type checkableItem struct {
 	metadata   map[string]any
 	contentAST *ast_domain.TemplateAST
 	excerptAST *ast_domain.TemplateAST
-	url        string
+	slug       string
 	rawContent string
 }
 
@@ -316,7 +316,7 @@ func TestExtractCollectionItemsFromModule(t *testing.T) {
 						},
 						VirtualInstances: []annotator_dto.VirtualPageInstance{
 							{
-								Route:        "/docs/intro",
+								Slug:         "intro",
 								InitialProps: map[string]any{},
 							},
 						},
@@ -335,7 +335,7 @@ func TestExtractCollectionItemsFromModule(t *testing.T) {
 							CollectionName: "docs",
 						},
 						VirtualInstances: []annotator_dto.VirtualPageInstance{
-							{Route: "/docs/intro", InitialProps: map[string]any{}},
+							{Slug: "intro", InitialProps: map[string]any{}},
 						},
 					},
 					"hash2": {
@@ -344,8 +344,8 @@ func TestExtractCollectionItemsFromModule(t *testing.T) {
 							CollectionName: "blog",
 						},
 						VirtualInstances: []annotator_dto.VirtualPageInstance{
-							{Route: "/blog/hello", InitialProps: map[string]any{}},
-							{Route: "/blog/world", InitialProps: map[string]any{}},
+							{Slug: "hello", InitialProps: map[string]any{}},
+							{Slug: "world", InitialProps: map[string]any{}},
 						},
 					},
 				},
@@ -394,18 +394,18 @@ func TestConvertVirtualInstances(t *testing.T) {
 			want:  -1,
 		},
 		{
-			name: "single instance preserves route and props",
+			name: "single instance preserves slug and props",
 			input: []annotator_dto.VirtualPageInstance{
-				{Route: "/blog/hello", InitialProps: map[string]any{"key": "val"}},
+				{Slug: "hello", InitialProps: map[string]any{"key": "val"}},
 			},
 			want: 1,
 		},
 		{
 			name: "multiple instances returns correct length",
 			input: []annotator_dto.VirtualPageInstance{
-				{Route: "/a"},
-				{Route: "/b"},
-				{Route: "/c"},
+				{Slug: "a"},
+				{Slug: "b"},
+				{Slug: "c"},
 			},
 			want: 3,
 		},
@@ -421,7 +421,7 @@ func TestConvertVirtualInstances(t *testing.T) {
 			require.Len(t, result, tc.want)
 
 			if tc.want == 1 {
-				assert.Equal(t, "/blog/hello", result[0].Route)
+				assert.Equal(t, "hello", result[0].Slug)
 				assert.Equal(t, "val", result[0].InitialProps["key"])
 			}
 		})

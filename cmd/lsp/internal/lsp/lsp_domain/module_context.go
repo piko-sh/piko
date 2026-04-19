@@ -48,7 +48,8 @@ type ModuleContext struct {
 	// ModuleRoot is the absolute path to the directory that contains go.mod.
 	ModuleRoot string
 
-	// ModuleName is the Go module name from go.mod (e.g. "github.com/org/app").
+	// ModuleName is the Go module name from go.mod (for example a GitHub-hosted
+	// path of the form "example.com/org/app").
 	ModuleName string
 
 	// Resolver provides import path resolution for this module.

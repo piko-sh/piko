@@ -20,6 +20,7 @@ package llm_provider_zoltai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"hash/fnv"
@@ -28,21 +29,42 @@ import (
 	"piko.sh/piko/wdk/json"
 	"math/rand/v2"
 	"strings"
+	"sync"
 	"time"
 
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/wdk/safeconv"
 )
 
+// closeDrainTimeout bounds how long Close waits for active stream goroutines
+// to wind down before reporting the drain timed out.
+const closeDrainTimeout = 30 * time.Second
+
 // zoltaiProvider implements llm_domain.LLMProviderPort and
 // llm_domain.EmbeddingProviderPort using predefined fortunes.
 type zoltaiProvider struct {
+	// closeContext is the provider-level context whose cancellation signals
+	// background stream goroutines to wind down.
+	closeContext context.Context
+
+	// closeCancel cancels closeContext on Close to signal active stream
+	// goroutines to exit.
+	closeCancel context.CancelCauseFunc
+
 	// randomSource is the random number generator for fortune selection.
 	randomSource *rand.Rand
 
 	// config holds the provider configuration settings.
 	config Config
+
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for
+	// them to drain.
+	streamWaitGroup sync.WaitGroup
+
+	// closeOnce guards Close so it is idempotent.
+	closeOnce sync.Once
 }
 
 const (
@@ -75,6 +97,8 @@ var _ llm_domain.EmbeddingProviderPort = (*zoltaiProvider)(nil)
 // Returns *llm_dto.CompletionResponse which contains a random fortune.
 // Returns error which is always nil.
 func (p *zoltaiProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.zoltaiProvider.Complete")
+
 	completeCount.Add(ctx, 1)
 
 	model := request.Model
@@ -127,6 +151,8 @@ func (p *zoltaiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 // Returns *llm_dto.EmbeddingResponse which contains the fake embeddings.
 // Returns error which is always nil.
 func (p *zoltaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.zoltaiProvider.Embed")
+
 	embedCount.Add(ctx, 1)
 
 	model := request.Model
@@ -238,11 +264,44 @@ func (*zoltaiProvider) SupportsParallelToolCalls() bool { return false }
 // Returns bool which is false as Zoltai does not support message names.
 func (*zoltaiProvider) SupportsMessageName() bool { return false }
 
-// Close releases resources. Zoltai holds no external resources.
+// Close releases resources held by the Zoltai provider, signalling any
+// in-flight stream goroutines to exit and waiting for them to drain within a
+// bounded timeout.
 //
-// Returns error which is always nil.
-func (*zoltaiProvider) Close(_ context.Context) error {
-	return nil
+// Takes ctx (context.Context) which controls how long Close is willing to
+// wait for the drain.
+//
+// Returns error when the bounded drain elapses before all stream goroutines
+// have finished.
+//
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
+// signal active stream goroutines, then waits on streamWaitGroup before
+// returning.
+func (p *zoltaiProvider) Close(ctx context.Context) error {
+	var closeErr error
+	p.closeOnce.Do(func() {
+		if p.closeCancel != nil {
+			p.closeCancel(errors.New("zoltai provider closing"))
+		}
+
+		done := make(chan struct{})
+		go func() {
+			defer goroutine.RecoverPanic(ctx, "llm.zoltaiProvider.Close.wait")
+			p.streamWaitGroup.Wait()
+			close(done)
+		}()
+
+		waitContext, cancel := context.WithTimeoutCause(ctx, closeDrainTimeout,
+			errors.New("zoltai provider close drain exceeded 30s"))
+		defer cancel()
+
+		select {
+		case <-done:
+		case <-waitContext.Done():
+			closeErr = fmt.Errorf("zoltai provider close timed out: %w", context.Cause(waitContext))
+		}
+	})
+	return closeErr
 }
 
 // EmbeddingDimensions returns the configured vector dimension for fake
@@ -258,6 +317,26 @@ func (p *zoltaiProvider) EmbeddingDimensions() int {
 // Returns string which is the default model identifier.
 func (p *zoltaiProvider) DefaultModel() string {
 	return p.config.DefaultModel
+}
+
+// streamContext returns a context that is cancelled when either the caller's
+// context is cancelled or the provider is closed.
+//
+// Takes ctx (context.Context) which is the caller's context.
+//
+// Returns context.Context which carries the merged cancellation signal.
+func (p *zoltaiProvider) streamContext(ctx context.Context) context.Context {
+	if p.closeContext == nil {
+		return ctx
+	}
+	merged, cancel := context.WithCancelCause(ctx)
+	stopWatch := context.AfterFunc(p.closeContext, func() {
+		cancel(context.Cause(p.closeContext))
+	})
+	context.AfterFunc(merged, func() {
+		stopWatch()
+	})
+	return merged
 }
 
 // completeWithToolCall builds a response that calls the given tool with
@@ -342,9 +421,12 @@ func newProvider(config Config) (*zoltaiProvider, error) {
 	}
 
 	s := safeconv.Int64ToUint64(seedNano)
+	closeContext, closeCancel := context.WithCancelCause(context.Background())
 	return &zoltaiProvider{
 		randomSource: rand.New(rand.NewPCG(s, s>>1|1)), //nolint:gosec // not cryptographic
 		config:       config,
+		closeContext: closeContext,
+		closeCancel:  closeCancel,
 	}, nil
 }
 

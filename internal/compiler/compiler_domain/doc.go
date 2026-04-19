@@ -19,10 +19,9 @@
 // Package compiler_domain provides the core business logic for compiling
 // Single File Components (.pkc) into JavaScript and HTML artefacts.
 //
-// This package handles the complete SFC compilation pipeline: parsing
-// TypeScript/JavaScript, transforming the AST for reactive state management,
-// building virtual DOM render methods, and generating optimised output for
-// custom web components.
+// Handles the complete SFC compilation pipeline: parsing TypeScript/JavaScript,
+// transforming the AST for reactive state management, building virtual DOM
+// render methods, and generating optimised output for custom web components.
 //
 // # Compilation pipeline
 //

@@ -56,8 +56,8 @@ type Integration interface {
 
 // SpanProcessor receives span lifecycle events from the OTEL SDK.
 //
-// Concrete implementations (e.g. from otel/sdk/trace) satisfy this interface
-// via structural typing, allowing the logger domain to remain SDK-free.
+// Concrete implementations (e.g. from otel/sdk/trace) satisfy the port via
+// structural typing, allowing the logger domain to remain SDK-free.
 type SpanProcessor interface {
 	// Shutdown flushes remaining spans and releases resources.
 	//
@@ -77,8 +77,8 @@ type SpanProcessor interface {
 // OtelIntegration extends Integration for services that provide OpenTelemetry
 // components for distributed tracing.
 //
-// Integrations implementing this interface will have their OTel components
-// added to the global tracer during OTEL setup.
+// Integrations implementing the port will have their OTel components added to the
+// global tracer during OTEL setup.
 type OtelIntegration interface {
 	Integration
 

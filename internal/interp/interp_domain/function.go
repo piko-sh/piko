@@ -80,7 +80,7 @@ type CompiledFunction struct {
 
 	// upvalueDescriptors describes captured variables for closures. Each
 	// entry tells the VM how to initialise an upvalue when creating
-	// a closure from this function.
+	// a closure from the function.
 	upvalueDescriptors []UpvalueDescriptor
 
 	// boolConstants holds bool constants referenced by opLoadBoolConst.
@@ -112,7 +112,7 @@ type CompiledFunction struct {
 	stringConstants []string
 
 	// functions holds nested function literals (closures) defined
-	// within this function. Referenced by opMakeClosure via index.
+	// within the enclosing function. Referenced by opMakeClosure via index.
 	functions []*CompiledFunction
 
 	// callSites describes each function call in the bytecode. opCall
@@ -173,11 +173,10 @@ func (cf *CompiledFunction) FuncName() string { return cf.name }
 // Returns int which is the instruction count in the body.
 func (cf *CompiledFunction) BodyLen() int { return len(cf.body) }
 
-// SubFunctions returns the nested function literals defined
-// within this function.
+// SubFunctions returns the nested function literals defined within the function.
 //
-// Returns []*CompiledFunction which holds the closure
-// definitions nested inside this function.
+// Returns []*CompiledFunction which holds the closure definitions nested inside the
+// function.
 func (cf *CompiledFunction) SubFunctions() []*CompiledFunction { return cf.functions }
 
 // RegisterCounts returns the peak register usage per bank.
@@ -186,9 +185,8 @@ func (cf *CompiledFunction) SubFunctions() []*CompiledFunction { return cf.funct
 // register index used in each register bank.
 func (cf *CompiledFunction) RegisterCounts() [NumRegisterKinds]uint32 { return cf.numRegisters }
 
-// reflectFuncType returns the reflect.Type for this method's signature
-// excluding the receiver parameter. Used for creating bound method
-// values via reflect.MakeFunc.
+// reflectFuncType returns the reflect.Type for the method's signature excluding the
+// receiver parameter. Used for creating bound method values via reflect.MakeFunc.
 //
 // Returns the function type and true if the function has parameters,
 // or nil and false otherwise.
@@ -208,10 +206,10 @@ func (cf *CompiledFunction) reflectFuncType() (reflect.Type, bool) {
 	return reflect.FuncOf(inTypes, outTypes, cf.isVariadic), true
 }
 
-// reflectMethodExprType returns the reflect.Type for this method's
-// signature including the receiver as the first parameter.
-// General-register params use interface{} so concrete struct types
-// can pass through reflect.Call without type mismatches.
+// reflectMethodExprType returns the reflect.Type for the method's signature
+// including the receiver as the first parameter. General-register params use
+// interface{} so concrete struct types can pass through reflect.Call without type
+// mismatches.
 //
 // Returns the function type and true if the function has parameters,
 // or nil and false otherwise.

@@ -36,9 +36,9 @@ const (
 // Actions implement this implicitly by embedding ActionMetadata and
 // having a Call method (with any signature).
 //
-// The actual Call method signature is not part of this interface because
-// it varies per action. The parser and code generator handle signature
-// validation and wrapper generation.
+// The actual Call method signature is not part of the contract because it varies
+// per action. The parser and code generator handle signature validation and
+// wrapper generation.
 type Action interface {
 	// Ctx returns the request context.
 	Ctx() any

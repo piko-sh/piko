@@ -52,8 +52,8 @@ func GenerateIV() ([]byte, error) {
 // WriteStreamingHeader writes the v2 streaming envelope header to the output.
 // Format: [Version (1 byte)] [Header Length (4 bytes)] [JSON Header].
 //
-// This function is used by cloud KMS providers to write consistent envelope
-// headers that include the encrypted data key and other metadata.
+// Used by cloud KMS providers to write consistent envelope headers that
+// include the encrypted data key and other metadata.
 //
 // Takes output (io.Writer) which receives the encoded header bytes.
 // Takes header (*StreamingHeader) which contains the envelope metadata to
@@ -67,8 +67,8 @@ func WriteStreamingHeader(output io.Writer, header *StreamingHeader) error {
 
 // ReadStreamingHeader reads and parses the v2 streaming envelope header.
 //
-// Cloud KMS providers use this function to read envelope headers and extract
-// the encrypted data key and other metadata.
+// Cloud KMS providers use it to read envelope headers and extract the
+// encrypted data key and other metadata.
 //
 // Takes input (io.Reader) which provides the encrypted stream to read from.
 //

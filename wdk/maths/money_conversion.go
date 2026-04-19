@@ -123,7 +123,7 @@ func NewMatrixConverter(matrix RateMatrix) *MatrixConverter {
 	return &MatrixConverter{matrix: matrix}
 }
 
-// Convert transforms a monetary value to a different currency.
+// Convert returns the source value transformed into the target currency.
 //
 // Attempts direct conversion first using the rate matrix. If no direct rate
 // exists, triangulates through the base currency. When the source currency
@@ -257,7 +257,7 @@ func NewConverter(rates ExchangeRates) *Converter {
 	return &Converter{rates: rates}
 }
 
-// Convert changes a money value from one currency to another.
+// Convert returns the source value changed from one currency to another.
 //
 // Takes source (Money) which is the money value to convert.
 // Takes targetCode (string) which is the ISO currency code for the target.

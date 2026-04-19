@@ -28,7 +28,8 @@
 //
 // The resolver supports several path formats:
 //
-//   - Module-absolute: "github.com/myorg/myproject/partials/card.pk"
+//   - Module-absolute: a GitHub-hosted module path such as
+//     "example.com/myorg/myproject/partials/card.pk"
 //   - @ alias: "@/partials/card.pk" (resolved relative to containing file)
 //   - Relative: "./theme.css" or "../styles.css" (CSS imports only)
 //
@@ -36,7 +37,7 @@
 //
 // The @ alias provides a concise syntax for referencing the local module:
 //
-//	@/partials/card.pk -> github.com/myorg/myproject/partials/card.pk
+//	@/partials/card.pk -> example.com/myorg/myproject/partials/card.pk
 //
 // Resolution is relative to the file containing the import. This guarantees
 // correct behaviour when importing from external modules that also use @.

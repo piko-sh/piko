@@ -1,6 +1,6 @@
 # Project Structure
 
-Use this guide when scaffolding a new project, understanding directory conventions, or configuring Piko.
+Use this guide when scaffolding a new Piko project or understanding directory conventions. The wizard scaffolds a fixed shape; the framework reads no config files at runtime apart from an optional `config.json` (only when `WithWebsiteConfig` is not set).
 
 ## Scaffolding
 
@@ -10,158 +10,118 @@ Run the interactive wizard:
 piko new
 ```
 
-Or scaffold non-interactively by answering the prompts for project name, destination, and Go module path.
+It prompts for the project name, destination, Go module path, and a few feature toggles (Sonic JSON, validator, interpreted mode, agents).
 
 ## Directory layout
 
 ```text
-my-piko-app/
-├── actions/              # Server-side action handlers
-│   ├── actions.go        # Action definitions (auto-registered by generator)
-│   ├── contact_submit.go # Example action
+my-app/
+├── actions/                # Server actions (Go). One subdirectory per package.
+│   ├── greeting/
+│   │   ├── print.go        # action.greeting.Print
+│   │   └── submit.go       # action.greeting.Submit
 │   └── README.md
 ├── cmd/
-│   ├── generator/        # Asset generator command
-│   │   └── main.go
-│   ├── main/             # Application entry point
-│   │   └── main.go
-│   └── tui/              # TUI monitoring client
-│       └── main.go
-├── components/           # Client-side .pkc Web Components
-├── content/              # Markdown content for collections
-│   └── blog/             # Collection name → content/blog/*.md
-├── dist/                 # Generated output (do not edit)
-│   └── generated.go
-├── e2e/                  # End-to-end tests
+│   ├── generator/main.go   # Build-time generator. Calls internal.NewGenerator().
+│   └── main/main.go        # Runtime server. Calls internal.NewServer(command).
+├── components/             # Client-side .pkc Web Components
+├── pages/                  # Page routes (.pk). One file per route.
+│   ├── index.pk            # /
+│   ├── !404.pk             # Custom 404
+│   └── index_test.go       # Scaffolded ComponentTester example
+├── partials/               # Reusable .pk fragments invoked via <piko:partial is="...">
+│   ├── layout.pk
+│   └── feature-card.pk
+├── pkg/                    # Public Go packages (empty by default; create as needed)
+├── lib/icons/              # SVG icons used by the scaffolded layout
+├── dist/                   # Generator output. Committed; cmd/main blank-imports it.
+│   └── generated.go        # Stub so a fresh checkout builds before running the generator.
+├── e2e/                    # End-to-end tests
 ├── internal/
-│   └── yaegi/            # Yaegi interpreter symbols
-├── pages/                # Page components (.pk) → routes
-│   ├── index.pk          # Home page (/)
-│   ├── !404.pk           # Custom error page (optional)
-│   └── README.md
-├── partials/             # Reusable server-side partials (.pk)
-│   ├── layout.pk         # Base layout template
-│   └── README.md
-├── pkg/                  # Application packages
-│   ├── domain/           # Business logic
-│   └── dal/              # Data access layer
-├── .piko/                # Internal cache/state (auto-generated)
-├── .out/                 # Build output registry (auto-generated)
-├── .air.toml             # Air live-reload config
-├── .air.compiled.toml    # Air config for compiled mode
-├── config.json           # Theme variables, app config, i18n settings
+│   └── piko.go             # SHARED FRAMEWORK CONFIGURATION (single source of truth)
+├── .air.toml               # Air live-reload config
+├── .gitignore              # Excludes .piko/, .out/, tmp/, bin/, air.log, IDE/OS files
+├── .dockerignore
+├── Dockerfile
 ├── go.mod
-├── go.work
-├── piko.yaml             # Main Piko config
-├── piko-dev.yaml         # Development overrides
-├── piko-prod.yaml        # Production overrides
-└── piko.local.yaml       # Local overrides (gitignored)
+└── go.work
 ```
 
-## Key directories
+Optional, only when the wizard's "interpreted mode" toggle is on:
 
-| Directory | Purpose |
-|-----------|---------|
-| `pages/` | File-based routing - each `.pk` file becomes a URL |
-| `partials/` | Reusable server-rendered components |
-| `components/` | Client-side `.pkc` Web Components |
-| `actions/` | Server actions (form handlers, CRUD) |
-| `content/` | Markdown files for collections |
-| `pkg/` | Application business logic and data access |
-| `dist/` | Generated code - never edit manually |
-| `cmd/main/` | Application entry point |
-| `cmd/generator/` | Asset/code generation |
-
-## Configuration files
-
-### piko.yaml
-
-Main configuration:
-
-```yaml
-network:
-  port: 8080
-  domain: "localhost"
-build:
-  default_serve_mode: "interpreted"
-paths:
-  pages: "pages"
-  partials: "partials"
-  components: "components"
-  actions: "actions"
+```text
+├── internal/interpreted/provider.go   # Yaegi symbol provider
+└── .air.interpreted.toml
 ```
 
-### piko-dev.yaml / piko-prod.yaml
+Other folders (`emails/`, `pdfs/`, `content/`, `locales/`, `assets/`, `styles/`, `db/`) are not scaffolded - create them when a feature requires them.
 
-Environment-specific overrides. Values merge with `piko.yaml`.
+## Single source of configuration
 
-### config.json
+`internal/piko.go` (always scaffolded) centralises every `With*` option in a `baseOptions()` slice. Both binaries draw from it:
 
-Theme variables and application configuration:
+- `internal.NewServer(mode, extras...)` - used by `cmd/main`. Adds `WithDevWidget()` and `WithDevHotreload()` in dev modes.
+- `internal.NewGenerator(extras...)` - used by `cmd/generator`. Build-time only; skips runtime extras.
 
-```json
-{
-  "theme": {
-    "colour-primary": "#6F47EB",
-    "colour-grey-200": "#CAD1D8",
-    "spacing-md": "1rem",
-    "font-family": "\"Inter\", sans-serif"
-  }
-}
+Both `cmd/main/main.go` and `cmd/generator/main.go` are deliberately thin: they parse `os.Args[1]`, call the appropriate constructor, and run. Do not put options in `cmd/*/main.go`. Edit `internal/piko.go` and every binary picks up the change.
+
+The scaffolded baseOptions includes `WithCSSReset`, `WithAutoMemoryLimit`, `WithImageProvider("imaging", ...)`, `WithAutoNextPort(true)`, and a default `WithWebsiteConfig` (Inter font + grey palette). Optional toggles add `WithJSONProvider(sonicjson.New())` and `WithValidator(playground.NewValidator())`.
+
+## Action layout
+
+Actions live under `actions/<package>/<file>.go`. Each Go struct embedding `piko.ActionMetadata` becomes a typed RPC endpoint. The struct name (minus the `Action` suffix) is the call name. Example:
+
+```go
+// actions/greeting/print.go
+package greeting
+
+type PrintAction struct{ piko.ActionMetadata }
+type PrintInput struct{}
+type PrintResponse struct{ Message string `json:"message"` }
+func (a PrintAction) Call(_ PrintInput) (PrintResponse, error) { ... }
 ```
 
-Theme values become CSS custom properties with `--g-` prefix.
+Invoked from a template as `action.greeting.Print()`. Registration is generated into `dist/` - there is no `actions/actions.go` or central registry to edit by hand.
+
+## Generated output
+
+| Path | Status | Notes |
+|---|---|---|
+| `dist/` | committed | `cmd/main` blank-imports `_ "<module>/dist"` so action `init()` registration runs at startup. |
+| `.piko/` | gitignored | Generator working files. |
+| `.out/` | gitignored | Build artefact registry. |
+
+Run `go run ./cmd/generator/main.go all` after adding pages, partials, or actions. Modes: `manifest` (default), `assets`, `sql`, `all`.
 
 ## Entry points
 
-### Development server
-
 ```bash
-# With live reloading (recommended)
-air
-
-# Without live reloading
-go run ./cmd/main
+air                                       # dev with live reload
+go run ./cmd/main                         # dev, no reload
+go run ./cmd/generator/main.go all        # regenerate dist/
+go build -o app ./cmd/main && ./app prod  # production
 ```
 
-### Asset generation
+Run modes accepted by `cmd/main` from `os.Args[1]`: `dev` (default), `dev-i` (interpreted), `prod`. The mode flows into `internal.NewServer(command)`, which decides which dev-only options to append.
 
-```bash
-# Generate all assets (required after adding pages, partials, actions)
-go run ./cmd/generator/main.go all
-```
+## Environment variables
 
-### Production build
-
-```bash
-go build -o app ./cmd/main
-./app
-```
-
-## Go module setup
-
-The `go.mod` file references the Piko SDK:
-
-```text
-module myapp
-
-go 1.23
-
-require piko.sh/piko v0.x.x
-```
-
-Run `go mod tidy` after changing dependencies.
+The framework reads no environment variables at framework level apart from `LOG_LEVEL` (raises the bootstrap logger before options apply). Individual config struct fields may expose env overrides via struct tags (`PIKO_PORT`, `PIKO_I18N_SOURCE_DIR`, `PIKO_ACTION_SERVE_PATH`, etc.) - see `references/configuration.md`.
 
 ## LLM mistake checklist
 
-- Putting pages outside `pages/` directory (they won't route)
-- Editing files in `dist/` (they get regenerated)
-- Forgetting to run `go run ./cmd/generator/main.go all` after adding new pages or partials
-- Forgetting to register actions in `actions/actions.go`
-- Using wrong config file name (it's `piko.yaml`, not `piko.toml` or `piko.json`)
+- Putting pages outside `pages/` (they will not route).
+- Editing files in `dist/` (regenerated on every build).
+- Forgetting `go run ./cmd/generator/main.go all` after adding pages, partials, or actions.
+- Adding options to `cmd/main/main.go` instead of `internal/piko.go`.
+- Looking for `actions/actions.go` (does not exist; registration is in generated `dist/`).
+- Writing `actions/<file>.go` at the top level (real layout is `actions/<package>/<file>.go`).
+- Looking for `cmd/tui/` (does not exist; the TUI is a CLI subcommand: `piko watch`).
+- Looking for a config file (none - everything is `With*` options in `internal/piko.go`).
 
 ## Related
 
-- `references/routing.md` - file-based routing details
-- `references/cli-reference.md` - CLI commands
-- `references/styling.md` - theme variables from config.json
+- `references/configuration.md` - the full surface of `With*` options.
+- `references/cli-reference.md` - `piko new`, `piko watch`, `piko agents install`.
+- `references/server-actions.md` - action conventions and testing.
+- `references/routing.md` - how `pages/` filenames map to URLs.

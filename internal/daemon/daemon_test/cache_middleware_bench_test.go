@@ -32,6 +32,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -43,7 +44,7 @@ type BenchCacheHarness struct {
 	RegistryService   *testRegistryService
 	ManifestStore     *testManifestStoreView
 	CapabilityService *capabilities_domain.MockCapabilityService
-	ServerConfig      *config.ServerConfig
+	ServerConfig      *bootstrap.ServerConfig
 	CacheMiddleware   *daemon_adapters.CacheMiddleware
 	HandlerBody       []byte
 }
@@ -51,7 +52,7 @@ type BenchCacheHarness struct {
 func NewBenchCacheHarness(b *testing.B) *BenchCacheHarness {
 	b.Helper()
 
-	serverConfig := &config.ServerConfig{
+	serverConfig := &bootstrap.ServerConfig{
 		Paths: config.PathsConfig{
 			BaseDir:          new("/test"),
 			PartialServePath: new("/_piko/partials"),

@@ -152,8 +152,8 @@ type EngineDirectivePort interface {
 }
 
 // EngineCataloguePort provides built-in catalogues and schema metadata.
-// Components that need access to the engine's default schema, built-in
-// functions, types, or table-valued functions depend on this interface.
+// Components that need access to the engine's default schema, built-in functions,
+// types, or table-valued functions depend on the port.
 type EngineCataloguePort interface {
 	// DefaultSchema returns the default schema name for this engine dialect.
 	// PostgreSQL uses "public", SQLite uses "main", MySQL uses "" (empty).
@@ -260,11 +260,11 @@ type FunctionResolverPort interface {
 	) (*querier_dto.FunctionResolution, error)
 }
 
-// MultiStatementAnalyserPort is an optional extension interface that engine
-// adapters can implement to handle multi-statement query blocks where earlier
-// statements provide setup (temp tables, variable assignments) for the primary
-// query. If an engine does not implement this interface, only the last
-// statement in the block is analysed.
+// MultiStatementAnalyserPort is an optional extension interface that engine adapters
+// can implement to handle multi-statement query blocks where earlier statements
+// provide setup (temp tables, variable assignments) for the primary query. If an
+// engine does not implement the extension, only the last statement in the block is
+// analysed.
 type MultiStatementAnalyserPort interface {
 	// AnalyseMultiStatement analyses a sequence of statements as a single
 	// logical query block, accumulating scope from setup statements into the
@@ -454,7 +454,7 @@ type MigrationServicePort interface {
 	// Returns error when a rollback fails or no down migration exists.
 	DownTo(ctx context.Context, targetVersion int64) (int, error)
 
-	// Validate checks that all applied migration checksums match their
+	// Validates that all applied migration checksums match their
 	// on-disk files without executing anything.
 	//
 	// Takes ctx (context.Context) for cancellation and timeout control.
@@ -565,9 +565,12 @@ type SeedServicePort interface {
 	Reseed(ctx context.Context) (int, error)
 }
 
-// SeedExecutorPort defines the database-specific operations needed by the
-// seed service. Unlike MigrationExecutorPort, seeds require no advisory
-// locking, dirty state tracking, or rollback support.
+// SeedExecutorPort defines database-specific operations for the seed service.
+//
+// Seeds use a dialect-specific advisory lock keyed separately from the
+// migration lock so concurrent replica boots cannot duplicate seed
+// applications. Idempotent INSERT semantics on the history table provide a
+// belt-and-braces guarantee even when the lock is unavailable (e.g. SQLite).
 type SeedExecutorPort interface {
 	// EnsureSeedTable creates the piko_seeds history table if it does not
 	// exist.
@@ -576,6 +579,26 @@ type SeedExecutorPort interface {
 	//
 	// Returns error when the table cannot be created.
 	EnsureSeedTable(ctx context.Context) error
+
+	// AcquireSeedLock acquires the dialect-specific advisory lock for seed runs.
+	//
+	// The lock must use a key distinct from the migration lock so the two
+	// surfaces serialise independently. Implementations that require
+	// connection pinning hold a dedicated connection until ReleaseSeedLock
+	// is called.
+	//
+	// Takes ctx (context.Context) for cancellation and timeout control.
+	//
+	// Returns error when the lock cannot be acquired.
+	AcquireSeedLock(ctx context.Context) error
+
+	// ReleaseSeedLock releases the seed advisory lock previously acquired
+	// by AcquireSeedLock. Safe to call when no lock is held.
+	//
+	// Takes ctx (context.Context) for cancellation and timeout control.
+	//
+	// Returns error when the lock cannot be released.
+	ReleaseSeedLock(ctx context.Context) error
 
 	// AppliedSeeds returns all seeds that have been applied, ordered by
 	// version ascending.

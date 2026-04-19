@@ -116,7 +116,7 @@ func DecodeKey[K comparable](keyString string, namespace string, keyRegistry *En
 		return key, fmt.Errorf("failed to base64-decode key %q: %w", keyString, err)
 	}
 
-	keyType := reflect.TypeOf(key)
+	keyType := reflect.TypeFor[K]()
 	encoder, err := keyRegistry.GetByType(keyType)
 	if err != nil {
 		return key, fmt.Errorf("no encoder registered for key type %T: %w", key, err)
@@ -160,7 +160,7 @@ func EncodeValue[V any](value V, registry *EncodingRegistry) ([]byte, error) {
 // assertion fails.
 func DecodeValue[V any](valBytes []byte, registry *EncodingRegistry) (V, error) {
 	var v V
-	encoder, err := registry.GetByType(reflect.TypeOf(v))
+	encoder, err := registry.GetByType(reflect.TypeFor[V]())
 	if err != nil {
 		return v, fmt.Errorf("failed to get encoder: %w", err)
 	}

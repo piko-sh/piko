@@ -58,13 +58,20 @@ provider, err := crypto_provider_aws_kms.NewProvider(ctx,
 
 ### Builder API
 
-For advanced configuration, use the fluent builder:
+For advanced configuration, use the fluent builder. The constructor takes a service; chain `.Data(...)` and `.KeyID(...)`, then call `.Do(ctx)`:
 
 ```go
-encrypted, err := crypto.NewEncryptBuilder(ctx, "sensitive-data").
-    WithProvider("local").
-    Do()
+builder, err := crypto.NewEncryptBuilderFromDefault()
+if err != nil {
+    return err
+}
+encrypted, err := builder.
+    Data("sensitive-data").
+    KeyID("my-key").
+    Do(ctx)
 ```
+
+If you already hold a `crypto.ServicePort`, use `crypto.NewEncryptBuilder(service)` directly.
 
 ### Batch encryption (envelope encryption)
 
@@ -98,62 +105,72 @@ err := svc.RotateKey(ctx, "old-key-id", "new-key-id")
 
 ## Security headers
 
-Piko applies OWASP-recommended headers by default. Configure in `piko.yaml`:
+Piko applies OWASP-recommended headers by default. Configure via `piko.WithSecurityHeaders`:
 
-```yaml
-security:
-  headers:
-    enabled: true
-    xFrameOptions: DENY
-    xContentTypeOptions: nosniff
-    contentSecurityPolicy: "default-src 'self'"
-    stripServerHeader: true
+All scalar fields on `SecurityHeadersConfig` are pointer-typed; use Go 1.26 `new(value)` to wrap literals:
+
+```go
+piko.New(
+    piko.WithSecurityHeaders(piko.SecurityHeadersConfig{
+        Enabled:             new(true),
+        XFrameOptions:       new("DENY"),
+        XContentTypeOptions: new("nosniff"),
+        StripServerHeader:   new(true),
+    }),
+    piko.WithCSPString("default-src 'self'"),
+)
 ```
 
 Default headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Strict-Transport-Security` (when HTTPS forced).
 
 ## Rate limiting
 
-Disabled by default. Enable in `piko.yaml`:
+Disabled by default. Enable via `piko.WithRateLimit` and configure trusted proxies separately:
 
-```yaml
-security:
-  rateLimit:
-    enabled: true
-    storage: memory           # or "redis" for distributed
-    trustedProxies:
-      - "10.0.0.0/8"
-    global:
-      requestsPerMinute: 1000
-      burstSize: 50
-    actions:
-      requestsPerMinute: 100
-      burstSize: 20
-    headersEnabled: true
+```go
+piko.New(
+    piko.WithRateLimit(piko.RateLimitConfig{
+        Enabled:        new(true),
+        Storage:        new("memory"), // or new("redis") for distributed
+        HeadersEnabled: new(true),
+        Global: piko.RateLimitTierConfig{
+            RequestsPerMinute: new(1000),
+            BurstSize:         new(50),
+        },
+        Actions: piko.RateLimitTierConfig{
+            RequestsPerMinute: new(100),
+            BurstSize:         new(20),
+        },
+    }),
+    piko.WithTrustedProxies("10.0.0.0/8"),
+)
 ```
 
 Response headers when enabled: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`.
 
 ## Cookie security
 
-```yaml
-security:
-  cookies:
-    forceHttpOnly: true
-    forceSecureOnHttps: true
-    defaultSameSite: Lax
+```go
+piko.New(
+    piko.WithCookieSecurity(piko.CookieSecurityConfig{
+        ForceHTTPOnly:      new(true),
+        ForceSecureOnHTTPS: new(true),
+        DefaultSameSite:    new("Lax"),
+    }),
+)
 ```
 
 ## Filesystem sandboxing
 
 Piko uses Go's `os.Root` for kernel-level path traversal protection:
 
-```yaml
-security:
-  sandbox:
-    enabled: true
-    allowedPaths:
-      - "/tmp/piko-cache"
+```go
+piko.New(
+    piko.WithSandbox(piko.SandboxConfig{
+        Enabled:      new(true),
+        AllowedPaths: []string{"/tmp/piko-cache"},
+    }),
+)
 ```
 
 ## Secret resolution
@@ -171,26 +188,41 @@ String config fields can reference secrets via resolver prefixes:
 | `vault:` | HashiCorp Vault | `vault:secret/data/prod/db#password` |
 | `kubernetes-secret:` | Kubernetes Secrets | `kubernetes-secret:ns/secret#key` |
 
-Register cloud resolvers:
+Register cloud resolvers in `func main` (Piko itself never auto-loads config files; resolution happens at startup). Two patterns:
+
+Per-loader resolvers via `LoaderOptions.Resolvers`:
 
 ```go
-import "piko.sh/piko/wdk/config/config_resolver_aws"
-
-func init() {
-    config_resolver_aws.Register(context.Background())
-}
+import (
+    "piko.sh/piko/wdk/config"
+    "piko.sh/piko/wdk/config/config_resolver_aws"
+)
 
 type Config struct {
     DBPassword string `default:"aws-secret:prod/database/password"`
 }
+
+awsResolver, err := config_resolver_aws.NewResolver(ctx)
+if err != nil {
+    return err
+}
+
+cfg := &Config{}
+if _, err := config.Load(ctx, cfg, config.LoaderOptions{
+    Resolvers: []config.Resolver{awsResolver},
+}); err != nil {
+    return err
+}
 ```
+
+Or register globally via `config_resolver_aws.Register(ctx)` (or `config.RegisterResolver(...)`) and pass `UseGlobalResolvers: true` in `LoaderOptions`. Bootstrap-time registration is also available via `piko.WithConfigResolvers(...)`.
 
 ## LLM mistake checklist
 
 - Using a key shorter or longer than 32 bytes for AES-GCM
 - Committing encryption keys to version control
 - Enabling rate limiting without setting `trustedProxies` (rate-limits your reverse proxy)
-- Forgetting to register cloud secret resolvers in `init()`
+- Forgetting to register cloud secret resolvers in `func main` (via `piko.WithConfigResolvers`, `config.RegisterResolver`, or `LoaderOptions.Resolvers`)
 - Using `#key` syntax for JSON key extraction without the provider supporting it
 - Not closing the crypto service on shutdown (`svc.Close(ctx)`)
 - Using streaming encryption from multiple goroutines (not thread-safe)
@@ -198,5 +230,5 @@ type Config struct {
 ## Related
 
 - `references/wdk-data.md` - storage encryption via transformers
-- `references/project-structure.md` - piko.yaml configuration
-- `references/configuration.md` - config loading and secret resolution
+- `references/project-structure.md` - directory layout
+- `references/configuration.md` - bootstrap options and secret resolution

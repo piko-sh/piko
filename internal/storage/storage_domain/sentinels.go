@@ -72,4 +72,14 @@ var (
 	// errKeyWithCAS is returned when a key is provided but content-addressable
 	// storage is enabled, as the key is derived from the content hash.
 	errKeyWithCAS = errors.New("key must be empty when UseContentAddressing is true (key is generated from content hash)")
+
+	// ErrSingleflightObjectTooLarge is returned by the singleflight buffering
+	// path when the underlying provider yields more bytes than the configured
+	// SingleflightMemoryThreshold permits, defending against a provider that
+	// reports a small Stat but streams a large payload.
+	ErrSingleflightObjectTooLarge = errors.New("storage: singleflight object exceeds memory threshold")
+
+	// ErrDiskObjectTooLarge is returned by the disk provider when an object
+	// being read fully into memory exceeds the configured cap.
+	ErrDiskObjectTooLarge = errors.New("storage: disk object exceeds maximum read size")
 )

@@ -30,13 +30,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/monitoring/monitoring_domain"
 )
 
 func TestDevEventBroadcaster_ClientLifecycle(t *testing.T) {
 	t.Parallel()
 
 	b := NewDevEventBroadcaster()
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	assert.Equal(t, 0, b.ClientCount())
 
@@ -59,7 +60,7 @@ func TestDevEventBroadcaster_BroadcastFanout(t *testing.T) {
 	t.Parallel()
 
 	b := NewDevEventBroadcaster()
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	ch1 := make(chan []byte, devSSEClientBuffer)
 	ch2 := make(chan []byte, devSSEClientBuffer)
@@ -88,7 +89,7 @@ func TestDevEventBroadcaster_SlowClientDrop(t *testing.T) {
 	t.Parallel()
 
 	b := NewDevEventBroadcaster()
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	ch := make(chan []byte, 1)
 	b.addClient(ch)
@@ -120,20 +121,20 @@ func TestDevEventBroadcaster_Close(t *testing.T) {
 
 	assert.Equal(t, 1, b.ClientCount())
 
-	b.Close()
+	require.NoError(t, b.Close())
 	assert.Equal(t, 0, b.ClientCount())
 
 	_, ok := <-ch
 	assert.False(t, ok, "channel should be closed after Close()")
 
-	b.Close()
+	require.NoError(t, b.Close())
 }
 
 func TestDevEventBroadcaster_NotifyRebuildComplete(t *testing.T) {
 	t.Parallel()
 
 	b := NewDevEventBroadcaster()
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	ch := make(chan []byte, devSSEClientBuffer)
 	b.addClient(ch)
@@ -156,7 +157,7 @@ func TestDevEventBroadcaster_NotifyRebuildComplete_OnlyPartials(t *testing.T) {
 	t.Parallel()
 
 	b := NewDevEventBroadcaster()
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	ch := make(chan []byte, devSSEClientBuffer)
 	b.addClient(ch)
@@ -174,7 +175,7 @@ func TestDevEventBroadcaster_ServeHTTP_InitialHeartbeat(t *testing.T) {
 	t.Parallel()
 
 	b := NewDevEventBroadcaster()
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	ctx, cancel := context.WithTimeoutCause(context.Background(), time.Second, errors.New("test timed out waiting for initial heartbeat"))
 	defer cancel()
@@ -243,4 +244,44 @@ func (f *flushRecorder) Body() string {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.ResponseRecorder.Body.String()
+}
+
+type stubSystemStatsProvider struct{}
+
+func (stubSystemStatsProvider) GetStats() monitoring_domain.SystemStats {
+	return monitoring_domain.SystemStats{}
+}
+
+func TestDevEventBroadcaster_Close_DrainsStatsGoroutine(t *testing.T) {
+	t.Parallel()
+
+	b := NewDevEventBroadcaster()
+	b.SetSystemStatsProvider(stubSystemStatsProvider{})
+
+	ch := make(chan []byte, devSSEClientBuffer)
+	b.addClient(ch)
+
+	require.Eventually(t, func() bool {
+		b.mu.RLock()
+		defer b.mu.RUnlock()
+		return b.statsRunning
+	}, time.Second, 5*time.Millisecond, "stats goroutine should be running while a client is connected")
+
+	require.NoError(t, b.Close(), "Close should drain the stats goroutine cleanly")
+
+	b.mu.RLock()
+	stillRunning := b.statsRunning
+	b.mu.RUnlock()
+	assert.False(t, stillRunning, "statsRunning should be cleared via cancel after Close")
+}
+
+func TestDevEventBroadcaster_Close_NoStatsGoroutine(t *testing.T) {
+	t.Parallel()
+
+	b := NewDevEventBroadcaster()
+
+	ch := make(chan []byte, devSSEClientBuffer)
+	b.addClient(ch)
+
+	require.NoError(t, b.Close(), "Close should succeed even when no stats provider is configured")
 }

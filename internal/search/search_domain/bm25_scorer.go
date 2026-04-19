@@ -234,7 +234,7 @@ type TermScoreDetail struct {
 	// with length normalisation), before field weighting.
 	BaseScore float64
 
-	// FieldWeight is the multiplier applied to this field type.
+	// FieldWeight is the multiplier applied to the field type.
 	FieldWeight float64
 
 	// FinalScore is the term's score after field weighting is applied.

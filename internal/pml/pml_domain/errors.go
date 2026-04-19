@@ -19,6 +19,7 @@
 package pml_domain
 
 import (
+	"errors"
 	"fmt"
 
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -36,6 +37,11 @@ const (
 	// stop the build.
 	SeverityWarning Severity = "warning"
 )
+
+// ErrComponentNotFound is returned by ComponentRegistry.Lookup when no
+// component is registered with the requested tag name. Renderers wrap it with
+// %w to surface a clean template error rather than panicking on user typos.
+var ErrComponentNotFound = errors.New("pml: component not found in registry")
 
 // Error represents a single diagnostic (error or warning) generated during
 // PikoML validation or transformation. It implements the standard error

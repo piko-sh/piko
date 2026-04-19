@@ -19,6 +19,7 @@
 package piko
 
 import (
+	"log/slog"
 	"testing"
 
 	"piko.sh/piko/internal/pikotest/pikotest_domain"
@@ -116,12 +117,23 @@ func NewComponentTester(tb testing.TB, buildAST BuildASTFunc, opts ...ComponentO
 // WithRenderer attaches a RenderService to enable full HTML rendering in tests.
 // Most tests should use AST queries instead, which do not require a renderer.
 //
-// Returns ComponentOption which configures the component with the renderer.
+// Returns ComponentOption which logs an error at apply-time without
+// configuring the renderer. The piko package cannot reference the internal
+// RenderService type without inducing an import cycle, so this stub exists
+// for surface compatibility only.
 //
-// Panics if called directly; use pikotest_domain.WithRenderer instead to
-// avoid circular dependencies.
+// Deprecated: Use pikotest_domain.WithRenderer directly. Calling this
+// function emits an error via slog and does not attach a renderer; HTML()
+// assertions on the resulting TestView will fail with a missing-renderer
+// diagnostic.
 func WithRenderer(_ any) ComponentOption {
-	panic("WithRenderer must be called via pikotest_domain.WithRenderer directly")
+	return func(_ *pikotest_dto.ComponentConfig) {
+		slog.Error(
+			"piko.WithRenderer cannot be used in this package; use pikotest_domain.WithRenderer to avoid the import cycle",
+			slog.String("component", "piko.pikotest"),
+			slog.String("guidance", "import piko.sh/piko/internal/pikotest/pikotest_domain and call pikotest_domain.WithRenderer(renderer)"),
+		)
+	}
 }
 
 // WithPageID sets the page identifier for this component test.

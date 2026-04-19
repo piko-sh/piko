@@ -81,7 +81,7 @@ func setupTestProviderWithSource(t *testing.T, directory string) (*MarkdownProvi
 		BasePath: directory,
 	}
 
-	return NewMarkdownProvider("markdown", sandbox, service, nil), source
+	return NewMarkdownProvider("markdown", sandbox, service, nil, nil), source
 }
 
 func TestMarkdownProvider_Name(t *testing.T) {
@@ -625,7 +625,7 @@ func TestMarkdownProvider_DiscoverCollections_Errors(t *testing.T) {
 		parser := markdown_testparser.NewParser()
 		service := markdown_domain.NewMarkdownService(parser, nil)
 
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
 
 		config := collection_dto.ProviderConfig{
 			BasePath:      ".",
@@ -656,7 +656,7 @@ func TestMarkdownProvider_DiscoverCollections_Errors(t *testing.T) {
 		}
 		sandbox.ReadDirErr = os.ErrPermission
 
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
 
 		config := collection_dto.ProviderConfig{
 			BasePath:      ".",
@@ -692,7 +692,7 @@ func TestMarkdownProvider_FetchStaticContent_Errors(t *testing.T) {
 		}
 		sandbox.WalkDirErr = os.ErrPermission
 
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
 		source := collection_dto.ContentSource{Sandbox: sandbox}
 
 		_, err := provider.FetchStaticContent(context.Background(), "blog", source)
@@ -719,7 +719,7 @@ func TestMarkdownProvider_FetchStaticContent_Errors(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
 		source := collection_dto.ContentSource{Sandbox: sandbox}
 
 		items, err := provider.FetchStaticContent(context.Background(), "empty", source)
@@ -749,7 +749,7 @@ func TestMarkdownProvider_FetchStaticContent_Errors(t *testing.T) {
 
 		sandbox.ReadFileErr = os.ErrPermission
 
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
 		source := collection_dto.ContentSource{Sandbox: sandbox}
 
 		items, err := provider.FetchStaticContent(context.Background(), "blog", source)
@@ -780,7 +780,7 @@ func TestMarkdownProvider_ComputeETag_Errors(t *testing.T) {
 		}
 		sandbox.WalkDirErr = os.ErrPermission
 
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
 		source := collection_dto.ContentSource{Sandbox: sandbox}
 
 		_, err := provider.ComputeETag(context.Background(), "blog", source)
@@ -802,7 +802,7 @@ func TestMarkdownProvider_ComputeETag_Errors(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+		provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
 		source := collection_dto.ContentSource{Sandbox: sandbox}
 
 		etag, err := provider.ComputeETag(context.Background(), "empty", source)
@@ -862,6 +862,38 @@ func TestExtractSlugOverride(t *testing.T) {
 		{
 			name:           "slug is non-string type",
 			fm:             map[string]any{"slug": 42},
+			collectionName: "blog",
+			defaultURL:     "/blog/my-post",
+			expectedSlug:   "",
+			expectedURL:    "/blog/my-post",
+		},
+		{
+			name:           "traversal segments stripped",
+			fm:             map[string]any{"slug": "../escape"},
+			collectionName: "blog",
+			defaultURL:     "/blog/my-post",
+			expectedSlug:   "escape",
+			expectedURL:    "/blog/escape",
+		},
+		{
+			name:           "control characters stripped",
+			fm:             map[string]any{"slug": "po\x01st\x7Fname"},
+			collectionName: "blog",
+			defaultURL:     "/blog/my-post",
+			expectedSlug:   "postname",
+			expectedURL:    "/blog/postname",
+		},
+		{
+			name:           "backslash normalised",
+			fm:             map[string]any{"slug": "category\\post"},
+			collectionName: "blog",
+			defaultURL:     "/blog/my-post",
+			expectedSlug:   "category/post",
+			expectedURL:    "/blog/category/post",
+		},
+		{
+			name:           "slug entirely traversal falls back to default",
+			fm:             map[string]any{"slug": "../.."},
 			collectionName: "blog",
 			defaultURL:     "/blog/my-post",
 			expectedSlug:   "",
@@ -1158,7 +1190,7 @@ func TestMarkdownProvider_ProcessCollectionEntry_ScanError(t *testing.T) {
 	require.NoError(t, sandbox.MkdirAll("content/blog", 0755))
 	sandbox.WalkDirErr = errors.New("walk error")
 
-	provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+	provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
 	entry := &mockDirEntry{name: "blog", isDir: true}
 	config := collection_dto.ProviderConfig{
 		Locales:       []string{"en"},
@@ -1191,7 +1223,7 @@ Get started here.`)
 	parser := markdown_testparser.NewParser()
 	service := markdown_domain.NewMarkdownService(parser, nil)
 
-	provider := NewMarkdownProvider("markdown", sandbox, service, nil)
+	provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
 	source := collection_dto.ContentSource{
 		Sandbox:    sandbox,
 		BasePath:   tmpDir,
@@ -1210,6 +1242,206 @@ Get started here.`)
 	}
 	assert.True(t, slugs["intro"])
 	assert.True(t, slugs["getting-started"])
+}
+
+func TestResolveAndRewriteAssets_RawHTMLBlock(t *testing.T) {
+	directory := t.TempDir()
+	writeAsset := func(relativePath string, data []byte) {
+		full := filepath.Join(directory, relativePath)
+		require.NoError(t, os.MkdirAll(filepath.Dir(full), 0o755))
+		require.NoError(t, os.WriteFile(full, data, 0o644))
+	}
+	writeAsset("diagrams/one.svg", []byte("<svg/>"))
+
+	sandbox, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	registrar := &stubAssetRegistrar{}
+	parser := markdown_testparser.NewParser()
+	service := markdown_domain.NewMarkdownService(parser, nil)
+	provider := NewMarkdownProvider("markdown", sandbox, service, nil, registrar)
+
+	rawHTML := `<p align="center"><img src="../diagrams/one.svg" alt="x"/></p>`
+	tree := &ast_domain.TemplateAST{
+		RootNodes: []*ast_domain.TemplateNode{
+			{NodeType: ast_domain.NodeRawHTML, TextContent: rawHTML},
+		},
+	}
+
+	provider.resolveAndRewriteAssets(context.Background(), sandbox, "tutorials/foo.md", "docs", nil, tree)
+
+	require.Len(t, tree.RootNodes, 1)
+	got := tree.RootNodes[0].TextContent
+	assert.Contains(t, got, `src="/_piko/assets/diagrams/one.svg"`)
+	assert.NotContains(t, got, `../diagrams/one.svg`)
+	registrar.mu.Lock()
+	calls := len(registrar.calls)
+	registrar.mu.Unlock()
+	assert.Equal(t, 1, calls)
+}
+
+func TestResolveAndRewriteAssets_MarkdownImgElement(t *testing.T) {
+	directory := t.TempDir()
+	full := filepath.Join(directory, "diagrams", "two.svg")
+	require.NoError(t, os.MkdirAll(filepath.Dir(full), 0o755))
+	require.NoError(t, os.WriteFile(full, []byte("<svg/>"), 0o644))
+
+	sandbox, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	registrar := &stubAssetRegistrar{}
+	parser := markdown_testparser.NewParser()
+	service := markdown_domain.NewMarkdownService(parser, nil)
+	provider := NewMarkdownProvider("markdown", sandbox, service, nil, registrar)
+
+	img := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		TagName:  "img",
+		Attributes: []ast_domain.HTMLAttribute{
+			{Name: "src", Value: "../diagrams/two.svg"},
+		},
+	}
+	tree := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{img}}
+
+	provider.resolveAndRewriteAssets(context.Background(), sandbox, "tutorials/foo.md", "docs", nil, tree)
+
+	src, ok := img.GetAttribute("src")
+	require.True(t, ok)
+	assert.Equal(t, "/_piko/assets/diagrams/two.svg", src)
+}
+
+func TestResolveAndRewriteAssets_PreservesNonRelativeSrcs(t *testing.T) {
+	directory := t.TempDir()
+	sandbox, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	registrar := &stubAssetRegistrar{}
+	parser := markdown_testparser.NewParser()
+	service := markdown_domain.NewMarkdownService(parser, nil)
+	provider := NewMarkdownProvider("markdown", sandbox, service, nil, registrar)
+
+	img := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		TagName:  "img",
+		Attributes: []ast_domain.HTMLAttribute{
+			{Name: "src", Value: "https://cdn.example.com/asset.png"},
+		},
+	}
+	tree := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{img}}
+
+	provider.resolveAndRewriteAssets(context.Background(), sandbox, "foo.md", "docs", nil, tree)
+
+	src, _ := img.GetAttribute("src")
+	assert.Equal(t, "https://cdn.example.com/asset.png", src)
+	registrar.mu.Lock()
+	calls := len(registrar.calls)
+	registrar.mu.Unlock()
+	assert.Equal(t, 0, calls)
+}
+
+func TestResolveAndRewriteAssets_NilRegistrarIsNoop(t *testing.T) {
+	sandbox, err := safedisk.NewNoOpSandbox(t.TempDir(), safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	parser := markdown_testparser.NewParser()
+	service := markdown_domain.NewMarkdownService(parser, nil)
+	provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
+
+	img := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		TagName:  "img",
+		Attributes: []ast_domain.HTMLAttribute{
+			{Name: "src", Value: "../diagrams/x.svg"},
+		},
+	}
+	tree := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{img}}
+
+	provider.resolveAndRewriteAssets(context.Background(), sandbox, "foo.md", "docs", nil, tree)
+
+	src, _ := img.GetAttribute("src")
+	assert.Equal(t, "../diagrams/x.svg", src)
+}
+
+func TestResolveAndRewriteAssets_MarkdownAnchorElement(t *testing.T) {
+	sandbox, err := safedisk.NewNoOpSandbox(t.TempDir(), safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	parser := markdown_testparser.NewParser()
+	service := markdown_domain.NewMarkdownService(parser, nil)
+	provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
+
+	anchor := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		TagName:  "a",
+		Attributes: []ast_domain.HTMLAttribute{
+			{Name: "href", Value: "../tutorials/01-your-first-page.md"},
+		},
+	}
+	tree := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{anchor}}
+
+	analyser := newPathAnalyser([]string{"en"}, "en")
+	provider.resolveAndRewriteAssets(context.Background(), sandbox, "get-started/install.md", "docs", analyser, tree)
+
+	href, ok := anchor.GetAttribute("href")
+	require.True(t, ok)
+	assert.Equal(t, "/docs/tutorials/01-your-first-page", href)
+	assert.Equal(t, "piko:a", anchor.TagName, "internal links should be promoted to piko:a for soft navigation")
+}
+
+func TestResolveAndRewriteAssets_MarkdownAnchorPreservesAbsolute(t *testing.T) {
+	sandbox, err := safedisk.NewNoOpSandbox(t.TempDir(), safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	parser := markdown_testparser.NewParser()
+	service := markdown_domain.NewMarkdownService(parser, nil)
+	provider := NewMarkdownProvider("markdown", sandbox, service, nil, nil)
+
+	anchor := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		TagName:  "a",
+		Attributes: []ast_domain.HTMLAttribute{
+			{Name: "href", Value: "https://github.com/piko-sh/piko"},
+		},
+	}
+	tree := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{anchor}}
+
+	analyser := newPathAnalyser([]string{"en"}, "en")
+	provider.resolveAndRewriteAssets(context.Background(), sandbox, "get-started/install.md", "docs", analyser, tree)
+
+	href, _ := anchor.GetAttribute("href")
+	assert.Equal(t, "https://github.com/piko-sh/piko", href)
+	assert.Equal(t, "a", anchor.TagName, "external links should stay as plain <a>, not soft-navigated")
+}
+
+func TestResolveAndRewriteAssets_NilAnalyserSkipsAnchors(t *testing.T) {
+	sandbox, err := safedisk.NewNoOpSandbox(t.TempDir(), safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	registrar := &stubAssetRegistrar{}
+	parser := markdown_testparser.NewParser()
+	service := markdown_domain.NewMarkdownService(parser, nil)
+	provider := NewMarkdownProvider("markdown", sandbox, service, nil, registrar)
+
+	anchor := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		TagName:  "a",
+		Attributes: []ast_domain.HTMLAttribute{
+			{Name: "href", Value: "concepts.md"},
+		},
+	}
+	tree := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{anchor}}
+
+	provider.resolveAndRewriteAssets(context.Background(), sandbox, "get-started/install.md", "docs", nil, tree)
+
+	href, _ := anchor.GetAttribute("href")
+	assert.Equal(t, "concepts.md", href)
 }
 
 func TestBuildMetadata(t *testing.T) {

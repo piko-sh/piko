@@ -20,12 +20,12 @@ package maths
 
 import (
 	"database/sql/driver"
-	"encoding/json"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 )
 
 // String returns the decimal text form of the big integer.
@@ -125,7 +125,7 @@ func (b BigInt) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pikojson.Marshal(s)
+	return json.Marshal(s)
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
@@ -141,13 +141,13 @@ func (b *BigInt) UnmarshalJSON(data []byte) error {
 	}
 
 	var strValue string
-	if err := pikojson.Unmarshal(data, &strValue); err == nil {
+	if err := json.Unmarshal(data, &strValue); err == nil {
 		*b = NewBigIntFromString(strValue)
 		return b.err
 	}
 
-	var numValue json.Number
-	if err := pikojson.Unmarshal(data, &numValue); err == nil {
+	var numValue stdjson.Number
+	if err := json.Unmarshal(data, &numValue); err == nil {
 		*b = NewBigIntFromString(numValue.String())
 		return b.err
 	}

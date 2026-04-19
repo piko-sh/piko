@@ -323,7 +323,9 @@ func TestTemplatedEmailBuilder_Props(t *testing.T) {
 	type TestProps struct{ Name string }
 	s := newTestService(&mockProvider{})
 	s.templater = &mockTemplater{}
-	b := NewTemplatedEmail[TestProps](s).Props(TestProps{Name: "Alice"})
+	builder, err := NewTemplatedEmail[TestProps](s)
+	require.NoError(t, err)
+	b := builder.Props(TestProps{Name: "Alice"})
 	if b.templateProps.Name != "Alice" {
 		t.Errorf("expected props.Name='Alice', got %q", b.templateProps.Name)
 	}
@@ -332,7 +334,9 @@ func TestTemplatedEmailBuilder_Props(t *testing.T) {
 func TestTemplatedEmailBuilder_BodyTemplate(t *testing.T) {
 	s := newTestService(&mockProvider{})
 	s.templater = &mockTemplater{}
-	b := NewTemplatedEmail[struct{}](s).BodyTemplate("emails/welcome.pk")
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	b := builder.BodyTemplate("emails/welcome.pk")
 	if b.templatePath != "emails/welcome.pk" {
 		t.Error("expected template path to be set")
 	}
@@ -345,7 +349,9 @@ func TestTemplatedEmailBuilder_PremailerOptions(t *testing.T) {
 	s := newTestService(&mockProvider{})
 	s.templater = &mockTemplater{}
 	opts := premailer.Options{RemoveClasses: true}
-	b := NewTemplatedEmail[struct{}](s).PremailerOptions(opts)
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	b := builder.PremailerOptions(opts)
 	if b.premailerOptions == nil {
 		t.Fatal("expected premailer options to be set")
 	}
@@ -370,7 +376,9 @@ func TestTemplatedEmailBuilder_Do_Success(t *testing.T) {
 	s := newTestService(provider)
 	s.templater = template
 
-	err := NewTemplatedEmail[struct{}](s).
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	err = builder.
 		To("user@example.com").
 		Subject("welcome").
 		BodyTemplate("emails/welcome.pk").
@@ -386,7 +394,9 @@ func TestTemplatedEmailBuilder_Do_Success(t *testing.T) {
 func TestTemplatedEmailBuilder_Do_NoTemplater(t *testing.T) {
 	s := newTestService(&mockProvider{})
 
-	err := NewTemplatedEmail[struct{}](s).
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	err = builder.
 		To("user@example.com").
 		Subject("welcome").
 		BodyTemplate("emails/welcome.pk").
@@ -405,7 +415,9 @@ func TestTemplatedEmailBuilder_Do_RenderError(t *testing.T) {
 	s := newTestService(&mockProvider{})
 	s.templater = template
 
-	err := NewTemplatedEmail[struct{}](s).
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	err = builder.
 		To("user@example.com").
 		Subject("welcome").
 		BodyTemplate("emails/welcome.pk").
@@ -431,7 +443,9 @@ func TestTemplatedEmailBuilder_Do_PreservesUserPlainText(t *testing.T) {
 	s := newTestService(provider)
 	s.templater = template
 
-	err := NewTemplatedEmail[struct{}](s).
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	err = builder.
 		To("user@example.com").
 		Subject("welcome").
 		BodyPlain("custom plain text").
@@ -485,7 +499,9 @@ func TestTemplatedEmailBuilder_Do_WithAssets(t *testing.T) {
 	s.templater = template
 	s.assetResolver = resolver
 
-	err := NewTemplatedEmail[struct{}](s).
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	err = builder.
 		To("user@example.com").
 		Subject("welcome").
 		BodyTemplate("emails/welcome.pk").
@@ -523,7 +539,9 @@ func TestTemplatedEmailBuilder_Do_AssetResolutionErrors(t *testing.T) {
 	s.templater = template
 	s.assetResolver = resolver
 
-	err := NewTemplatedEmail[struct{}](s).
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	err = builder.
 		To("user@example.com").
 		Subject("welcome").
 		BodyTemplate("emails/welcome.pk").
@@ -538,7 +556,9 @@ func TestTemplatedEmailBuilder_Clone(t *testing.T) {
 	s := newTestService(&mockProvider{})
 	s.templater = &mockTemplater{}
 	opts := premailer.Options{RemoveClasses: true}
-	b := NewTemplatedEmail[struct{}](s).
+	builder, err := NewTemplatedEmail[struct{}](s)
+	require.NoError(t, err)
+	b := builder.
 		To("a@x.com").
 		Subject("orig").
 		BodyTemplate("emails/welcome.pk").
@@ -560,12 +580,22 @@ func TestTemplatedEmailBuilder_Clone(t *testing.T) {
 }
 
 func TestNewTemplatedEmail_NonServiceImpl(t *testing.T) {
+	type fakeService struct{ Service }
+	builder, err := NewTemplatedEmail[struct{}](&fakeService{})
+	require.Error(t, err, "expected error for non-*service implementation")
+	require.ErrorIs(t, err, ErrUnsupportedServiceImpl)
+	require.Nil(t, builder)
+}
+
+func TestNewTemplatedEmail_ReturnsErrorOnInvalidInput(t *testing.T) {
+	type fakeService struct{ Service }
 	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic for non-*service implementation")
+		if r := recover(); r != nil {
+			t.Fatalf("NewTemplatedEmail panicked instead of returning error: %v", r)
 		}
 	}()
-
-	type fakeService struct{ Service }
-	NewTemplatedEmail[struct{}](&fakeService{})
+	builder, err := NewTemplatedEmail[struct{}](&fakeService{})
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrUnsupportedServiceImpl)
+	require.Nil(t, builder)
 }

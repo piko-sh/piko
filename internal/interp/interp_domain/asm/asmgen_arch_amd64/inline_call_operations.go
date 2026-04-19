@@ -251,13 +251,12 @@ func (*amd64InlineCallOps) emitCallInlineSaveCallerState(e *asmgen.Emitter) {
 // pointer and snapshots all seven arena indices into the callee
 // frame's arenaSave block.
 //
-// The callee frame address is computed as callStackBase + newFp x
-// CALLFRAME_SIZE. Once the frame pointer is known, the method stores
-// newFp into ctx.framePointer and copies the current arena index for
-// each register bank (int, float, string, generic, bool, uint,
-// complex) into the callee frame's arenaSave region. These saved
-// indices allow the return path to restore the arena watermarks when
-// the callee frame is popped.
+// The callee frame address is computed as callStackBase + newFp x CALLFRAME_SIZE.
+// Once the frame pointer is known, newFp is stored into ctx.framePointer and the
+// current arena index is copied for each register bank (int, float, string, generic,
+// bool, uint, complex) into the callee frame's arenaSave region. These saved indices
+// allow the return path to restore the arena watermarks when the callee frame is
+// popped.
 //
 // On entry: DI holds newFp, BX holds CTX_CSTACK_BASE(R15), AX holds
 // the asmCallInfo pointer, R15 holds the context pointer.
@@ -1060,9 +1059,8 @@ func (*amd64InlineCallOps) emitReturnInlineCopyUnsignedIntegerReturn(e *asmgen.E
 // return value copy phase jumps to it; EmitReturnVoidInline does not,
 // since there is no return value copy.
 //
-// The prefix parameter selects the label namespace (e.g. "ri" or
-// "rvi") so this method can be shared between EmitReturnInline and
-// EmitReturnVoidInline.
+// The prefix parameter selects the label namespace (e.g. "ri" or "rvi") so the
+// helper can be shared between EmitReturnInline and EmitReturnVoidInline.
 //
 // On entry: DI points to the callee call frame, R15 holds the
 // context pointer.
@@ -1187,8 +1185,8 @@ func (*amd64InlineCallOps) emitReturnInlineFallbackPath(e *asmgen.Emitter, prefi
 // frame must not be the base frame, and no defers must have been
 // pushed since this frame was entered.
 //
-// This method also computes callerFp (R13 = SI - 1) and a pointer
-// to the caller's call frame (R12), which are used by later phases.
+// Also computes callerFp (R13 = SI - 1) and a pointer to the caller's call frame
+// (R12), which are used by later phases.
 //
 // On entry: R15 holds the context pointer.
 // On exit: SI holds the current frame pointer, DI points to the

@@ -27,7 +27,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/captcha/captcha_domain"
-	"piko.sh/piko/internal/config"
 )
 
 type stubCaptchaProvider struct {
@@ -73,7 +72,7 @@ func TestSelectCaptchaProvider(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c := NewContainer(config.NewConfigProvider())
+			c := NewContainer()
 
 			if len(tc.providers) > 0 {
 				c.captchaProviders = make(map[string]captcha_domain.CaptchaProvider, len(tc.providers))
@@ -107,7 +106,7 @@ func TestSelectCaptchaProvider(t *testing.T) {
 func TestGetCaptchaService_DisabledWhenNoProviders(t *testing.T) {
 	t.Parallel()
 
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	service, err := c.GetCaptchaService()
 
@@ -119,7 +118,7 @@ func TestGetCaptchaService_DisabledWhenNoProviders(t *testing.T) {
 func TestSetCaptchaService_ConsumesSyncOnce(t *testing.T) {
 	t.Parallel()
 
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	customService := captcha_domain.NewDisabledCaptchaService()
 	c.SetCaptchaService(customService)
@@ -133,8 +132,8 @@ func TestSetCaptchaService_ConsumesSyncOnce(t *testing.T) {
 func TestCreateCaptchaProviderFromConfig_HMACChallenge(t *testing.T) {
 	t.Parallel()
 
-	c := NewContainer(config.NewConfigProvider())
-	c.config.ServerConfig.Security.CaptchaProvider = new("hmac_challenge")
+	c := NewContainer()
+	c.serverConfig.Security.CaptchaProvider = new("hmac_challenge")
 
 	gotName, gotProvider, err := c.createCaptchaProviderFromConfig(context.Background())
 

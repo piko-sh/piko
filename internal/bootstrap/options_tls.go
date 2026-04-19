@@ -117,8 +117,7 @@ func WithTLSHotReload(enabled bool) TLSOption {
 // Returns TLSOption which sets the redirect port.
 func WithTLSRedirectHTTP(port int) TLSOption {
 	return func(tlsConfig *config.TLSConfig) {
-		s := strconv.Itoa(port)
-		tlsConfig.RedirectHTTPPort = &s
+		tlsConfig.RedirectHTTPPort = new(strconv.Itoa(port))
 	}
 }
 

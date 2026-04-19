@@ -19,18 +19,17 @@
 // Package runtime provides the stable public API consumed by
 // Piko's generated Go code.
 //
-// It is a facade that re-exports internal types, constants,
-// and helper functions so that compiled component files depend
-// solely on this package. This prevents internal refactoring
-// from breaking generated code.
+// Acts as a facade that re-exports internal types, constants, and helper
+// functions so that compiled component files depend solely on the runtime
+// facade. Prevents internal refactoring from breaking generated code.
 //
-// This package is NOT intended for direct use in user-authored
-// <script> blocks. It is the contract between the Piko compiler
-// output and the framework runtime.
+// Not intended for direct use in user-authored <script> blocks; the runtime
+// facade is the contract between the Piko compiler output and the framework
+// runtime.
 //
-// The package covers component registration, collection queries,
-// and search (both fuzzy text search and BM25 inverted-index
-// search). All exported functions are safe for concurrent use.
+// The package covers component registration, collection queries, and search
+// (both fuzzy text search and BM25 inverted-index search). All exported
+// functions are safe for concurrent use.
 // Search functions return an error in js/wasm builds, as they
 // require the server-side bootstrap infrastructure.
 package runtime

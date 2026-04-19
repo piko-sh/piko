@@ -77,7 +77,7 @@ func (idx *VectorIndex[K]) Add(key K, vector []float32) {
 	if idx.maxVectors > 0 && idx.graph.Len() >= idx.maxVectors {
 		return
 	}
-	idx.graph.Insert(key, vector)
+	_ = idx.graph.Insert(key, vector)
 }
 
 // initialiseOnce lazily initialises the HNSW graph on the first Add call when

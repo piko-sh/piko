@@ -22,10 +22,10 @@ import (
 	"io"
 
 	"github.com/bytedance/sonic"
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 )
 
-// sonicAPI wraps a frozen sonic.API to implement pikojson.API.
+// sonicAPI wraps a frozen sonic.API to implement json.API.
 type sonicAPI struct {
 	// inner is the frozen sonic API instance.
 	inner sonic.API
@@ -70,8 +70,8 @@ func (s *sonicAPI) MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 //
 // Takes w (io.Writer) which is the output destination.
 //
-// Returns pikojson.Encoder which writes JSON to w.
-func (s *sonicAPI) NewEncoder(w io.Writer) pikojson.Encoder {
+// Returns json.Encoder which writes JSON to w.
+func (s *sonicAPI) NewEncoder(w io.Writer) json.Encoder {
 	return s.inner.NewEncoder(w)
 }
 
@@ -79,17 +79,17 @@ func (s *sonicAPI) NewEncoder(w io.Writer) pikojson.Encoder {
 //
 // Takes r (io.Reader) which is the input source.
 //
-// Returns pikojson.Decoder which reads JSON from r.
-func (s *sonicAPI) NewDecoder(r io.Reader) pikojson.Decoder {
+// Returns json.Decoder which reads JSON from r.
+func (s *sonicAPI) NewDecoder(r io.Reader) json.Decoder {
 	return s.inner.NewDecoder(r)
 }
 
-// sonicFreeze maps a pikojson.Config to a sonic.Config and freezes it.
+// sonicFreeze maps a json.Config to a sonic.Config and freezes it.
 //
-// Takes config (pikojson.Config) which describes the desired encoding behaviour.
+// Takes config (json.Config) which describes the desired encoding behaviour.
 //
-// Returns pikojson.API which is the frozen sonic API.
-func sonicFreeze(config pikojson.Config) pikojson.API {
+// Returns json.API which is the frozen sonic API.
+func sonicFreeze(config json.Config) json.API {
 	return &sonicAPI{
 		inner: sonic.Config{
 			CopyString:  config.CopyString,

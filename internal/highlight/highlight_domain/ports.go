@@ -28,7 +28,7 @@ type Highlighter interface {
 	//
 	// Takes code (string) which is the source code to highlight.
 	// Takes language (string) which is the language identifier (e.g., "go",
-	// "piko", "javascript").
+	// "piko", or a JavaScript identifier such as "js").
 	//
 	// Returns string which is the highlighted HTML ready for rendering.
 	Highlight(code, language string) string

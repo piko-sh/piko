@@ -15,7 +15,7 @@ type ForecastOutput struct {
 }
 
 // ForecastAction returns weather data with response caching.
-// See https://piko.sh/docs/guide/advanced-actions#caching
+// See https://piko.sh/docs/how-to/actions/advanced-patterns#caching
 type ForecastAction struct {
 	piko.ActionMetadata
 }

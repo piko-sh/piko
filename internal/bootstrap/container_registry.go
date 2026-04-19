@@ -89,7 +89,13 @@ func (c *Container) createDefaultRegistryService() {
 	c.registryMetaCache = metadataCache
 	c.registerRegistryShutdownHandlers()
 
-	c.registryService = registry_domain.NewRegistryService(metaStore, blobStores, c.GetEventBus(), metadataCache)
+	eventBus, err := c.GetEventBus()
+	if err != nil {
+		c.registryErr = fmt.Errorf("getting event bus for registry service: %w", err)
+		return
+	}
+
+	c.registryService = registry_domain.NewRegistryService(metaStore, blobStores, eventBus, metadataCache)
 }
 
 // createRegistryMetadataStore creates the metadata store using the provider's
@@ -261,7 +267,7 @@ func (c *Container) getRegistryBlobProvider() (storage_domain.StorageProviderPor
 	}
 
 	l.Internal("Using built-in disk provider for registry blobs (no providers configured)")
-	blobDir := filepath.Join(deref(c.config.ServerConfig.Paths.BaseDir, "."), config.PikoInternalPath, "blobs")
+	blobDir := filepath.Join(deref(c.serverConfig.Paths.BaseDir, "."), config.PikoInternalPath, "blobs")
 	blobSandbox, sandboxErr := c.createSandbox("registry-blob-storage", blobDir, safedisk.ModeReadWrite)
 	if sandboxErr != nil {
 		return nil, fmt.Errorf("failed to create blob storage sandbox: %w", sandboxErr)
@@ -312,7 +318,7 @@ func (c *Container) createDefaultRenderRegistry() {
 	if err != nil {
 		l.Panic("Failed to get registry service, cannot create render registry", logger_domain.Error(err))
 	}
-	c.renderRegistry = render_adapters.NewDataLoaderRegistryAdapter(registryService, &render_adapters.DataLoaderAdapterConfig{}, deref(c.config.ServerConfig.Paths.ArtefactServePath, "/_piko/assets"))
+	c.renderRegistry = render_adapters.NewDataLoaderRegistryAdapter(registryService, &render_adapters.DataLoaderAdapterConfig{}, deref(c.serverConfig.Paths.ArtefactServePath, "/_piko/assets"))
 
 	if closer, ok := c.renderRegistry.(interface{ Close() }); ok {
 		shutdown.Register(c.GetAppContext(), "RenderRegistry", func(_ context.Context) error {

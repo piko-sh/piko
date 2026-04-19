@@ -20,7 +20,11 @@ package browser_provider_chromedp
 
 import (
 	"errors"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
+	"time"
 
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -156,4 +160,268 @@ func TestDownloadTracker_CreateDownloadDir_Sandbox(t *testing.T) {
 			t.Fatalf("expected no error for empty directory, got: %v", err)
 		}
 	})
+}
+
+func TestSanitiseSuggestedFilename(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name      string
+		input     string
+		wantSafe  bool
+		wantBase  string
+		wantMatch func(string) bool
+	}{
+		{
+			name:     "plain filename passes through",
+			input:    "report.pdf",
+			wantSafe: true,
+			wantBase: "report.pdf",
+		},
+		{
+			name:      "parent traversal is rewritten",
+			input:     "../../etc/passwd",
+			wantSafe:  false,
+			wantMatch: func(s string) bool { return strings.HasPrefix(s, "download-") && !strings.Contains(s, "..") },
+		},
+		{
+			name:      "absolute path is rewritten",
+			input:     "/etc/passwd",
+			wantSafe:  false,
+			wantMatch: func(s string) bool { return strings.HasPrefix(s, "download-") },
+		},
+		{
+			name:      "windows separator is rewritten",
+			input:     "..\\..\\windows\\system32\\cmd.exe",
+			wantSafe:  false,
+			wantMatch: func(s string) bool { return strings.HasPrefix(s, "download-") },
+		},
+		{
+			name:      "leading dot is rewritten",
+			input:     ".bashrc",
+			wantSafe:  false,
+			wantMatch: func(s string) bool { return strings.HasPrefix(s, "download-") },
+		},
+		{
+			name:      "empty input is rewritten",
+			input:     "",
+			wantSafe:  false,
+			wantMatch: func(s string) bool { return strings.HasPrefix(s, "download-") },
+		},
+		{
+			name:      "dot only is rewritten",
+			input:     ".",
+			wantSafe:  false,
+			wantMatch: func(s string) bool { return strings.HasPrefix(s, "download-") },
+		},
+		{
+			name:      "double dot is rewritten",
+			input:     "..",
+			wantSafe:  false,
+			wantMatch: func(s string) bool { return strings.HasPrefix(s, "download-") },
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := sanitiseSuggestedFilename(tc.input)
+
+			if strings.ContainsAny(got, "/\\") {
+				t.Fatalf("sanitised filename %q still contains separators", got)
+			}
+
+			if tc.wantSafe {
+				if got != tc.wantBase {
+					t.Errorf("got %q, want %q", got, tc.wantBase)
+				}
+				return
+			}
+
+			if !tc.wantMatch(got) {
+				t.Errorf("sanitised filename %q does not match expected shape", got)
+			}
+		})
+	}
+}
+
+func TestSafeDownloadPath_RejectsEscapingAbsolutePath(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path, err := safeDownloadPath(dir, "/etc/passwd")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	abs, _ := filepath.Abs(path)
+	dirAbs, _ := filepath.Abs(dir)
+	if !strings.HasPrefix(abs, dirAbs) {
+		t.Fatalf("path %q escaped %q", abs, dirAbs)
+	}
+	if strings.Contains(filepath.Base(abs), "passwd") {
+		t.Fatalf("rewritten name %q still contains attacker-controlled component", filepath.Base(abs))
+	}
+}
+
+func TestSafeDownloadPath_AllowsPlainFilename(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path, err := safeDownloadPath(dir, "report.pdf")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if filepath.Base(path) != "report.pdf" {
+		t.Fatalf("expected base report.pdf, got %q", filepath.Base(path))
+	}
+}
+
+func TestDownloadTracker_WaitForDownload_SanitisesSuggestedFilename(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	dt := NewDownloadTracker(dir)
+
+	dt.downloadCh <- &DownloadInfo{
+		GUID:              "guid-traverse",
+		URL:               "https://example.com/x",
+		SuggestedFilename: "../../etc/passwd",
+		State:             "completed",
+	}
+
+	info, err := dt.WaitForDownload(time.Second)
+	if err != nil {
+		t.Fatalf("WaitForDownload returned error: %v", err)
+	}
+	if info == nil {
+		t.Fatal("expected non-nil download info")
+	}
+
+	dirAbs, _ := filepath.Abs(dir)
+	pathAbs, _ := filepath.Abs(info.Path)
+	if !strings.HasPrefix(pathAbs, dirAbs) {
+		t.Fatalf("download path %q escapes download dir %q", pathAbs, dirAbs)
+	}
+	if strings.Contains(info.Path, "..") {
+		t.Fatalf("download path %q still contains traversal", info.Path)
+	}
+}
+
+func TestDownloadTracker_WaitForDownload_AbsoluteFilename(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	dt := NewDownloadTracker(dir)
+
+	dt.downloadCh <- &DownloadInfo{
+		GUID:              "guid-abs",
+		URL:               "https://example.com/x",
+		SuggestedFilename: "/etc/passwd",
+		State:             "completed",
+	}
+
+	info, err := dt.WaitForDownload(time.Second)
+	if err != nil {
+		t.Fatalf("WaitForDownload returned error: %v", err)
+	}
+	if info == nil {
+		t.Fatal("expected non-nil download info")
+	}
+
+	dirAbs, _ := filepath.Abs(dir)
+	pathAbs, _ := filepath.Abs(info.Path)
+	if !strings.HasPrefix(pathAbs, dirAbs) {
+		t.Fatalf("download path %q escapes download dir %q", pathAbs, dirAbs)
+	}
+}
+
+func TestDownloadTracker_WaitForDownload_EmptyFilenameSynthesises(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	dt := NewDownloadTracker(dir)
+
+	dt.downloadCh <- &DownloadInfo{
+		GUID:              "guid-empty",
+		URL:               "https://example.com/x",
+		SuggestedFilename: " ",
+		State:             "completed",
+	}
+
+	info, err := dt.WaitForDownload(time.Second)
+	if err != nil {
+		t.Fatalf("WaitForDownload returned error: %v", err)
+	}
+	if info == nil {
+		t.Fatal("expected non-nil download info")
+	}
+
+	if !strings.HasPrefix(filepath.Base(info.Path), "download-") {
+		t.Fatalf("expected synthesised filename, got %q", filepath.Base(info.Path))
+	}
+}
+
+func TestPathHasPrefix_CaseSensitiveDefault(t *testing.T) {
+	previous := pathComparisonIsCaseInsensitive
+	pathComparisonIsCaseInsensitive = false
+	defer func() { pathComparisonIsCaseInsensitive = previous }()
+
+	if !pathHasPrefix("/Foo/bar/", "/Foo/") {
+		t.Error("expected exact prefix match")
+	}
+	if pathHasPrefix("/foo/bar/", "/Foo/") {
+		t.Error("case-sensitive comparison must reject mismatched case")
+	}
+	if pathHasPrefix("/Foo/", "/Foo/bar/") {
+		t.Error("path shorter than prefix must not match")
+	}
+}
+
+func TestPathHasPrefix_CaseInsensitiveWindows(t *testing.T) {
+	previous := pathComparisonIsCaseInsensitive
+	pathComparisonIsCaseInsensitive = true
+	defer func() { pathComparisonIsCaseInsensitive = previous }()
+
+	cases := []struct {
+		name   string
+		path   string
+		prefix string
+		want   bool
+	}{
+		{name: "exact case matches", path: `C:\Downloads\file.pdf\`, prefix: `C:\Downloads\`, want: true},
+		{name: "lowercase path matches uppercase prefix", path: `c:\downloads\file.pdf\`, prefix: `C:\Downloads\`, want: true},
+		{name: "mixed case still matches", path: `C:\DOWNLOADS\FILE.PDF\`, prefix: `c:\downloads\`, want: true},
+		{name: "different directory rejected", path: `C:\Other\file.pdf\`, prefix: `C:\Downloads\`, want: false},
+		{name: "path shorter than prefix rejected", path: `C:\Down\`, prefix: `C:\Downloads\`, want: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := pathHasPrefix(tc.path, tc.prefix)
+			if got != tc.want {
+				t.Errorf("pathHasPrefix(%q, %q) = %v, want %v", tc.path, tc.prefix, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSafeDownloadPath_WindowsCaseInsensitive(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("safeDownloadPath case-insensitive Windows path semantics require GOOS=windows; case-insensitive prefix logic is exercised by TestPathHasPrefix_CaseInsensitiveWindows")
+	}
+
+	previous := pathComparisonIsCaseInsensitive
+	pathComparisonIsCaseInsensitive = true
+	defer func() { pathComparisonIsCaseInsensitive = previous }()
+
+	dir := t.TempDir()
+	path, err := safeDownloadPath(dir, "report.pdf")
+	if err != nil {
+		t.Fatalf("safeDownloadPath returned unexpected error with case-insensitive comparison: %v", err)
+	}
+	if filepath.Base(path) != "report.pdf" {
+		t.Errorf("expected base report.pdf, got %q", filepath.Base(path))
+	}
 }

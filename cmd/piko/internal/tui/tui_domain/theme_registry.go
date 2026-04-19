@@ -303,11 +303,9 @@ func GlobalThemeRegistry() *ThemeRegistry {
 		for i := range builtInThemes {
 			entry := &builtInThemes[i]
 			palette := paletteFromSpec(&entry.Spec)
-			theme := buildTheme(&palette, entry.Name, entry.IsDark)
-			globalThemeRegistryRef.Register(&theme)
+			globalThemeRegistryRef.Register(new(buildTheme(&palette, entry.Name, entry.IsDark)))
 		}
-		noColor := buildNoColorTheme()
-		globalThemeRegistryRef.Register(&noColor)
+		globalThemeRegistryRef.Register(new(buildNoColorTheme()))
 	})
 	return globalThemeRegistryRef
 }
@@ -326,8 +324,7 @@ func buildThemeByName(name string) Theme {
 	for i := range builtInThemes {
 		entry := &builtInThemes[i]
 		if entry.Name == name {
-			palette := paletteFromSpec(&entry.Spec)
-			return buildTheme(&palette, entry.Name, entry.IsDark)
+			return buildTheme(new(paletteFromSpec(&entry.Spec)), entry.Name, entry.IsDark)
 		}
 	}
 	return buildNoColorTheme()

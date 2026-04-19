@@ -649,6 +649,61 @@ func TestManifestBuilder_Build(t *testing.T) {
 	})
 }
 
+func TestAddPageEntry_CollectionPageURLFromPagePath(t *testing.T) {
+	t.Parallel()
+
+	t.Run("page route prefix matches the page file path even when collection name differs", func(t *testing.T) {
+		t.Parallel()
+
+		builder := &ManifestBuilder{
+			baseDir:        "/project",
+			pagesSourceDir: "pages",
+		}
+
+		artefacts := []*generator_dto.GeneratedArtefact{
+			{
+				SuggestedPath: "/output/pages/articles/slug.go",
+				Component: &annotator_dto.VirtualComponent{
+					IsPage:                 true,
+					IsPublic:               true,
+					HashedName:             "articles_slug_hash",
+					CanonicalGoPackagePath: "example.com/pages/articles_slug",
+					VirtualInstances: []annotator_dto.VirtualPageInstance{
+						{Slug: "first-post", ManifestKey: "pages/articles/first-post.pk"},
+						{Slug: "second-post", ManifestKey: "pages/articles/second-post.pk"},
+					},
+					Source: &annotator_dto.ParsedComponent{
+						SourcePath:          "/project/pages/articles/{slug}.pk",
+						ComponentType:       "page",
+						HasCollection:       true,
+						CollectionName:      "walkthroughs",
+						CollectionParamName: "slug",
+						Script:              &annotator_dto.ParsedScript{},
+					},
+				},
+				Result: &annotator_dto.AnnotationResult{},
+			},
+		}
+
+		manifest, err := builder.Build(artefacts)
+		require.NoError(t, err)
+		require.NotNil(t, manifest)
+
+		require.Contains(t, manifest.Pages, "pages/articles/{slug}.pk",
+			"page should register at its own file path, not under the collection name")
+
+		entry := manifest.Pages["pages/articles/{slug}.pk"]
+
+		assert.Equal(t, "/articles/{slug:.+}", entry.RoutePatterns["en"],
+			"route prefix must come from the page's file location, not the collection name")
+
+		for key := range manifest.Pages {
+			assert.NotContains(t, key, "walkthroughs",
+				"no synthetic /walkthroughs/* manifest entries should be emitted")
+		}
+	})
+}
+
 func TestAddErrorPageEntry(t *testing.T) {
 	t.Parallel()
 
@@ -901,4 +956,31 @@ func TestCalculateErrorPageScopePath(t *testing.T) {
 		result := builder.calculateErrorPageScopePath(vc)
 		assert.Equal(t, "/", result)
 	})
+}
+
+func TestPromoteToCatchAll(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "empty pattern", in: "", want: ""},
+		{name: "static path", in: "/about", want: "/about"},
+		{name: "trailing dynamic param widens", in: "/blog/{slug}", want: "/blog/{slug:.+}"},
+		{name: "named param with explicit regex unchanged", in: "/docs/{slug:[a-z]+}", want: "/docs/{slug:[a-z]+}"},
+		{name: "regex catch-all unchanged", in: "/docs/{slug:.+}", want: "/docs/{slug:.+}"},
+		{name: "non-trailing param unchanged", in: "/docs/{slug}/index", want: "/docs/{slug}/index"},
+		{name: "root pattern unchanged", in: "/", want: "/"},
+		{name: "stray opening brace ignored", in: "stray}", want: "stray}"},
+		{name: "no opening brace ignored", in: "no-brace}", want: "no-brace}"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, promoteToCatchAll(tt.in))
+		})
+	}
 }

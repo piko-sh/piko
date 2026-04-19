@@ -167,7 +167,7 @@ type Config struct {
 	HTTPTimeout time.Duration
 }
 
-// Validate checks that the configuration is valid.
+// Validate reports whether the configuration is valid.
 //
 // Returns error when required fields are missing.
 func (*Config) Validate() error {

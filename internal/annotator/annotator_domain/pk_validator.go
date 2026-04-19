@@ -101,8 +101,7 @@ func (v *PKValidator) HasClientScript() bool {
 // function from the client script.
 //
 // For directives without a modifier, the expression should be a call to an
-// exported function. This method extracts the function name and validates it
-// exists.
+// exported function. Extracts the function name and validates it exists.
 //
 // Takes directive (*ast_domain.Directive) which is the event directive to
 // validate.
@@ -145,9 +144,9 @@ func (v *PKValidator) ValidateEventHandler(directive *ast_domain.Directive, ctx 
 	}
 }
 
-// ReportUnusedExports does nothing. This method exists because top-level
-// functions are now auto-exported, so utility functions called by event
-// handlers are valid and expected.
+// ReportUnusedExports does nothing. Exists because top-level functions are
+// now auto-exported, so utility functions called by event handlers are valid
+// and expected.
 func (*PKValidator) ReportUnusedExports(_ *AnalysisContext, _ ast_domain.Location) {
 }
 

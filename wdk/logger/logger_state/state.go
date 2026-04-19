@@ -20,6 +20,7 @@ package logger_state
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -254,25 +255,49 @@ func applyHandlerSet() {
 	logger_domain.InitDefaultFactory(newLogger)
 }
 
-// shutdownCurrentState closes all active closers and runs shutdown hooks.
+// shutdownCurrentState closes all active closers and runs shutdown hooks. The
+// supplied ctx is honoured between iterations so callers can bound the total
+// shutdown time; once ctx is cancelled the remaining closers and hooks are
+// skipped and the cancellation cause is included in the returned error.
 //
-// Returns error when any closer or shutdown hook fails.
+// Returns error when any closer or shutdown hook fails. Multiple errors are
+// joined via errors.Join so callers can use errors.Is or errors.As.
 func shutdownCurrentState(ctx context.Context) error {
 	var allErrors []error
 	for _, closer := range globalState.activeClosers {
+		if err := ctx.Err(); err != nil {
+			allErrors = append(allErrors, fmt.Errorf("logger shutdown cancelled before closing remaining resources: %w", err))
+			return joinShutdownErrors(allErrors)
+		}
 		if err := closer.Close(); err != nil {
 			allErrors = append(allErrors, err)
 		}
 	}
 	for _, hook := range globalState.shutdownHooks {
+		if err := ctx.Err(); err != nil {
+			allErrors = append(allErrors, fmt.Errorf("logger shutdown cancelled before running remaining hooks: %w", err))
+			return joinShutdownErrors(allErrors)
+		}
 		if err := hook(ctx); err != nil {
 			allErrors = append(allErrors, err)
 		}
 	}
-	if len(allErrors) > 0 {
-		return fmt.Errorf("errors during logger shutdown: %v", allErrors)
+	return joinShutdownErrors(allErrors)
+}
+
+// joinShutdownErrors collapses a slice of errors into a single wrapped error
+// suitable for callers using errors.Is or errors.As. Returns nil for an empty
+// slice.
+//
+// Takes allErrors ([]error) which holds the errors collected during shutdown.
+//
+// Returns error which wraps the joined errors, or nil when allErrors is
+// empty.
+func joinShutdownErrors(allErrors []error) error {
+	if len(allErrors) == 0 {
+		return nil
 	}
-	return nil
+	return fmt.Errorf("errors during logger shutdown: %w", errors.Join(allErrors...))
 }
 
 // doResetState resets the global logger state to its default configuration.

@@ -100,13 +100,13 @@ func buildGenericFieldExprs(fields []LinkedGenericFieldInfo) []ast.Expr {
 // Returns the AST expression constructing the equivalent
 // interp_link.GenericFieldType.
 func buildGenericFieldTypeExpr(info GenericFieldTypeInfo) ast.Expr {
-	elements := []ast.Expr{
-		goastutil.KeyValueExpr(
-			goastutil.CachedIdent("Kind"),
-			goastutil.SelectorExpr(interpLinkPackage, genericFieldKindName(info.Kind)),
-		),
-	}
-	elements = append(elements, buildGenericFieldTypeKindElements(info)...)
+	kindElements := buildGenericFieldTypeKindElements(info)
+	elements := make([]ast.Expr, 0, 1+len(kindElements))
+	elements = append(elements, goastutil.KeyValueExpr(
+		goastutil.CachedIdent("Kind"),
+		goastutil.SelectorExpr(interpLinkPackage, genericFieldKindName(info.Kind)),
+	))
+	elements = append(elements, kindElements...)
 	return &ast.CompositeLit{
 		Type: goastutil.SelectorExpr(interpLinkPackage, "GenericFieldType"),
 		Elts: elements,

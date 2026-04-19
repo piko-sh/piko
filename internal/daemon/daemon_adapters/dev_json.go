@@ -21,7 +21,7 @@ package daemon_adapters
 import (
 	"reflect"
 
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
@@ -29,7 +29,7 @@ import (
 
 // devJSON is a JSON encoder configured to sort map keys so that SSE and REST
 // responses from the dev tools have deterministic field ordering.
-var devJSON = pikojson.Freeze(pikojson.Config{SortMapKeys: true})
+var devJSON = json.Freeze(json.Config{SortMapKeys: true})
 
 func init() {
 	pretouchTypes := []reflect.Type{
@@ -49,6 +49,6 @@ func init() {
 	}
 
 	for _, t := range pretouchTypes {
-		_ = pikojson.Pretouch(t)
+		_ = json.Pretouch(t)
 	}
 }

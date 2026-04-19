@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"iter"
 	"sync"
+	"sync/atomic"
 )
 
 // maxWalkDepth is the largest depth allowed when walking through a tree.
@@ -123,7 +124,7 @@ func (ast *TemplateAST) NewIterator() *Iterator {
 	const initialChildCapacity = 16
 	stack := make([]*iteratorFrame, stackSize, stackSize+initialChildCapacity)
 	for i := range stackSize {
-		frame, ok := iteratorFramePool.Get().(*iteratorFrame)
+		frame, ok := iteratorFramePool.Load().Get().(*iteratorFrame)
 		if !ok {
 			frame = &iteratorFrame{}
 		}
@@ -313,7 +314,7 @@ func (n *TemplateNode) NewIterator() *Iterator {
 	}
 	const initialChildCapacity = 16
 	stack := make([]*iteratorFrame, 1, 1+initialChildCapacity)
-	frame, ok := iteratorFramePool.Get().(*iteratorFrame)
+	frame, ok := iteratorFramePool.Load().Get().(*iteratorFrame)
 	if !ok {
 		frame = &iteratorFrame{}
 	}
@@ -413,11 +414,24 @@ type iteratorFrame struct {
 }
 
 // iteratorFramePool reuses iteratorFrame instances to reduce allocation pressure
-// during AST traversal.
-var iteratorFramePool = sync.Pool{
-	New: func() any {
-		return new(iteratorFrame)
-	},
+// during AST traversal. Wrapped in atomic.Pointer so resetIteratorFramePool
+// can swap the underlying pool without racing concurrent Get/Put callers.
+var iteratorFramePool atomic.Pointer[sync.Pool]
+
+func init() {
+	iteratorFramePool.Store(newIteratorFramePool())
+}
+
+// newIteratorFramePool builds a fresh sync.Pool whose New func returns a
+// zero-valued iteratorFrame. Used by init and resetIteratorFramePool.
+//
+// Returns *sync.Pool which is the freshly constructed pool.
+func newIteratorFramePool() *sync.Pool {
+	return &sync.Pool{
+		New: func() any {
+			return new(iteratorFrame)
+		},
+	}
 }
 
 // Iterator provides depth-first, pre-order traversal of the template tree with
@@ -448,12 +462,12 @@ func (it *Iterator) Next() bool {
 	it.Node, it.Parent = frame.node, frame.parent
 
 	*frame = iteratorFrame{}
-	iteratorFramePool.Put(frame)
+	iteratorFramePool.Load().Put(frame)
 
 	children := it.Node.Children
 	for i := len(children) - 1; i >= 0; i-- {
 		if child := children[i]; child != nil {
-			childFrame, ok := iteratorFramePool.Get().(*iteratorFrame)
+			childFrame, ok := iteratorFramePool.Load().Get().(*iteratorFrame)
 			if !ok {
 				childFrame = &iteratorFrame{}
 			}
@@ -483,7 +497,7 @@ func (it *Iterator) SkipChildren() {
 		for i := start; i < end; i++ {
 			frame := it.stack[i]
 			*frame = iteratorFrame{}
-			iteratorFramePool.Put(frame)
+			iteratorFramePool.Load().Put(frame)
 		}
 		it.stack = it.stack[:start]
 	}
@@ -824,16 +838,10 @@ func produceWalkTasks(ctx context.Context, tasks chan<- *TemplateNode, walkFunc 
 	})
 }
 
-// resetIteratorFramePool clears the iterator frame pool to ensure test
-// isolation.
-//
-// Call this function via t.Cleanup(resetIteratorFramePool) in tests.
+// resetIteratorFramePool atomically swaps in a fresh iterator frame pool for
+// test isolation. Safe to call concurrently with Get/Put.
 func resetIteratorFramePool() {
-	iteratorFramePool = sync.Pool{
-		New: func() any {
-			return new(iteratorFrame)
-		},
-	}
+	iteratorFramePool.Store(newIteratorFramePool())
 }
 
 // walkWithVisitorDepth traverses a template tree using the visitor pattern.

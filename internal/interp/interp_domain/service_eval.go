@@ -168,9 +168,8 @@ func (s *Service) maxLiteralElements() int {
 	return 0
 }
 
-// executeInitFunc runs a single init function in its own VM, ensuring
-// the arena is released when the function returns rather than when
-// the caller returns.
+// executeInitFunc runs a single init function in its own VM, ensuring the arena is
+// released on init function exit rather than when the caller returns.
 //
 // Takes rootFunction (*CompiledFunction) which provides the function
 // table for cross-function calls.

@@ -19,11 +19,10 @@
 // Package llm_provider_grok provides an LLM provider adapter for
 // xAI's Grok API.
 //
-// Grok uses an OpenAI-compatible wire protocol, so this package
-// delegates to the OpenAI provider internally while adding
-// Grok-specific model filtering, error wrapping, and
-// observability. Grok does not offer embedding models, so only
-// completions are supported.
+// Grok uses an OpenAI-compatible wire protocol, so the adapter delegates to
+// the OpenAI provider internally while adding Grok-specific model filtering,
+// error wrapping, and observability. Grok does not offer embedding models, so
+// only completions are supported.
 //
 // # Thread safety
 //

@@ -48,12 +48,6 @@ type Manifest struct {
 	// and are rendered when the corresponding HTTP error occurs,
 	// with hierarchical scoping.
 	ErrorPages map[string]ManifestErrorPageEntry `json:"errorPages,omitempty"`
-
-	// CollectionFallbackRoutes holds the original dynamic route patterns
-	// from static collections, preserving patterns like {slug} so the
-	// daemon can register low-priority fallback routes that return a
-	// "collection item not found" error page instead of a generic 404.
-	CollectionFallbackRoutes []CollectionFallbackRoute `json:"collectionFallbackRoutes,omitempty"`
 }
 
 // ManifestPageEntry contains all the pre-compiled, static metadata for a single
@@ -291,17 +285,4 @@ type ManifestErrorPageEntry struct {
 
 	// IsE2EOnly indicates this error page is from the e2e/ directory.
 	IsE2EOnly bool `json:"isE2EOnly,omitempty"`
-}
-
-// CollectionFallbackRoute holds the original dynamic route pattern for
-// a static collection, preserving patterns like {slug} so the daemon
-// can register a fallback route that returns a "collection item not
-// found" error page instead of a generic 404.
-type CollectionFallbackRoute struct {
-	// RoutePatterns maps locale identifiers to their Chi-compatible route
-	// patterns for this collection fallback.
-	RoutePatterns map[string]string `json:"routePatterns,omitempty"`
-
-	// I18nStrategy stores the strategy used to generate RoutePatterns.
-	I18nStrategy string `json:"i18nStrategy,omitempty"`
 }

@@ -22,7 +22,6 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"os"
 	"slices"
@@ -32,6 +31,7 @@ import (
 
 	"github.com/valyala/fasthttp"
 
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -437,10 +437,10 @@ func reportStatusError(loadConfiguration loadConfig, statusCode int) {
 //
 // Returns *loadResult which contains the aggregated test results.
 //
-// Spawns loadConfiguration.concurrency worker goroutines that send HTTP
-// requests in parallel. An additional goroutine emits live metrics when
+// Spawns loadConfiguration.concurrency worker goroutines that send HTTP requests
+// in parallel. An additional goroutine emits live metrics when
 // loadConfiguration.metricsInterval is positive. All goroutines finish before
-// the function returns.
+// returning.
 func runLoad(ctx context.Context, loadConfiguration loadConfig) *loadResult {
 	client := newLoadClient(loadConfiguration.concurrency)
 	templateReq := newLoadTemplate(loadConfiguration)

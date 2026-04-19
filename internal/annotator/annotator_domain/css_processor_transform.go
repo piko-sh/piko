@@ -30,6 +30,11 @@ import (
 	es_logger "piko.sh/piko/internal/esbuild/logger"
 )
 
+// maxCSSRuleDepth caps the recursive at-rule descent so a pathological
+// stylesheet (deeply nested @media/@layer/@keyframes) cannot overflow the Go
+// stack. Real stylesheets rarely nest beyond a few levels, so 256 is generous.
+const maxCSSRuleDepth = 256
+
 // cssScopeTransformer holds the state for a single CSS scoping job.
 type cssScopeTransformer struct {
 	// markers holds patterns to match :global() and :deep() in CSS selectors.
@@ -47,14 +52,26 @@ type cssScopeTransformer struct {
 	// keyframesDepth tracks how deep we are inside @keyframes rules.
 	keyframesDepth int
 
+	// ruleDepth tracks the active recursive depth of transform/transformRule
+	// pairs. It is checked against maxCSSRuleDepth to abort a pathological
+	// nested stylesheet before the Go stack overflows.
+	ruleDepth int
+
 	// sourceIndex is the position of the source file used to find symbols.
 	sourceIndex uint32
 }
 
-// transform applies scope changes to each rule in the given slice.
+// transform applies scope changes to each rule in the given slice. It bails
+// out cleanly when the recursive depth exceeds maxCSSRuleDepth so a
+// pathological stylesheet cannot overflow the Go stack.
 //
 // Takes rules ([]css_ast.Rule) which is the list of CSS rules to update.
 func (t *cssScopeTransformer) transform(rules []css_ast.Rule) {
+	if t.ruleDepth >= maxCSSRuleDepth {
+		return
+	}
+	t.ruleDepth++
+	defer func() { t.ruleDepth-- }()
 	for i := range rules {
 		t.transformRule(&rules[i])
 	}

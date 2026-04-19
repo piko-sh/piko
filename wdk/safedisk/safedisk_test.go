@@ -1218,7 +1218,7 @@ func TestOSSandbox_Rename_NonExistent(t *testing.T) {
 
 	err = sandbox.Rename("nonexistent.txt", "new.txt")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "source path")
+	assert.Contains(t, err.Error(), "no such file or directory")
 }
 
 func TestOSSandbox_Rename_DestinationEscapeBlocked(t *testing.T) {
@@ -1376,6 +1376,37 @@ func TestOSSandbox_WriteFileAtomic(t *testing.T) {
 
 		err = sandbox.WriteFileAtomic("test.txt", []byte("data"), 0644)
 		assert.ErrorIs(t, err, errReadOnly)
+	})
+}
+
+func TestWriteFileAtomic_SyncsParentDirectory(t *testing.T) {
+	t.Parallel()
+
+	t.Run("root-level write completes", func(t *testing.T) {
+		t.Parallel()
+		tmpDir := t.TempDir()
+		sandbox, err := NewSandbox(tmpDir, ModeReadWrite)
+		require.NoError(t, err)
+		defer func() { _ = sandbox.Close() }()
+
+		require.NoError(t, sandbox.WriteFileAtomic("root.txt", []byte("root"), 0o600))
+		got, err := sandbox.ReadFile("root.txt")
+		require.NoError(t, err)
+		assert.Equal(t, "root", string(got))
+	})
+
+	t.Run("nested write completes", func(t *testing.T) {
+		t.Parallel()
+		tmpDir := t.TempDir()
+		sandbox, err := NewSandbox(tmpDir, ModeReadWrite)
+		require.NoError(t, err)
+		defer func() { _ = sandbox.Close() }()
+
+		require.NoError(t, sandbox.MkdirAll("nested/dir", 0o750))
+		require.NoError(t, sandbox.WriteFileAtomic("nested/dir/leaf.txt", []byte("leaf"), 0o600))
+		got, err := sandbox.ReadFile("nested/dir/leaf.txt")
+		require.NoError(t, err)
+		assert.Equal(t, "leaf", string(got))
 	})
 }
 

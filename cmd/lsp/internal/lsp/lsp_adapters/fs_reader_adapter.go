@@ -20,6 +20,7 @@ package lsp_adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -136,19 +137,18 @@ func (r *osFSReader) ReadFile(ctx context.Context, filePath string) ([]byte, err
 //
 // Returns annotator_domain.FSReaderPort which reads files from the document
 // cache with disk fallback.
-//
-// Panics if docCache is nil or fallback is nil.
-func NewLspFSReader(docCache *lsp_domain.DocumentCache, fallback annotator_domain.FSReaderPort) annotator_domain.FSReaderPort {
-	if docCache == nil {
-		panic("lspFSReader: docCache cannot be nil")
-	}
-	if fallback == nil {
-		panic("lspFSReader: fallback reader cannot be nil")
+// Returns error when docCache or fallback is nil.
+func NewLspFSReader(docCache *lsp_domain.DocumentCache, fallback annotator_domain.FSReaderPort) (annotator_domain.FSReaderPort, error) {
+	switch {
+	case docCache == nil:
+		return nil, errors.New("lspFSReader: docCache cannot be nil")
+	case fallback == nil:
+		return nil, errors.New("lspFSReader: fallback reader cannot be nil")
 	}
 	return &lspFSReader{
 		docCache: docCache,
 		fallback: fallback,
-	}
+	}, nil
 }
 
 // WithOsFSReaderSandbox injects a sandbox for testing filesystem

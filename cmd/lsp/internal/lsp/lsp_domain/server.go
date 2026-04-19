@@ -198,8 +198,8 @@ func (s *Server) SetConn(conn jsonrpc2.Conn) {
 	}
 }
 
-// Initialize handles the first request from the client. It sets up the
-// server's capabilities and configures the workspace root.
+// Initialize initialises the server in response to the first request from the
+// client, configuring capabilities and the workspace root.
 //
 // Takes params (*protocol.InitializeParams) which contains the client's
 // initialisation settings and workspace information.
@@ -329,7 +329,9 @@ func (s *Server) Request(ctx context.Context, method string, params any) (any, e
 // Returns error when the shutdown fails.
 //
 // Cancels the server context to signal all background goroutines to stop,
-// then waits up to the shutdown grace period for them to finish.
+// then waits up to the shutdown grace period for them to finish. Workspace
+// goroutines are drained via workspace.Close so diagnostics-publishing
+// goroutines spawned via context.WithoutCancel cannot leak past shutdown.
 //
 // Safe for concurrent use.
 func (s *Server) Shutdown(ctx context.Context) error {
@@ -343,6 +345,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		s.serverCancel(errors.New("LSP server shutting down"))
 	}
 
+	workspace := s.workspace
 	s.mu.Unlock()
 
 	done := make(chan struct{})
@@ -363,6 +366,12 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	case <-clk.NewTimer(shutdownGracePeriod).C():
 		l.Warn("Shutdown timed out waiting for background goroutines",
 			logger_domain.String("gracePeriod", shutdownGracePeriod.String()))
+	}
+
+	if workspace != nil {
+		if err := workspace.Close(context.WithoutCancel(ctx)); err != nil {
+			l.Warn("Workspace drain timed out during shutdown", logger_domain.Error(err))
+		}
 	}
 
 	l.Debug("LSP server shutdown complete")
@@ -498,8 +507,8 @@ func (s *Server) configureWorkspacePaths(ctx context.Context, rootURI protocol.D
 // dist/ts/ only if they do not already exist. This provides a way to set up
 // IDE support before the dev server has been run.
 //
-// The dev server writes type definitions when it starts, so this method only
-// fills in the gap when the LSP is opened before the dev server.
+// The dev server writes type definitions when it starts, so this only fills in
+// the gap when the LSP is opened before the dev server.
 //
 // Takes rootPath (string) which is the project root directory containing the
 // dist folder.

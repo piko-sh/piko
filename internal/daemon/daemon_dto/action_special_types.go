@@ -20,13 +20,55 @@ package daemon_dto
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
+	"sync/atomic"
 )
 
+// DefaultMaxUploadFileBytes is the default per-file size cap (32 MiB) applied
+// when ReadAll is called without an explicit maximum. Operators can override
+// the package-level cap via SetDefaultMaxUploadFileBytes.
+const DefaultMaxUploadFileBytes int64 = 32 << 20
+
+// ErrFileUploadTooLarge is returned when a multipart upload's contents exceed
+// the configured per-file size cap during ReadAll. Callers can use
+// errors.Is to detect this condition without parsing the message.
+var ErrFileUploadTooLarge = errors.New("uploaded file exceeds maximum allowed size")
+
+// defaultMaxUploadFileBytes is the package-level cap consulted by ReadAll when
+// no explicit maximum is supplied. Stored as int64 via atomic for safe
+// concurrent reads and writes from tests or operator hooks.
+var defaultMaxUploadFileBytes atomic.Int64
+
+func init() {
+	defaultMaxUploadFileBytes.Store(DefaultMaxUploadFileBytes)
+}
+
+// SetDefaultMaxUploadFileBytes overrides the package-level per-file size cap
+// used by ReadAll when no explicit maximum is supplied. A non-positive value
+// resets the cap to DefaultMaxUploadFileBytes.
+//
+// Takes maxBytes (int64) which is the new default cap in bytes.
+func SetDefaultMaxUploadFileBytes(maxBytes int64) {
+	if maxBytes <= 0 {
+		defaultMaxUploadFileBytes.Store(DefaultMaxUploadFileBytes)
+		return
+	}
+	defaultMaxUploadFileBytes.Store(maxBytes)
+}
+
+// CurrentMaxUploadFileBytes returns the active package-level per-file size
+// cap consulted by ReadAll.
+//
+// Returns int64 which is the current cap in bytes.
+func CurrentMaxUploadFileBytes() int64 {
+	return defaultMaxUploadFileBytes.Load()
+}
+
 // FileUpload represents an uploaded file from a multipart form request.
-// The action parser recognises this type and generates appropriate multipart
+// The action parser recognises uploads and generates appropriate multipart
 // handling code in the wrapper functions.
 type FileUpload struct {
 	// header is the underlying multipart.FileHeader for advanced use.
@@ -76,18 +118,52 @@ func (f *FileUpload) Open() (io.ReadCloser, error) {
 	return f.header.Open()
 }
 
-// ReadAll reads the entire file into memory.
-// Use this for small files; for large files, prefer Open to stream.
+// ReadAll reads the entire file into memory using the package-level default
+// per-file size cap.
+//
+// Use this for small files; for large files, prefer Open to stream. To
+// override the cap for a single call, use ReadAllWithLimit.
 //
 // Returns []byte which contains the complete file contents.
-// Returns error when the file cannot be opened or read.
+// Returns error when the file cannot be opened or read, or wraps
+// ErrFileUploadTooLarge when the file exceeds the configured cap.
 func (f *FileUpload) ReadAll() ([]byte, error) {
+	return f.ReadAllWithLimit(defaultMaxUploadFileBytes.Load())
+}
+
+// ReadAllWithLimit reads the entire file into memory but rejects payloads that
+// exceed the supplied per-file size cap.
+//
+// A non-positive maxBytes falls back to the package-level default.
+//
+// Takes maxBytes (int64) which is the maximum number of bytes accepted from
+// the uploaded file.
+//
+// Returns []byte which contains the complete file contents when within the
+// cap.
+// Returns error when the file cannot be opened, the read fails, or the
+// upload exceeds maxBytes (in which case the error wraps ErrFileUploadTooLarge
+// and identifies the offending filename).
+func (f *FileUpload) ReadAllWithLimit(maxBytes int64) ([]byte, error) {
+	if maxBytes <= 0 {
+		maxBytes = defaultMaxUploadFileBytes.Load()
+	}
+
 	file, err := f.Open()
 	if err != nil {
-		return nil, fmt.Errorf("opening uploaded file: %w", err)
+		return nil, fmt.Errorf("opening uploaded file %q: %w", f.Name, err)
 	}
 	defer func() { _ = file.Close() }()
-	return io.ReadAll(file)
+
+	limited := io.LimitReader(file, maxBytes+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, fmt.Errorf("reading uploaded file %q: %w", f.Name, err)
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, fmt.Errorf("upload %q exceeds %d byte limit: %w", f.Name, maxBytes, ErrFileUploadTooLarge)
+	}
+	return data, nil
 }
 
 // Header returns the underlying multipart.FileHeader for advanced use cases

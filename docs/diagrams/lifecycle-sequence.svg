@@ -1,0 +1,118 @@
+<svg viewBox="0 0 620 360" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="lc-title lc-desc">
+  <title id="lc-title">Lifecycle sequence: startup in registration order, shutdown in reverse</title>
+  <desc id="lc-desc">Top half shows startup. Component A, B, and C run OnStart in order. If any OnStart returns an error, Piko unwinds by calling OnStop on the already-started components in reverse order. Bottom half shows graceful shutdown. On SIGTERM the server drains for the configured delay, then calls OnStop in reverse order before the process exits.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-return" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#475569" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="20" y="25" fill="#0F766E" font-family="system-ui, sans-serif" font-size="11" font-weight="600" letter-spacing="1">STARTUP (registration order)</text>
+
+  <rect x="20" y="40" width="100" height="56" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M28,40 H112 A8,8 0 0 1 120,48 V58 H20 V48 A8,8 0 0 1 28,40 Z" fill="#364049"/>
+  <text x="70" y="52" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">start signal</text>
+  <text x="70" y="76" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">piko.Run()</text>
+  <text x="70" y="90" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">ctx: 30s default</text>
+
+  <line x1="125" y1="68" x2="145" y2="68" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="150" y="40" width="100" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M158,40 H242 A8,8 0 0 1 250,48 V58 H150 V48 A8,8 0 0 1 158,40 Z" fill="#1C544F"/>
+  <text x="200" y="52" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">A.OnStart</text>
+  <text x="200" y="76" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">component 1</text>
+  <text x="200" y="90" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">returns nil OK</text>
+
+  <line x1="255" y1="68" x2="275" y2="68" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="280" y="40" width="100" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M288,40 H372 A8,8 0 0 1 380,48 V58 H280 V48 A8,8 0 0 1 288,40 Z" fill="#1C544F"/>
+  <text x="330" y="52" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">B.OnStart</text>
+  <text x="330" y="76" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">component 2</text>
+  <text x="330" y="90" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">returns nil OK</text>
+
+  <line x1="385" y1="68" x2="405" y2="68" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="410" y="40" width="100" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M418,40 H502 A8,8 0 0 1 510,48 V58 H410 V48 A8,8 0 0 1 418,40 Z" fill="#1C544F"/>
+  <text x="460" y="52" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">C.OnStart</text>
+  <text x="460" y="76" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">component 3</text>
+  <text x="460" y="90" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">returns nil OK</text>
+
+  <line x1="515" y1="68" x2="535" y2="68" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="540" y="40" width="70" height="56" rx="8" fill="#1C544F"/>
+  <text x="575" y="60" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">ready</text>
+  <text x="575" y="78" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">HTTP accepts</text>
+  <text x="575" y="91" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">traffic</text>
+
+  
+  <text x="20" y="120" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600">If any OnStart returns error, unwind by calling OnStop in reverse on already-started components:</text>
+
+  <rect x="410" y="130" width="100" height="32" rx="6" fill="#2B333B" stroke="#ff5f57" stroke-width="1.2"/>
+  <text x="460" y="150" text-anchor="middle" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="10" font-weight="600">C fails</text>
+
+  <line x1="405" y1="146" x2="385" y2="146" stroke="#475569" stroke-width="1.3" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrow-return)"/>
+
+  <rect x="280" y="130" width="100" height="32" rx="6" fill="#1C544F"/>
+  <text x="330" y="150" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">B.OnStop</text>
+
+  <line x1="275" y1="146" x2="255" y2="146" stroke="#475569" stroke-width="1.3" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrow-return)"/>
+
+  <rect x="150" y="130" width="100" height="32" rx="6" fill="#1C544F"/>
+  <text x="200" y="150" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">A.OnStop</text>
+
+  <line x1="145" y1="146" x2="125" y2="146" stroke="#475569" stroke-width="1.3" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrow-return)"/>
+
+  <rect x="20" y="130" width="100" height="32" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="70" y="150" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">exit 1</text>
+
+  
+  <line x1="20" y1="190" x2="610" y2="190" stroke="#475569" stroke-width="1" stroke-dasharray="2,3"/>
+
+  
+  <text x="20" y="210" fill="#0F766E" font-family="system-ui, sans-serif" font-size="11" font-weight="600" letter-spacing="1">SHUTDOWN (reverse order)</text>
+
+  <rect x="20" y="224" width="100" height="56" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M28,224 H112 A8,8 0 0 1 120,232 V242 H20 V232 A8,8 0 0 1 28,224 Z" fill="#364049"/>
+  <text x="70" y="236" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">SIGTERM</text>
+  <text x="70" y="260" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">drain delay</text>
+  <text x="70" y="274" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">stop accepting</text>
+
+  <line x1="125" y1="252" x2="145" y2="252" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="150" y="224" width="100" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M158,224 H242 A8,8 0 0 1 250,232 V242 H150 V232 A8,8 0 0 1 158,224 Z" fill="#1C544F"/>
+  <text x="200" y="236" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">C.OnStop</text>
+  <text x="200" y="260" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">last in, first out</text>
+  <text x="200" y="274" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">errors logged, not fatal</text>
+
+  <line x1="255" y1="252" x2="275" y2="252" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="280" y="224" width="100" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M288,224 H372 A8,8 0 0 1 380,232 V242 H280 V232 A8,8 0 0 1 288,224 Z" fill="#1C544F"/>
+  <text x="330" y="236" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">B.OnStop</text>
+  <text x="330" y="270" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">close resources</text>
+
+  <line x1="385" y1="252" x2="405" y2="252" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="410" y="224" width="100" height="56" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M418,224 H502 A8,8 0 0 1 510,232 V242 H410 V232 A8,8 0 0 1 418,224 Z" fill="#1C544F"/>
+  <text x="460" y="236" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">A.OnStop</text>
+  <text x="460" y="270" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">flush buffers</text>
+
+  <line x1="515" y1="252" x2="535" y2="252" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="540" y="224" width="70" height="56" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="575" y="244" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">exit 0</text>
+  <text x="575" y="262" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">clean</text>
+  <text x="575" y="275" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">shutdown</text>
+
+  <text x="310" y="310" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">Each OnStart and OnStop carries a context with a timeout. Default is 30 seconds; override with LifecycleStartTimeout.</text>
+  <text x="310" y="325" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">Shutdown errors are logged and do not halt the sequence.</text>
+</svg>

@@ -19,6 +19,7 @@
 package security_domain
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
@@ -30,7 +31,7 @@ import (
 type MockRateLimitService struct {
 	// CheckLimitFunc is the function called by
 	// CheckLimit.
-	CheckLimitFunc func(key string, limit int, window time.Duration) (ratelimiter_dto.Result, error)
+	CheckLimitFunc func(ctx context.Context, key string, limit int, window time.Duration) (ratelimiter_dto.Result, error)
 
 	// CheckLimitCallCount tracks how many times
 	// CheckLimit was called.
@@ -41,15 +42,17 @@ var _ RateLimitService = (*MockRateLimitService)(nil)
 
 // CheckLimit checks whether the given key has exceeded its rate limit.
 //
+// Takes ctx (context.Context) which carries cancellation for the underlying
+// store call.
 // Takes key (string) which identifies the rate limit bucket.
 // Takes limit (int) which is the maximum number of requests allowed.
 // Takes window (time.Duration) which specifies the time window for the limit.
 //
 // Returns (Result, error), or (Result{}, nil) if CheckLimitFunc is nil.
-func (m *MockRateLimitService) CheckLimit(key string, limit int, window time.Duration) (ratelimiter_dto.Result, error) {
+func (m *MockRateLimitService) CheckLimit(ctx context.Context, key string, limit int, window time.Duration) (ratelimiter_dto.Result, error) {
 	atomic.AddInt64(&m.CheckLimitCallCount, 1)
 	if m.CheckLimitFunc != nil {
-		return m.CheckLimitFunc(key, limit, window)
+		return m.CheckLimitFunc(ctx, key, limit, window)
 	}
 	return ratelimiter_dto.Result{}, nil
 }

@@ -95,10 +95,9 @@ func (b *CompletionBuilder) RAG(namespace string, topK int, opts ...RAGOption) *
 // expanded into multiple queries) before embedding. Multi-query results are
 // deduplicated by document ID, keeping the highest score.
 //
-// This method degrades gracefully: if any step fails (no query text, no
-// embedding service, no vector store, embedding error, rewriter error, no
-// results), a debug log is emitted and the completion proceeds without RAG
-// context.
+// Degrades gracefully: if any step fails (no query text, no embedding service, no
+// vector store, embedding error, rewriter error, no results), a debug log is emitted
+// and the completion proceeds without RAG context.
 func (b *CompletionBuilder) resolveRAGContext(ctx context.Context) {
 	if b.ragConfig == nil || b.ragResolved {
 		return

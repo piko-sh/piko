@@ -108,6 +108,10 @@ var (
 	// requested but the renderer has not been configured.
 	errRendererNotConfigured = errors.New("renderer not configured")
 
+	// errSourceTooLarge is returned when the total source size submitted to a
+	// WASM orchestrator entrypoint exceeds the configured MaxSourceSize cap.
+	errSourceTooLarge = errors.New("source size exceeds maximum")
+
 	// errorPosRegex matches Go error format: "file:line:col: message" or
 	// "file:line: message".
 	errorPosRegex = regexp.MustCompile(`^([^:]+):(\d+):(\d+)?:?\s*(.*)$`)
@@ -165,8 +169,8 @@ func NewOrchestrator(opts ...Option) *Orchestrator {
 	return o
 }
 
-// Initialise loads the stdlib data and prepares the orchestrator.
-// This must be called before any other methods.
+// Initialise prepares the orchestrator by loading the stdlib data. Must be
+// called before any other methods.
 //
 // Returns error when the stdlib loader is not configured or fails to load.
 //
@@ -327,7 +331,7 @@ func (o *Orchestrator) GetHover(ctx context.Context, request *wasm_dto.HoverRequ
 	}, nil
 }
 
-// Validate performs quick validation of Go source code.
+// Validate runs a quick syntactic check on Go source code.
 //
 // Takes request (*wasm_dto.ValidateRequest) which contains the source code and
 // file path to validate.
@@ -541,6 +545,11 @@ func instrumentedOperation[Response any](
 // artefacts and manifest.
 // Returns error when the generator is not configured.
 func (o *Orchestrator) Generate(ctx context.Context, request *wasm_dto.GenerateFromSourcesRequest) (*wasm_dto.GenerateFromSourcesResponse, error) {
+	if err := checkSourceSize(ctx, request.Sources, o.config.MaxSourceSize); err != nil {
+		generateErrorCount.Add(ctx, 1)
+		return &wasm_dto.GenerateFromSourcesResponse{Success: false, Error: err.Error()}, nil
+	}
+
 	return instrumentedOperation(
 		ctx,
 		operationInstrumentation{generateCount, generateDuration, generateErrorCount},
@@ -555,7 +564,7 @@ func (o *Orchestrator) Generate(ctx context.Context, request *wasm_dto.GenerateF
 }
 
 // Render produces HTML from in-memory sources.
-// This method only supports static templates (no Go code execution).
+// Only supports static templates (no Go code execution).
 //
 // Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source
 // files and configuration.
@@ -563,6 +572,11 @@ func (o *Orchestrator) Generate(ctx context.Context, request *wasm_dto.GenerateF
 // Returns *wasm_dto.RenderFromSourcesResponse which contains the rendered HTML.
 // Returns error when the renderer is not configured.
 func (o *Orchestrator) Render(ctx context.Context, request *wasm_dto.RenderFromSourcesRequest) (*wasm_dto.RenderFromSourcesResponse, error) {
+	if err := checkSourceSize(ctx, request.Sources, o.config.MaxSourceSize); err != nil {
+		renderErrorCount.Add(ctx, 1)
+		return &wasm_dto.RenderFromSourcesResponse{Success: false, Error: err.Error()}, nil
+	}
+
 	return instrumentedOperation(
 		ctx,
 		operationInstrumentation{renderCount, renderDuration, renderErrorCount},
@@ -590,6 +604,11 @@ func (o *Orchestrator) DynamicRender(ctx context.Context, request *wasm_dto.Dyna
 	defer func() {
 		dynamicRenderDuration.Record(ctx, float64(time.Since(startTime).Milliseconds()))
 	}()
+
+	if err := checkSourceSize(ctx, request.Sources, o.config.MaxSourceSize); err != nil {
+		dynamicRenderErrorCount.Add(ctx, 1)
+		return &wasm_dto.DynamicRenderResponse{Success: false, Error: err.Error()}, nil
+	}
 
 	if errResp := o.validateDynamicRenderAdapters(ctx); errResp != nil {
 		return errResp, nil
@@ -842,17 +861,40 @@ func validateAnalyseRequest(ctx context.Context, request *wasm_dto.AnalyseReques
 		return newAnalyseErrorResponse("no source files provided", nil)
 	}
 
+	if err := checkSourceSize(ctx, request.Sources, maxSourceSize); err != nil {
+		return newAnalyseErrorResponse(err.Error(), nil)
+	}
+
+	return nil
+}
+
+// checkSourceSize records the aggregate source size for OTel and returns
+// errSourceTooLarge wrapped with the actual size when the total exceeds
+// maxSourceSize. Used by every WASM orchestrator entrypoint that accepts
+// arbitrary in-memory sources so a single large payload cannot exhaust the
+// runtime regardless of which entrypoint receives it.
+//
+// Takes ctx (context.Context) used for the OTel size histogram.
+// Takes sources (map[string]string) which holds the request payload keyed by
+// path.
+// Takes maxSourceSize (int) which is the configured cap; sizes <= 0 disable
+// the check.
+//
+// Returns error when the aggregate source size exceeds the cap, wrapping
+// errSourceTooLarge so callers can errors.Is against it.
+func checkSourceSize(ctx context.Context, sources map[string]string, maxSourceSize int) error {
 	totalSize := 0
-	for _, content := range request.Sources {
+	for _, content := range sources {
 		totalSize += len(content)
 	}
 	sourceSizeBytes.Record(ctx, int64(totalSize))
 
+	if maxSourceSize <= 0 {
+		return nil
+	}
+
 	if totalSize > maxSourceSize {
-		return newAnalyseErrorResponse(
-			fmt.Sprintf("source size %d exceeds maximum %d", totalSize, maxSourceSize),
-			nil,
-		)
+		return fmt.Errorf("%w: source size %d exceeds maximum %d", errSourceTooLarge, totalSize, maxSourceSize)
 	}
 
 	return nil

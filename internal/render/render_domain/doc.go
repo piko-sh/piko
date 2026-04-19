@@ -19,12 +19,11 @@
 // Package render_domain provides the core rendering engine for transforming
 // Piko AST into HTML output.
 //
-// This package orchestrates the complete rendering pipeline, handling
-// template rendering, component resolution, SVG sprite sheet generation,
-// i18n routing, CSRF token injection, and email rendering with CSS
-// inlining. It also supports headless rendering for WASM, testing, and
-// static site generation, and plain text conversion for email
-// alternatives.
+// Orchestrates the complete rendering pipeline, handling template rendering,
+// component resolution, SVG sprite sheet generation, i18n routing, CSRF token
+// injection, and email rendering with CSS inlining. Also supports headless
+// rendering for WASM, testing, and static site generation, and plain text
+// conversion for email alternatives.
 //
 // # Design rationale
 //

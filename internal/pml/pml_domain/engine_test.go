@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -985,6 +986,14 @@ func (r *mockRegistry) Register(_ context.Context, comp Component) error {
 func (r *mockRegistry) Get(tagName string) (Component, bool) {
 	comp, found := r.components[tagName]
 	return comp, found
+}
+
+func (r *mockRegistry) Lookup(tagName string) (Component, error) {
+	comp, found := r.components[tagName]
+	if !found {
+		return nil, fmt.Errorf("%w: %q", ErrComponentNotFound, tagName)
+	}
+	return comp, nil
 }
 
 func (r *mockRegistry) GetAll() []Component {

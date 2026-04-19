@@ -21,6 +21,7 @@ package analytics_adapters
 import (
 	"net/http"
 	"time"
+	"unicode/utf8"
 
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
@@ -28,8 +29,8 @@ import (
 )
 
 const (
-	// maxFieldLength is the upper bound for attacker-influenced string
-	// fields (URL, User-Agent, Referer) to prevent oversized events.
+	// maxFieldLength is the upper bound (in runes) for attacker-influenced
+	// string fields (URL, User-Agent, Referer) to prevent oversized events.
 	maxFieldLength = 2048
 )
 
@@ -112,16 +113,23 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 	})
 }
 
-// truncateField returns s unchanged when it fits within limit, or
-// truncates it to limit bytes.
+// truncateField returns s unchanged when it fits within limit runes, or
+// truncates it to the first limit runes. Truncation is rune-aware so the
+// result is always valid UTF-8 even for non-ASCII values such as emoji or
+// internationalised URLs.
 //
 // Takes s (string) which is the value to truncate.
-// Takes limit (int) which is the maximum byte length.
+// Takes limit (int) which is the maximum number of runes to retain. Values
+// of zero or below produce an empty string.
 //
 // Returns string which is the truncated value.
 func truncateField(s string, limit int) string {
-	if len(s) <= limit {
+	if limit <= 0 {
+		return ""
+	}
+	if utf8.RuneCountInString(s) <= limit {
 		return s
 	}
-	return s[:limit]
+	runes := []rune(s)
+	return string(runes[:limit])
 }

@@ -21,6 +21,7 @@ package deadletter_adapters
 import (
 	"encoding/json"
 	"errors"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -28,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/deadletter/deadletter_domain"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 var _ deadletter_domain.DeadLetterPort[testEntry] = (*DiskDeadLetterQueue[testEntry])(nil)
@@ -94,22 +96,22 @@ func TestDiskDeadLetterQueue_Add(t *testing.T) {
 		assert.Equal(t, sampleEntry(1), wrapped.Data)
 	})
 
-	t.Run("error reading existing file", func(t *testing.T) {
+	t.Run("error stating existing file", func(t *testing.T) {
 		t.Parallel()
 
 		dlq, sandbox := newTestDiskDLQ(t)
-		sandbox.ReadFileErr = errors.New("disk failure")
+		sandbox.StatErr = errors.New("disk failure")
 
 		err := dlq.Add(testCtx(), sampleEntry(1))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "reading dead letter file")
 	})
 
-	t.Run("error writing file", func(t *testing.T) {
+	t.Run("error opening file for append", func(t *testing.T) {
 		t.Parallel()
 
 		dlq, sandbox := newTestDiskDLQ(t)
-		sandbox.WriteFileErr = errors.New("disk full")
+		sandbox.OpenFileErr = errors.New("disk full")
 
 		err := dlq.Add(testCtx(), sampleEntry(1))
 		require.Error(t, err)
@@ -516,4 +518,118 @@ func TestDiskDeadLetterQueue_RewriteEmptyEntries(t *testing.T) {
 
 	_, readErr := sandbox.ReadFile("deadletters.jsonl.tmp")
 	assert.Error(t, readErr, "temp file should have been renamed away")
+}
+
+func TestDLQ_AppendIsConstantTime(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	sandbox, err := safedisk.NewSandbox(dir, safedisk.ModeReadWrite)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	raw := NewDiskDeadLetterQueue[testEntry](
+		filepath.Join(dir, "deadletters.jsonl"),
+		WithDeadLetterSandbox[testEntry](sandbox),
+	)
+	dlq, ok := raw.(*DiskDeadLetterQueue[testEntry])
+	require.True(t, ok)
+
+	const total = 1000
+	const sampleWindow = 100
+
+	timings := make([]time.Duration, 0, total)
+	for i := range total {
+		startTime := time.Now()
+		require.NoError(t, dlq.Add(testCtx(), sampleEntry(i)))
+		timings = append(timings, time.Since(startTime))
+	}
+
+	leadAverage := averageDuration(timings[:sampleWindow])
+	tailAverage := averageDuration(timings[total-sampleWindow:])
+
+	if leadAverage <= 0 {
+		leadAverage = time.Microsecond
+	}
+	const allowedScalingFactor = 10.0
+	ratio := float64(tailAverage) / float64(leadAverage)
+	assert.Lessf(t, ratio, allowedScalingFactor,
+		"Add latency degraded from %s (lead) to %s (tail) - possible regression to O(n^2) behaviour",
+		leadAverage, tailAverage)
+}
+
+func averageDuration(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return 0
+	}
+	var total time.Duration
+	for _, d := range durations {
+		total += d
+	}
+	return total / time.Duration(len(durations))
+}
+
+func TestDLQ_RejectsAddPastMaxBytes(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	sandbox, err := safedisk.NewSandbox(dir, safedisk.ModeReadWrite)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	raw := NewDiskDeadLetterQueue[testEntry](
+		filepath.Join(dir, "deadletters.jsonl"),
+		WithDeadLetterSandbox[testEntry](sandbox),
+		WithMaxDLQBytes[testEntry](512),
+	)
+	dlq, ok := raw.(*DiskDeadLetterQueue[testEntry])
+	require.True(t, ok)
+
+	var fullErr error
+	for i := range 200 {
+		err := dlq.Add(testCtx(), sampleEntry(i))
+		if err != nil {
+			fullErr = err
+			break
+		}
+	}
+
+	require.Error(t, fullErr, "expected at least one Add to fail after the cap")
+	assert.ErrorIs(t, fullErr, ErrDLQFull)
+
+	count, err := dlq.Count(testCtx())
+	require.NoError(t, err)
+	assert.Greater(t, count, 0, "some entries should have been written before hitting cap")
+}
+
+func TestDLQ_AddSurvivesProcessRestart(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	sandbox, err := safedisk.NewSandbox(dir, safedisk.ModeReadWrite)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+
+	filePath := filepath.Join(dir, "deadletters.jsonl")
+	raw := NewDiskDeadLetterQueue[testEntry](
+		filePath,
+		WithDeadLetterSandbox[testEntry](sandbox),
+	)
+	first, ok := raw.(*DiskDeadLetterQueue[testEntry])
+	require.True(t, ok)
+
+	for i := range 5 {
+		require.NoError(t, first.Add(testCtx(), sampleEntry(i)))
+	}
+
+	rawAgain := NewDiskDeadLetterQueue[testEntry](
+		filePath,
+		WithDeadLetterSandbox[testEntry](sandbox),
+	)
+	second, ok := rawAgain.(*DiskDeadLetterQueue[testEntry])
+	require.True(t, ok)
+
+	entries, err := second.Get(testCtx(), 0)
+	require.NoError(t, err)
+	assert.Len(t, entries, 5)
 }

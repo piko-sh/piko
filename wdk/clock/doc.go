@@ -18,10 +18,10 @@
 
 // Package clock provides a time abstraction for testability.
 //
-// This package enables dependency injection of time operations, allowing
-// production code to use the real system clock whilst tests can control
-// time deterministically. This is essential for testing time-sensitive
-// logic such as caching, expiration, and scheduling.
+// Enables dependency injection of time operations, allowing production code to
+// use the real system clock whilst tests can control time deterministically.
+// Essential for testing time-sensitive logic such as caching, expiration, and
+// scheduling.
 //
 // # Production usage
 //

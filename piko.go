@@ -38,10 +38,11 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/email/email_dto"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/internal/profiler"
 	"piko.sh/piko/internal/logger/logger_dto"
+	"piko.sh/piko/internal/profiler"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/wdk/email/email_provider_mock"
@@ -192,9 +193,6 @@ type SSRServer struct {
 	// Container holds the dependency injection container for the server.
 	Container *bootstrap.Container
 
-	// config holds the server configuration provider.
-	config *config.Provider
-
 	// daemon holds the running daemon service instance; nil until Run is called.
 	daemon daemon_domain.DaemonService
 
@@ -216,24 +214,26 @@ type SSRServer struct {
 	options []Option
 }
 
-// Configure sets configuration values to override those loaded from disk.
+// Configure appends additional bootstrap options to the server based on the
+// supplied PublicConfig. Equivalent to calling the corresponding With*
+// options at piko.New time.
 //
-// Takes publicConfig (PublicConfig) which specifies the
-// configuration values to apply.
+// Takes publicConfig (PublicConfig) which specifies the configuration values
+// to apply.
 func (s *SSRServer) Configure(publicConfig PublicConfig) {
 	if publicConfig.Port != 0 {
-		s.config.ServerConfig.Network.Port = new(fmt.Sprintf("%d", publicConfig.Port))
+		s.options = append(s.options, bootstrap.WithPort(publicConfig.Port))
 	}
 	if publicConfig.BaseDir != "" {
-		s.config.ServerConfig.Paths.BaseDir = &publicConfig.BaseDir
+		s.options = append(s.options, bootstrap.WithBaseDir(publicConfig.BaseDir))
 	}
 	if publicConfig.PagesSourceDir != "" {
-		s.config.ServerConfig.Paths.PagesSourceDir = &publicConfig.PagesSourceDir
+		s.options = append(s.options, bootstrap.WithPagesSourceDir(publicConfig.PagesSourceDir))
 	}
 	if publicConfig.AssetsSourceDir != "" {
-		s.config.ServerConfig.Paths.AssetsSourceDir = &publicConfig.AssetsSourceDir
+		s.options = append(s.options, bootstrap.WithAssetsSourceDir(publicConfig.AssetsSourceDir))
 	}
-	s.config.ServerConfig.Build.WatchMode = &publicConfig.WatchMode
+	s.options = append(s.options, bootstrap.WithWatchMode(publicConfig.WatchMode))
 }
 
 // RegisterLifecycle adds a component to be managed during server startup and
@@ -246,7 +246,7 @@ func (s *SSRServer) Configure(publicConfig PublicConfig) {
 // If the component also implements HealthProbe, it will be added to the health
 // monitoring system and shown via the /health, /live, and /ready endpoints.
 //
-// This method may be called many times, but must be called before Run.
+// May be called many times, but must be called before Run.
 //
 // Takes component (LifecycleComponent) which is the component to add.
 //
@@ -268,7 +268,6 @@ func (s *SSRServer) RegisterLifecycle(component LifecycleComponent) {
 // Returns error when the container fails to initialise.
 func (s *SSRServer) Setup() error {
 	deps := &bootstrap.Dependencies{
-		ConfigProvider: s.config,
 		AppRouter:      s.AppRouter,
 		SymbolProvider: s.symbols,
 	}
@@ -311,7 +310,7 @@ func (s *SSRServer) WithSymbols(symbols templater_domain.SymbolExports) {
 	s.symbols = symbols
 }
 
-// Generate runs a Piko build using the two-phase bootstrap process.
+// Generate produces a Piko build using the two-phase bootstrap process.
 //
 // For dev-i mode, this also builds the daemon infrastructure to set up routes
 // on the AppRouter, allowing the server to serve requests immediately after
@@ -324,8 +323,7 @@ func (s *SSRServer) WithSymbols(symbols templater_domain.SymbolExports) {
 // missing for dev-i mode, or the build process fails.
 func (s *SSRServer) Generate(ctx context.Context, runMode string) error {
 	deps := &bootstrap.Dependencies{
-		ConfigProvider: s.config,
-		AppRouter:      s.AppRouter,
+		AppRouter: s.AppRouter,
 	}
 
 	if runMode == RunModeDevInterpreted {
@@ -409,11 +407,10 @@ func (s *SSRServer) Run(runMode string) error {
 		}
 	}
 
-	if err := performGlobalSetup(ctx, container.GetConfigProvider(), container, isDevMode); err != nil {
+	if err := performGlobalSetup(ctx, container, isDevMode); err != nil {
 		return fmt.Errorf("performing global setup: %w", err)
 	}
 
-	go shutdown.ListenAndShutdown(shutdown.DefaultTimeout)
 	defer func() {
 		if r := recover(); r != nil {
 			l.Error(fmt.Sprintf("Panic in main: %v", r))
@@ -424,6 +421,11 @@ func (s *SSRServer) Run(runMode string) error {
 
 	s.registerLifecycleHealthProbes(container)
 	s.registerLifecycleShutdownHooks(ctx)
+
+	go func() {
+		defer goroutine.RecoverPanic(ctx, "piko.signalShutdownListener")
+		shutdown.ListenAndShutdown(shutdown.DefaultTimeout)
+	}()
 
 	if err := s.startLifecycleComponents(ctx); err != nil {
 		l.Error("Lifecycle component startup failed, running cleanup", logger_domain.Error(err))
@@ -527,7 +529,7 @@ func (s *SSRServer) ensureContainer(ctx context.Context, deps *bootstrap.Depende
 		}
 	}
 
-	if err := performGlobalSetup(ctx, container.GetConfigProvider(), container, isDevMode); err != nil {
+	if err := performGlobalSetup(ctx, container, isDevMode); err != nil {
 		return nil, fmt.Errorf("performing global setup: %w", err)
 	}
 
@@ -575,8 +577,7 @@ func (*SSRServer) installCrashOutput(ctx context.Context, container *bootstrap.C
 // set.
 func (s *SSRServer) buildDependencies(runMode string) (*bootstrap.Dependencies, error) {
 	deps := &bootstrap.Dependencies{
-		ConfigProvider: s.config,
-		AppRouter:      s.AppRouter,
+		AppRouter: s.AppRouter,
 	}
 
 	if runMode == RunModeDevInterpreted {
@@ -608,7 +609,7 @@ func (s *SSRServer) buildDependencies(runMode string) (*bootstrap.Dependencies, 
 func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, container *bootstrap.Container, deps *bootstrap.Dependencies) error {
 	ctx, l := logger_domain.From(ctx, log)
 
-	daemonConfig := bootstrap.NewDaemonConfig(&s.config.ServerConfig)
+	daemonConfig := bootstrap.NewDaemonConfig(container.GetServerConfig())
 	daemonConfig.IAmACatPerson = container.IsIAmACatPerson()
 	bannerInfo := daemon_domain.BuildStartupBannerInfo(daemonConfig, runMode, Version)
 	bannerEnabled := container.IsStartupBannerEnabled()
@@ -722,6 +723,10 @@ func (s *SSRServer) startLifecycleComponents(ctx context.Context) error {
 // registerLifecycleShutdownHooks registers shutdown hooks with the shutdown
 // system. Components are stopped in reverse order (LIFO), so the last
 // component added is stopped first.
+//
+// Registration order matters: shutdown.Cleanup runs registered functions
+// in LIFO order, so iterating forward (oldest-first) means the most recently
+// added component runs first during shutdown.
 func (s *SSRServer) registerLifecycleShutdownHooks(ctx context.Context) {
 	if len(s.lifecycleComponents) == 0 {
 		return
@@ -729,7 +734,7 @@ func (s *SSRServer) registerLifecycleShutdownHooks(ctx context.Context) {
 
 	shutdownCtx := context.WithoutCancel(ctx)
 
-	for i := len(s.lifecycleComponents) - 1; i >= 0; i-- {
+	for i := 0; i < len(s.lifecycleComponents); i++ {
 		component := s.lifecycleComponents[i]
 
 		shutdown.Register(shutdownCtx, fmt.Sprintf("LifecycleComponent:%s", component.Name()), func(ctx context.Context) error {
@@ -747,7 +752,7 @@ func (s *SSRServer) registerLifecycleShutdownHooks(ctx context.Context) {
 		})
 	}
 
-	_, sl := logger_domain.From(s.Container.GetAppContext(), log)
+	_, sl := logger_domain.From(ctx, log)
 	sl.Internal("Registered shutdown hooks for lifecycle components", logger_domain.Int("count", len(s.lifecycleComponents)))
 }
 
@@ -802,53 +807,22 @@ type ConfigResolver = config_domain.Resolver
 // not shadow HTML element names or use reserved prefixes (piko:, pml-).
 type ComponentDefinition = component_dto.ComponentDefinition
 
-// ServerConfig is the root configuration object for the Piko server.
-// Pass it to WithServerConfigDefaults to set defaults programmatically.
-type ServerConfig = config.ServerConfig
-
-// PathsConfig holds file system and URL path settings for the project.
-type PathsConfig = config.PathsConfig
-
-// NetworkConfig holds the network configuration for the server, including
-// port, public domain, HTTPS, and auto-port selection.
-type NetworkConfig = config.NetworkConfig
-
-// BuildModeConfig holds settings for the build and watch process.
-type BuildModeConfig = config.BuildModeConfig
-
-// DatabaseConfig holds database connection configuration.
-type DatabaseConfig = config.DatabaseConfig
-
-// PostgresDatabaseConfig holds PostgreSQL connection settings.
-type PostgresDatabaseConfig = config.PostgresDatabaseConfig
-
-// D1DatabaseConfig holds Cloudflare D1-specific settings.
-type D1DatabaseConfig = config.D1DatabaseConfig
-
 // OtlpConfig holds configuration for OpenTelemetry Protocol exporting.
+// Pass to WithOTLP.
 type OtlpConfig = config.OtlpConfig
 
 // OtlpTLSConfig holds TLS settings for the OTLP exporter connection.
 type OtlpTLSConfig = config.OtlpTLSConfig
 
-// LoggerConfig holds settings for the application logger.
+// LoggerConfig holds settings for the application logger. Pass to WithLogger.
 type LoggerConfig = logger_dto.Config
 
-// HealthProbeConfig holds configuration for the health check server.
-type HealthProbeConfig = config.HealthProbeConfig
-
-// StorageConfig holds settings for the storage service.
-type StorageConfig = config.StorageConfig
-
 // StoragePresignConfig configures presigned URL support for storage operations.
+// Pass to WithStoragePresign.
 type StoragePresignConfig = config.StoragePresignConfig
 
-// SecurityConfig holds security-related settings including headers, rate
-// limiting, cookies, and encryption.
-type SecurityConfig = config.SecurityConfig
-
 // SecurityHeadersConfig configures HTTP security headers following OWASP
-// best practices.
+// best practices. Pass to WithSecurityHeaders.
 type SecurityHeadersConfig = config.SecurityHeadersConfig
 
 // CookieSecurityConfig holds secure defaults for HTTP cookies.
@@ -923,48 +897,44 @@ type Translation = i18n_domain.Translation
 // defines the supported locales, default locale, and URL strategy for i18n
 // routing.
 //
-// Use this type when calling GenerateLocaleHead to generate SEO metadata for
-// your pages.
-type I18nConfig struct {
-	// DefaultLocale is the fallback locale used when a translation is missing or
-	// the user's preferred locale is not supported. Example: "en".
-	DefaultLocale string `json:"defaultLocale"`
-
-	// Strategy defines how locale information is represented
-	// in URLs.
-	//
-	// Supported values:
-	//   - "prefix": All routes are prefixed with the locale (e.g., /en/about,
-	//     /fr/about)
-	//   - "prefix_except_default": Only non-default locales get a prefix (e.g.,
-	//     /about, /fr/about)
-	//   - "domain": Different domains for different locales (e.g., example.com,
-	//     example.fr)
-	Strategy string `json:"strategy"`
-
-	// Locales is the list of all supported locales for the website, such as
-	// []string{"en", "fr", "de", "es"}. An empty slice disables i18n features.
-	Locales []string `json:"locales"`
-}
+// Use I18nConfig when calling GenerateLocaleHead to generate SEO metadata for
+// your pages, or when populating WebsiteConfig.I18n via WithWebsiteConfig.
+//
+// Strategy values:
+//   - "query-only": Single bare path; locale is read from a query parameter
+//     or detection (e.g., /about?lang=fr).
+//   - "prefix": All routes are prefixed with the locale (e.g., /en/about,
+//     /fr/about).
+//   - "prefix_except_default": Only non-default locales get a prefix (e.g.,
+//     /about, /fr/about).
+type I18nConfig = config.I18nConfig
 
 // New creates and sets up a new SSRServer instance.
+//
+// Configure the server through the supplied With* options. piko reads no
+// configuration files and no environment variables by default. The single
+// exception is the PIKO_LOG_LEVEL environment variable, which is consulted
+// here to seed the bootstrap logger level before options are applied. Any
+// explicit WithLogLevel option in opts overrides it.
 //
 // Takes opts (...bootstrap.Option) which configures the server behaviour.
 //
 // Returns *SSRServer which is ready for use with default router and config.
 func New(opts ...bootstrap.Option) *SSRServer {
+	if level := os.Getenv("PIKO_LOG_LEVEL"); level != "" {
+		opts = append([]bootstrap.Option{bootstrap.WithLogLevel(level)}, opts...)
+	}
 	return &SSRServer{
 		AppRouter: chi.NewRouter(),
-		config:    config.NewConfigProvider(),
 		options:   opts,
 	}
 }
 
 // GenerateLocaleHead generates internationalisation SEO metadata for a page.
 //
-// This function is designed to be called from within a component's Render
-// function to populate the Metadata.Language, Metadata.CanonicalUrl, and
-// Metadata.AlternateLinks fields.
+// Designed to be called from within a component's Render function to populate
+// the Metadata.Language, Metadata.CanonicalUrl, and Metadata.AlternateLinks
+// fields.
 //
 // Takes r (*RequestData) which provides the current request data.
 // Takes i18nConfig (I18nConfig) which defines locales and URL strategy.
@@ -1027,7 +997,7 @@ func RunHeadless(opts ...Option) (*bootstrap.Container, error) {
 // InitialiseForTesting initialises Piko's global services with minimal
 // dependencies suitable for unit and integration tests.
 //
-// This function creates a fully mocked Piko environment with:
+// Creates a fully mocked Piko environment with:
 //   - In-memory cache provider (no Redis/external cache required)
 //   - In-memory storage provider (no S3/disk writes)
 //   - In-memory registry (no metadata.db SQLite file created)
@@ -1063,15 +1033,16 @@ func InitialiseForTesting() *bootstrap.Container {
 
 // performGlobalSetup sets up global services and registers custom modules.
 //
-// Takes configProvider (*config.Provider) which provides server settings.
-// Takes container (*bootstrap.Container) which holds custom frontend modules.
+// Takes container (*bootstrap.Container) which holds the resolved server
+// configuration and custom frontend modules.
 //
 // Returns error when logger setup fails, directory creation fails, or module
 // registration fails.
-func performGlobalSetup(ctx context.Context, configProvider *config.Provider, container *bootstrap.Container, devMode bool) error {
+func performGlobalSetup(ctx context.Context, container *bootstrap.Container, devMode bool) error {
 	ctx, l := logger_domain.From(ctx, log)
 
-	if err := logger.Apply(bootstrap.NewOtelSetupConfig(&configProvider.ServerConfig)); err != nil {
+	serverConfig := container.GetServerConfig()
+	if err := logger.Apply(bootstrap.NewOtelSetupConfig(serverConfig)); err != nil {
 		return fmt.Errorf("failed to apply logger configuration: %w", err)
 	}
 	if loggerShutdown := logger.GetShutdownFunc(); loggerShutdown != nil {
@@ -1079,8 +1050,8 @@ func performGlobalSetup(ctx context.Context, configProvider *config.Provider, co
 	}
 
 	baseDir := "."
-	if configProvider.ServerConfig.Paths.BaseDir != nil {
-		baseDir = *configProvider.ServerConfig.Paths.BaseDir
+	if serverConfig.Paths.BaseDir != nil {
+		baseDir = *serverConfig.Paths.BaseDir
 	}
 	if err := ensurePikoInternalDir(baseDir, config.PikoInternalPath); err != nil {
 		return fmt.Errorf("ensuring piko internal directory: %w", err)

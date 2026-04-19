@@ -20,15 +20,20 @@ package llm_provider_openai
 
 import (
 	"errors"
+	"time"
 
 	"github.com/openai/openai-go/v3"
 
 	"piko.sh/piko/internal/llm/llm_domain"
 )
 
-// wrapError wraps an OpenAI SDK error as a *llm_domain.ProviderError when the
-// underlying error is an *openai.Error, preserving the HTTP status code. For
-// non-API errors the original error is returned unchanged.
+// wrapError wraps an OpenAI SDK error as a *llm_domain.ProviderError.
+//
+// Preserves the HTTP status code when the underlying error is an
+// *openai.Error. When the upstream response carries a Retry-After header,
+// its parsed value is propagated so the retry executor can honour the
+// server hint. For non-API errors the original error is returned
+// unchanged.
 //
 // Takes err (error) which is the error to inspect and potentially wrap.
 //
@@ -36,12 +41,18 @@ import (
 // original error.
 func wrapError(err error) error {
 	if apiErr, ok := errors.AsType[*openai.Error](err); ok {
-		return &llm_domain.ProviderError{
+		providerErr := &llm_domain.ProviderError{
 			Provider:   "openai",
 			StatusCode: apiErr.StatusCode,
 			Message:    apiErr.Message,
 			Err:        err,
 		}
+		if apiErr.Response != nil {
+			providerErr.RetryAfter = llm_domain.ParseRetryAfter(
+				apiErr.Response.Header.Get("Retry-After"), time.Now(),
+			)
+		}
+		return providerErr
 	}
 	return err
 }

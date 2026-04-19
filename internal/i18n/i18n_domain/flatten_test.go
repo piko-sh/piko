@@ -19,6 +19,8 @@
 package i18n_domain
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +31,7 @@ func TestFlattenTranslations_EmptyMap(t *testing.T) {
 	data := map[string]any{}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "", result)
+	require.NoError(t, FlattenTranslations(data, "", result))
 
 	assert.Empty(t, result)
 }
@@ -41,7 +43,7 @@ func TestFlattenTranslations_SingleLevel(t *testing.T) {
 	}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "", result)
+	require.NoError(t, FlattenTranslations(data, "", result))
 
 	assert.Len(t, result, 2)
 	assert.Equal(t, "world", result["hello"])
@@ -57,7 +59,7 @@ func TestFlattenTranslations_NestedMap(t *testing.T) {
 	}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "", result)
+	require.NoError(t, FlattenTranslations(data, "", result))
 
 	assert.Len(t, result, 2)
 	assert.Equal(t, "Name", result["user.name"])
@@ -77,7 +79,7 @@ func TestFlattenTranslations_DeeplyNested(t *testing.T) {
 	}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "", result)
+	require.NoError(t, FlattenTranslations(data, "", result))
 
 	assert.Len(t, result, 2)
 	assert.Equal(t, "Dark Mode", result["app.settings.theme.dark"])
@@ -102,7 +104,7 @@ func TestFlattenTranslations_MixedLevels(t *testing.T) {
 	}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "", result)
+	require.NoError(t, FlattenTranslations(data, "", result))
 
 	assert.Len(t, result, 7)
 	assert.Equal(t, "Welcome", result["title"])
@@ -120,7 +122,7 @@ func TestFlattenTranslations_WithPrefix(t *testing.T) {
 	}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "en", result)
+	require.NoError(t, FlattenTranslations(data, "en", result))
 
 	assert.Len(t, result, 1)
 	assert.Equal(t, "world", result["en.hello"])
@@ -134,7 +136,7 @@ func TestFlattenTranslations_NonStringValues(t *testing.T) {
 	}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "", result)
+	require.NoError(t, FlattenTranslations(data, "", result))
 
 	assert.Len(t, result, 3)
 	assert.Equal(t, "42", result["count"])
@@ -149,7 +151,7 @@ func TestFlattenTranslations_EmptyStrings(t *testing.T) {
 	}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "", result)
+	require.NoError(t, FlattenTranslations(data, "", result))
 
 	assert.Len(t, result, 2)
 	assert.Equal(t, "", result["empty"])
@@ -164,7 +166,7 @@ func TestFlattenTranslations_SpecialCharactersInKeys(t *testing.T) {
 	}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "", result)
+	require.NoError(t, FlattenTranslations(data, "", result))
 
 	assert.Len(t, result, 3)
 	assert.Equal(t, "dash", result["key-with-dash"])
@@ -180,7 +182,7 @@ func TestFlattenTranslations_UnicodeContent(t *testing.T) {
 	}
 	result := make(map[string]string)
 
-	FlattenTranslations(data, "", result)
+	require.NoError(t, FlattenTranslations(data, "", result))
 
 	assert.Len(t, result, 3)
 	assert.Equal(t, "Bonjour", result["greeting"])
@@ -320,6 +322,62 @@ func TestParseAndFlatten_BooleanValues(t *testing.T) {
 	assert.Equal(t, "true", result["enabled"])
 	assert.Equal(t, "false", result["disabled"])
 	assert.Equal(t, "Status", result["label"])
+}
+
+func TestFlattenTranslations_RecursionDepthExceeded(t *testing.T) {
+	t.Parallel()
+
+	build := func(depth int) map[string]any {
+		root := map[string]any{}
+		current := root
+		for range depth {
+			next := map[string]any{}
+			current["k"] = next
+			current = next
+		}
+		current["leaf"] = "value"
+		return root
+	}
+
+	data := build(DefaultFlattenMaxDepth + 1)
+	result := make(map[string]string)
+
+	err := FlattenTranslations(data, "", result)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrTranslationDepthExceeded)
+}
+
+func TestFlattenTranslations_KeyCountExceeded(t *testing.T) {
+	t.Parallel()
+
+	data := make(map[string]any, 6)
+	for i := range 6 {
+		data[fmt.Sprintf("k%d", i)] = "v"
+	}
+	result := make(map[string]string)
+
+	err := FlattenTranslationsWithOptions(data, "", result, FlattenOptions{MaxKeyCount: 3})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrTranslationKeyCountExceeded)
+}
+
+func TestParseAndFlatten_RejectsDeeplyNested(t *testing.T) {
+	t.Parallel()
+
+	var builder strings.Builder
+	depth := DefaultFlattenMaxDepth + 1
+	for range depth {
+		builder.WriteString(`{"k":`)
+	}
+	builder.WriteString(`"value"`)
+	for range depth {
+		builder.WriteByte('}')
+	}
+
+	result, err := ParseAndFlatten([]byte(builder.String()))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrTranslationDepthExceeded)
+	assert.Nil(t, result)
 }
 
 func TestParseAndFlatten_UTF8Content(t *testing.T) {

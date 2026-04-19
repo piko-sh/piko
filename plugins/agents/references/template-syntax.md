@@ -4,7 +4,7 @@ Use this guide when writing template expressions, directives, or interpolation i
 
 ## Expression language
 
-Piko has its own expression language. It is **not JavaScript** - it is a custom, JavaScript-like language with Go-influenced conventions. Do not assume JavaScript syntax works; use only the operators and features documented here.
+Piko has its own expression language - **not JavaScript**. Custom, JavaScript-like with Go-influenced conventions. Use only the operators and features documented here.
 
 ## Interpolation
 
@@ -34,9 +34,9 @@ Display data with double curly braces **inside element content only**. All outpu
 
 - **Plain attributes** are static text: `class="container"`, `id="header"`
 - **`:` prefix** makes an attribute dynamic (an expression): `:href="state.URL"`, `:class="state.ClassName"`
-- **Dynamic overrides static**: If the same attribute name appears as both static and dynamic, the dynamic value **replaces** the static one. `class="x" :class="'y'"` produces `class="y"`, not `class="x y"`
-- **`p-class` and `p-style` merge** instead of replacing: `class="x" p-class="'y'"` produces `class="x y"`. Use `p-class` / `p-style` when you need to combine static and dynamic values
-- **Directives** (`p-if`, `p-for`, `p-show`, `p-class`, `p-style`, `p-on`, `p-model`, `p-text`, `p-html`, `p-bind`) are expressions by default
+- **`class` and `style` always merge**: static and dynamic concatenate (`class="x" :class="'y'"` → `class="x y"`). Same for `style` / `:style` / `p-style`
+- **Other attributes are replaced**: dynamic binding replaces static value
+- **Directives** (`p-if`, `p-for`, `p-show`, `p-class`, `p-style`, `p-on`, `p-event`, `p-model`, `p-text`, `p-html`, `p-bind`) are expressions by default
 - **Exceptions**: `p-ref` and `p-slot` accept plain text only, not expressions
 
 ## Directives reference
@@ -52,9 +52,9 @@ Conditional rendering - removes elements from the DOM when false:
 ```
 
 Rules:
-- `p-else-if` and `p-else` must immediately follow a `p-if` or `p-else-if` at the same nesting level
-- Piko is **type-strict in conditions** - `p-if` requires a boolean expression. A string or number is not automatically truthy. Use the `~` prefix operator to coerce to truthy: `p-if="~state.Name"` (not `p-if="state.Name"`)
-- Truthy coercion with `~`: `""`, `"0"`, `"false"` (case-insensitive), `0`, `nil`/`null`, `false` → falsy; everything else → truthy
+- `p-else-if` and `p-else` must immediately follow `p-if`/`p-else-if` at the same level
+- **Type-strict**: `p-if` requires a boolean. Use `~` to coerce: `p-if="~state.Name"`
+- Truthy coercion with `~`: `""`, `"0"`, `"false"` (case-insensitive), `0`, `nil`/`null`, `false` → falsy; else truthy
 
 ### p-for
 
@@ -67,7 +67,7 @@ Loop over slices, maps, or strings. **The order is `(index, item)` - index first
 <!-- Index + value (index FIRST, like Go) -->
 <li p-for="(i, item) in state.Items" p-key="item.ID">{{ i }}: {{ item.Name }}</li>
 
-<!-- Map iteration (key first, value second; keys sorted alphabetically) -->
+<!-- Map iteration (key first, value second; string keys sort alphabetically, other key types are non-deterministic) -->
 <li p-for="(key, val) in state.Settings" p-key="key">{{ key }}: {{ val }}</li>
 ```
 
@@ -104,7 +104,7 @@ Bind dynamic values to HTML attributes:
 <button :disabled="state.IsSubmitting">Submit</button>
 ```
 
-**Boolean attribute rendering**: When a bound value is `true`, the attribute is rendered as a bare attribute (e.g. `disabled` or `disabled=""`), not `disabled="true"`. When `false` or `nil`, the attribute is omitted entirely. This follows the HTML spec for boolean attributes.
+**Boolean attribute rendering**: `true` renders as bare attribute (`disabled` or `disabled=""`), not `disabled="true"`. `false`/`nil` omits entirely (HTML spec).
 
 ```piko
 <!-- state.IsSubmitting = true  → <button disabled="">Submit</button> -->
@@ -120,7 +120,7 @@ Template literals work:
 
 ### p-on (event handling)
 
-Bind event listeners to functions in the **JavaScript/TypeScript** script block (not the Go block). In `.pk` files this targets `<script>` (client-side JS); in `.pkc` files this targets the component script.
+Bind event listeners to functions in the **JavaScript/TypeScript** script block (not Go). In `.pk` files targets client-side `<script>`; in `.pkc` files targets the component script.
 
 Three handler types:
 
@@ -137,9 +137,9 @@ Three handler types:
 
 **Three calling conventions**:
 
-1. **No parentheses** - `p-on:click="myFn"` - the native DOM event is passed as the first argument implicitly
-2. **Empty parentheses** - `p-on:click="myFn()"` - no arguments are passed (not even the event)
-3. **With arguments** - `p-on:click="myFn('save', $event)"` - you control exactly what is passed; use `$event` to place the event in any position
+1. **No parentheses** - `p-on:click="myFn"` - event passed as first arg implicitly
+2. **Empty parentheses** - `p-on:click="myFn()"` - no args passed
+3. **With arguments** - `p-on:click="myFn('save', $event)"` - you control args; `$event` places event in any position
 
 ```piko
 <!-- Event passed implicitly as first arg -->
@@ -158,7 +158,7 @@ Three handler types:
 <form p-on:submit.prevent="handleSubmit($form)">
 ```
 
-**IMPORTANT**: `$event` and `$form` are opaque values in expressions - you **cannot** access properties on them (e.g. `$event.target` or `$form.get` is not valid). Pass them to your function and access properties there.
+**IMPORTANT**: `$event` and `$form` are opaque - cannot access properties (e.g. `$event.target` invalid). Pass to a function and access there.
 
 **Event modifiers** are shorthand suffixes (see [Event modifiers](#event-modifiers)):
 
@@ -173,6 +173,17 @@ Cross-partial calls:
 <button p-on:click="@modal.open()">Open Modal</button>
 ```
 
+### p-event (custom DOM events)
+
+Listens for custom DOM events from a child component. Same prefix scheme, modifiers, and reserved identifiers as `p-on:`:
+
+```piko
+<my-component p-event:update="onUpdate($event)"></my-component>
+<my-component p-event:save.once="action.handleSave($form)"></my-component>
+```
+
+Use `p-on:` for native DOM events; `p-event:` for custom events from child components.
+
 ### p-model
 
 Two-way binding for form inputs:
@@ -184,21 +195,24 @@ Two-way binding for form inputs:
 
 ### p-class
 
-Conditional class binding with object or array syntax. Unlike `:class` which **replaces** the static `class` attribute, `p-class` **merges** with it:
+Conditional class binding with object or array syntax. Both `p-class` and `:class` merge with static `class`:
 
 ```piko
-<!-- Merging: class="x" + p-class="'y'" → class="x y" -->
+<!-- Object form: keys are class names, values are boolean expressions -->
 <div class="container" p-class="{ active: state.IsActive, 'text-danger': state.HasError }">
 
-<!-- Compare: class="x" + :class="'y'" → class="y" (replaced, NOT merged) -->
+<!-- Single dynamic class via :class also merges with static class -->
+<div class="btn" :class="state.IsActive ? 'btn--active' : ''">
 
-<!-- Single conditional class -->
-<div class="btn" p-class:active="state.IsActive">
+<!-- Array form -->
+<div p-class="['card', state.IsFeatured ? 'card--featured' : '']">
 ```
+
+`p-class` does not accept a colon argument suffix. Use the object form to toggle named classes.
 
 ### p-style
 
-Dynamic inline styles. Like `p-class`, `p-style` **merges** with the static `style` attribute rather than replacing it:
+Dynamic inline styles. Like `p-class`, `p-style` **merges** with static `style`:
 
 ```piko
 <p style="font-weight: bold" p-style="{ color: state.TextColour, fontSize: state.Size + 'px' }">Styled</p>
@@ -254,7 +268,7 @@ Unique identifier for loop reconciliation:
 
 ## Built-in functions
 
-Piko template expressions use **Go-style built-in functions**, not JavaScript property access:
+Piko uses **Go-style built-in functions**, not JavaScript property access:
 
 ```piko
 <!-- WRONG - JavaScript style -->
@@ -313,21 +327,24 @@ Use backticks with `${expr}`:
 
 | Modifier | Description |
 |----------|-------------|
-| `.prevent` | Calls `event.preventDefault()` |
-| `.stop` | Calls `event.stopPropagation()` |
-| `.once` | Removes listener after first invocation |
-| `.self` | Only fires when event target is the element itself |
+| `.prevent` | Calls `event.preventDefault()` before the handler |
+| `.stop` | Calls `event.stopPropagation()` before the handler |
+| `.once` | Removes the listener after first invocation |
+| `.self` | Only fires when `event.target === event.currentTarget` |
+| `.passive` | Registers the listener with `{ passive: true }` |
+| `.capture` | Registers the listener in the capture phase |
 
 ```piko
 <form p-on:submit.prevent="action.save()">
 <a p-on:click.prevent.stop="navigate()">Link</a>
+<div p-on:scroll.passive="onScroll">Scrollable</div>
 ```
 
 ## Built-in elements
 
 ### piko:a (SPA navigation)
 
-Renders as a standard `<a>` tag but intercepts clicks for client-side navigation (no full page reload). Supports locale-aware URL transformation:
+Renders as `<a>` but intercepts clicks for SPA navigation. Supports locale-aware URL transformation:
 
 ```piko
 <piko:a href="/about" class="nav-link">About Us</piko:a>
@@ -335,19 +352,19 @@ Renders as a standard `<a>` tag but intercepts clicks for client-side navigation
 <piko:a href="/about" lang="fr">Voir en français</piko:a>
 ```
 
-**IMPORTANT**: The `piko:` prefix is stripped from the tag name in rendered HTML. `<piko:a>` becomes `<a>`. When writing CSS selectors or JavaScript queries, target the plain `<a>` tag - not `piko:a`. The rendered element has a `piko:a=""` attribute marker that can be targeted with `a[piko\\:a]` if needed.
+**IMPORTANT**: `piko:` prefix is stripped in rendered HTML - `<piko:a>` becomes `<a>`. Target plain `<a>` in CSS/JS. The rendered element has a `piko:a=""` marker (target via `a[piko\\:a]`).
 
 | Attribute | Purpose |
 |-----------|---------|
 | `href` | Target URL (supports `:href` for dynamic binding) |
-| `lang` | Override locale for this link; empty string disables locale transformation |
+| `lang` | Override locale; empty string disables locale transformation |
 | Standard attrs | `class`, `id`, `target`, `rel`, etc. pass through |
 
-Links still work without JavaScript (graceful degradation). External URLs, `mailto:`, `tel:`, `#fragment` links are never intercepted.
+Links work without JS (graceful degradation). External URLs, `mailto:`, `tel:`, `#fragment` links are never intercepted.
 
 ### piko:img (optimised images)
 
-Renders as a standard `<img>` tag with automatic path transformation, `srcset` generation, and format variants:
+Renders as `<img>` with automatic path transformation, `srcset` generation, and format variants:
 
 ```piko
 <piko:img src="mymodule/assets/hero.jpg" alt="Hero"
@@ -358,7 +375,7 @@ Renders as a standard `<img>` tag with automatic path transformation, `srcset` g
 <piko:img :src="state.HeroImage" variant="thumb_200" alt="Hero" />
 ```
 
-**IMPORTANT**: Like `piko:a`, the `piko:` prefix is stripped in rendered output. `<piko:img>` becomes `<img>`. CSS and JS should target `img`, not `piko:img`.
+**IMPORTANT**: `piko:` prefix is stripped - `<piko:img>` becomes `<img>`. Target `img` in CSS/JS.
 
 | Attribute | Purpose |
 |-----------|---------|
@@ -373,7 +390,7 @@ Renders as a standard `<img>` tag with automatic path transformation, `srcset` g
 
 ### piko:picture (multi-format images)
 
-Renders as a `<picture>` element with per-format `<source>` elements and a fallback `<img>`. Use this when you want the browser to choose between multiple formats (e.g. AVIF + WebP + JPEG fallback):
+Renders as `<picture>` with per-format `<source>` and a fallback `<img>`. Use when the browser should pick between formats (AVIF + WebP + JPEG):
 
 ```piko
 <piko:picture src="mymodule/assets/hero.jpg" alt="Hero"
@@ -384,7 +401,7 @@ Renders as a `<picture>` element with per-format `<source>` elements and a fallb
 <piko:picture :src="state.HeroImage" variant="w1200" alt="Hero" />
 ```
 
-**IMPORTANT**: `<piko:picture>` becomes `<picture>` in rendered output. Passthrough attributes (`alt`, `class`, `loading`, etc.) are placed on the fallback `<img>`, not on `<picture>` or `<source>`.
+**IMPORTANT**: `<piko:picture>` becomes `<picture>`. Passthrough attributes (`alt`, `class`, `loading`) are placed on the fallback `<img>`, not on `<picture>` or `<source>`.
 
 | Attribute | Purpose |
 |-----------|---------|
@@ -397,18 +414,18 @@ Renders as a `<picture>` element with per-format `<source>` elements and a fallb
 | `variant` | Select specific CMS media variant by name |
 | `loading` | `"lazy"` or `"eager"` |
 
-Use `<piko:img>` for single-format responsive images. Use `<piko:picture>` for multi-format delivery with browser format negotiation.
+Use `<piko:img>` for single-format. Use `<piko:picture>` for multi-format with browser negotiation.
 
 ### piko:element (dynamic tag)
 
-Renders a dynamically chosen HTML element. Static `is` resolves at compile time; dynamic `:is` resolves at runtime:
+Static `is` resolves at compile time; dynamic `:is` at runtime:
 
 ```piko
 <piko:element is="h2">Static</piko:element>
 <piko:element :is="state.Tag">Dynamic</piko:element>
 ```
 
-When `:is` resolves to a piko: tag (`piko:a`, `piko:img`, `piko:svg`), the element gets the same special behaviour (SPA nav, asset paths, SVG inlining). Empty/null falls back to `<div>`.
+When `:is` resolves to a piko: tag (`piko:a`, `piko:img`, `piko:svg`), it gets the same special behaviour. Empty/null falls back to `<div>`.
 
 ### piko:content (collection content)
 
@@ -427,30 +444,36 @@ See `references/collections.md` for full collection setup.
 
 ## Event bus
 
-Client-side pub/sub messaging for decoupled inter-component communication:
+Client-side pub/sub for decoupled inter-component communication:
 
 ```typescript
 // Emit an event
 piko.bus.emit('item-added', { count: 1, message: 'Added' });
 
-// Listen for events
-piko.bus.on('item-added', (data) => {
+// Listen for events; on() and once() return an unsubscribe function
+const unsubscribe = piko.bus.on('item-added', (data) => {
     console.log(data.count, data.message);
 });
 
-// One-time listener
+// One-time listener (auto-unsubscribes after first invocation)
 piko.bus.once('init-complete', (data) => { /* ... */ });
 
-// Remove listener
-piko.bus.off('item-added', myCallback);
+// Unsubscribe a specific handler - call the function returned by on()/once()
+unsubscribe();
+
+// Remove all listeners for an event
+piko.bus.off('item-added');
+
+// Remove every listener for every event
+piko.bus.off();
 ```
 
 | Method | Purpose |
 |--------|---------|
 | `piko.bus.emit(name, data)` | Broadcast event to all listeners |
-| `piko.bus.on(name, callback)` | Register listener |
-| `piko.bus.once(name, callback)` | One-time listener (auto-unsubscribes) |
-| `piko.bus.off(name, callback)` | Remove specific listener |
+| `piko.bus.on(name, callback)` | Register listener; returns an unsubscribe function |
+| `piko.bus.once(name, callback)` | One-time listener (auto-unsubscribes); returns an unsubscribe function |
+| `piko.bus.off(event?)` | Remove all listeners for `event` (or all listeners if no arg). For single handler, call the function returned by `on()`/`once()` |
 
 ## Server props
 
@@ -476,7 +499,8 @@ Server props are stripped from rendered HTML. See `references/partials-and-slots
 - Forgetting `p-key` in loops (causes reconciliation bugs)
 - Using `this.state` in templates (just `state`)
 - Using `{{ }}` for raw HTML (use `p-html` directive instead)
-- Using `:class` or `:style` to combine static and dynamic values - `:class` **replaces** the static `class`. Use `p-class` / `p-style` to **merge** instead
+- Assuming `:class` replaces the static `class` - both `:class` and `p-class` always merge with the static `class` attribute. Same for `:style` / `p-style` and `style`. For other attributes the dynamic binding does replace the static value
+- Writing `p-class:foo="..."` to toggle a single class - this syntax is not supported. Only `p-on:`, `p-event:`, `p-bind:` and `p-timeline:` accept a colon argument suffix. Use the object form instead: `p-class="{ foo: state.IsFoo }"`
 - Note: `:prop` renders value as an HTML attribute too; `:server.prop` is server-only (use `:server.prop` when you don't want the prop exposed in rendered HTML)
 - Accessing properties on `$event` or `$form` in templates (e.g. `$event.target` is not valid - pass `$event` to your function and access properties there)
 - Forgetting `.prevent` on form submit (`p-on:submit.prevent`)

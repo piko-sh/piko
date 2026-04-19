@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -57,7 +58,20 @@ const (
 	// circuitBreakerConsecutiveFailures is the number of consecutive failures
 	// required to trip the circuit breaker.
 	circuitBreakerConsecutiveFailures = 5
+
+	// defaultMaxSitemapResponseBytes caps the raw response body size accepted
+	// from a dynamic sitemap source.
+	//
+	// Without a cap, a hostile or misconfigured endpoint could exhaust memory by
+	// streaming an unbounded JSON array. Sixteen mebibytes comfortably accommodates
+	// legitimate sitemap responses while preventing denial-of-service.
+	defaultMaxSitemapResponseBytes int64 = 16 * 1024 * 1024
 )
+
+// ErrSitemapResponseTooLarge signals that the dynamic sitemap source returned
+// a response whose size exceeded the configured maximum. Callers can use
+// errors.Is to distinguish this from network or decoding failures.
+var ErrSitemapResponseTooLarge = errors.New("sitemap source response exceeded maximum allowed size")
 
 // HTTPSourceAdapter implements the DynamicURLSourcePort interface by fetching
 // URLs from HTTP endpoints. It expects endpoints to return JSON arrays of
@@ -68,6 +82,30 @@ type HTTPSourceAdapter struct {
 
 	// breaker guards against failures when fetching from the HTTP source.
 	breaker *gobreaker.CircuitBreaker[[]seo_dto.SitemapURLInput]
+
+	// maxResponseBytes caps the response body size accepted from a dynamic sitemap source.
+	//
+	// Bodies larger than this limit cause FetchURLs to return
+	// ErrSitemapResponseTooLarge instead of attempting to decode them. A
+	// non-positive value disables the cap.
+	maxResponseBytes int64
+}
+
+// HTTPSourceOption configures an HTTPSourceAdapter at construction time.
+type HTTPSourceOption func(*HTTPSourceAdapter)
+
+// WithHTTPSourceMaxResponseBytes overrides the maximum response body size
+// accepted from the dynamic sitemap source. Pass zero or a negative value to
+// disable the cap entirely.
+//
+// Takes maxBytes (int64) which is the new ceiling, in bytes, for responses
+// from sitemap source endpoints.
+//
+// Returns HTTPSourceOption which applies the override during construction.
+func WithHTTPSourceMaxResponseBytes(maxBytes int64) HTTPSourceOption {
+	return func(a *HTTPSourceAdapter) {
+		a.maxResponseBytes = maxBytes
+	}
 }
 
 // FetchURLs implements DynamicURLSourcePort.FetchURLs.
@@ -92,15 +130,22 @@ func (a *HTTPSourceAdapter) FetchURLs(ctx context.Context, sourceURL string) ([]
 		if err != nil {
 			return nil, fmt.Errorf("executing HTTP request: %w", err)
 		}
-		defer func() { _ = response.Body.Close() }()
+		defer func() {
+			_, _ = io.Copy(io.Discard, response.Body)
+			_ = response.Body.Close()
+		}()
 
 		if response.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("unexpected HTTP status code: %d %s", response.StatusCode, response.Status)
 		}
 
+		body, err := a.readBoundedBody(response.Body)
+		if err != nil {
+			return nil, err
+		}
+
 		var urls []seo_dto.SitemapURLInput
-		decoder := json.ConfigStd.NewDecoder(response.Body)
-		if err := decoder.Decode(&urls); err != nil {
+		if err := json.ConfigStd.Unmarshal(body, &urls); err != nil {
 			return nil, fmt.Errorf("decoding JSON response: %w", err)
 		}
 
@@ -108,13 +153,45 @@ func (a *HTTPSourceAdapter) FetchURLs(ctx context.Context, sourceURL string) ([]
 	})
 }
 
+// readBoundedBody reads the response body up to the configured maximum size.
+// Bodies that exceed the limit return a wrapped ErrSitemapResponseTooLarge so
+// callers can distinguish over-large responses from transport failures.
+//
+// Takes body (io.Reader) which yields the raw HTTP response body bytes.
+//
+// Returns []byte which contains the raw body bytes when the cap was not
+// exceeded.
+// Returns error when reading fails or the body exceeded the configured cap.
+func (a *HTTPSourceAdapter) readBoundedBody(body io.Reader) ([]byte, error) {
+	maxBytes := a.maxResponseBytes
+	if maxBytes <= 0 {
+		raw, err := io.ReadAll(body)
+		if err != nil {
+			return nil, fmt.Errorf("reading sitemap source response body: %w", err)
+		}
+		return raw, nil
+	}
+
+	raw, err := io.ReadAll(io.LimitReader(body, maxBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("reading sitemap source response body: %w", err)
+	}
+	if int64(len(raw)) > maxBytes {
+		return nil, fmt.Errorf("%w: limit=%d bytes", ErrSitemapResponseTooLarge, maxBytes)
+	}
+	return raw, nil
+}
+
 // NewHTTPSourceAdapter creates a new HTTP source adapter with sensible
 // defaults.
 //
+// Takes opts (...HTTPSourceOption) which override defaults such as the
+// maximum response body size accepted from the sitemap endpoint.
+//
 // Returns seo_domain.DynamicURLSourcePort which is the configured adapter ready
 // for use.
-func NewHTTPSourceAdapter() seo_domain.DynamicURLSourcePort {
-	return &HTTPSourceAdapter{
+func NewHTTPSourceAdapter(opts ...HTTPSourceOption) seo_domain.DynamicURLSourcePort {
+	adapter := &HTTPSourceAdapter{
 		httpClient: &http.Client{
 			Timeout:       defaultHTTPTimeout,
 			CheckRedirect: nil,
@@ -145,8 +222,15 @@ func NewHTTPSourceAdapter() seo_domain.DynamicURLSourcePort {
 				Protocols:              nil,
 			},
 		},
-		breaker: newHTTPSourceCircuitBreaker(),
+		breaker:          newHTTPSourceCircuitBreaker(),
+		maxResponseBytes: defaultMaxSitemapResponseBytes,
 	}
+
+	for _, opt := range opts {
+		opt(adapter)
+	}
+
+	return adapter
 }
 
 // newHTTPSourceCircuitBreaker creates a circuit breaker for the HTTP source

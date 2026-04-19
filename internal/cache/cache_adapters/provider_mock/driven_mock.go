@@ -26,6 +26,7 @@ import (
 
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/wdk/clock"
 )
 
@@ -297,7 +298,7 @@ func (m *MockAdapter[K, V]) Invalidate(_ context.Context, key K) error {
 	return nil
 }
 
-// Compute atomically computes a new value based on the current value.
+// Compute computes a new value atomically based on the current value.
 //
 // Takes key (K) which identifies the cache entry to compute.
 // Takes computeFunction (func(...)) which receives the current value
@@ -559,12 +560,14 @@ func (m *MockAdapter[K, V]) InvalidateAll(_ context.Context) error {
 // Takes bulkLoader (BulkLoader) which loads fresh values for the keys.
 //
 // Safe for concurrent use. Spawns a goroutine that calls
-// bulkLoader.BulkLoad to refresh the values in the background.
+// bulkLoader.BulkLoad to refresh the values in the background. Recovers
+// panics so a faulty loader cannot crash the host process.
 func (m *MockAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoader cache_dto.BulkLoader[K, V]) {
 	m.mu.Lock()
 	m.bulkRefreshCalls = append(m.bulkRefreshCalls, keys)
 	m.mu.Unlock()
 	go func() {
+		defer goroutine.RecoverPanic(ctx, "cache.mockBulkRefresh")
 		_, _ = bulkLoader.BulkLoad(ctx, keys)
 	}()
 }
@@ -578,7 +581,8 @@ func (m *MockAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoade
 // refresh result.
 //
 // Safe for concurrent use. Spawns a goroutine that calls
-// loader.Load to refresh the value in the background.
+// loader.Load to refresh the value in the background. Recovers panics so
+// a faulty loader cannot crash the host process.
 func (m *MockAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache_dto.Loader[K, V]) <-chan cache_dto.LoadResult[V] {
 	m.mu.Lock()
 	m.refreshCalls = append(m.refreshCalls, key)
@@ -586,9 +590,10 @@ func (m *MockAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache_dto
 
 	resultChan := make(chan cache_dto.LoadResult[V], 1)
 	go func() {
+		defer close(resultChan)
+		defer goroutine.RecoverPanic(ctx, "cache.mockRefresh")
 		value, err := loader.Load(ctx, key)
 		resultChan <- cache_dto.LoadResult[V]{Value: value, Err: err}
-		close(resultChan)
 	}()
 	return resultChan
 }

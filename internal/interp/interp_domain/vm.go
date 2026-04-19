@@ -282,7 +282,7 @@ type callFrame struct {
 	upvalues []upvalue
 
 	// returnDestination records where to place return values in the CALLER's
-	// frame when this function returns. Set by opCall.
+	// frame on return. Set by opCall.
 	returnDestination []varLocation
 
 	// programCounter is the program counter (next instruction index to execute).

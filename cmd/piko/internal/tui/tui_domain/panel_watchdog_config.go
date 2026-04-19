@@ -296,7 +296,7 @@ func configContinuousSection() configSection {
 			{Label: "Retention", Value: func(s *WatchdogStatus) string { return fmt.Sprintf("%d profiles", s.ContinuousProfilingRetention) }},
 			{Label: "Types", Value: func(s *WatchdogStatus) string {
 				if len(s.ContinuousProfilingTypes) == 0 {
-					return EmDashGlyph
+					return HyphenGlyph
 				}
 				return strings.Join(s.ContinuousProfilingTypes, ", ")
 			}},
@@ -458,10 +458,10 @@ func yesNo(b bool) string {
 //
 // Takes s (string) which is the candidate value.
 //
-// Returns string which is s when non-empty and EmDashGlyph otherwise.
+// Returns string which is s when non-empty and HyphenGlyph otherwise.
 func defaultDash(s string) string {
 	if s == "" {
-		return EmDashGlyph
+		return HyphenGlyph
 	}
 	return s
 }
@@ -471,10 +471,10 @@ func defaultDash(s string) string {
 //
 // Takes t (time.Time) which is the value to format.
 //
-// Returns string which is the formatted value or EmDashGlyph.
+// Returns string which is the formatted value or HyphenGlyph.
 func formatTimeOrDash(t time.Time) string {
 	if t.IsZero() {
-		return EmDashGlyph
+		return HyphenGlyph
 	}
 	return t.Format(time.RFC3339)
 }
@@ -483,10 +483,10 @@ func formatTimeOrDash(t time.Time) string {
 //
 // Takes g (UtilisationGauge) which is the gauge to format.
 //
-// Returns string with the formatted gauge or EmDashGlyph when Max is zero.
+// Returns string with the formatted gauge or HyphenGlyph when Max is zero.
 func formatGauge(g UtilisationGauge) string {
 	if g.Max <= 0 {
-		return EmDashGlyph
+		return HyphenGlyph
 	}
 	return fmt.Sprintf("%s / %s  (%d%%)", trimFloat(g.Used), trimFloat(g.Max), int(g.Percent*100))
 }

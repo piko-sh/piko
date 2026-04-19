@@ -8,14 +8,14 @@ A `.pkc` file has three sections: template, script, and style.
 
 ```piko
 <!-- components/pp-counter.pkc -->
-<template>
+<template name="pp-counter">
   <div>
     <p>Count: {{ state.count }}</p>
     <button p-on:click="increment">+1</button>
   </div>
 </template>
 
-<script lang="ts" name="pp-counter">
+<script lang="ts">
 const state = {
     count: 0 as number,
 };
@@ -32,7 +32,7 @@ div { padding: 1rem; }
 
 ## The `pkc` context object
 
-The compiler creates `const pkc = this` at the top of every component's instance function. `pkc` is a stable reference to the Web Component's `HTMLElement` instance - it is the `this` context of the script block and the actual DOM element. Use `pkc` throughout your component code:
+`const pkc = this` is injected at the top of every component instance function. `pkc` is a stable reference to the Web Component's `HTMLElement`:
 
 - **Lifecycle**: `pkc.onConnected()`, `pkc.onCleanup()`, `pkc.onUpdated()`
 - **DOM references**: `pkc.refs.my_input`
@@ -40,19 +40,24 @@ The compiler creates `const pkc = this` at the top of every component's instance
 - **Events**: `pkc.dispatchEvent(new CustomEvent(...))`
 - **Attributes**: `pkc.hasAttribute()`, `pkc.toggleAttribute()`, `pkc.getAttribute()`
 
-Always prefer `pkc` over `this` - it is the idiomatic convention and avoids scope confusion inside callbacks and closures.
+Prefer `pkc` over `this` - avoids scope confusion in callbacks.
+
+## Template tag attributes
+
+| Attribute | Required | Description |
+|-----------|----------|-------------|
+| `name="component-name"` | No | Tag name; falls back to source filename when omitted |
+| `enable="form"` | No | Form association; also accepts `"animation"` or `"form animation"` |
+
+Resolved name must contain a hyphen (Web Components spec). `components/pp-counter.pkc` resolves to `pp-counter`.
 
 ## Script tag attributes
 
 | Attribute | Required | Description |
 |-----------|----------|-------------|
-| `lang="ts"` | No | Language hint (also accepts `"js"`, `"javascript"`, or omitted); `"ts"` is the convention |
-| `name="component-name"` | Yes | Defines the custom element tag name |
-| `enable="form"` | No | Enables form association |
+| `lang="ts"` | No | Also accepts `"js"`, `"javascript"`, `"typescript"`; `"ts"` is the convention |
 
-**The `name` attribute is required.** It determines the HTML tag used to render the component. The name must contain a hyphen (Web Components spec).
-
-**Convention**: Use the `pp-` prefix for component names to avoid conflicts.
+**Convention**: Use the `pp-` prefix for component names.
 
 ## Reactive state
 
@@ -70,25 +75,23 @@ const state = {
 
 ### State variable naming: use snake_case
 
-**State variables should use snake_case** - not camelCase. This matters because:
+State variables use snake_case (not camelCase) because:
 
-1. **Two-way attribute sync**: State properties are automatically exposed as HTML attributes. HTML attributes are case-insensitive, so `isActive` becomes `isactive` (losing the capital). Snake_case (`is_active`) is valid both as a TypeScript identifier and as an HTML attribute name.
-
-2. **CSS styling via attributes**: Because of the two-way sync, you can style based on state using CSS attribute selectors:
+1. **Two-way attribute sync**: State auto-syncs to HTML attributes. HTML is case-insensitive, so `isActive` → `isactive`. Snake_case (`is_active`) is valid as both identifier and attribute name.
+2. **CSS styling via attributes**:
 
 ```css
 :host([variant="primary"]) {
     background: blue;
 }
-/* Boolean: just check presence, not value - true renders as bare attribute */
+/* Boolean: check presence, not value */
 :host([is_disabled]) {
     opacity: 0.5;
 }
 ```
 
-3. **Setting attributes updates state**: External code can set `element.setAttribute('variant', 'secondary')` and the internal state updates automatically. This only works cleanly with snake_case.
-
-4. **Boolean attributes follow HTML conventions**: `true` renders as a bare attribute (`disabled` or `disabled=""`), not `disabled="true"`. `false` or `nil` removes the attribute entirely. In PKC code, use `pkc.hasAttribute('disabled')`, `pkc.toggleAttribute('disabled')`, etc. - don't check for `"true"`/`"false"` string values.
+3. **`setAttribute` updates state**: `element.setAttribute('variant', 'secondary')` updates internal state. Only works cleanly with snake_case.
+4. **Boolean attributes follow HTML conventions**: `true` renders as bare attribute, `false`/`nil` removes it. Use `pkc.hasAttribute()`, `pkc.toggleAttribute()` - don't check for `"true"`/`"false"` strings.
 
 ### Non-reactive variables
 
@@ -143,7 +146,7 @@ PKC templates support the same directives as PK templates:
   <input p-on:input="handle_input($event)" />
 </template>
 
-<script lang="ts" name="pp-events">
+<script lang="ts">
 function handle_click(event) {
     // event is the implicit first arg
     console.log('Clicked at:', event.clientX);
@@ -172,7 +175,7 @@ function handle_input(event) {
 <form p-on:submit.prevent="handle_submit($form)">
 ```
 
-**IMPORTANT**: `$event` and `$form` are opaque in expressions - you cannot access properties on them (e.g. `$event.target` is not valid in the template). Pass them to your function and access properties there.
+**IMPORTANT**: `$event` and `$form` are opaque in expressions - cannot access properties (e.g. `$event.target` invalid in template). Pass to a function and access there.
 
 **Event modifiers**: `.prevent`, `.stop`, `.once`, `.self`:
 
@@ -186,7 +189,11 @@ function handle_input(event) {
 State properties double as props. Default values come from the state declaration:
 
 ```piko
-<script lang="ts" name="pp-button">
+<template name="pp-button">
+  <!-- ... -->
+</template>
+
+<script lang="ts">
 const state = {
     variant: 'primary' as string,
     disabled: false as boolean,
@@ -259,7 +266,7 @@ pkc.onUpdated((changed_props) => {
   <button p-on:click="focus_input">Focus</button>
 </template>
 
-<script lang="ts" name="pp-refs">
+<script lang="ts">
 function focus_input() {
     pkc.refs.my_input.focus();
 }
@@ -281,14 +288,14 @@ function query_element() {
 PKC components use standard Web Component `<slot>` elements - **not** `<piko:slot>`:
 
 ```piko
-<template>
+<template name="pp-card">
   <div class="card">
     <header><slot name="header">Default Header</slot></header>
     <main><slot>Default Content</slot></main>
   </div>
 </template>
 
-<script lang="ts" name="pp-card"></script>
+<script lang="ts"></script>
 ```
 
 Usage:
@@ -353,7 +360,7 @@ Include directly in PK page or partial templates:
 
 ```piko
 <!-- components/pp-button.pkc -->
-<template>
+<template name="pp-button">
   <button
     class="btn"
     p-class="{ loading: state.loading }"
@@ -367,7 +374,7 @@ Include directly in PK page or partial templates:
   </button>
 </template>
 
-<script lang="ts" name="pp-button">
+<script lang="ts">
 const state = {
     variant: 'primary' as string,
     size: 'md' as string,
@@ -404,7 +411,7 @@ function handle_click(event) {
 ## LLM mistake checklist
 
 - **Using `{{ }}` inside attributes** - `{{ }}` is ONLY for text content between tags. For dynamic attributes use `:` prefix: `:href="state.url"`. Never write `href="{{ state.url }}"` or `href={{ state.url }}`
-- Forgetting the `name` attribute on the script tag (component won't register)
+- Putting `name` or `enable` on `<script>` instead of `<template>` (they live on `<template>`; `<script>` only takes `lang`)
 - Using camelCase for state variables (breaks HTML attribute sync - use snake_case)
 - Trying to nest PKC components inside each other's templates (use slots instead)
 - Using `<piko:slot>` instead of `<slot>` (PKC uses Web Component slots, not server slots)

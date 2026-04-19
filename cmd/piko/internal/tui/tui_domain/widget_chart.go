@@ -153,10 +153,8 @@ func NewChart(config ChartConfig) *Chart {
 		opts = append(opts, tslc.WithTimeRange(minT, maxT))
 	}
 
-	model := tslc.New(width, height, opts...)
-
 	chart := &Chart{
-		model:  &model,
+		model:  new(tslc.New(width, height, opts...)),
 		theme:  config.Theme,
 		width:  width,
 		height: height,

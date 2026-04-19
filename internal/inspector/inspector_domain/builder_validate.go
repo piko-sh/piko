@@ -438,8 +438,7 @@ func validateCompositePart(part *inspector_dto.CompositePart, fieldName, ownerPa
 }
 
 // validateNestedCompositeParts checks the nested parts within a composite part.
-// This function is separate to reduce control flow nesting in
-// validateCompositePart.
+// Kept separate to reduce control flow nesting in validateCompositePart.
 //
 // Takes part (*CompositePart) which is the composite part to check.
 // Takes fieldName (string) which is the name of the field being checked.

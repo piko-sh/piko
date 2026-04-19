@@ -92,11 +92,10 @@ type FileResolver = config_domain.FileResolver
 // RegisterFlags registers a config struct's flags with the global flag
 // coordinator.
 //
-// In most cases, you do not need to call this function manually. Flag
-// registration happens automatically when you call Load with a FlagPrefix.
-// This function is only needed in advanced scenarios where you need to
-// register flags before calling Load, such as when implementing custom flag
-// parsing logic.
+// In most cases, manual registration is unnecessary. Flag registration happens
+// automatically when you call Load with a FlagPrefix. Manual registration is
+// only needed in advanced scenarios where you need to register flags before
+// calling Load, such as when implementing custom flag parsing logic.
 //
 // The prefix is prepended to all flag names. For example, if prefix is "app"
 // and a field has `flag:"dbUrl"`, the resulting flag will be "--app.dbUrl".

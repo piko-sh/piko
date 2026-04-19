@@ -20,6 +20,7 @@ package collection_domain
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"time"
 
@@ -91,14 +92,30 @@ var (
 )
 
 func init() {
-	c, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, HybridCacheValue]{
-		Namespace:   "hybrid-collections-startup",
-		MaximumSize: defaultHybridCacheMaxEntries,
-	})
+	c, err := newDefaultHybridCache("hybrid-collections-startup")
 	if err != nil {
 		panic("failed to initialise hybrid cache: " + err.Error())
 	}
 	hybridCache = c
+}
+
+// newDefaultHybridCache builds a fresh hybrid cache instance using the
+// otter provider factory.
+//
+// Takes namespace (string) which identifies the cache instance for telemetry.
+//
+// Returns cache_domain.Cache[string, HybridCacheValue] which is the
+// constructed cache.
+// Returns error which wraps any factory failure.
+func newDefaultHybridCache(namespace string) (cache_domain.Cache[string, HybridCacheValue], error) {
+	c, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, HybridCacheValue]{
+		Namespace:   namespace,
+		MaximumSize: defaultHybridCacheMaxEntries,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating otter hybrid cache for %q: %w", namespace, err)
+	}
+	return c, nil
 }
 
 // InitHybridCache replaces the startup hybrid cache with a fully configured
@@ -400,19 +417,34 @@ func ListHybridCollections() []string {
 // ResetHybridRegistry clears the hybrid registry for test isolation by closing
 // the current cache and creating a fresh one.
 //
-// Panics if the replacement cache cannot be initialised.
+// On failure the previous cache instance is retained and the error is logged
+// but not surfaced; callers that need to react to the failure should use
+// TryResetHybridRegistry.
 func ResetHybridRegistry() {
-	ctx := context.Background()
-	_ = hybridCache.Close(ctx)
-
-	c, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, HybridCacheValue]{
-		Namespace:   "hybrid-collections-test",
-		MaximumSize: defaultHybridCacheMaxEntries,
-	})
-	if err != nil {
-		panic("failed to reset hybrid cache: " + err.Error())
+	if err := TryResetHybridRegistry(); err != nil {
+		_, l := logger_domain.From(context.Background(), log)
+		l.Error("Failed to reset hybrid cache", logger_domain.Error(err))
 	}
+}
+
+// TryResetHybridRegistry clears the hybrid registry for test isolation by
+// closing the current cache and creating a fresh one. It is the error-aware
+// sibling of ResetHybridRegistry.
+//
+// Returns error which wraps the underlying provider failure when the
+// replacement cache cannot be created. The previous cache instance is
+// retained on failure.
+func TryResetHybridRegistry() error {
+	ctx := context.Background()
+
+	c, err := newDefaultHybridCache("hybrid-collections-test")
+	if err != nil {
+		return fmt.Errorf("resetting hybrid cache: %w", err)
+	}
+
+	_ = hybridCache.Close(ctx)
 	hybridCache = c
+	return nil
 }
 
 // withHybridRuntimeRegistry sets a custom runtime provider registry.

@@ -190,7 +190,7 @@ func joinLocalePath(locale, href string) string {
 // an <a> tag, without mutating the AST. This implements the "direct-to-writer"
 // pattern for zero-copy rendering.
 //
-// This function handles the complete rendering of a <piko:a> element,
+// Handles the complete rendering of a <piko:a> element,
 // including:
 //   - Writing the <a> opening tag with transformed attributes
 //   - Applying i18n locale transformations to href

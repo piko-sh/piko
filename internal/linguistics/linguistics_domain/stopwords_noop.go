@@ -34,9 +34,8 @@ func NewNoOpStopWordsProvider() *NoOpStopWordsProvider {
 	return &NoOpStopWordsProvider{}
 }
 
-// GetStopWords returns an empty map for any language.
-// This method satisfies the StopWordsProviderPort interface without providing
-// any actual stop words.
+// GetStopWords returns an empty map for any language. Satisfies the
+// StopWordsProviderPort interface without providing any actual stop words.
 //
 // Returns map[string]bool which is always an empty map.
 func (*NoOpStopWordsProvider) GetStopWords(_ string) map[string]bool {

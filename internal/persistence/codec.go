@@ -19,10 +19,9 @@
 package persistence
 
 import (
-	"encoding/json"
 	"fmt"
 
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/wal/wal_domain"
@@ -72,7 +71,7 @@ type ArtefactMetaCodec struct{}
 // Returns []byte which is the JSON-encoded artefact.
 // Returns error when marshalling fails.
 func (ArtefactMetaCodec) EncodeValue(v *registry_dto.ArtefactMeta) ([]byte, error) {
-	return pikojson.Marshal(v)
+	return json.Marshal(v)
 }
 
 // DecodeValue deserialises JSON bytes to an ArtefactMeta.
@@ -83,7 +82,7 @@ func (ArtefactMetaCodec) EncodeValue(v *registry_dto.ArtefactMeta) ([]byte, erro
 // Returns error when unmarshalling fails.
 func (ArtefactMetaCodec) DecodeValue(data []byte) (*registry_dto.ArtefactMeta, error) {
 	var v registry_dto.ArtefactMeta
-	if err := pikojson.Unmarshal(data, &v); err != nil {
+	if err := json.Unmarshal(data, &v); err != nil {
 		return nil, fmt.Errorf("decoding artefact meta: %w", err)
 	}
 	return &v, nil

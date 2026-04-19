@@ -152,7 +152,7 @@ func MustBase58StringToUUID(s string) uuid.UUID {
 func init() {
 	enc, err := NewEncoding(URLBase64Alphabet)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to initialise Base64URLEncoding: %v", err))
+		panic(fmt.Sprintf("failed to initialise Base64URLEncoding from compile-time alphabet: %v", err))
 	}
 	Base64URLEncoding = enc
 }

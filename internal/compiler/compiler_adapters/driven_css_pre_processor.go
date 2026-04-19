@@ -40,8 +40,8 @@ type cssPreProcessor struct {
 	// fsReader reads imported CSS files from the filesystem.
 	fsReader cssinliner.FSReaderPort
 
-	// moduleName is the Go module name (e.g. "github.com/org/repo") used to
-	// convert module-qualified source IDs to filesystem paths.
+	// moduleName is the Go module name (for example a GitHub-hosted module
+	// path) used to convert module-qualified source IDs to filesystem paths.
 	moduleName string
 
 	// baseDir is the absolute path to the project root (the directory
@@ -81,8 +81,8 @@ func NewCSSPreProcessor(
 // InlineImports resolves @import statements in the given CSS content by
 // reading the imported files and merging them into a single CSS string.
 //
-// The sourcePath may be a module-qualified path (e.g.
-// "github.com/org/repo/components/foo.pkc") which is converted to a
+// The sourcePath may be a module-qualified path (for example a GitHub-hosted
+// module path with a "/components/foo.pkc" suffix) which is converted to a
 // filesystem path before CSS resolution.
 //
 // Takes cssContent (string) which is the raw CSS with potential @import rules.

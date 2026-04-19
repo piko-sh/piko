@@ -27,9 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/captcha/captcha_provider_recaptcha_v3/scripts"
 )
 
@@ -207,11 +207,9 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 //
 // Returns *captcha_dto.VerifyResponse which contains the normalised result.
 func buildVerifyResponse(result recaptchaVerifyResult) *captcha_dto.VerifyResponse {
-	score := normaliseScore(result.Success, result.Score)
-
 	response := &captcha_dto.VerifyResponse{
 		Success:    result.Success,
-		Score:      &score,
+		Score:      new(normaliseScore(result.Success, result.Score)),
 		Action:     result.Action,
 		ErrorCodes: result.ErrorCodes,
 		Hostname:   result.Hostname,

@@ -85,7 +85,7 @@ type DumpOptions struct {
 // DumpTypeData generates a string representation of the built TypeData
 // artefact.
 //
-// This method should only be called after a successful Build() operation.
+// Should only be called after a successful Build() operation.
 // It provides multiple formats and options for debugging and testing.
 //
 // Takes opts (DumpOptions) which specifies the output format and filtering

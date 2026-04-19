@@ -178,17 +178,15 @@ func (d *DAL) Close() error {
 
 // RunAtomic executes fn within a transaction.
 //
-// For in-memory storage, this acquires a write lock and
-// provides a transaction-scoped TaskStore that delegates to
-// locked method variants to avoid mutex re-entrancy
-// deadlocks. The task cache is wrapped in a journal-based
-// transaction for rollback, and non-cache state (recovery
+// For in-memory storage, RunAtomic acquires a write lock and provides a
+// transaction-scoped TaskStore that delegates to locked method variants to
+// avoid mutex re-entrancy deadlocks. The task cache is wrapped in a
+// journal-based transaction for rollback, and non-cache state (recovery
 // leases, receipts) is snapshotted at transaction start.
 //
-// If fn returns an error or panics, all mutations are
-// rolled back. A maximum transaction timeout is applied via
-// context.WithTimeoutCause to prevent unbounded lock
-// holding.
+// If fn returns an error or panics, all mutations are rolled back. A
+// maximum transaction timeout is applied via context.WithTimeoutCause to
+// prevent unbounded lock holding.
 //
 // Takes fn (func) which receives a transactional TaskStore.
 //
@@ -198,7 +196,13 @@ func (d *DAL) Close() error {
 // Panics if fn panics. The transaction is rolled back before
 // the panic is re-raised.
 //
-// Safe for concurrent use.
+// Concurrency: holds the global write lock for the entire duration of fn,
+// so fn must complete within maxTransactionTimeout (currently 30s).
+// Long-running or blocking operations inside fn will starve all readers
+// and writers. Callers must keep fn short, do no I/O that can stall
+// (e.g. cross-network calls), and rely on the supplied ctx for
+// cancellation. Pre-, mid-, and post-commit ctx.Err() checks abort early
+// when the deadline trips. Safe for concurrent use.
 func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore orchestrator_domain.TaskStore) error) error {
 	ctx, cancel := context.WithTimeoutCause(ctx, maxTransactionTimeout,
 		fmt.Errorf("transaction exceeded maximum duration of %s", maxTransactionTimeout))
@@ -216,7 +220,11 @@ func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transa
 	rollbackCtx := context.WithoutCancel(ctx)
 
 	rollback := func() {
-		_ = txCache.Rollback(rollbackCtx)
+		if rollbackErr := txCache.Rollback(rollbackCtx); rollbackErr != nil {
+			_, l := logger_domain.From(rollbackCtx, log)
+			l.Warn("transaction rollback failed",
+				logger_domain.Error(rollbackErr))
+		}
 		d.tasks = realCache
 		d.restoreFromSnapshot(snap)
 	}
@@ -277,7 +285,7 @@ func (d *DAL) CreateTasks(ctx context.Context, tasks []*orchestrator_domain.Task
 //
 // Returns error when the update fails.
 //
-// Safe for concurrent use. The method holds a mutex lock while updating.
+// Safe for concurrent use; takes a mutex lock while updating.
 func (d *DAL) UpdateTask(ctx context.Context, task *orchestrator_domain.Task) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -365,7 +373,7 @@ func (d *DAL) CreateTaskWithDedup(ctx context.Context, task *orchestrator_domain
 // Returns int which is the count of tasks recovered.
 // Returns error when the recovery operation fails.
 //
-// Safe for concurrent use. The method holds the DAL mutex for its duration.
+// Safe for concurrent use; takes the DAL mutex for the call duration.
 func (d *DAL) RecoverStaleTasks(ctx context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -521,7 +529,7 @@ func (d *DAL) GetPendingReceiptsByWorkflow(_ context.Context, workflowID string)
 // Returns int which is the count of receipts deleted.
 // Returns error when the cleanup fails.
 //
-// Safe for concurrent use. The method holds a mutex lock for its duration.
+// Safe for concurrent use; takes a mutex lock for the call duration.
 func (d *DAL) CleanupOldResolvedReceipts(ctx context.Context, olderThan time.Time) (int, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -589,31 +597,25 @@ func (d *DAL) ListTaskSummary(_ context.Context) ([]orchestrator_domain.TaskSumm
 // for display.
 // Returns error when the query fails.
 //
-// Safe for concurrent use; holds a read lock while accessing task data.
+// Safe for concurrent use. Snapshots the task slice under a read lock,
+// releases the lock, then sorts outside it so concurrent readers are not
+// blocked by the O(n log n) sort.
 func (d *DAL) ListRecentTasks(_ context.Context, limit int32) ([]orchestrator_domain.TaskListItem, error) {
 	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	type sortableTask struct {
-		task *orchestrator_domain.Task
-	}
-	items := make([]sortableTask, 0, d.tasks.EstimatedSize())
+	tasks := make([]*orchestrator_domain.Task, 0, d.tasks.EstimatedSize())
 	for _, task := range d.tasks.All() {
-		items = append(items, sortableTask{task: task})
+		tasks = append(tasks, task)
 	}
+	d.mu.RUnlock()
 
-	for i := range len(items) - 1 {
-		for j := i + 1; j < len(items); j++ {
-			if items[j].task.UpdatedAt.After(items[i].task.UpdatedAt) {
-				items[i], items[j] = items[j], items[i]
-			}
-		}
-	}
+	slices.SortFunc(tasks, func(a, b *orchestrator_domain.Task) int {
+		return cmp.Compare(b.UpdatedAt.UnixNano(), a.UpdatedAt.UnixNano())
+	})
 
-	count := min(int(limit), len(items))
+	count := min(int(limit), len(tasks))
 	results := make([]orchestrator_domain.TaskListItem, count)
 	for i := range count {
-		task := items[i].task
+		task := tasks[i]
 		var lastError *string
 		if task.LastError != "" {
 			lastError = &task.LastError
@@ -795,6 +797,10 @@ func (d *DAL) createTasksLocked(ctx context.Context, tasks []*orchestrator_domai
 // updateTaskLocked updates an existing task without
 // acquiring the lock. Caller must hold mu.
 //
+// Stores a shallow clone of the supplied task so caller mutations after
+// the call cannot race with concurrent reads of the stored value (callers
+// outside the dispatcher routinely mutate task.Status before re-persisting).
+//
 // Takes task (*orchestrator_domain.Task) which is the task
 // to update.
 //
@@ -804,11 +810,12 @@ func (d *DAL) updateTaskLocked(ctx context.Context, task *orchestrator_domain.Ta
 		d.unindexTaskLocked(old)
 	}
 
-	if err := d.tasks.Set(ctx, task.ID, task); err != nil {
+	stored := cloneTask(task)
+	if err := d.tasks.Set(ctx, task.ID, stored); err != nil {
 		return fmt.Errorf("setting task %q: %w", task.ID, err)
 	}
 
-	d.indexTaskLocked(task)
+	d.indexTaskLocked(stored)
 
 	return nil
 }
@@ -854,7 +861,7 @@ func (d *DAL) fetchAndMarkDueTasksLocked(ctx context.Context, priority orchestra
 		task.UpdatedAt = now
 		d.indexTaskLocked(task)
 
-		results = append(results, task)
+		results = append(results, cloneTask(task))
 	}
 
 	return results, nil
@@ -1321,13 +1328,27 @@ func (d *DAL) listFailedTasksLocked(_ context.Context) ([]*orchestrator_domain.T
 //
 // Returns error when the storage operation fails.
 func (d *DAL) createTaskLocked(ctx context.Context, task *orchestrator_domain.Task) error {
-	if err := d.tasks.Set(ctx, task.ID, task); err != nil {
+	stored := cloneTask(task)
+	if err := d.tasks.Set(ctx, task.ID, stored); err != nil {
 		return fmt.Errorf("setting task %q: %w", task.ID, err)
 	}
 
-	d.indexTaskLocked(task)
+	d.indexTaskLocked(stored)
 
 	return nil
+}
+
+// cloneTask returns a shallow copy of task.
+//
+// Takes task (*orchestrator_domain.Task) which is the source to clone.
+//
+// Returns *orchestrator_domain.Task which is a fresh shallow copy.
+func cloneTask(task *orchestrator_domain.Task) *orchestrator_domain.Task {
+	if task == nil {
+		return nil
+	}
+	clone := *task
+	return &clone
 }
 
 // indexTaskLocked updates indexes for a task. Caller must hold mu.

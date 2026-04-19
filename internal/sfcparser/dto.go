@@ -162,9 +162,11 @@ type ParseResult struct {
 // since it compiles to JavaScript.
 //
 // Returns bool which is true for:
-//   - type="application/javascript", "text/javascript", "module", or
+//   - JavaScript or TypeScript MIME types in the type attribute, such as
+//     "application/javascript", "text/javascript", "module", or
 //     "application/typescript"
-//   - lang="js", "javascript", "ts", or "typescript"
+//   - JavaScript or TypeScript language tags in lang, such as "js", "javascript",
+//     "ts", or "typescript"
 //   - No type or lang attribute (defaults to JavaScript)
 func (s *Script) IsJavaScript() bool {
 	if lang, ok := s.Attributes[attributeLang]; ok && lang != "" {
@@ -252,8 +254,8 @@ func (pr *ParseResult) GoScript() (*Script, bool) {
 // lang or type attributes.
 //
 // Returns true if:
-//   - lang="ts" or "typescript"
-//   - type="application/typescript"
+//   - the lang attribute uses a TypeScript tag such as "ts" or "typescript"
+//   - the type attribute uses the TypeScript MIME type "application/typescript"
 func (s *Script) IsTypeScript() bool {
 	if lang, ok := s.Attributes[attributeLang]; ok && (lang == "ts" || lang == "typescript") {
 		return true
@@ -271,23 +273,24 @@ func (s *Script) IsClientScript() bool {
 	return s.IsJavaScript() || s.IsTypeScript()
 }
 
-// HasRecognizedScriptType checks if the script block has a recognised language
+// HasRecognisedScriptType checks if the script block has a recognised language
 // or type attribute.
 //
-// This is used to warn about script blocks with unrecognised, invalid, or
-// missing attributes. Script blocks should explicitly declare their language
-// to avoid ambiguity.
+// Used to warn about script blocks with unrecognised, invalid, or missing
+// attributes. Script blocks should explicitly declare their language to avoid
+// ambiguity.
 //
 // Valid combinations are:
 //   - Go: type="application/x-go", type="application/go", lang="go",
 //     lang="golang"
-//   - JavaScript: type="application/javascript", type="text/javascript",
-//     type="module", lang="js", lang="javascript"
-//   - TypeScript: lang="ts", lang="typescript", type="application/typescript"
+//   - JavaScript MIME or lang values such as type="application/javascript",
+//     type="text/javascript", type="module", lang="js", or lang="javascript"
+//   - TypeScript MIME or lang values such as lang="ts", lang="typescript", or
+//     type="application/typescript"
 //
 // Returns bool which is true if the script type is explicitly and validly
 // declared.
-func (s *Script) HasRecognizedScriptType() bool {
+func (s *Script) HasRecognisedScriptType() bool {
 	if s.IsGo() || s.IsTypeScript() {
 		return true
 	}

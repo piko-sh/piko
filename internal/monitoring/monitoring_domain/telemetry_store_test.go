@@ -19,6 +19,7 @@
 package monitoring_domain
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -743,4 +744,125 @@ func TestTelemetryStore_ConvertSpanToDomain_AllFields(t *testing.T) {
 	assert.Equal(t, (2 * time.Second).Nanoseconds(), result.DurationNs)
 	assert.Equal(t, "200", result.Attributes["http.status_code"])
 	assert.Empty(t, result.Events)
+}
+
+func TestRecordMetric_DeterministicKeyForSameAttributes(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	store := NewTelemetryStore(WithStoreClock(mockClock))
+
+	attrs := map[string]string{
+		"alpha":   "one",
+		"beta":    "two",
+		"gamma":   "three",
+		"delta":   "four",
+		"epsilon": "five",
+	}
+
+	for range 1000 {
+		store.RecordMetric("http.requests", "HTTP requests", "count", "counter", 1.0, attrs)
+	}
+
+	store.metricsMutex.RLock()
+	storedCount := len(store.metrics)
+	store.metricsMutex.RUnlock()
+
+	assert.Equal(t, 1, storedCount, "identical attributes must collapse to a single metric entry")
+
+	metrics := store.GetMetrics()
+	require.Len(t, metrics, 1)
+	assert.Len(t, metrics[0].DataPoints, 1000, "each call should append one data point to the single entry")
+}
+
+func TestRecordMetric_EnforcesMaxMetricsCap(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	store := NewTelemetryStore(
+		WithStoreClock(mockClock),
+		WithMaxMetrics(2),
+	)
+
+	store.RecordMetric("first", "", "", "counter", 1.0, nil)
+	store.RecordMetric("second", "", "", "counter", 2.0, nil)
+	store.RecordMetric("third", "", "", "counter", 3.0, nil)
+
+	metrics := store.GetMetrics()
+	require.Len(t, metrics, 2, "third metric should be dropped because cap is 2")
+
+	names := make(map[string]float64)
+	for _, m := range metrics {
+		require.Len(t, m.DataPoints, 1)
+		names[m.Name] = m.DataPoints[0].Value
+	}
+
+	assert.Contains(t, names, "first", "first metric must survive")
+	assert.Contains(t, names, "second", "second metric must survive")
+	assert.NotContains(t, names, "third", "third metric must be dropped, not evict an existing entry")
+	assert.InDelta(t, 1.0, names["first"], 0.0001)
+	assert.InDelta(t, 2.0, names["second"], 0.0001)
+}
+
+func TestRecordMetric_CapAdmitsExistingEntryDataPoints(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	store := NewTelemetryStore(
+		WithStoreClock(mockClock),
+		WithMaxMetrics(1),
+	)
+
+	store.RecordMetric("seeded", "", "", "gauge", 1.0, nil)
+	store.RecordMetric("rejected", "", "", "gauge", 99.0, nil)
+	store.RecordMetric("seeded", "", "", "gauge", 2.0, nil)
+	store.RecordMetric("seeded", "", "", "gauge", 3.0, nil)
+
+	metrics := store.GetMetrics()
+	require.Len(t, metrics, 1)
+	assert.Equal(t, "seeded", metrics[0].Name)
+	assert.Len(t, metrics[0].DataPoints, 3, "existing entry must keep accepting data points after cap hit")
+}
+
+func TestAttributesToKey_OrderIndependent(t *testing.T) {
+	t.Parallel()
+
+	first := map[string]string{}
+	first["zeta"] = "z"
+	first["alpha"] = "a"
+	first["mu"] = "m"
+	first["kappa"] = "k"
+
+	second := map[string]string{}
+	second["alpha"] = "a"
+	second["mu"] = "m"
+	second["kappa"] = "k"
+	second["zeta"] = "z"
+
+	assert.Equal(t, attributesToKey(first), attributesToKey(second),
+		"different insertion orders for the same key/value pairs must yield identical keys")
+
+	keyFirst := attributesToKey(first)
+	for range 50 {
+		assert.Equal(t, keyFirst, attributesToKey(first),
+			"repeated calls on the same map must be deterministic")
+	}
+}
+
+func TestRecordMetric_NoCapWhenZero(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	store := NewTelemetryStore(
+		WithStoreClock(mockClock),
+		WithMaxMetrics(0),
+	)
+
+	const distinctMetrics = 250
+	for index := range distinctMetrics {
+		store.RecordMetric("metric.unbounded."+strconv.Itoa(index), "", "", "counter", float64(index), nil)
+	}
+
+	metrics := store.GetMetrics()
+	assert.Len(t, metrics, distinctMetrics, "MaxMetrics of 0 should disable the cap")
 }

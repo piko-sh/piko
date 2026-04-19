@@ -19,6 +19,9 @@
 package encoder_gob
 
 import (
+	"bytes"
+	"encoding/gob"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -272,5 +275,99 @@ func TestGobEncoder_AnyEncoder_HandlesType(t *testing.T) {
 	expected := reflect.TypeFor[testPerson]()
 	if anyEnc.HandlesType() != expected {
 		t.Errorf("got %v, want %v", anyEnc.HandlesType(), expected)
+	}
+}
+
+func encodeForTest[T any](t *testing.T, value T) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(value); err != nil {
+		t.Fatalf("gob encode failed: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func TestGobEncoder_Decode_RejectsOversizeInput(t *testing.T) {
+	original := MaxGobInputBytes()
+	t.Cleanup(func() { SetMaxGobInputBytes(original) })
+
+	enc := New[testPerson]()
+	data := encodeForTest(t, testPerson{Name: "Eve", Age: 41})
+
+	SetMaxGobInputBytes(int64(len(data)) - 1)
+
+	var result testPerson
+	err := enc.Unmarshal(data, &result)
+	if err == nil {
+		t.Fatal("expected error for oversize input, got nil")
+	}
+	if !errors.Is(err, ErrGobInputTooLarge) {
+		t.Errorf("expected ErrGobInputTooLarge, got %v", err)
+	}
+}
+
+func TestGobEncoder_Decode_AcceptsAtLimit(t *testing.T) {
+	original := MaxGobInputBytes()
+	t.Cleanup(func() { SetMaxGobInputBytes(original) })
+
+	enc := New[testPerson]()
+	expected := testPerson{Name: "Frank", Age: 52}
+	data := encodeForTest(t, expected)
+
+	SetMaxGobInputBytes(int64(len(data)))
+
+	var result testPerson
+	if err := enc.Unmarshal(data, &result); err != nil {
+		t.Fatalf("Unmarshal at limit failed: %v", err)
+	}
+	if result != expected {
+		t.Errorf("got %+v, want %+v", result, expected)
+	}
+}
+
+func TestSetMaxGobInputBytes_AppliesGlobally(t *testing.T) {
+	original := MaxGobInputBytes()
+	t.Cleanup(func() { SetMaxGobInputBytes(original) })
+
+	enc := New[testPerson]()
+	data := encodeForTest(t, testPerson{Name: "Grace", Age: 34})
+
+	SetMaxGobInputBytes(1)
+
+	var result testPerson
+	err := enc.Unmarshal(data, &result)
+	if err == nil || !errors.Is(err, ErrGobInputTooLarge) {
+		t.Fatalf("expected ErrGobInputTooLarge after tightening cap, got %v", err)
+	}
+
+	SetMaxGobInputBytes(int64(len(data)) * 2)
+
+	if err := enc.Unmarshal(data, &result); err != nil {
+		t.Fatalf("Unmarshal failed after relaxing cap: %v", err)
+	}
+}
+
+func TestSetMaxGobInputBytes_NegativeValueDisablesCap(t *testing.T) {
+	original := MaxGobInputBytes()
+	t.Cleanup(func() { SetMaxGobInputBytes(original) })
+
+	SetMaxGobInputBytes(-100)
+
+	if got := MaxGobInputBytes(); got != 0 {
+		t.Errorf("expected negative input to clamp to 0 (disabled), got %d", got)
+	}
+
+	enc := New[testPerson]()
+	data := encodeForTest(t, testPerson{Name: "Helen", Age: 27})
+
+	var result testPerson
+	if err := enc.Unmarshal(data, &result); err != nil {
+		t.Fatalf("Unmarshal with disabled cap failed: %v", err)
+	}
+}
+
+func TestMaxGobInputBytes_DefaultIsConfigured(t *testing.T) {
+	if got := MaxGobInputBytes(); got != defaultMaxGobInputBytes {
+		t.Errorf("expected default %d, got %d", defaultMaxGobInputBytes, got)
 	}
 }

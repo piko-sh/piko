@@ -34,7 +34,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
 )
@@ -126,7 +125,7 @@ func TestFullConfiguration_InitialisationAndOutput(t *testing.T) {
 	logFilePath := filepath.Join(tempDir, "app.log")
 	loggerConfig.Outputs[1].File.Path = logFilePath
 
-	slogLogger, shutdown, err := Initialise(context.Background(), loggerConfig, &config.ServerConfig{})
+	slogLogger, shutdown, err := Initialise(context.Background(), loggerConfig)
 	require.NoError(t, err)
 
 	InitDefaultFactory(slogLogger)

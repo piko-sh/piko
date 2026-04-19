@@ -933,9 +933,9 @@ func subtreeDependsOnLoopVars(node *ast_domain.TemplateNode, forExpr *ast_domain
 // subtreeContainsForLoops checks if a node or any of its children contain a
 // p-for directive.
 //
-// This is used to stop hoisting of nodes that contain loops inside them, such
-// as from expanded partials. Hoisting such nodes would cause problems with
-// dynamic key expressions.
+// Used to stop hoisting of nodes that contain loops inside them, such as from
+// expanded partials. Hoisting such nodes would cause problems with dynamic key
+// expressions.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to check.
 //

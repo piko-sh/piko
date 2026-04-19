@@ -19,10 +19,8 @@
 // Package metrics_exporter_prometheus implements the metrics
 // exporter interface using Prometheus.
 //
-// This package bridges OpenTelemetry metrics to the Prometheus
-// exposition format. It creates a dedicated Prometheus registry
-// and exposes an HTTP handler suitable for scraping. Use [New]
-// for explicit error handling, or [MustNew] when a failure to
-// create the exporter should panic. All methods are safe for
-// concurrent use.
+// Bridges OpenTelemetry metrics to the Prometheus exposition format, creating
+// a dedicated Prometheus registry and exposing an HTTP handler suitable for
+// scraping. Use [New] for explicit error handling, or [MustNew] when a failure
+// to create the exporter should panic. All methods are safe for concurrent use.
 package metrics_exporter_prometheus

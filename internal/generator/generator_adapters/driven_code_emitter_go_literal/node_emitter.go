@@ -380,9 +380,8 @@ func (ne *nodeEmitter) emitPartialInfoAttributes(tempVarIdent *goast.Ident, node
 // computed at render time by calling pikoruntime.BuildPartialPropsQuery with
 // the resolved prop values converted to strings.
 //
-// This method runs after both the static and dynamic attribute paths so that
-// the dynamic partial_props value is always emitted regardless of which path
-// the node took.
+// Runs after both the static and dynamic attribute paths so that the dynamic
+// partial_props value is always emitted regardless of which path the node took.
 //
 // Takes tempVarIdent (*goast.Ident) which is the temporary variable holding
 // the node.

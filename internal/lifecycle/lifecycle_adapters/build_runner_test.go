@@ -37,13 +37,13 @@ func TestNewBuildService(t *testing.T) {
 	t.Run("creates build service with all fields initialised", func(t *testing.T) {
 		t.Parallel()
 
-		configProvider := &config.Provider{}
+		websiteConfig := &config.WebsiteConfig{}
 		pathsConfig := lifecycle_domain.LifecyclePathsConfig{
 			BaseDir: "/project",
 		}
 
 		service := NewBuildService(
-			configProvider,
+			websiteConfig,
 			pathsConfig,
 			nil,
 			nil,
@@ -59,17 +59,17 @@ func TestNewBuildService(t *testing.T) {
 
 		bs, ok := service.(*buildService)
 		require.True(t, ok, "Expected *buildService type")
-		assert.Equal(t, configProvider, bs.configProvider)
+		assert.Equal(t, websiteConfig, bs.websiteConfig)
 		assert.Equal(t, "/project", bs.pathsConfig.BaseDir)
 	})
 
 	t.Run("returns BuilderAdapter interface", func(t *testing.T) {
 		t.Parallel()
 
-		configProvider := &config.Provider{}
+		websiteConfig := &config.WebsiteConfig{}
 
 		service := NewBuildService(
-			configProvider,
+			websiteConfig,
 			lifecycle_domain.LifecyclePathsConfig{},
 			nil,
 			nil,

@@ -84,7 +84,7 @@ func callOtterFactory(optionsAny any) (any, error) {
 // For custom domain types, there are two suggested approaches:
 //
 // 1. Use Cache[string, any] with type assertions in the adapter layer.
-// This is the current approach for ArtefactMeta. It allows resource sharing,
+// The current approach for ArtefactMeta. It allows resource sharing,
 // avoids circular dependencies, and is simple. The trade-off is that type
 // safety happens at runtime rather than compile time.
 //
@@ -98,7 +98,7 @@ func callOtterFactory(optionsAny any) (any, error) {
 //
 // Takes optionsAny (any) which is the cache options to check.
 //
-// Returns any which is always nil as this function only returns errors.
+// Returns any which is always nil; only the error result is meaningful.
 // Returns error when the type is not in the predefined type switch.
 func callFactoryViaReflection(optionsAny any) (any, error) {
 	optionsType := reflect.TypeOf(optionsAny)

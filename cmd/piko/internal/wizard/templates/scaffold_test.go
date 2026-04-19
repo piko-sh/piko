@@ -179,7 +179,7 @@ func TestCreateProject_HappyPath(t *testing.T) {
 	expectedFiles := []string{
 		"go.mod",
 		"README.md",
-		"config.json",
+		"internal/piko.go",
 		"cmd/main/main.go",
 		"cmd/generator/main.go",
 		"actions/greeting/print.go",

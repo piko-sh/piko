@@ -209,8 +209,8 @@ func NewTranslationWithLocale(key string, entry *Entry, pool *StrBufPool, locale
 	return t
 }
 
-// Release returns the Translation to the pool for reuse. Do not use the
-// Translation after calling this method.
+// Release returns the Translation to the pool for reuse. Do not use the Translation
+// after calling Release.
 func (t *Translation) Release() {
 	translationPool.Put(t)
 }

@@ -28,8 +28,8 @@ import (
 // Option configures the TUI by modifying its configuration and providers.
 type Option func(*tui_dto.Config, *tui_domain.Providers)
 
-// WithConfig applies settings from a Piko Config so that the TUI can be
-// configured via piko.yaml or environment variables.
+// WithConfig applies settings from a TUI Config (typically loaded via
+// LoadConfig from tui.yaml or PIKO_TUI_* environment variables).
 //
 // Takes tuiConfig (Config) which provides the Piko configuration settings.
 //

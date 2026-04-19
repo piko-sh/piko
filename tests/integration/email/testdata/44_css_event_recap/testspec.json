@@ -1,6 +1,6 @@
 {
   "title": "CSS Event Recap",
   "description": "Event recap email styled entirely with CSS classes",
-  "metadata": {"title": "TechTalks London — Event Recap"},
+  "metadata": {"title": "TechTalks London - Event Recap"},
   "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
 }

@@ -925,7 +925,7 @@ func (c *Container) createDatabaseService() {
 		inst, err := c.openDatabaseInstance(ctx, name, reg)
 		if err != nil {
 			c.querierDBErr = fmt.Errorf(errorFormatDatabaseLookup, name, err)
-			closeAllInstances(l, instances)
+			closeAllInstances(ctx, instances)
 			return
 		}
 		instances[name] = inst
@@ -1329,14 +1329,14 @@ func (*Container) openReplicas(
 // closeAllInstances closes every database instance (primary + replicas),
 // logging errors for primaries.
 //
-// Takes logger (logger_domain.Logger) which logs close errors.
 // Takes instances (map[string]*databaseInstance) which holds the instances to
 // close.
-func closeAllInstances(logger logger_domain.Logger, instances map[string]*databaseInstance) {
+func closeAllInstances(ctx context.Context, instances map[string]*databaseInstance) {
+	_, l := logger_domain.From(ctx, log)
 	for name, instance := range instances {
 		closeAllConnections(instance.replicas)
 		if closeError := instance.db.Close(); closeError != nil {
-			logger.Error("Failed to close database during rollback",
+			l.Error("Failed to close database during rollback",
 				logger_domain.String(logFieldDatabaseName, name),
 				logger_domain.Error(closeError))
 		}

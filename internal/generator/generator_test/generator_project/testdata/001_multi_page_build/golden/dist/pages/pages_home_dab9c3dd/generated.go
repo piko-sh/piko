@@ -5,6 +5,7 @@
 package pages_home_dab9c3dd
 
 import (
+	"cmp"
 	"fmt"
 	"html"
 	"sort"
@@ -22,6 +23,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 var _ = partials_header_fc5f4ceb.Render
 

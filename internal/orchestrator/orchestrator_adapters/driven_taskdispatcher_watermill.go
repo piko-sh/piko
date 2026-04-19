@@ -409,21 +409,33 @@ func (d *watermillTaskDispatcher) persistOrUpdateTask(ctx context.Context, task 
 	return nil
 }
 
-// subscribeHandlers sets up a single subscription per priority topic with a
-// worker pool. This provides competing-consumer semantics where each message is
-// processed by exactly one worker, rather than fanout where all workers receive
-// every message.
+// subscribeHandlers sets up a single subscription per priority topic.
+//
+// Each topic receives one Watermill subscription, processed sequentially by
+// the message processor goroutine. The Watermill GoChannel pub/sub broadcasts
+// every message to every subscriber on a topic, so creating N subscriptions
+// per topic causes the same message to be delivered N times and processed
+// N times concurrently. The compiler's Put-then-Rename pattern is not safe
+// under that fanout: after the first Rename, subsequent Renames fail with
+// ENOENT because the temporary blob has already been moved.
+//
+// The configured WatermillHighHandlers/Normal/Low values are recorded for
+// observability but only one handler runs per topic. True competing-consumer
+// concurrency requires either a pub/sub backend that supports it natively or
+// an in-process worker pool that drains a single subscription channel.
 //
 // Returns error when subscribing to any priority topic fails.
 func (d *watermillTaskDispatcher) subscribeHandlers() error {
 	priorities := []struct {
-		topic   string
-		workers int
+		topic             string
+		configuredWorkers int
 	}{
 		{orchestrator_domain.TopicTaskDispatchHigh, d.Config.WatermillHighHandlers},
 		{orchestrator_domain.TopicTaskDispatchNormal, d.Config.WatermillNormalHandlers},
 		{orchestrator_domain.TopicTaskDispatchLow, d.Config.WatermillLowHandlers},
 	}
+
+	_, sl := logger_domain.From(d.runCtx, log)
 
 	for _, p := range priorities {
 		handler := func(ctx context.Context, event orchestrator_domain.Event) error {
@@ -434,10 +446,9 @@ func (d *watermillTaskDispatcher) subscribeHandlers() error {
 			return fmt.Errorf("subscribing to %s: %w", p.topic, err)
 		}
 
-		_, sl := logger_domain.From(d.runCtx, log)
 		sl.Trace("Subscribed to topic with single handler",
 			logger_domain.String("topic", p.topic),
-			logger_domain.Int("configuredWorkers", p.workers))
+			logger_domain.Int("configuredWorkers", p.configuredWorkers))
 	}
 
 	return nil
@@ -450,11 +461,16 @@ func (d *watermillTaskDispatcher) subscribeHandlers() error {
 //
 // Returns error when processing fails, though malformed tasks are
 // acknowledged to prevent infinite redelivery.
+//
+// The deserialisation step is wrapped in a recover so a malformed payload
+// that triggers a panic during reflective parsing does not crash the
+// process; recovered panics are logged and the message is dropped.
 func (d *watermillTaskDispatcher) handleTaskEvent(ctx context.Context, event orchestrator_domain.Event, handlerID int) error {
 	ctx, l := logger_domain.From(ctx, log)
 	atomic.AddInt32(&d.activeHandlers, 1)
 	defer atomic.AddInt32(&d.activeHandlers, -1)
 	defer atomic.AddInt64(&d.pendingTasks, -1)
+	defer goroutine.RecoverPanic(ctx, "orchestrator.watermillTaskDispatcher.handleTaskEvent")
 
 	task, err := d.taskFromPayload(event.Payload)
 	if err != nil {
@@ -527,10 +543,25 @@ func (d *watermillTaskDispatcher) runRecoveryLoop() {
 	for {
 		select {
 		case <-ticker.C():
-			_, _ = d.RecoverStaleTasks(d.runCtx)
+			d.runRecoverySweep()
 		case <-d.runCtx.Done():
 			return
 		}
+	}
+}
+
+// runRecoverySweep performs one stale-task recovery pass and logs the
+// outcome. Errors are logged but not returned because the recovery loop
+// retries on the next tick.
+func (d *watermillTaskDispatcher) runRecoverySweep() {
+	recovered, err := d.RecoverStaleTasks(d.runCtx)
+	_, l := logger_domain.From(d.runCtx, log)
+	if err != nil {
+		l.Warn("stale task recovery failed", logger_domain.Error(err))
+		return
+	}
+	if recovered > 0 {
+		l.Info("recovered stale tasks", logger_domain.Int("count", recovered))
 	}
 }
 
@@ -735,16 +766,47 @@ func payloadMap(payload map[string]any, key string) map[string]any {
 
 // payloadTime extracts a time.Time value from a payload map.
 //
+// JSON-bus round-tripping converts time.Time to an RFC3339 string, so this
+// helper accepts both. RFC3339Nano is tried first to preserve sub-second
+// precision, then RFC3339 as a fallback. Other types and unparseable
+// strings yield zero time and a logged warning.
+//
 // Takes payload (map[string]any) which contains the data to search.
 // Takes key (string) which identifies the value to extract.
 //
-// Returns time.Time which is the extracted value, or zero time if the key is
-// missing or not a time.Time.
+// Returns time.Time which is the extracted value, or zero time if the key
+// is missing, an unsupported type, or an unparseable string.
 func payloadTime(payload map[string]any, key string) time.Time {
-	if v, ok := payload[key].(time.Time); ok {
-		return v
+	value, exists := payload[key]
+	if !exists || value == nil {
+		return time.Time{}
 	}
-	return time.Time{}
+
+	switch typed := value.(type) {
+	case time.Time:
+		return typed
+	case string:
+		if typed == "" {
+			return time.Time{}
+		}
+		if parsed, err := time.Parse(time.RFC3339Nano, typed); err == nil {
+			return parsed
+		}
+		if parsed, err := time.Parse(time.RFC3339, typed); err == nil {
+			return parsed
+		}
+		_, l := logger_domain.From(context.Background(), log)
+		l.Warn("payloadTime received unparseable RFC3339 string",
+			logger_domain.String("key", key),
+			logger_domain.String("value", typed))
+		return time.Time{}
+	default:
+		_, l := logger_domain.From(context.Background(), log)
+		l.Warn("payloadTime received unsupported type",
+			logger_domain.String("key", key),
+			logger_domain.String("type", fmt.Sprintf("%T", value)))
+		return time.Time{}
+	}
 }
 
 // parseTaskStatusField parses the status field from payload into task.

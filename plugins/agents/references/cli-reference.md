@@ -15,6 +15,7 @@ The wizard prompts for:
 1. Project name
 2. Destination (new folder or current directory)
 3. Go module path
+4. Optional features (checklist)
 
 ## Formatting
 
@@ -76,7 +77,7 @@ go run ./cmd/generator/main.go all
 air
 
 # Without live reloading
-go run ./cmd/main
+go run ./cmd/main/main.go
 ```
 
 Default address: `http://localhost:8080`

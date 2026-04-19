@@ -19,11 +19,10 @@
 // Package events_provider_nats provides a NATS JetStream-based event
 // provider for distributed messaging with persistence.
 //
-// This package implements the [events.Provider] interface using NATS
-// JetStream, giving Piko applications access to distributed pub/sub
-// messaging. It supports message persistence, at-least-once delivery,
-// durable subscriptions, and competing consumer patterns via queue
-// groups.
+// Implements the [events.Provider] interface using NATS JetStream, giving Piko
+// applications access to distributed pub/sub messaging. Supports message
+// persistence, at-least-once delivery, durable subscriptions, and competing
+// consumer patterns via queue groups.
 //
 // # Configuration
 //

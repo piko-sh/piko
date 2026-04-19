@@ -106,7 +106,9 @@ var serverMainTemplate = template.Must(template.New("main.go").Parse(`package ma
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"strconv"
 
@@ -180,7 +182,12 @@ func extractPdf() {
 	ownerPassword := os.Getenv("PIKO_ENCRYPT_OWNER_PASSWORD")
 	if userPassword != "" {
 		registry := pdf.NewTransformerRegistry()
-		if regErr := registry.Register(pdf.NewEncryptTransformer()); regErr != nil {
+		var encryptOptions []pdf.EncryptOption
+		if seed := os.Getenv("PIKO_ENCRYPT_TEST_SEED"); seed != "" {
+			seedSum := sha256.Sum256([]byte(seed))
+			encryptOptions = append(encryptOptions, pdf.WithEncryptRandomSource(rand.NewChaCha8(seedSum)))
+		}
+		if regErr := registry.Register(pdf.NewEncryptTransformer(encryptOptions...)); regErr != nil {
 			fmt.Fprintf(os.Stderr, "registering encrypt transformer: %v\n", regErr)
 			os.Exit(1)
 		}
@@ -475,6 +482,7 @@ func (h *pdfHarness) renderPdf() (*pdfRenderResult, error) {
 		command.Env = append(command.Env,
 			"PIKO_ENCRYPT_USER_PASSWORD="+h.spec.Encryption.UserPassword,
 			"PIKO_ENCRYPT_OWNER_PASSWORD="+h.spec.Encryption.OwnerPassword,
+			"PIKO_ENCRYPT_TEST_SEED=piko-deterministic-encryption-test-seed",
 		)
 	}
 

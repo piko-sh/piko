@@ -78,7 +78,7 @@ func TestGaugeMaxZeroRendersDash(t *testing.T) {
 		Max:      0,
 		ShowText: true,
 	})
-	if !strings.Contains(out, "—") {
+	if !strings.Contains(out, "-") {
 		t.Errorf("zero-max gauge should contain dash: %q", out)
 	}
 }

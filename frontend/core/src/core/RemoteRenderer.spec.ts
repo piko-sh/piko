@@ -17,7 +17,7 @@
 // strip others of their rights and dignity.
 
 import {describe, it, expect, beforeEach, afterEach, vi} from 'vitest';
-import {createRemoteRenderer, type RemoteRenderer} from './RemoteRenderer';
+import {createRemoteRenderer, getNodeKey, type RemoteRenderer} from './RemoteRenderer';
 import type {ModuleLoader} from '@/services/ModuleLoader';
 import type {SpriteSheetManager} from '@/services/SpriteSheetManager';
 import type {LinkHeaderParser} from '@/services/LinkHeaderParser';
@@ -143,6 +143,67 @@ describe('RemoteRenderer', () => {
             expect(remoteRenderer).toBeDefined();
             expect(typeof remoteRenderer.render).toBe('function');
             expect(typeof remoteRenderer.patchPartial).toBe('function');
+        });
+    });
+
+    describe('getNodeKey', () => {
+        it('returns null for non-element nodes', () => {
+            expect(getNodeKey(document.createTextNode('hi'))).toBe(null);
+            expect(getNodeKey(document.createComment('c'))).toBe(null);
+        });
+
+        it('returns null for elements with no identifying attribute', () => {
+            const el = document.createElement('div');
+            expect(getNodeKey(el)).toBe(null);
+        });
+
+        it('returns the p-key when present', () => {
+            const el = document.createElement('section');
+            el.setAttribute('p-key', 'r.0:1:1');
+            expect(getNodeKey(el)).toBe('r.0:1:1');
+        });
+
+        it('namespaces the key with partial_name when present', () => {
+            const examples = document.createElement('section');
+            examples.setAttribute('partial_name', 'examples/grid');
+            examples.setAttribute('p-key', 'r.0:1:1');
+
+            const integrations = document.createElement('section');
+            integrations.setAttribute('partial_name', 'integrations/grid');
+            integrations.setAttribute('p-key', 'r.0:1:1');
+
+            expect(getNodeKey(examples)).toBe('examples/grid@r.0:1:1');
+            expect(getNodeKey(integrations)).toBe('integrations/grid@r.0:1:1');
+            expect(getNodeKey(examples)).not.toBe(getNodeKey(integrations));
+        });
+
+        it('preserves the original key when the same partial_name is present on both sides', () => {
+            const a = document.createElement('section');
+            a.setAttribute('partial_name', 'integrations/grid');
+            a.setAttribute('p-key', 'r.0:1:1');
+
+            const b = document.createElement('section');
+            b.setAttribute('partial_name', 'integrations/grid');
+            b.setAttribute('p-key', 'r.0:1:1');
+
+            expect(getNodeKey(a)).toBe(getNodeKey(b));
+        });
+
+        it('falls back through data-stable-id, p-key, then id', () => {
+            const stable = document.createElement('div');
+            stable.dataset.stableId = 'stable';
+            stable.setAttribute('p-key', 'pk');
+            stable.id = 'id';
+            expect(getNodeKey(stable)).toBe('stable');
+
+            const pkOnly = document.createElement('div');
+            pkOnly.setAttribute('p-key', 'pk');
+            pkOnly.id = 'id';
+            expect(getNodeKey(pkOnly)).toBe('pk');
+
+            const idOnly = document.createElement('div');
+            idOnly.id = 'id';
+            expect(getNodeKey(idOnly)).toBe('id');
         });
     });
 

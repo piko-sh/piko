@@ -84,10 +84,10 @@ var (
 	}
 )
 
-// GenerateStdlibTypeData creates TypeData containing standard library and Piko
-// types using go/packages for loading and type-checking. This function is
-// called once at test suite startup for lite builder tests and is used by
-// the WASM stdlib FBS generator tool.
+// GenerateStdlibTypeData creates TypeData containing standard library and Piko types
+// using go/packages for loading and type-checking. The helper is called once at
+// test suite startup for lite builder tests and is used by the WASM stdlib FBS
+// generator tool.
 //
 // Returns *inspector_dto.TypeData which contains the type information for
 // standard library and Piko packages in DTO format.

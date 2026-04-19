@@ -28,7 +28,7 @@ var (
 	// log is a package-level logger instance specific to the go_literal emitter.
 	log = logger_domain.GetLogger("piko/internal/generator/generator_emitter/go_literal")
 
-	// Meter is the OpenTelemetry meter for this package, used to create metrics.
+	// Meter is the OpenTelemetry meter for the go_literal emitter, used to create metrics.
 	Meter = otel.Meter("piko/internal/generator/generator_emitter/go_literal")
 
 	// CodeEmissionCount counts the number of times EmitCode is called.
