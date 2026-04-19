@@ -5119,6 +5119,506 @@ func (x *CaptureProfileChunk) GetWarning() string {
 	return ""
 }
 
+type ListProfilesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListProfilesRequest) Reset() {
+	*x = ListProfilesRequest{}
+	mi := &file_monitoring_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListProfilesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListProfilesRequest) ProtoMessage() {}
+
+func (x *ListProfilesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListProfilesRequest.ProtoReflect.Descriptor instead.
+func (*ListProfilesRequest) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{82}
+}
+
+type ListProfilesResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Profiles      []*WatchdogProfileEntry `protobuf:"bytes,1,rep,name=profiles,proto3" json:"profiles,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListProfilesResponse) Reset() {
+	*x = ListProfilesResponse{}
+	mi := &file_monitoring_proto_msgTypes[83]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListProfilesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListProfilesResponse) ProtoMessage() {}
+
+func (x *ListProfilesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[83]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListProfilesResponse.ProtoReflect.Descriptor instead.
+func (*ListProfilesResponse) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{83}
+}
+
+func (x *ListProfilesResponse) GetProfiles() []*WatchdogProfileEntry {
+	if x != nil {
+		return x.Profiles
+	}
+	return nil
+}
+
+type WatchdogProfileEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Filename      string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
+	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	TimestampMs   int64                  `protobuf:"varint,3,opt,name=timestamp_ms,json=timestampMs,proto3" json:"timestamp_ms,omitempty"`
+	SizeBytes     int64                  `protobuf:"varint,4,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchdogProfileEntry) Reset() {
+	*x = WatchdogProfileEntry{}
+	mi := &file_monitoring_proto_msgTypes[84]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchdogProfileEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchdogProfileEntry) ProtoMessage() {}
+
+func (x *WatchdogProfileEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[84]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchdogProfileEntry.ProtoReflect.Descriptor instead.
+func (*WatchdogProfileEntry) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{84}
+}
+
+func (x *WatchdogProfileEntry) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *WatchdogProfileEntry) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *WatchdogProfileEntry) GetTimestampMs() int64 {
+	if x != nil {
+		return x.TimestampMs
+	}
+	return 0
+}
+
+func (x *WatchdogProfileEntry) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+type DownloadProfileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Filename      string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DownloadProfileRequest) Reset() {
+	*x = DownloadProfileRequest{}
+	mi := &file_monitoring_proto_msgTypes[85]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DownloadProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownloadProfileRequest) ProtoMessage() {}
+
+func (x *DownloadProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[85]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownloadProfileRequest.ProtoReflect.Descriptor instead.
+func (*DownloadProfileRequest) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{85}
+}
+
+func (x *DownloadProfileRequest) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+type DownloadProfileChunk struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	IsLast        bool                   `protobuf:"varint,2,opt,name=is_last,json=isLast,proto3" json:"is_last,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DownloadProfileChunk) Reset() {
+	*x = DownloadProfileChunk{}
+	mi := &file_monitoring_proto_msgTypes[86]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DownloadProfileChunk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownloadProfileChunk) ProtoMessage() {}
+
+func (x *DownloadProfileChunk) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[86]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownloadProfileChunk.ProtoReflect.Descriptor instead.
+func (*DownloadProfileChunk) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{86}
+}
+
+func (x *DownloadProfileChunk) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *DownloadProfileChunk) GetIsLast() bool {
+	if x != nil {
+		return x.IsLast
+	}
+	return false
+}
+
+type PruneProfilesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProfileType   string                 `protobuf:"bytes,1,opt,name=profile_type,json=profileType,proto3" json:"profile_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PruneProfilesRequest) Reset() {
+	*x = PruneProfilesRequest{}
+	mi := &file_monitoring_proto_msgTypes[87]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PruneProfilesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PruneProfilesRequest) ProtoMessage() {}
+
+func (x *PruneProfilesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[87]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PruneProfilesRequest.ProtoReflect.Descriptor instead.
+func (*PruneProfilesRequest) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{87}
+}
+
+func (x *PruneProfilesRequest) GetProfileType() string {
+	if x != nil {
+		return x.ProfileType
+	}
+	return ""
+}
+
+type PruneProfilesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeletedCount  int32                  `protobuf:"varint,1,opt,name=deleted_count,json=deletedCount,proto3" json:"deleted_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PruneProfilesResponse) Reset() {
+	*x = PruneProfilesResponse{}
+	mi := &file_monitoring_proto_msgTypes[88]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PruneProfilesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PruneProfilesResponse) ProtoMessage() {}
+
+func (x *PruneProfilesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[88]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PruneProfilesResponse.ProtoReflect.Descriptor instead.
+func (*PruneProfilesResponse) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{88}
+}
+
+func (x *PruneProfilesResponse) GetDeletedCount() int32 {
+	if x != nil {
+		return x.DeletedCount
+	}
+	return 0
+}
+
+type GetWatchdogStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWatchdogStatusRequest) Reset() {
+	*x = GetWatchdogStatusRequest{}
+	mi := &file_monitoring_proto_msgTypes[89]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWatchdogStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWatchdogStatusRequest) ProtoMessage() {}
+
+func (x *GetWatchdogStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[89]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWatchdogStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetWatchdogStatusRequest) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{89}
+}
+
+type GetWatchdogStatusResponse struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Enabled                bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Stopped                bool                   `protobuf:"varint,2,opt,name=stopped,proto3" json:"stopped,omitempty"`
+	ProfileDirectory       string                 `protobuf:"bytes,3,opt,name=profile_directory,json=profileDirectory,proto3" json:"profile_directory,omitempty"`
+	CheckIntervalMs        int64                  `protobuf:"varint,4,opt,name=check_interval_ms,json=checkIntervalMs,proto3" json:"check_interval_ms,omitempty"`
+	CooldownMs             int64                  `protobuf:"varint,5,opt,name=cooldown_ms,json=cooldownMs,proto3" json:"cooldown_ms,omitempty"`
+	WarmUpDurationMs       int64                  `protobuf:"varint,6,opt,name=warm_up_duration_ms,json=warmUpDurationMs,proto3" json:"warm_up_duration_ms,omitempty"`
+	StartedAtMs            int64                  `protobuf:"varint,7,opt,name=started_at_ms,json=startedAtMs,proto3" json:"started_at_ms,omitempty"`
+	HeapThresholdBytes     uint64                 `protobuf:"varint,8,opt,name=heap_threshold_bytes,json=heapThresholdBytes,proto3" json:"heap_threshold_bytes,omitempty"`
+	HeapHighWater          uint64                 `protobuf:"varint,9,opt,name=heap_high_water,json=heapHighWater,proto3" json:"heap_high_water,omitempty"`
+	GoroutineThreshold     int32                  `protobuf:"varint,10,opt,name=goroutine_threshold,json=goroutineThreshold,proto3" json:"goroutine_threshold,omitempty"`
+	GoroutineSafetyCeiling int32                  `protobuf:"varint,11,opt,name=goroutine_safety_ceiling,json=goroutineSafetyCeiling,proto3" json:"goroutine_safety_ceiling,omitempty"`
+	MaxProfilesPerType     int32                  `protobuf:"varint,12,opt,name=max_profiles_per_type,json=maxProfilesPerType,proto3" json:"max_profiles_per_type,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *GetWatchdogStatusResponse) Reset() {
+	*x = GetWatchdogStatusResponse{}
+	mi := &file_monitoring_proto_msgTypes[90]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWatchdogStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWatchdogStatusResponse) ProtoMessage() {}
+
+func (x *GetWatchdogStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[90]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWatchdogStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetWatchdogStatusResponse) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{90}
+}
+
+func (x *GetWatchdogStatusResponse) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *GetWatchdogStatusResponse) GetStopped() bool {
+	if x != nil {
+		return x.Stopped
+	}
+	return false
+}
+
+func (x *GetWatchdogStatusResponse) GetProfileDirectory() string {
+	if x != nil {
+		return x.ProfileDirectory
+	}
+	return ""
+}
+
+func (x *GetWatchdogStatusResponse) GetCheckIntervalMs() int64 {
+	if x != nil {
+		return x.CheckIntervalMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetCooldownMs() int64 {
+	if x != nil {
+		return x.CooldownMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetWarmUpDurationMs() int64 {
+	if x != nil {
+		return x.WarmUpDurationMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetStartedAtMs() int64 {
+	if x != nil {
+		return x.StartedAtMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetHeapThresholdBytes() uint64 {
+	if x != nil {
+		return x.HeapThresholdBytes
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetHeapHighWater() uint64 {
+	if x != nil {
+		return x.HeapHighWater
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetGoroutineThreshold() int32 {
+	if x != nil {
+		return x.GoroutineThreshold
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetGoroutineSafetyCeiling() int32 {
+	if x != nil {
+		return x.GoroutineSafetyCeiling
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetMaxProfilesPerType() int32 {
+	if x != nil {
+		return x.MaxProfilesPerType
+	}
+	return 0
+}
+
 var File_monitoring_proto protoreflect.FileDescriptor
 
 const file_monitoring_proto_rawDesc = "" +
@@ -5539,7 +6039,41 @@ const file_monitoring_proto_rawDesc = "" +
 	"\x13CaptureProfileChunk\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12\x17\n" +
 	"\ais_last\x18\x02 \x01(\bR\x06isLast\x12\x18\n" +
-	"\awarning\x18\x03 \x01(\tR\awarning2\xc4\x01\n" +
+	"\awarning\x18\x03 \x01(\tR\awarning\"\x15\n" +
+	"\x13ListProfilesRequest\"\\\n" +
+	"\x14ListProfilesResponse\x12D\n" +
+	"\bprofiles\x18\x01 \x03(\v2(.piko.monitoring.v1.WatchdogProfileEntryR\bprofiles\"\x88\x01\n" +
+	"\x14WatchdogProfileEntry\x12\x1a\n" +
+	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x12\n" +
+	"\x04type\x18\x02 \x01(\tR\x04type\x12!\n" +
+	"\ftimestamp_ms\x18\x03 \x01(\x03R\vtimestampMs\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x04 \x01(\x03R\tsizeBytes\"4\n" +
+	"\x16DownloadProfileRequest\x12\x1a\n" +
+	"\bfilename\x18\x01 \x01(\tR\bfilename\"C\n" +
+	"\x14DownloadProfileChunk\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\x12\x17\n" +
+	"\ais_last\x18\x02 \x01(\bR\x06isLast\"9\n" +
+	"\x14PruneProfilesRequest\x12!\n" +
+	"\fprofile_type\x18\x01 \x01(\tR\vprofileType\"<\n" +
+	"\x15PruneProfilesResponse\x12#\n" +
+	"\rdeleted_count\x18\x01 \x01(\x05R\fdeletedCount\"\x1a\n" +
+	"\x18GetWatchdogStatusRequest\"\x94\x04\n" +
+	"\x19GetWatchdogStatusResponse\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x18\n" +
+	"\astopped\x18\x02 \x01(\bR\astopped\x12+\n" +
+	"\x11profile_directory\x18\x03 \x01(\tR\x10profileDirectory\x12*\n" +
+	"\x11check_interval_ms\x18\x04 \x01(\x03R\x0fcheckIntervalMs\x12\x1f\n" +
+	"\vcooldown_ms\x18\x05 \x01(\x03R\n" +
+	"cooldownMs\x12-\n" +
+	"\x13warm_up_duration_ms\x18\x06 \x01(\x03R\x10warmUpDurationMs\x12\"\n" +
+	"\rstarted_at_ms\x18\a \x01(\x03R\vstartedAtMs\x120\n" +
+	"\x14heap_threshold_bytes\x18\b \x01(\x04R\x12heapThresholdBytes\x12&\n" +
+	"\x0fheap_high_water\x18\t \x01(\x04R\rheapHighWater\x12/\n" +
+	"\x13goroutine_threshold\x18\n" +
+	" \x01(\x05R\x12goroutineThreshold\x128\n" +
+	"\x18goroutine_safety_ceiling\x18\v \x01(\x05R\x16goroutineSafetyCeiling\x121\n" +
+	"\x15max_profiles_per_type\x18\f \x01(\x05R\x12maxProfilesPerType2\xc4\x01\n" +
 	"\rHealthService\x12X\n" +
 	"\tGetHealth\x12$.piko.monitoring.v1.GetHealthRequest\x1a%.piko.monitoring.v1.GetHealthResponse\x12Y\n" +
 	"\vWatchHealth\x12&.piko.monitoring.v1.WatchHealthRequest\x1a .piko.monitoring.v1.HealthUpdate0\x012\x83\x04\n" +
@@ -5578,7 +6112,12 @@ const file_monitoring_proto_rawDesc = "" +
 	"\x0fEnableProfiling\x12*.piko.monitoring.v1.EnableProfilingRequest\x1a+.piko.monitoring.v1.EnableProfilingResponse\x12m\n" +
 	"\x10DisableProfiling\x12+.piko.monitoring.v1.DisableProfilingRequest\x1a,.piko.monitoring.v1.DisableProfilingResponse\x12s\n" +
 	"\x12GetProfilingStatus\x12-.piko.monitoring.v1.GetProfilingStatusRequest\x1a..piko.monitoring.v1.GetProfilingStatusResponse\x12f\n" +
-	"\x0eCaptureProfile\x12).piko.monitoring.v1.CaptureProfileRequest\x1a'.piko.monitoring.v1.CaptureProfileChunk0\x01B?Z=piko.sh/piko/wdk/monitoring/monitoring_api/gen;monitoring_apib\x06proto3"
+	"\x0eCaptureProfile\x12).piko.monitoring.v1.CaptureProfileRequest\x1a'.piko.monitoring.v1.CaptureProfileChunk0\x012\xc0\x03\n" +
+	"\x18WatchdogInspectorService\x12a\n" +
+	"\fListProfiles\x12'.piko.monitoring.v1.ListProfilesRequest\x1a(.piko.monitoring.v1.ListProfilesResponse\x12i\n" +
+	"\x0fDownloadProfile\x12*.piko.monitoring.v1.DownloadProfileRequest\x1a(.piko.monitoring.v1.DownloadProfileChunk0\x01\x12d\n" +
+	"\rPruneProfiles\x12(.piko.monitoring.v1.PruneProfilesRequest\x1a).piko.monitoring.v1.PruneProfilesResponse\x12p\n" +
+	"\x11GetWatchdogStatus\x12,.piko.monitoring.v1.GetWatchdogStatusRequest\x1a-.piko.monitoring.v1.GetWatchdogStatusResponseB?Z=piko.sh/piko/wdk/monitoring/monitoring_api/gen;monitoring_apib\x06proto3"
 
 var (
 	file_monitoring_proto_rawDescOnce sync.Once
@@ -5592,7 +6131,7 @@ func file_monitoring_proto_rawDescGZIP() []byte {
 	return file_monitoring_proto_rawDescData
 }
 
-var file_monitoring_proto_msgTypes = make([]protoimpl.MessageInfo, 86)
+var file_monitoring_proto_msgTypes = make([]protoimpl.MessageInfo, 95)
 var file_monitoring_proto_goTypes = []any{
 	(*GetHealthRequest)(nil),             // 0: piko.monitoring.v1.GetHealthRequest
 	(*GetHealthResponse)(nil),            // 1: piko.monitoring.v1.GetHealthResponse
@@ -5676,10 +6215,19 @@ var file_monitoring_proto_goTypes = []any{
 	(*GetProfilingStatusResponse)(nil),   // 79: piko.monitoring.v1.GetProfilingStatusResponse
 	(*CaptureProfileRequest)(nil),        // 80: piko.monitoring.v1.CaptureProfileRequest
 	(*CaptureProfileChunk)(nil),          // 81: piko.monitoring.v1.CaptureProfileChunk
-	nil,                                  // 82: piko.monitoring.v1.MetricDataPoint.AttributesEntry
-	nil,                                  // 83: piko.monitoring.v1.Span.AttributesEntry
-	nil,                                  // 84: piko.monitoring.v1.SpanEvent.AttributesEntry
-	nil,                                  // 85: piko.monitoring.v1.ProviderRow.ValuesEntry
+	(*ListProfilesRequest)(nil),          // 82: piko.monitoring.v1.ListProfilesRequest
+	(*ListProfilesResponse)(nil),         // 83: piko.monitoring.v1.ListProfilesResponse
+	(*WatchdogProfileEntry)(nil),         // 84: piko.monitoring.v1.WatchdogProfileEntry
+	(*DownloadProfileRequest)(nil),       // 85: piko.monitoring.v1.DownloadProfileRequest
+	(*DownloadProfileChunk)(nil),         // 86: piko.monitoring.v1.DownloadProfileChunk
+	(*PruneProfilesRequest)(nil),         // 87: piko.monitoring.v1.PruneProfilesRequest
+	(*PruneProfilesResponse)(nil),        // 88: piko.monitoring.v1.PruneProfilesResponse
+	(*GetWatchdogStatusRequest)(nil),     // 89: piko.monitoring.v1.GetWatchdogStatusRequest
+	(*GetWatchdogStatusResponse)(nil),    // 90: piko.monitoring.v1.GetWatchdogStatusResponse
+	nil,                                  // 91: piko.monitoring.v1.MetricDataPoint.AttributesEntry
+	nil,                                  // 92: piko.monitoring.v1.Span.AttributesEntry
+	nil,                                  // 93: piko.monitoring.v1.SpanEvent.AttributesEntry
+	nil,                                  // 94: piko.monitoring.v1.ProviderRow.ValuesEntry
 }
 var file_monitoring_proto_depIdxs = []int32{
 	2,  // 0: piko.monitoring.v1.GetHealthResponse.liveness:type_name -> piko.monitoring.v1.HealthStatus
@@ -5689,11 +6237,11 @@ var file_monitoring_proto_depIdxs = []int32{
 	2,  // 4: piko.monitoring.v1.HealthUpdate.readiness:type_name -> piko.monitoring.v1.HealthStatus
 	7,  // 5: piko.monitoring.v1.GetMetricsResponse.metrics:type_name -> piko.monitoring.v1.Metric
 	8,  // 6: piko.monitoring.v1.Metric.data_points:type_name -> piko.monitoring.v1.MetricDataPoint
-	82, // 7: piko.monitoring.v1.MetricDataPoint.attributes:type_name -> piko.monitoring.v1.MetricDataPoint.AttributesEntry
+	91, // 7: piko.monitoring.v1.MetricDataPoint.attributes:type_name -> piko.monitoring.v1.MetricDataPoint.AttributesEntry
 	11, // 8: piko.monitoring.v1.GetTracesResponse.spans:type_name -> piko.monitoring.v1.Span
-	83, // 9: piko.monitoring.v1.Span.attributes:type_name -> piko.monitoring.v1.Span.AttributesEntry
+	92, // 9: piko.monitoring.v1.Span.attributes:type_name -> piko.monitoring.v1.Span.AttributesEntry
 	12, // 10: piko.monitoring.v1.Span.events:type_name -> piko.monitoring.v1.SpanEvent
-	84, // 11: piko.monitoring.v1.SpanEvent.attributes:type_name -> piko.monitoring.v1.SpanEvent.AttributesEntry
+	93, // 11: piko.monitoring.v1.SpanEvent.attributes:type_name -> piko.monitoring.v1.SpanEvent.AttributesEntry
 	16, // 12: piko.monitoring.v1.GetSystemStatsResponse.build:type_name -> piko.monitoring.v1.BuildInfo
 	17, // 13: piko.monitoring.v1.GetSystemStatsResponse.runtime:type_name -> piko.monitoring.v1.RuntimeInfo
 	18, // 14: piko.monitoring.v1.GetSystemStatsResponse.gc:type_name -> piko.monitoring.v1.GCInfo
@@ -5717,74 +6265,83 @@ var file_monitoring_proto_depIdxs = []int32{
 	54, // 32: piko.monitoring.v1.ListDLQEntriesResponse.entries:type_name -> piko.monitoring.v1.DLQEntry
 	65, // 33: piko.monitoring.v1.ListProvidersResponse.columns:type_name -> piko.monitoring.v1.ProviderColumn
 	66, // 34: piko.monitoring.v1.ListProvidersResponse.rows:type_name -> piko.monitoring.v1.ProviderRow
-	85, // 35: piko.monitoring.v1.ProviderRow.values:type_name -> piko.monitoring.v1.ProviderRow.ValuesEntry
+	94, // 35: piko.monitoring.v1.ProviderRow.values:type_name -> piko.monitoring.v1.ProviderRow.ValuesEntry
 	69, // 36: piko.monitoring.v1.DescribeProviderResponse.sections:type_name -> piko.monitoring.v1.ProviderInfoSection
 	70, // 37: piko.monitoring.v1.ProviderInfoSection.entries:type_name -> piko.monitoring.v1.ProviderInfoEntry
 	65, // 38: piko.monitoring.v1.ListSubResourcesResponse.columns:type_name -> piko.monitoring.v1.ProviderColumn
 	66, // 39: piko.monitoring.v1.ListSubResourcesResponse.rows:type_name -> piko.monitoring.v1.ProviderRow
-	0,  // 40: piko.monitoring.v1.HealthService.GetHealth:input_type -> piko.monitoring.v1.GetHealthRequest
-	3,  // 41: piko.monitoring.v1.HealthService.WatchHealth:input_type -> piko.monitoring.v1.WatchHealthRequest
-	5,  // 42: piko.monitoring.v1.MetricsService.GetMetrics:input_type -> piko.monitoring.v1.GetMetricsRequest
-	9,  // 43: piko.monitoring.v1.MetricsService.GetTraces:input_type -> piko.monitoring.v1.GetTracesRequest
-	13, // 44: piko.monitoring.v1.MetricsService.GetSystemStats:input_type -> piko.monitoring.v1.GetSystemStatsRequest
-	21, // 45: piko.monitoring.v1.MetricsService.GetFileDescriptors:input_type -> piko.monitoring.v1.GetFileDescriptorsRequest
-	25, // 46: piko.monitoring.v1.MetricsService.WatchMetrics:input_type -> piko.monitoring.v1.WatchMetricsRequest
-	27, // 47: piko.monitoring.v1.OrchestratorInspectorService.GetTaskSummary:input_type -> piko.monitoring.v1.GetTaskSummaryRequest
-	30, // 48: piko.monitoring.v1.OrchestratorInspectorService.ListRecentTasks:input_type -> piko.monitoring.v1.ListRecentTasksRequest
-	33, // 49: piko.monitoring.v1.OrchestratorInspectorService.ListWorkflowSummary:input_type -> piko.monitoring.v1.ListWorkflowSummaryRequest
-	36, // 50: piko.monitoring.v1.OrchestratorInspectorService.WatchTasks:input_type -> piko.monitoring.v1.WatchTasksRequest
-	38, // 51: piko.monitoring.v1.RegistryInspectorService.GetArtefactSummary:input_type -> piko.monitoring.v1.GetArtefactSummaryRequest
-	41, // 52: piko.monitoring.v1.RegistryInspectorService.GetVariantSummary:input_type -> piko.monitoring.v1.GetVariantSummaryRequest
-	44, // 53: piko.monitoring.v1.RegistryInspectorService.ListRecentArtefacts:input_type -> piko.monitoring.v1.ListRecentArtefactsRequest
-	47, // 54: piko.monitoring.v1.RegistryInspectorService.WatchArtefacts:input_type -> piko.monitoring.v1.WatchArtefactsRequest
-	49, // 55: piko.monitoring.v1.DispatcherInspectorService.GetDispatcherSummary:input_type -> piko.monitoring.v1.GetDispatcherSummaryRequest
-	52, // 56: piko.monitoring.v1.DispatcherInspectorService.ListDLQEntries:input_type -> piko.monitoring.v1.ListDLQEntriesRequest
-	55, // 57: piko.monitoring.v1.DispatcherInspectorService.GetDLQCount:input_type -> piko.monitoring.v1.GetDLQCountRequest
-	57, // 58: piko.monitoring.v1.DispatcherInspectorService.ClearDLQ:input_type -> piko.monitoring.v1.ClearDLQRequest
-	59, // 59: piko.monitoring.v1.RateLimiterInspectorService.GetRateLimiterStatus:input_type -> piko.monitoring.v1.GetRateLimiterStatusRequest
-	61, // 60: piko.monitoring.v1.ProviderInfoService.ListResourceTypes:input_type -> piko.monitoring.v1.ListResourceTypesRequest
-	63, // 61: piko.monitoring.v1.ProviderInfoService.ListProviders:input_type -> piko.monitoring.v1.ListProvidersRequest
-	67, // 62: piko.monitoring.v1.ProviderInfoService.DescribeProvider:input_type -> piko.monitoring.v1.DescribeProviderRequest
-	71, // 63: piko.monitoring.v1.ProviderInfoService.ListSubResources:input_type -> piko.monitoring.v1.ListSubResourcesRequest
-	73, // 64: piko.monitoring.v1.ProviderInfoService.DescribeResourceType:input_type -> piko.monitoring.v1.DescribeResourceTypeRequest
-	74, // 65: piko.monitoring.v1.ProfilingService.EnableProfiling:input_type -> piko.monitoring.v1.EnableProfilingRequest
-	76, // 66: piko.monitoring.v1.ProfilingService.DisableProfiling:input_type -> piko.monitoring.v1.DisableProfilingRequest
-	78, // 67: piko.monitoring.v1.ProfilingService.GetProfilingStatus:input_type -> piko.monitoring.v1.GetProfilingStatusRequest
-	80, // 68: piko.monitoring.v1.ProfilingService.CaptureProfile:input_type -> piko.monitoring.v1.CaptureProfileRequest
-	1,  // 69: piko.monitoring.v1.HealthService.GetHealth:output_type -> piko.monitoring.v1.GetHealthResponse
-	4,  // 70: piko.monitoring.v1.HealthService.WatchHealth:output_type -> piko.monitoring.v1.HealthUpdate
-	6,  // 71: piko.monitoring.v1.MetricsService.GetMetrics:output_type -> piko.monitoring.v1.GetMetricsResponse
-	10, // 72: piko.monitoring.v1.MetricsService.GetTraces:output_type -> piko.monitoring.v1.GetTracesResponse
-	14, // 73: piko.monitoring.v1.MetricsService.GetSystemStats:output_type -> piko.monitoring.v1.GetSystemStatsResponse
-	22, // 74: piko.monitoring.v1.MetricsService.GetFileDescriptors:output_type -> piko.monitoring.v1.GetFileDescriptorsResponse
-	26, // 75: piko.monitoring.v1.MetricsService.WatchMetrics:output_type -> piko.monitoring.v1.MetricsUpdate
-	28, // 76: piko.monitoring.v1.OrchestratorInspectorService.GetTaskSummary:output_type -> piko.monitoring.v1.GetTaskSummaryResponse
-	31, // 77: piko.monitoring.v1.OrchestratorInspectorService.ListRecentTasks:output_type -> piko.monitoring.v1.ListRecentTasksResponse
-	34, // 78: piko.monitoring.v1.OrchestratorInspectorService.ListWorkflowSummary:output_type -> piko.monitoring.v1.ListWorkflowSummaryResponse
-	37, // 79: piko.monitoring.v1.OrchestratorInspectorService.WatchTasks:output_type -> piko.monitoring.v1.TasksUpdate
-	39, // 80: piko.monitoring.v1.RegistryInspectorService.GetArtefactSummary:output_type -> piko.monitoring.v1.GetArtefactSummaryResponse
-	42, // 81: piko.monitoring.v1.RegistryInspectorService.GetVariantSummary:output_type -> piko.monitoring.v1.GetVariantSummaryResponse
-	45, // 82: piko.monitoring.v1.RegistryInspectorService.ListRecentArtefacts:output_type -> piko.monitoring.v1.ListRecentArtefactsResponse
-	48, // 83: piko.monitoring.v1.RegistryInspectorService.WatchArtefacts:output_type -> piko.monitoring.v1.ArtefactsUpdate
-	50, // 84: piko.monitoring.v1.DispatcherInspectorService.GetDispatcherSummary:output_type -> piko.monitoring.v1.GetDispatcherSummaryResponse
-	53, // 85: piko.monitoring.v1.DispatcherInspectorService.ListDLQEntries:output_type -> piko.monitoring.v1.ListDLQEntriesResponse
-	56, // 86: piko.monitoring.v1.DispatcherInspectorService.GetDLQCount:output_type -> piko.monitoring.v1.GetDLQCountResponse
-	58, // 87: piko.monitoring.v1.DispatcherInspectorService.ClearDLQ:output_type -> piko.monitoring.v1.ClearDLQResponse
-	60, // 88: piko.monitoring.v1.RateLimiterInspectorService.GetRateLimiterStatus:output_type -> piko.monitoring.v1.GetRateLimiterStatusResponse
-	62, // 89: piko.monitoring.v1.ProviderInfoService.ListResourceTypes:output_type -> piko.monitoring.v1.ListResourceTypesResponse
-	64, // 90: piko.monitoring.v1.ProviderInfoService.ListProviders:output_type -> piko.monitoring.v1.ListProvidersResponse
-	68, // 91: piko.monitoring.v1.ProviderInfoService.DescribeProvider:output_type -> piko.monitoring.v1.DescribeProviderResponse
-	72, // 92: piko.monitoring.v1.ProviderInfoService.ListSubResources:output_type -> piko.monitoring.v1.ListSubResourcesResponse
-	68, // 93: piko.monitoring.v1.ProviderInfoService.DescribeResourceType:output_type -> piko.monitoring.v1.DescribeProviderResponse
-	75, // 94: piko.monitoring.v1.ProfilingService.EnableProfiling:output_type -> piko.monitoring.v1.EnableProfilingResponse
-	77, // 95: piko.monitoring.v1.ProfilingService.DisableProfiling:output_type -> piko.monitoring.v1.DisableProfilingResponse
-	79, // 96: piko.monitoring.v1.ProfilingService.GetProfilingStatus:output_type -> piko.monitoring.v1.GetProfilingStatusResponse
-	81, // 97: piko.monitoring.v1.ProfilingService.CaptureProfile:output_type -> piko.monitoring.v1.CaptureProfileChunk
-	69, // [69:98] is the sub-list for method output_type
-	40, // [40:69] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	84, // 40: piko.monitoring.v1.ListProfilesResponse.profiles:type_name -> piko.monitoring.v1.WatchdogProfileEntry
+	0,  // 41: piko.monitoring.v1.HealthService.GetHealth:input_type -> piko.monitoring.v1.GetHealthRequest
+	3,  // 42: piko.monitoring.v1.HealthService.WatchHealth:input_type -> piko.monitoring.v1.WatchHealthRequest
+	5,  // 43: piko.monitoring.v1.MetricsService.GetMetrics:input_type -> piko.monitoring.v1.GetMetricsRequest
+	9,  // 44: piko.monitoring.v1.MetricsService.GetTraces:input_type -> piko.monitoring.v1.GetTracesRequest
+	13, // 45: piko.monitoring.v1.MetricsService.GetSystemStats:input_type -> piko.monitoring.v1.GetSystemStatsRequest
+	21, // 46: piko.monitoring.v1.MetricsService.GetFileDescriptors:input_type -> piko.monitoring.v1.GetFileDescriptorsRequest
+	25, // 47: piko.monitoring.v1.MetricsService.WatchMetrics:input_type -> piko.monitoring.v1.WatchMetricsRequest
+	27, // 48: piko.monitoring.v1.OrchestratorInspectorService.GetTaskSummary:input_type -> piko.monitoring.v1.GetTaskSummaryRequest
+	30, // 49: piko.monitoring.v1.OrchestratorInspectorService.ListRecentTasks:input_type -> piko.monitoring.v1.ListRecentTasksRequest
+	33, // 50: piko.monitoring.v1.OrchestratorInspectorService.ListWorkflowSummary:input_type -> piko.monitoring.v1.ListWorkflowSummaryRequest
+	36, // 51: piko.monitoring.v1.OrchestratorInspectorService.WatchTasks:input_type -> piko.monitoring.v1.WatchTasksRequest
+	38, // 52: piko.monitoring.v1.RegistryInspectorService.GetArtefactSummary:input_type -> piko.monitoring.v1.GetArtefactSummaryRequest
+	41, // 53: piko.monitoring.v1.RegistryInspectorService.GetVariantSummary:input_type -> piko.monitoring.v1.GetVariantSummaryRequest
+	44, // 54: piko.monitoring.v1.RegistryInspectorService.ListRecentArtefacts:input_type -> piko.monitoring.v1.ListRecentArtefactsRequest
+	47, // 55: piko.monitoring.v1.RegistryInspectorService.WatchArtefacts:input_type -> piko.monitoring.v1.WatchArtefactsRequest
+	49, // 56: piko.monitoring.v1.DispatcherInspectorService.GetDispatcherSummary:input_type -> piko.monitoring.v1.GetDispatcherSummaryRequest
+	52, // 57: piko.monitoring.v1.DispatcherInspectorService.ListDLQEntries:input_type -> piko.monitoring.v1.ListDLQEntriesRequest
+	55, // 58: piko.monitoring.v1.DispatcherInspectorService.GetDLQCount:input_type -> piko.monitoring.v1.GetDLQCountRequest
+	57, // 59: piko.monitoring.v1.DispatcherInspectorService.ClearDLQ:input_type -> piko.monitoring.v1.ClearDLQRequest
+	59, // 60: piko.monitoring.v1.RateLimiterInspectorService.GetRateLimiterStatus:input_type -> piko.monitoring.v1.GetRateLimiterStatusRequest
+	61, // 61: piko.monitoring.v1.ProviderInfoService.ListResourceTypes:input_type -> piko.monitoring.v1.ListResourceTypesRequest
+	63, // 62: piko.monitoring.v1.ProviderInfoService.ListProviders:input_type -> piko.monitoring.v1.ListProvidersRequest
+	67, // 63: piko.monitoring.v1.ProviderInfoService.DescribeProvider:input_type -> piko.monitoring.v1.DescribeProviderRequest
+	71, // 64: piko.monitoring.v1.ProviderInfoService.ListSubResources:input_type -> piko.monitoring.v1.ListSubResourcesRequest
+	73, // 65: piko.monitoring.v1.ProviderInfoService.DescribeResourceType:input_type -> piko.monitoring.v1.DescribeResourceTypeRequest
+	74, // 66: piko.monitoring.v1.ProfilingService.EnableProfiling:input_type -> piko.monitoring.v1.EnableProfilingRequest
+	76, // 67: piko.monitoring.v1.ProfilingService.DisableProfiling:input_type -> piko.monitoring.v1.DisableProfilingRequest
+	78, // 68: piko.monitoring.v1.ProfilingService.GetProfilingStatus:input_type -> piko.monitoring.v1.GetProfilingStatusRequest
+	80, // 69: piko.monitoring.v1.ProfilingService.CaptureProfile:input_type -> piko.monitoring.v1.CaptureProfileRequest
+	82, // 70: piko.monitoring.v1.WatchdogInspectorService.ListProfiles:input_type -> piko.monitoring.v1.ListProfilesRequest
+	85, // 71: piko.monitoring.v1.WatchdogInspectorService.DownloadProfile:input_type -> piko.monitoring.v1.DownloadProfileRequest
+	87, // 72: piko.monitoring.v1.WatchdogInspectorService.PruneProfiles:input_type -> piko.monitoring.v1.PruneProfilesRequest
+	89, // 73: piko.monitoring.v1.WatchdogInspectorService.GetWatchdogStatus:input_type -> piko.monitoring.v1.GetWatchdogStatusRequest
+	1,  // 74: piko.monitoring.v1.HealthService.GetHealth:output_type -> piko.monitoring.v1.GetHealthResponse
+	4,  // 75: piko.monitoring.v1.HealthService.WatchHealth:output_type -> piko.monitoring.v1.HealthUpdate
+	6,  // 76: piko.monitoring.v1.MetricsService.GetMetrics:output_type -> piko.monitoring.v1.GetMetricsResponse
+	10, // 77: piko.monitoring.v1.MetricsService.GetTraces:output_type -> piko.monitoring.v1.GetTracesResponse
+	14, // 78: piko.monitoring.v1.MetricsService.GetSystemStats:output_type -> piko.monitoring.v1.GetSystemStatsResponse
+	22, // 79: piko.monitoring.v1.MetricsService.GetFileDescriptors:output_type -> piko.monitoring.v1.GetFileDescriptorsResponse
+	26, // 80: piko.monitoring.v1.MetricsService.WatchMetrics:output_type -> piko.monitoring.v1.MetricsUpdate
+	28, // 81: piko.monitoring.v1.OrchestratorInspectorService.GetTaskSummary:output_type -> piko.monitoring.v1.GetTaskSummaryResponse
+	31, // 82: piko.monitoring.v1.OrchestratorInspectorService.ListRecentTasks:output_type -> piko.monitoring.v1.ListRecentTasksResponse
+	34, // 83: piko.monitoring.v1.OrchestratorInspectorService.ListWorkflowSummary:output_type -> piko.monitoring.v1.ListWorkflowSummaryResponse
+	37, // 84: piko.monitoring.v1.OrchestratorInspectorService.WatchTasks:output_type -> piko.monitoring.v1.TasksUpdate
+	39, // 85: piko.monitoring.v1.RegistryInspectorService.GetArtefactSummary:output_type -> piko.monitoring.v1.GetArtefactSummaryResponse
+	42, // 86: piko.monitoring.v1.RegistryInspectorService.GetVariantSummary:output_type -> piko.monitoring.v1.GetVariantSummaryResponse
+	45, // 87: piko.monitoring.v1.RegistryInspectorService.ListRecentArtefacts:output_type -> piko.monitoring.v1.ListRecentArtefactsResponse
+	48, // 88: piko.monitoring.v1.RegistryInspectorService.WatchArtefacts:output_type -> piko.monitoring.v1.ArtefactsUpdate
+	50, // 89: piko.monitoring.v1.DispatcherInspectorService.GetDispatcherSummary:output_type -> piko.monitoring.v1.GetDispatcherSummaryResponse
+	53, // 90: piko.monitoring.v1.DispatcherInspectorService.ListDLQEntries:output_type -> piko.monitoring.v1.ListDLQEntriesResponse
+	56, // 91: piko.monitoring.v1.DispatcherInspectorService.GetDLQCount:output_type -> piko.monitoring.v1.GetDLQCountResponse
+	58, // 92: piko.monitoring.v1.DispatcherInspectorService.ClearDLQ:output_type -> piko.monitoring.v1.ClearDLQResponse
+	60, // 93: piko.monitoring.v1.RateLimiterInspectorService.GetRateLimiterStatus:output_type -> piko.monitoring.v1.GetRateLimiterStatusResponse
+	62, // 94: piko.monitoring.v1.ProviderInfoService.ListResourceTypes:output_type -> piko.monitoring.v1.ListResourceTypesResponse
+	64, // 95: piko.monitoring.v1.ProviderInfoService.ListProviders:output_type -> piko.monitoring.v1.ListProvidersResponse
+	68, // 96: piko.monitoring.v1.ProviderInfoService.DescribeProvider:output_type -> piko.monitoring.v1.DescribeProviderResponse
+	72, // 97: piko.monitoring.v1.ProviderInfoService.ListSubResources:output_type -> piko.monitoring.v1.ListSubResourcesResponse
+	68, // 98: piko.monitoring.v1.ProviderInfoService.DescribeResourceType:output_type -> piko.monitoring.v1.DescribeProviderResponse
+	75, // 99: piko.monitoring.v1.ProfilingService.EnableProfiling:output_type -> piko.monitoring.v1.EnableProfilingResponse
+	77, // 100: piko.monitoring.v1.ProfilingService.DisableProfiling:output_type -> piko.monitoring.v1.DisableProfilingResponse
+	79, // 101: piko.monitoring.v1.ProfilingService.GetProfilingStatus:output_type -> piko.monitoring.v1.GetProfilingStatusResponse
+	81, // 102: piko.monitoring.v1.ProfilingService.CaptureProfile:output_type -> piko.monitoring.v1.CaptureProfileChunk
+	83, // 103: piko.monitoring.v1.WatchdogInspectorService.ListProfiles:output_type -> piko.monitoring.v1.ListProfilesResponse
+	86, // 104: piko.monitoring.v1.WatchdogInspectorService.DownloadProfile:output_type -> piko.monitoring.v1.DownloadProfileChunk
+	88, // 105: piko.monitoring.v1.WatchdogInspectorService.PruneProfiles:output_type -> piko.monitoring.v1.PruneProfilesResponse
+	90, // 106: piko.monitoring.v1.WatchdogInspectorService.GetWatchdogStatus:output_type -> piko.monitoring.v1.GetWatchdogStatusResponse
+	74, // [74:107] is the sub-list for method output_type
+	41, // [41:74] is the sub-list for method input_type
+	41, // [41:41] is the sub-list for extension type_name
+	41, // [41:41] is the sub-list for extension extendee
+	0,  // [0:41] is the sub-list for field type_name
 }
 
 func init() { file_monitoring_proto_init() }
@@ -5799,9 +6356,9 @@ func file_monitoring_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_monitoring_proto_rawDesc), len(file_monitoring_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   86,
+			NumMessages:   95,
 			NumExtensions: 0,
-			NumServices:   8,
+			NumServices:   9,
 		},
 		GoTypes:           file_monitoring_proto_goTypes,
 		DependencyIndexes: file_monitoring_proto_depIdxs,

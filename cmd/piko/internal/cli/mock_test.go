@@ -36,6 +36,7 @@ type mockConnection struct {
 	rateLimiter  pb.RateLimiterInspectorServiceClient
 	providerInfo pb.ProviderInfoServiceClient
 	profiling    pb.ProfilingServiceClient
+	watchdog     pb.WatchdogInspectorServiceClient
 }
 
 func (m *mockConnection) HealthClient() pb.HealthServiceClient   { return m.health }
@@ -48,9 +49,10 @@ func (m *mockConnection) DispatcherClient() pb.DispatcherInspectorServiceClient 
 func (m *mockConnection) RateLimiterClient() pb.RateLimiterInspectorServiceClient {
 	return m.rateLimiter
 }
-func (m *mockConnection) ProviderInfoClient() pb.ProviderInfoServiceClient { return m.providerInfo }
-func (m *mockConnection) ProfilingClient() pb.ProfilingServiceClient       { return m.profiling }
-func (*mockConnection) Close() error                                       { return nil }
+func (m *mockConnection) ProviderInfoClient() pb.ProviderInfoServiceClient  { return m.providerInfo }
+func (m *mockConnection) ProfilingClient() pb.ProfilingServiceClient        { return m.profiling }
+func (m *mockConnection) WatchdogClient() pb.WatchdogInspectorServiceClient { return m.watchdog }
+func (*mockConnection) Close() error                                        { return nil }
 
 type mockHealthClient struct {
 	pb.HealthServiceClient

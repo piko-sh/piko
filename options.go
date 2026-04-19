@@ -1572,6 +1572,146 @@ func WithMonitoringProfiling() MonitoringOption {
 	return bootstrap.WithMonitoringProfiling()
 }
 
+// WatchdogOption configures the runtime watchdog.
+type WatchdogOption = bootstrap.WatchdogOption
+
+// WithMonitoringWatchdog enables the runtime watchdog that monitors heap
+// memory, goroutine counts, and GC pressure, automatically capturing
+// diagnostic profiles when anomalies are detected.
+//
+// Takes opts (...WatchdogOption) which configure thresholds and behaviour.
+//
+// Returns MonitoringOption which enables the watchdog on the service.
+func WithMonitoringWatchdog(opts ...WatchdogOption) MonitoringOption {
+	return bootstrap.WithMonitoringWatchdog(opts...)
+}
+
+// WithWatchdogHeapThresholdPercent sets the heap threshold as a fraction of
+// GOMEMLIMIT (0.0-1.0). Default: 0.85.
+//
+// Takes percent (float64) which is the threshold fraction.
+//
+// Returns WatchdogOption which configures the heap threshold.
+func WithWatchdogHeapThresholdPercent(percent float64) WatchdogOption {
+	return bootstrap.WithWatchdogHeapThresholdPercent(percent)
+}
+
+// WithWatchdogHeapThresholdBytes sets the absolute heap threshold in bytes,
+// used when GOMEMLIMIT is not configured. Default: 512 MiB.
+//
+// Takes thresholdBytes (uint64) which is the threshold in bytes.
+//
+// Returns WatchdogOption which configures the heap threshold.
+func WithWatchdogHeapThresholdBytes(thresholdBytes uint64) WatchdogOption {
+	return bootstrap.WithWatchdogHeapThresholdBytes(thresholdBytes)
+}
+
+// WithWatchdogGoroutineThreshold sets the goroutine count that triggers a
+// goroutine profile capture. Default: 10,000.
+//
+// Takes threshold (int) which is the goroutine count threshold.
+//
+// Returns WatchdogOption which configures the goroutine threshold.
+func WithWatchdogGoroutineThreshold(threshold int) WatchdogOption {
+	return bootstrap.WithWatchdogGoroutineThreshold(threshold)
+}
+
+// WithWatchdogCheckInterval sets how often the watchdog evaluates runtime
+// metrics.
+//
+// Shorter intervals detect anomalies faster at negligible CPU cost.
+// Default: 500ms.
+//
+// Takes interval (time.Duration) which is the check period.
+//
+// Returns WatchdogOption which configures the check interval.
+func WithWatchdogCheckInterval(interval time.Duration) WatchdogOption {
+	return bootstrap.WithWatchdogCheckInterval(interval)
+}
+
+// WithWatchdogMaxProfilesPerType sets the maximum number of stored profiles
+// per type (heap, goroutine).
+//
+// Oldest profiles are rotated out. Default: 5.
+//
+// Takes count (int) which is the maximum profile count per type.
+//
+// Returns WatchdogOption which configures profile rotation.
+func WithWatchdogMaxProfilesPerType(count int) WatchdogOption {
+	return bootstrap.WithWatchdogMaxProfilesPerType(count)
+}
+
+// WithWatchdogCooldown sets the minimum duration between consecutive profile
+// captures for the same metric type. Default: 2 minutes.
+//
+// Takes duration (time.Duration) which is the cooldown period.
+//
+// Returns WatchdogOption which configures the cooldown.
+func WithWatchdogCooldown(duration time.Duration) WatchdogOption {
+	return bootstrap.WithWatchdogCooldown(duration)
+}
+
+// WithWatchdogProfileDirectory sets the local directory for profile storage.
+// Default: os.TempDir()/piko-watchdog.
+//
+// Takes directory (string) which is the directory path.
+//
+// Returns WatchdogOption which configures the profile directory.
+func WithWatchdogProfileDirectory(directory string) WatchdogOption {
+	return bootstrap.WithWatchdogProfileDirectory(directory)
+}
+
+// WithWatchdogDeltaProfiling enables storing a baseline heap profile alongside
+// each capture so the user can compute a diff between consecutive captures
+// using `go tool pprof -diff_base`.
+//
+// Returns WatchdogOption which enables delta profiling.
+func WithWatchdogDeltaProfiling() WatchdogOption {
+	return bootstrap.WithWatchdogDeltaProfiling()
+}
+
+// WithWatchdogRSSThresholdPercent sets the fraction of the cgroup memory limit
+// above which RSS triggers a profile capture. Default: 0.85.
+//
+// Takes percent (float64) which is the threshold fraction (0.0-1.0).
+//
+// Returns WatchdogOption which configures the RSS threshold.
+func WithWatchdogRSSThresholdPercent(percent float64) WatchdogOption {
+	return bootstrap.WithWatchdogRSSThresholdPercent(percent)
+}
+
+// WatchdogNotifier delivers watchdog event notifications to external systems.
+type WatchdogNotifier = monitoring_domain.WatchdogNotifier
+
+// WatchdogProfileUploader uploads captured diagnostic profiles to remote
+// storage.
+type WatchdogProfileUploader = monitoring_domain.WatchdogProfileUploader
+
+// WatchdogEvent describes a notable runtime event detected by the watchdog.
+type WatchdogEvent = monitoring_domain.WatchdogEvent
+
+// WithWatchdogNotifier sets the notification delivery mechanism for watchdog
+// events. When set, the watchdog sends notifications to external systems when
+// thresholds are breached or errors occur.
+//
+// Takes notifier (WatchdogNotifier) which delivers event notifications.
+//
+// Returns MonitoringOption which configures the notifier on the service.
+func WithWatchdogNotifier(notifier WatchdogNotifier) MonitoringOption {
+	return bootstrap.WithWatchdogNotifier(notifier)
+}
+
+// WithWatchdogProfileUploader sets the remote storage backend for watchdog
+// profile uploads. When set, captured profiles are uploaded after being
+// written to local disk.
+//
+// Takes uploader (WatchdogProfileUploader) which handles remote storage.
+//
+// Returns MonitoringOption which configures the uploader on the service.
+func WithWatchdogProfileUploader(uploader WatchdogProfileUploader) MonitoringOption {
+	return bootstrap.WithWatchdogProfileUploader(uploader)
+}
+
 // WithProfilingPort sets the port for the pprof HTTP server.
 //
 // Takes port (int) which specifies the port number to listen on.

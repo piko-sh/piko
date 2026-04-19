@@ -79,6 +79,12 @@ type monitoringConnection interface {
 	// Returns pb.ProfilingServiceClient which provides access to profiling operations.
 	ProfilingClient() pb.ProfilingServiceClient
 
+	// WatchdogClient returns the client for the watchdog inspector service.
+	//
+	// Returns pb.WatchdogInspectorServiceClient which provides access to
+	// watchdog inspection operations.
+	WatchdogClient() pb.WatchdogInspectorServiceClient
+
 	// Close releases any resources held by the source.
 	//
 	// Returns error when the source cannot be closed cleanly.
@@ -135,6 +141,7 @@ var commands = map[string]*command{
 	"diagnostics": {name: "diagnostics", usage: "piko diagnostics [flags]", description: "Test connectivity to monitoring server", needsConnection: false, run: runDiagnosticsCmd},
 	"tui":         {name: "tui", usage: "piko tui [flags]", description: "Launch the interactive terminal UI", needsConnection: false, longRunning: true, run: runTUICmd},
 	"profiling":   {name: "profiling", usage: "piko profiling <subcommand> [flags]", description: "Control runtime profiling", needsConnection: true, run: runProfiling},
+	"watchdog":    {name: "watchdog", usage: "piko watchdog <subcommand> [flags]", description: "Manage watchdog diagnostic profiles", needsConnection: true, run: runWatchdog},
 }
 
 // RunCommand dispatches a CLI subcommand using os.Stdout and os.Stderr.
@@ -242,6 +249,7 @@ Monitoring Commands:
   info          Display system information (system, build, runtime, memory, gc, process)
   watch         Stream resource updates (%s)
   profiling     Control on-demand runtime profiling (enable, disable, status, capture)
+  watchdog      Manage watchdog diagnostic profiles (list, download, prune, status)
   diagnostics   Test connectivity to the monitoring server
   tui           Launch the interactive terminal UI
 

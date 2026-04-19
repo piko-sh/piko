@@ -67,6 +67,10 @@ const (
 	// defaultTraceCaptureDuration is the fallback duration in seconds for
 	// execution trace captures when no duration is specified.
 	defaultTraceCaptureDuration = 5
+
+	// goroutineLeakProfileName is the pprof lookup name for the Go 1.26
+	// goroutine leak profile.
+	goroutineLeakProfileName = "goroutineleak"
 )
 
 var (
@@ -104,6 +108,13 @@ var profileLookupNames = map[string]string{
 	"allocs":    "allocs",
 	"block":     "block",
 	"mutex":     "mutex",
+}
+
+func init() {
+	if pprof.Lookup(goroutineLeakProfileName) != nil {
+		availableProfiles = append(availableProfiles, goroutineLeakProfileName)
+		profileLookupNames[goroutineLeakProfileName] = goroutineLeakProfileName
+	}
 }
 
 var _ monitoring_domain.ProfilingController = (*Controller)(nil)
@@ -171,6 +182,10 @@ func NewController() *Controller {
 // session after enabling.
 // Returns error when the server fails to start or the duration
 // exceeds the maximum allowed.
+// Returns *monitoring_domain.ProfilingStatus which contains the current state
+// after enabling.
+// Returns error when the server fails to start or the duration exceeds the
+// maximum allowed.
 //
 // Safe for concurrent use.
 func (c *Controller) Enable(ctx context.Context, opts monitoring_domain.ProfilingEnableOpts) (*monitoring_domain.ProfilingStatus, error) {
@@ -265,13 +280,12 @@ func (c *Controller) Disable(ctx context.Context) (bool, error) {
 		cancel()
 	}
 
-	l.Info("Profiling disabled")
+	l.Notice("Profiling disabled")
 
 	return true, shutdownErr
 }
 
-// Close cancels any pending auto-disable timer and disables profiling. It
-// is safe for use as a shutdown hook.
+// Close cancels any pending auto-disable timer and disables profiling.
 //
 // Returns error when the shutdown fails.
 func (c *Controller) Close(ctx context.Context) error {
@@ -281,13 +295,35 @@ func (c *Controller) Close(ctx context.Context) error {
 
 // Status returns the current profiling state.
 //
-// Returns *ProfilingStatus with the current state.
+// Returns *monitoring_domain.ProfilingStatus which contains the current state.
 //
 // Safe for concurrent use.
 func (c *Controller) Status(_ context.Context) *monitoring_domain.ProfilingStatus {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.statusLocked()
+}
+
+// SnapshotFlightRecorder writes the current rolling execution trace buffer to
+// the provided writer. Returns an error when the flight recorder is not
+// enabled or the snapshot fails.
+//
+// Takes w (io.Writer) which receives the trace data.
+//
+// Returns error when the flight recorder is disabled or the snapshot fails.
+//
+// Safe for concurrent use.
+func (c *Controller) SnapshotFlightRecorder(_ context.Context, w io.Writer) error {
+	c.mu.Lock()
+	server := c.server
+	c.mu.Unlock()
+
+	if server == nil || server.rollingTrace == nil || !server.rollingTrace.Enabled() {
+		return ErrRollingTraceDisabled
+	}
+
+	_, err := server.rollingTrace.WriteTo(w)
+	return err
 }
 
 // CaptureProfile captures a Go runtime profile and writes the raw data
@@ -308,7 +344,7 @@ func (c *Controller) CaptureProfile(ctx context.Context, profileType string, dur
 		return c.captureCPU(ctx, durationSeconds, w)
 	case "trace":
 		return c.captureTrace(ctx, durationSeconds, w)
-	case "heap", "goroutine", "allocs", "block", "mutex":
+	case "heap", "goroutine", "allocs", "block", "mutex", goroutineLeakProfileName:
 		return c.captureSnapshot(ctx, profileType, w)
 	default:
 		return "", fmt.Errorf("%w: %s (available: heap, goroutine, allocs, cpu, trace, block, mutex)", ErrUnknownProfileType, profileType)
@@ -320,7 +356,7 @@ func (c *Controller) CaptureProfile(ctx context.Context, profileType string, dur
 //
 // Takes duration (time.Duration) which is the new session duration.
 //
-// Returns *ProfilingStatus with the updated state.
+// Returns *monitoring_domain.ProfilingStatus which contains the updated state.
 func (c *Controller) extendSession(ctx context.Context, duration time.Duration) *monitoring_domain.ProfilingStatus {
 	_, l := logger_domain.From(ctx, log)
 
@@ -329,7 +365,7 @@ func (c *Controller) extendSession(ctx context.Context, duration time.Duration) 
 		c.timer.Reset(duration)
 	}
 
-	l.Info("Profiling session extended",
+	l.Notice("Profiling session extended",
 		logger_domain.String("expires_at", c.expiresAt.Format(time.RFC3339)),
 		logger_domain.Int("port", c.port))
 
@@ -346,8 +382,7 @@ func (c *Controller) extendSession(ctx context.Context, duration time.Duration) 
 // Takes blockRate (int) which is the block profile rate.
 // Takes mutexFraction (int) which is the mutex profile fraction.
 //
-// Returns *ProfilingStatus which describes the freshly enabled
-// profiling session.
+// Returns *monitoring_domain.ProfilingStatus which contains the session state.
 // Returns error when the server fails to start.
 func (c *Controller) startProfilingServer(
 	ctx context.Context,
@@ -393,6 +428,9 @@ func (c *Controller) startProfilingServer(
 // Returns *ProfilingStatus which describes the newly committed
 // profiling session state.
 // Returns error when an enable race requires shutting down the duplicate server.
+// Returns *monitoring_domain.ProfilingStatus which contains the session state.
+// Returns error when an enable race requires shutting down the duplicate
+// server.
 func (c *Controller) commitSession(
 	ctx context.Context,
 	server *ServerHandle,
@@ -416,7 +454,7 @@ func (c *Controller) commitSession(
 	c.enabled = true
 	c.startAutoDisableTimer(duration)
 
-	l.Info("Profiling enabled",
+	l.Notice("Profiling enabled",
 		logger_domain.String("expires_at", c.expiresAt.Format(time.RFC3339)),
 		logger_domain.Int("port", config.Port),
 		logger_domain.Int("block_profile_rate", config.BlockProfileRate),
@@ -435,6 +473,8 @@ func (c *Controller) commitSession(
 //
 // Returns *ProfilingStatus which describes the existing session that
 // won the enable race.
+// Returns *monitoring_domain.ProfilingStatus which contains the existing
+// session state.
 // Returns error when the duplicate server fails to shut down.
 func (c *Controller) handleEnableRace(
 	ctx context.Context,
@@ -609,7 +649,7 @@ func (c *Controller) captureSnapshot(ctx context.Context, profileType string, w 
 
 // statusLocked builds the current profiling status. The caller must hold c.mu.
 //
-// Returns *ProfilingStatus with the current state.
+// Returns *monitoring_domain.ProfilingStatus which contains the current state.
 func (c *Controller) statusLocked() *monitoring_domain.ProfilingStatus {
 	status := &monitoring_domain.ProfilingStatus{
 		Enabled:           c.enabled,

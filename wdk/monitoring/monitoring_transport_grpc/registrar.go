@@ -32,38 +32,62 @@ import (
 func defaultServiceRegistrar() serviceRegistrar {
 	return func(server *grpc.Server, deps monitoring_domain.MonitoringDeps) {
 		pb.RegisterHealthServiceServer(server, NewHealthService(deps.HealthProbeService))
+		registerMetricsService(server, deps)
+		registerInspectorServices(server, deps)
+	}
+}
 
-		if deps.TelemetryProvider != nil || deps.SystemStatsProvider != nil || deps.ResourceProvider != nil {
-			pb.RegisterMetricsServiceServer(server, NewMetricsService(
-				deps.TelemetryProvider,
-				deps.SystemStatsProvider,
-				deps.ResourceProvider,
-				deps.RenderCacheStatsProvider,
-			))
-		}
+// registerMetricsService registers the metrics gRPC service when at least one
+// telemetry provider is available.
+//
+// Takes server (*grpc.Server) which is the gRPC server to register the service
+// on.
+// Takes deps (monitoring_domain.MonitoringDeps) which provides the telemetry,
+// system stats, resource, and render cache dependencies.
+func registerMetricsService(server *grpc.Server, deps monitoring_domain.MonitoringDeps) {
+	if deps.TelemetryProvider != nil || deps.SystemStatsProvider != nil || deps.ResourceProvider != nil {
+		pb.RegisterMetricsServiceServer(server, NewMetricsService(
+			deps.TelemetryProvider,
+			deps.SystemStatsProvider,
+			deps.ResourceProvider,
+			deps.RenderCacheStatsProvider,
+		))
+	}
+}
 
-		if deps.OrchestratorInspector != nil {
-			pb.RegisterOrchestratorInspectorServiceServer(server, NewOrchestratorInspectorService(deps.OrchestratorInspector))
-		}
+// registerInspectorServices registers all optional inspector gRPC services
+// that have non-nil dependencies.
+//
+// Takes server (*grpc.Server) which is the gRPC server to register the
+// services on.
+// Takes deps (monitoring_domain.MonitoringDeps) which provides the optional
+// inspector dependencies checked for nil before registration.
+func registerInspectorServices(server *grpc.Server, deps monitoring_domain.MonitoringDeps) {
+	if deps.OrchestratorInspector != nil {
+		pb.RegisterOrchestratorInspectorServiceServer(server, NewOrchestratorInspectorService(deps.OrchestratorInspector))
+	}
 
-		if deps.RegistryInspector != nil {
-			pb.RegisterRegistryInspectorServiceServer(server, NewRegistryInspectorService(deps.RegistryInspector))
-		}
+	if deps.RegistryInspector != nil {
+		pb.RegisterRegistryInspectorServiceServer(server, NewRegistryInspectorService(deps.RegistryInspector))
+	}
 
-		if deps.DispatcherInspector != nil {
-			pb.RegisterDispatcherInspectorServiceServer(server, NewDispatcherInspectorService(deps.DispatcherInspector))
-		}
+	if deps.DispatcherInspector != nil {
+		pb.RegisterDispatcherInspectorServiceServer(server, NewDispatcherInspectorService(deps.DispatcherInspector))
+	}
 
-		if deps.RateLimiterInspector != nil {
-			pb.RegisterRateLimiterInspectorServiceServer(server, NewRateLimiterInspectorService(deps.RateLimiterInspector))
-		}
+	if deps.RateLimiterInspector != nil {
+		pb.RegisterRateLimiterInspectorServiceServer(server, NewRateLimiterInspectorService(deps.RateLimiterInspector))
+	}
 
-		if deps.ProviderInfoInspector != nil {
-			pb.RegisterProviderInfoServiceServer(server, NewProviderInfoService(deps.ProviderInfoInspector))
-		}
+	if deps.ProviderInfoInspector != nil {
+		pb.RegisterProviderInfoServiceServer(server, NewProviderInfoService(deps.ProviderInfoInspector))
+	}
 
-		if deps.ProfilingController != nil {
-			pb.RegisterProfilingServiceServer(server, NewProfilingService(deps.ProfilingController))
-		}
+	if deps.ProfilingController != nil {
+		pb.RegisterProfilingServiceServer(server, NewProfilingService(deps.ProfilingController))
+	}
+
+	if deps.WatchdogInspector != nil {
+		pb.RegisterWatchdogInspectorServiceServer(server, NewWatchdogInspectorService(deps.WatchdogInspector))
 	}
 }

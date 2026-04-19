@@ -243,6 +243,14 @@ type ProcessInfo struct {
 	// RSS is the resident set size in bytes.
 	RSS uint64
 
+	// CgroupMemoryLimit is the container memory limit in bytes from the cgroup
+	// filesystem. Zero indicates the limit is unknown or unlimited.
+	CgroupMemoryLimit uint64
+
+	// CgroupMemoryCurrent is the container's current memory usage in bytes
+	// from the cgroup filesystem. Zero indicates the value is unavailable.
+	CgroupMemoryCurrent uint64
+
 	// IoReadBytes is the number of bytes read from storage.
 	IoReadBytes uint64
 

@@ -538,35 +538,9 @@ func WithMonitoring(opts ...MonitoringOption) Option {
 			opt(&monitoringConfig)
 		}
 
-		serviceOpts := []monitoring_domain.ServiceOption{
-			monitoring_domain.WithServiceAddress(monitoringConfig.Address),
-			monitoring_domain.WithServiceBindAddress(monitoringConfig.BindAddress),
-			monitoring_domain.WithServiceMaxSpans(monitoringConfig.MaxSpans),
-			monitoring_domain.WithServiceMaxMetrics(monitoringConfig.MaxMetrics),
-			monitoring_domain.WithServiceMaxMetricAge(monitoringConfig.MaxMetricAge),
-			monitoring_domain.WithServiceMetricsInterval(monitoringConfig.MetricsCollectionInterval),
-		}
-
-		if monitoringConfig.AutoNextPort {
-			serviceOpts = append(serviceOpts, monitoring_domain.WithServiceAutoNextPort(monitoringConfig.AutoNextPort))
-		}
-
-		if monitoringConfig.TLS.Enabled() {
-			serviceOpts = append(serviceOpts, monitoring_domain.WithServiceTLS(monitoringConfig.TLS))
-		}
-
-		if monitoringConfig.TransportFactory != nil {
-			serviceOpts = append(serviceOpts, monitoring_domain.WithServiceTransportFactory(monitoringConfig.TransportFactory))
-		}
-
-		deps := monitoring_domain.MonitoringDeps{}
-		var factories monitoring_domain.ServiceFactories
-		if monitoringConfig.Factories != nil {
-			factories = *monitoringConfig.Factories
-		} else {
-			factories = monitoring_adapters.DefaultServiceFactories()
-		}
-		service := monitoring_domain.NewService(deps, factories, serviceOpts...)
+		serviceOpts := buildMonitoringServiceOpts(&monitoringConfig)
+		factories := resolveMonitoringFactories(&monitoringConfig)
+		service := monitoring_domain.NewService(monitoring_domain.MonitoringDeps{}, factories, serviceOpts...)
 
 		c.SetMonitoringService(service)
 
@@ -579,6 +553,84 @@ func WithMonitoring(opts ...MonitoringOption) Option {
 		l.Internal("Monitoring service enabled",
 			logger_domain.String("address", monitoringConfig.BindAddress+monitoringConfig.Address))
 	}
+}
+
+// buildMonitoringServiceOpts constructs the service options slice from the
+// monitoring configuration.
+//
+// Takes serviceConfig (*monitoring_domain.ServiceConfig) which provides the
+// monitoring settings to convert into service options.
+//
+// Returns []monitoring_domain.ServiceOption which contains the resolved
+// options.
+func buildMonitoringServiceOpts(serviceConfig *monitoring_domain.ServiceConfig) []monitoring_domain.ServiceOption {
+	serviceOpts := []monitoring_domain.ServiceOption{
+		monitoring_domain.WithServiceAddress(serviceConfig.Address),
+		monitoring_domain.WithServiceBindAddress(serviceConfig.BindAddress),
+		monitoring_domain.WithServiceMaxSpans(serviceConfig.MaxSpans),
+		monitoring_domain.WithServiceMaxMetrics(serviceConfig.MaxMetrics),
+		monitoring_domain.WithServiceMaxMetricAge(serviceConfig.MaxMetricAge),
+		monitoring_domain.WithServiceMetricsInterval(serviceConfig.MetricsCollectionInterval),
+	}
+
+	if serviceConfig.AutoNextPort {
+		serviceOpts = append(serviceOpts, monitoring_domain.WithServiceAutoNextPort(serviceConfig.AutoNextPort))
+	}
+
+	if serviceConfig.TLS.Enabled() {
+		serviceOpts = append(serviceOpts, monitoring_domain.WithServiceTLS(serviceConfig.TLS))
+	}
+
+	if serviceConfig.TransportFactory != nil {
+		serviceOpts = append(serviceOpts, monitoring_domain.WithServiceTransportFactory(serviceConfig.TransportFactory))
+	}
+
+	return appendWatchdogServiceOpts(serviceOpts, serviceConfig)
+}
+
+// resolveMonitoringFactories returns the service factories from configuration
+// or the default factories if none are configured.
+//
+// Takes serviceConfig (*monitoring_domain.ServiceConfig) which may contain
+// custom factory overrides.
+//
+// Returns monitoring_domain.ServiceFactories which contains the resolved
+// factories.
+func resolveMonitoringFactories(serviceConfig *monitoring_domain.ServiceConfig) monitoring_domain.ServiceFactories {
+	if serviceConfig.Factories != nil {
+		return *serviceConfig.Factories
+	}
+
+	return monitoring_adapters.DefaultServiceFactories()
+}
+
+// appendWatchdogServiceOpts appends watchdog-related service options when
+// watchdog configuration is present.
+//
+// Takes serviceOpts ([]monitoring_domain.ServiceOption) which is the existing
+// options slice to extend.
+// Takes serviceConfig (*monitoring_domain.ServiceConfig) which provides the
+// watchdog settings.
+//
+// Returns []monitoring_domain.ServiceOption which is the extended options
+// slice.
+func appendWatchdogServiceOpts(
+	serviceOpts []monitoring_domain.ServiceOption,
+	serviceConfig *monitoring_domain.ServiceConfig,
+) []monitoring_domain.ServiceOption {
+	if serviceConfig.WatchdogConfig != nil {
+		serviceOpts = append(serviceOpts, monitoring_domain.WithServiceWatchdogConfig(serviceConfig.WatchdogConfig))
+	}
+
+	if serviceConfig.WatchdogNotifier != nil {
+		serviceOpts = append(serviceOpts, monitoring_domain.WithServiceWatchdogNotifier(serviceConfig.WatchdogNotifier))
+	}
+
+	if serviceConfig.WatchdogProfileUploader != nil {
+		serviceOpts = append(serviceOpts, monitoring_domain.WithServiceWatchdogProfileUploader(serviceConfig.WatchdogProfileUploader))
+	}
+
+	return serviceOpts
 }
 
 // WithMonitoringTransport sets the transport factory for the monitoring
@@ -631,6 +683,165 @@ func WithMonitoringOtelFactories(factories monitoring_domain.ServiceFactories) M
 func WithMonitoringProfiling() MonitoringOption {
 	return func(c *monitoring_domain.ServiceConfig) {
 		c.ProfilingEnabled = true
+	}
+}
+
+// WatchdogOption configures the runtime watchdog.
+type WatchdogOption func(*monitoring_domain.WatchdogConfig)
+
+// WithMonitoringWatchdog enables the runtime watchdog that monitors heap
+// memory, goroutine counts, and GC pressure, automatically capturing
+// diagnostic profiles when anomalies are detected.
+//
+// Takes opts (...WatchdogOption) which configure thresholds and behaviour.
+//
+// Returns MonitoringOption which enables the watchdog on the service.
+func WithMonitoringWatchdog(opts ...WatchdogOption) MonitoringOption {
+	return func(c *monitoring_domain.ServiceConfig) {
+		watchdogConfig := monitoring_domain.DefaultWatchdogConfig()
+		for _, opt := range opts {
+			opt(&watchdogConfig)
+		}
+		c.WatchdogConfig = &watchdogConfig
+	}
+}
+
+// WithWatchdogHeapThresholdPercent sets the heap threshold as a fraction of
+// GOMEMLIMIT (0.0-1.0). Default: 0.85.
+//
+// Takes percent (float64) which is the threshold fraction.
+//
+// Returns WatchdogOption which configures the heap threshold.
+func WithWatchdogHeapThresholdPercent(percent float64) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.HeapThresholdPercent = percent
+	}
+}
+
+// WithWatchdogHeapThresholdBytes sets the absolute heap threshold in bytes,
+// used when GOMEMLIMIT is not configured. Default: 512 MiB.
+//
+// Takes thresholdBytes (uint64) which is the threshold in bytes.
+//
+// Returns WatchdogOption which configures the heap threshold.
+func WithWatchdogHeapThresholdBytes(thresholdBytes uint64) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.HeapThresholdBytes = thresholdBytes
+	}
+}
+
+// WithWatchdogGoroutineThreshold sets the goroutine count that triggers a
+// goroutine profile capture. Default: 10,000.
+//
+// Takes threshold (int) which is the goroutine count threshold.
+//
+// Returns WatchdogOption which configures the goroutine threshold.
+func WithWatchdogGoroutineThreshold(threshold int) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.GoroutineThreshold = threshold
+	}
+}
+
+// WithWatchdogCheckInterval sets how often the watchdog evaluates runtime
+// metrics.
+//
+// Shorter intervals detect anomalies faster at negligible CPU cost.
+// Default: 500ms.
+//
+// Takes interval (time.Duration) which is the check period.
+//
+// Returns WatchdogOption which configures the check interval.
+func WithWatchdogCheckInterval(interval time.Duration) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.CheckInterval = interval
+	}
+}
+
+// WithWatchdogCooldown sets the minimum duration between consecutive profile
+// captures for the same metric type. Default: 2 minutes.
+//
+// Takes duration (time.Duration) which is the cooldown period.
+//
+// Returns WatchdogOption which configures the cooldown.
+func WithWatchdogCooldown(duration time.Duration) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.Cooldown = duration
+	}
+}
+
+// WithWatchdogMaxProfilesPerType sets the maximum number of stored profiles
+// per type (heap, goroutine).
+//
+// Oldest profiles are rotated out. Default: 5.
+//
+// Takes count (int) which is the maximum profile count per type.
+//
+// Returns WatchdogOption which configures profile rotation.
+func WithWatchdogMaxProfilesPerType(count int) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.MaxProfilesPerType = count
+	}
+}
+
+// WithWatchdogProfileDirectory sets the local directory for profile storage.
+// Default: os.TempDir()/piko-watchdog.
+//
+// Takes directory (string) which is the directory path.
+//
+// Returns WatchdogOption which configures the profile directory.
+func WithWatchdogProfileDirectory(directory string) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ProfileDirectory = directory
+	}
+}
+
+// WithWatchdogDeltaProfiling enables storing a baseline heap profile alongside
+// each capture so the user can compute a diff between consecutive captures.
+//
+// Returns WatchdogOption which enables delta profiling.
+func WithWatchdogDeltaProfiling() WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.DeltaProfilingEnabled = true
+	}
+}
+
+// WithWatchdogRSSThresholdPercent sets the fraction of the cgroup memory limit
+// above which RSS triggers a profile capture. Default: 0.85.
+//
+// Takes percent (float64) which is the threshold fraction (0.0-1.0).
+//
+// Returns WatchdogOption which configures the RSS threshold.
+func WithWatchdogRSSThresholdPercent(percent float64) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.RSSThresholdPercent = percent
+	}
+}
+
+// WithWatchdogNotifier sets the notification delivery mechanism for watchdog
+// events. When set, the watchdog sends notifications to external systems when
+// thresholds are breached or errors occur.
+//
+// Takes notifier (monitoring_domain.WatchdogNotifier) which delivers event
+// notifications.
+//
+// Returns MonitoringOption which configures the notifier on the service.
+func WithWatchdogNotifier(notifier monitoring_domain.WatchdogNotifier) MonitoringOption {
+	return func(c *monitoring_domain.ServiceConfig) {
+		c.WatchdogNotifier = notifier
+	}
+}
+
+// WithWatchdogProfileUploader sets the remote storage backend for watchdog
+// profile uploads. When set, captured profiles are uploaded to the configured
+// storage provider after being written to local disk.
+//
+// Takes uploader (monitoring_domain.WatchdogProfileUploader) which handles
+// remote storage.
+//
+// Returns MonitoringOption which configures the uploader on the service.
+func WithWatchdogProfileUploader(uploader monitoring_domain.WatchdogProfileUploader) MonitoringOption {
+	return func(c *monitoring_domain.ServiceConfig) {
+		c.WatchdogProfileUploader = uploader
 	}
 }
 

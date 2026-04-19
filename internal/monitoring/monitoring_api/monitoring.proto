@@ -595,3 +595,60 @@ message CaptureProfileChunk {
   bool is_last = 2;
   string warning = 3;
 }
+
+service WatchdogInspectorService {
+  rpc ListProfiles(ListProfilesRequest) returns (ListProfilesResponse);
+
+  rpc DownloadProfile(DownloadProfileRequest) returns (stream DownloadProfileChunk);
+
+  rpc PruneProfiles(PruneProfilesRequest) returns (PruneProfilesResponse);
+
+  rpc GetWatchdogStatus(GetWatchdogStatusRequest) returns (GetWatchdogStatusResponse);
+}
+
+message ListProfilesRequest {}
+
+message ListProfilesResponse {
+  repeated WatchdogProfileEntry profiles = 1;
+}
+
+message WatchdogProfileEntry {
+  string filename = 1;
+  string type = 2;
+  int64 timestamp_ms = 3;
+  int64 size_bytes = 4;
+}
+
+message DownloadProfileRequest {
+  string filename = 1;
+}
+
+message DownloadProfileChunk {
+  bytes data = 1;
+  bool is_last = 2;
+}
+
+message PruneProfilesRequest {
+  string profile_type = 1;
+}
+
+message PruneProfilesResponse {
+  int32 deleted_count = 1;
+}
+
+message GetWatchdogStatusRequest {}
+
+message GetWatchdogStatusResponse {
+  bool enabled = 1;
+  bool stopped = 2;
+  string profile_directory = 3;
+  int64 check_interval_ms = 4;
+  int64 cooldown_ms = 5;
+  int64 warm_up_duration_ms = 6;
+  int64 started_at_ms = 7;
+  uint64 heap_threshold_bytes = 8;
+  uint64 heap_high_water = 9;
+  int32 goroutine_threshold = 10;
+  int32 goroutine_safety_ceiling = 11;
+  int32 max_profiles_per_type = 12;
+}

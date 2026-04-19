@@ -1673,3 +1673,224 @@ var ProfilingService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Metadata: "monitoring.proto",
 }
+
+const (
+	WatchdogInspectorService_ListProfiles_FullMethodName      = "/piko.monitoring.v1.WatchdogInspectorService/ListProfiles"
+	WatchdogInspectorService_DownloadProfile_FullMethodName   = "/piko.monitoring.v1.WatchdogInspectorService/DownloadProfile"
+	WatchdogInspectorService_PruneProfiles_FullMethodName     = "/piko.monitoring.v1.WatchdogInspectorService/PruneProfiles"
+	WatchdogInspectorService_GetWatchdogStatus_FullMethodName = "/piko.monitoring.v1.WatchdogInspectorService/GetWatchdogStatus"
+)
+
+// WatchdogInspectorServiceClient is the client API for WatchdogInspectorService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type WatchdogInspectorServiceClient interface {
+	ListProfiles(ctx context.Context, in *ListProfilesRequest, opts ...grpc.CallOption) (*ListProfilesResponse, error)
+	DownloadProfile(ctx context.Context, in *DownloadProfileRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DownloadProfileChunk], error)
+	PruneProfiles(ctx context.Context, in *PruneProfilesRequest, opts ...grpc.CallOption) (*PruneProfilesResponse, error)
+	GetWatchdogStatus(ctx context.Context, in *GetWatchdogStatusRequest, opts ...grpc.CallOption) (*GetWatchdogStatusResponse, error)
+}
+
+type watchdogInspectorServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewWatchdogInspectorServiceClient(cc grpc.ClientConnInterface) WatchdogInspectorServiceClient {
+	return &watchdogInspectorServiceClient{cc}
+}
+
+func (c *watchdogInspectorServiceClient) ListProfiles(ctx context.Context, in *ListProfilesRequest, opts ...grpc.CallOption) (*ListProfilesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListProfilesResponse)
+	err := c.cc.Invoke(ctx, WatchdogInspectorService_ListProfiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *watchdogInspectorServiceClient) DownloadProfile(ctx context.Context, in *DownloadProfileRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DownloadProfileChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &WatchdogInspectorService_ServiceDesc.Streams[0], WatchdogInspectorService_DownloadProfile_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[DownloadProfileRequest, DownloadProfileChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WatchdogInspectorService_DownloadProfileClient = grpc.ServerStreamingClient[DownloadProfileChunk]
+
+func (c *watchdogInspectorServiceClient) PruneProfiles(ctx context.Context, in *PruneProfilesRequest, opts ...grpc.CallOption) (*PruneProfilesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PruneProfilesResponse)
+	err := c.cc.Invoke(ctx, WatchdogInspectorService_PruneProfiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *watchdogInspectorServiceClient) GetWatchdogStatus(ctx context.Context, in *GetWatchdogStatusRequest, opts ...grpc.CallOption) (*GetWatchdogStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetWatchdogStatusResponse)
+	err := c.cc.Invoke(ctx, WatchdogInspectorService_GetWatchdogStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// WatchdogInspectorServiceServer is the server API for WatchdogInspectorService service.
+// All implementations must embed UnimplementedWatchdogInspectorServiceServer
+// for forward compatibility.
+type WatchdogInspectorServiceServer interface {
+	ListProfiles(context.Context, *ListProfilesRequest) (*ListProfilesResponse, error)
+	DownloadProfile(*DownloadProfileRequest, grpc.ServerStreamingServer[DownloadProfileChunk]) error
+	PruneProfiles(context.Context, *PruneProfilesRequest) (*PruneProfilesResponse, error)
+	GetWatchdogStatus(context.Context, *GetWatchdogStatusRequest) (*GetWatchdogStatusResponse, error)
+	mustEmbedUnimplementedWatchdogInspectorServiceServer()
+}
+
+// UnimplementedWatchdogInspectorServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedWatchdogInspectorServiceServer struct{}
+
+func (UnimplementedWatchdogInspectorServiceServer) ListProfiles(context.Context, *ListProfilesRequest) (*ListProfilesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListProfiles not implemented")
+}
+func (UnimplementedWatchdogInspectorServiceServer) DownloadProfile(*DownloadProfileRequest, grpc.ServerStreamingServer[DownloadProfileChunk]) error {
+	return status.Error(codes.Unimplemented, "method DownloadProfile not implemented")
+}
+func (UnimplementedWatchdogInspectorServiceServer) PruneProfiles(context.Context, *PruneProfilesRequest) (*PruneProfilesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PruneProfiles not implemented")
+}
+func (UnimplementedWatchdogInspectorServiceServer) GetWatchdogStatus(context.Context, *GetWatchdogStatusRequest) (*GetWatchdogStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetWatchdogStatus not implemented")
+}
+func (UnimplementedWatchdogInspectorServiceServer) mustEmbedUnimplementedWatchdogInspectorServiceServer() {
+}
+func (UnimplementedWatchdogInspectorServiceServer) testEmbeddedByValue() {}
+
+// UnsafeWatchdogInspectorServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to WatchdogInspectorServiceServer will
+// result in compilation errors.
+type UnsafeWatchdogInspectorServiceServer interface {
+	mustEmbedUnimplementedWatchdogInspectorServiceServer()
+}
+
+func RegisterWatchdogInspectorServiceServer(s grpc.ServiceRegistrar, srv WatchdogInspectorServiceServer) {
+	// If the following call panics, it indicates UnimplementedWatchdogInspectorServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&WatchdogInspectorService_ServiceDesc, srv)
+}
+
+func _WatchdogInspectorService_ListProfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProfilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WatchdogInspectorServiceServer).ListProfiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WatchdogInspectorService_ListProfiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WatchdogInspectorServiceServer).ListProfiles(ctx, req.(*ListProfilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WatchdogInspectorService_DownloadProfile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DownloadProfileRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(WatchdogInspectorServiceServer).DownloadProfile(m, &grpc.GenericServerStream[DownloadProfileRequest, DownloadProfileChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WatchdogInspectorService_DownloadProfileServer = grpc.ServerStreamingServer[DownloadProfileChunk]
+
+func _WatchdogInspectorService_PruneProfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PruneProfilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WatchdogInspectorServiceServer).PruneProfiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WatchdogInspectorService_PruneProfiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WatchdogInspectorServiceServer).PruneProfiles(ctx, req.(*PruneProfilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WatchdogInspectorService_GetWatchdogStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWatchdogStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WatchdogInspectorServiceServer).GetWatchdogStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WatchdogInspectorService_GetWatchdogStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WatchdogInspectorServiceServer).GetWatchdogStatus(ctx, req.(*GetWatchdogStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// WatchdogInspectorService_ServiceDesc is the grpc.ServiceDesc for WatchdogInspectorService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var WatchdogInspectorService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "piko.monitoring.v1.WatchdogInspectorService",
+	HandlerType: (*WatchdogInspectorServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListProfiles",
+			Handler:    _WatchdogInspectorService_ListProfiles_Handler,
+		},
+		{
+			MethodName: "PruneProfiles",
+			Handler:    _WatchdogInspectorService_PruneProfiles_Handler,
+		},
+		{
+			MethodName: "GetWatchdogStatus",
+			Handler:    _WatchdogInspectorService_GetWatchdogStatus_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "DownloadProfile",
+			Handler:       _WatchdogInspectorService_DownloadProfile_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "monitoring.proto",
+}
