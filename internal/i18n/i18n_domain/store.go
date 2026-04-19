@@ -121,8 +121,8 @@ func (s *Store) SetDefaultLocale(locale string) {
 // Takes locale (string) which is the locale identifier to add or update.
 // Takes entries (map[string]*Entry) which contains the translation entries.
 //
-// Safe for concurrent use. The method holds a mutex lock while updating
-// the locale data and rebuilding the fallback chain.
+// Safe for concurrent use. Holds a mutex lock while updating the locale data and
+// rebuilding the fallback chain.
 func (s *Store) AddLocale(locale string, entries map[string]*Entry) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

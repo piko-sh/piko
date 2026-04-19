@@ -1,0 +1,75 @@
+<svg viewBox="0 0 760 365" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="pkclc-title pkclc-desc">
+  <title id="pkclc-title">PKC component lifecycle state machine</title>
+  <desc id="pkclc-desc">A state machine with four states: created, mounted, running, and unmounted. The component starts at created when the custom element upgrades, transitions to mounted after onConnected, stays in running where state mutations tracked by the reactive proxy cause local re-renders (firing onBeforeRender, onAfterRender, and onUpdated), and transitions to unmounted when the element leaves the DOM and onDisconnected fires.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="20" y="60" width="140" height="80" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,60 H150 A10,10 0 0 1 160,70 V82 H20 V70 A10,10 0 0 1 30,60 Z" fill="#1C544F"/>
+  <text x="90" y="75" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">1. created</text>
+  <text x="90" y="98" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">custom element</text>
+  <text x="90" y="112" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">upgrade()</text>
+  <text x="90" y="130" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">props read, shadow DOM</text>
+
+  
+  <line x1="165" y1="100" x2="205" y2="100" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="185" y="92" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">attach</text>
+
+  
+  <rect x="210" y="60" width="140" height="80" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M220,60 H340 A10,10 0 0 1 350,70 V82 H210 V70 A10,10 0 0 1 220,60 Z" fill="#1C544F"/>
+  <text x="280" y="75" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">2. mounted</text>
+  <text x="280" y="98" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">onConnected()</text>
+  <text x="280" y="114" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">first render done</text>
+  <text x="280" y="130" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">listeners bound</text>
+
+  
+  <line x1="355" y1="100" x2="395" y2="100" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="375" y="92" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">render</text>
+
+  
+  <rect x="400" y="60" width="140" height="80" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M410,60 H530 A10,10 0 0 1 540,70 V82 H400 V70 A10,10 0 0 1 410,60 Z" fill="#1C544F"/>
+  <text x="470" y="75" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">3. running</text>
+  <text x="470" y="98" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">state mutations</text>
+  <text x="470" y="112" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">trigger re-render</text>
+  <text x="470" y="130" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">proxy-tracked deps</text>
+
+  
+  <path d="M445,140 V165 H495 V143" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" stroke-linejoin="round" fill="none" marker-end="url(#arrow)"/>
+  <text x="470" y="180" text-anchor="middle" fill="#A16207" font-family="monospace" font-size="9" font-weight="600">state.x = ...</text>
+  <text x="470" y="194" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">proxy notifies, re-render</text>
+
+  
+  <line x1="545" y1="100" x2="585" y2="100" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="565" y="92" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">detach</text>
+
+  
+  <rect x="590" y="60" width="130" height="80" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M600,60 H710 A10,10 0 0 1 720,70 V82 H590 V70 A10,10 0 0 1 600,60 Z" fill="#364049"/>
+  <text x="655" y="75" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="11" font-weight="600">4. unmounted</text>
+  <text x="655" y="98" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">onDisconnected()</text>
+  <text x="655" y="116" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">cleanup</text>
+  <text x="655" y="128" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">ref removed</text>
+
+  
+  <rect x="20" y="220" width="720" height="100" rx="10" fill="#1C544F"/>
+  <text x="32" y="240" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Hooks available to the script block:</text>
+
+  <text x="42" y="262" fill="#C9F5F2" font-family="monospace" font-size="10">onConnected(fn)</text>
+  <text x="200" y="262" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">runs once, after the element connects to the DOM</text>
+
+  <text x="42" y="282" fill="#C9F5F2" font-family="monospace" font-size="10">onDisconnected(fn)</text>
+  <text x="200" y="282" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">runs once, before the element leaves the DOM</text>
+
+  <text x="42" y="302" fill="#C9F5F2" font-family="monospace" font-size="10">onUpdated(fn)</text>
+  <text x="200" y="302" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">runs after a render commits, with the changed-property set</text>
+
+  
+  <text x="380" y="350" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11">Props are read-only inside the component; state is local and mutable via the proxy wrapper.</text>
+</svg>

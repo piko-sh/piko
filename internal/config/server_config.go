@@ -405,7 +405,7 @@ type SecurityHeadersConfig struct {
 	//
 	// When empty, Piko applies sensible defaults via the CSP builder that are
 	// compatible with built-in features like font loading and inline styles.
-	// Use piko.WithCSP() for type-safe customisation, or set this field for a
+	// Use piko.WithCSP() for type-safe customisation, or set the value for a
 	// raw string override. To disable CSP entirely, use piko.WithCSPString("").
 	ContentSecurityPolicy *string `json:"contentSecurityPolicy" yaml:"contentSecurityPolicy" env:"PIKO_SECURITY_CSP" flag:"contentSecurityPolicy" usage:"Content-Security-Policy header value. Leave empty for Piko defaults."`
 

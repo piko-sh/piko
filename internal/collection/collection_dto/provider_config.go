@@ -22,9 +22,8 @@ import "slices"
 
 // ProviderConfig contains configuration for a collection provider.
 //
-// This structure is passed to providers during initialisation and collection
-// discovery. It provides both generic framework configuration and
-// provider-specific custom settings.
+// Passed to providers during initialisation and collection discovery. Provides
+// both generic framework configuration and provider-specific custom settings.
 //
 // Design philosophy:
 //   - Generic config: Common settings all providers need (base paths, locales)
@@ -127,12 +126,11 @@ type CollectionInfo struct {
 	// The key is the field name and the value is the type as a string
 	// (e.g., "string", "int", "bool", "[]string").
 	//
-	// This is used to check that user-defined target structs match the
-	// available fields.
+	// Checks that user-defined target structs match the available fields.
 	Schema map[string]string
 
 	// Metadata holds extra details from the provider for display and debugging.
-	// The framework does not use this field.
+	// Not used by the framework.
 	Metadata map[string]any
 
 	// Name is the unique identifier for this collection.

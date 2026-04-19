@@ -115,9 +115,9 @@ func (*FieldExtractor[V]) compareByKind(fieldPtr unsafe.Pointer, kind reflect.Ki
 // Returns any which is the extracted field value, or nil if extraction fails.
 // Returns bool which indicates whether the extraction was successful.
 //
-// Note: This function is intentionally not decomposed into helpers
-// despite high complexity. Extracting helper functions causes them to
-// not be inlined, which reintroduces allocations in the hot path.
+// Note: intentionally not decomposed into helpers despite high complexity.
+// Extracting helper functions causes them to not be inlined, which reintroduces
+// allocations in the hot path.
 //
 //nolint:revive // inlined for zero-alloc
 func (*FieldExtractor[V]) extractWithAccessor(value V, accessor *fieldAccessor) (any, bool) {

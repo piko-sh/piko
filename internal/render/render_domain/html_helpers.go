@@ -219,7 +219,7 @@ func (ro *RenderOrchestrator) getCachedHTMLLinks(websiteConfig *config.WebsiteCo
 }
 
 // buildFaviconLinks creates HTML link elements for the set favicons.
-// This method uses caching to avoid allocations on each request.
+// Uses caching to avoid allocations on each request.
 //
 // Takes websiteConfig (*config.WebsiteConfig) which provides the favicon settings.
 //
@@ -272,7 +272,7 @@ func (*RenderOrchestrator) buildFaviconLinksUncached(websiteConfig *config.Websi
 }
 
 // buildFontLinks generates HTML link elements for loading web fonts.
-// This method uses caching to avoid repeated allocations per request.
+// Uses caching to avoid repeated allocations per request.
 //
 // Takes websiteConfig (*config.WebsiteConfig) which specifies the
 // fonts to include.

@@ -70,8 +70,8 @@ func (m Mode) String() string {
 }
 
 // FileHandle provides an interface for sandboxed file operations.
-// This interface enables dependency injection and testing with mock
-// implementations that can simulate errors for test coverage.
+// Enables dependency injection and testing with mock implementations that can
+// simulate errors for test coverage.
 //
 // The default implementation is *File, which wraps os.File.
 type FileHandle interface {

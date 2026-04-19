@@ -42,9 +42,9 @@ type EncoderPort[V any] interface {
 
 // AnyEncoder provides a type-agnostic interface for encoding.
 //
-// All typed encoders can be converted to this interface, so different
-// encoders can be stored together in a registry. It links compile-time type
-// safety with runtime flexibility.
+// All typed encoders can be converted to AnyEncoder, so different encoders can
+// be stored together in a registry. Links compile-time type safety with
+// runtime flexibility.
 type AnyEncoder interface {
 	// MarshalAny takes a value of any type, checks if it matches the
 	// encoder's type, and marshals it.

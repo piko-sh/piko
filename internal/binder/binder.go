@@ -243,9 +243,8 @@ func (b *ASTBinder) RegisterConverter(typ reflect.Type, converter ConverterFunc)
 
 // SetMaxSliceSize sets the maximum allowed slice index for form binding.
 //
-// This prevents memory exhaustion attacks from malicious inputs like
-// "items[9999999]". A value of 0 means no limit is enforced. This method
-// is safe for concurrent use.
+// Prevents memory exhaustion attacks from malicious inputs like "items[9999999]".
+// A value of 0 means no limit is enforced. Safe for concurrent use.
 //
 // Takes size (int) which specifies the maximum slice index allowed.
 func (b *ASTBinder) SetMaxSliceSize(size int) {
@@ -297,9 +296,8 @@ func (b *ASTBinder) SetMaxFieldCount(count int) {
 //
 // Takes length (int) which specifies the maximum allowed length.
 //
-// This prevents CPU/memory exhaustion from malicious TextUnmarshaler
-// implementations. A value of 0 means no limit is enforced. This method
-// is safe for concurrent use.
+// Prevents CPU/memory exhaustion from malicious TextUnmarshaler implementations.
+// A value of 0 means no limit is enforced. Safe for concurrent use.
 func (b *ASTBinder) SetMaxValueLength(length int) {
 	if length < 0 {
 		length = 0
@@ -308,7 +306,7 @@ func (b *ASTBinder) SetMaxValueLength(length int) {
 }
 
 // SetIgnoreUnknownKeys sets the global default for ignoring unknown form fields.
-// This method is safe for concurrent use.
+// Safe for concurrent use.
 //
 // Takes ignore (bool) which controls whether unknown fields are silently
 // ignored (true) or cause an error for each unknown key (false, the default).

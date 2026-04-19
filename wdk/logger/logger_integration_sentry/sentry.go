@@ -153,13 +153,12 @@ type Config struct {
 	Debug bool
 }
 
-// Enable sets up the Sentry SDK and adds Sentry as a log handler. This
-// function uses sync.Once to ensure Sentry is only set up once, even if
-// called multiple times.
+// Enable sets up the Sentry SDK and adds Sentry as a log handler. Uses
+// sync.Once to ensure Sentry is only set up once, even if called multiple
+// times.
 //
-// Use this for programmatic Sentry setup. For config-based setup via
-// piko.yaml, simply import this package and configure Sentry in your config
-// file.
+// Use Enable for programmatic Sentry setup. For config-based setup via
+// piko.yaml, import the integration and configure Sentry in your config file.
 //
 // Takes config (Config) which specifies the Sentry configuration settings.
 func Enable(config Config) {

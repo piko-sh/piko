@@ -1,0 +1,87 @@
+<svg viewBox="0 0 620 360" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="err-title err-desc">
+  <title id="err-title">Error types map to HTTP status codes</title>
+  <desc id="err-desc">A Render or Call function returns an error value. The dispatch layer type-switches on the error type and selects an HTTP status code and response shape. Nil maps to 200 with the response body. ValidationField maps to 400 with one field error attached. ValidationError maps to 400 with multiple field errors. UnauthorisedError maps to 401. ForbiddenError maps to 403. NotFoundError maps to 404. Any other error maps to 500 with the safe message.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="20" y="130" width="170" height="74" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,130 H180 A10,10 0 0 1 190,140 V152 H20 V140 A10,10 0 0 1 30,130 Z" fill="#1C544F"/>
+  <text x="105" y="145" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Call / Render</text>
+  <text x="105" y="167" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">return (resp, err)</text>
+  <text x="105" y="184" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">the error is the signal</text>
+  <text x="105" y="197" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">type-switch selects status</text>
+
+  
+  <line x1="195" y1="167" x2="220" y2="167" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="225" y="130" width="150" height="74" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M235,130 H365 A10,10 0 0 1 375,140 V152 H225 V140 A10,10 0 0 1 235,130 Z" fill="#1C544F"/>
+  <text x="300" y="145" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">errors.As</text>
+  <text x="300" y="167" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">switch err.(type) {</text>
+  <text x="300" y="181" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">  case *ValidationError</text>
+  <text x="300" y="195" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">  case *NotFoundError</text>
+
+  
+  
+  <line x1="380" y1="140" x2="440" y2="50" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="445" y="30" width="165" height="40" rx="8" fill="#2B333B" stroke="#28c840" stroke-width="1.3"/>
+  <text x="458" y="47" fill="#28c840" font-family="system-ui, sans-serif" font-size="11" font-weight="600">200 OK</text>
+  <text x="505" y="47" fill="#C9F5F2" font-family="monospace" font-size="10">nil error</text>
+  <text x="458" y="61" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">body: the Response value</text>
+
+  
+  <line x1="380" y1="150" x2="440" y2="93" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="445" y="75" width="165" height="40" rx="8" fill="#2B333B" stroke="#febc2e" stroke-width="1.3"/>
+  <text x="458" y="92" fill="#febc2e" font-family="system-ui, sans-serif" font-size="11" font-weight="600">400</text>
+  <text x="485" y="92" fill="#C9F5F2" font-family="monospace" font-size="10">ValidationField</text>
+  <text x="458" y="106" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">body: one field error</text>
+
+  
+  <line x1="380" y1="158" x2="440" y2="138" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="445" y="120" width="165" height="40" rx="8" fill="#2B333B" stroke="#febc2e" stroke-width="1.3"/>
+  <text x="458" y="137" fill="#febc2e" font-family="system-ui, sans-serif" font-size="11" font-weight="600">400</text>
+  <text x="485" y="137" fill="#C9F5F2" font-family="monospace" font-size="10">ValidationError</text>
+  <text x="458" y="151" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">body: multiple field errors</text>
+
+  
+  <line x1="380" y1="170" x2="440" y2="183" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="445" y="165" width="165" height="40" rx="8" fill="#2B333B" stroke="#ff5f57" stroke-width="1.3"/>
+  <text x="458" y="182" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="11" font-weight="600">401</text>
+  <text x="485" y="182" fill="#C9F5F2" font-family="monospace" font-size="10">UnauthorisedError</text>
+  <text x="458" y="196" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">body: safe message</text>
+
+  
+  <line x1="380" y1="180" x2="440" y2="228" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="445" y="210" width="165" height="40" rx="8" fill="#2B333B" stroke="#ff5f57" stroke-width="1.3"/>
+  <text x="458" y="227" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="11" font-weight="600">403</text>
+  <text x="485" y="227" fill="#C9F5F2" font-family="monospace" font-size="10">ForbiddenError</text>
+  <text x="458" y="241" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">body: safe message</text>
+
+  
+  <line x1="380" y1="190" x2="440" y2="273" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="445" y="255" width="165" height="40" rx="8" fill="#2B333B" stroke="#ff5f57" stroke-width="1.3"/>
+  <text x="458" y="272" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="11" font-weight="600">404</text>
+  <text x="485" y="272" fill="#C9F5F2" font-family="monospace" font-size="10">NotFoundError</text>
+  <text x="458" y="286" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">body: safe message</text>
+
+  
+  <line x1="380" y1="200" x2="440" y2="318" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="445" y="300" width="165" height="40" rx="8" fill="#2B333B" stroke="#ff5f57" stroke-width="1.3"/>
+  <text x="458" y="317" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="11" font-weight="600">500</text>
+  <text x="485" y="317" fill="#C9F5F2" font-family="monospace" font-size="10">any other error</text>
+  <text x="458" y="331" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">body: safe msg, log: full</text>
+
+  
+  <rect x="20" y="230" width="170" height="90" rx="8" fill="#1C544F"/>
+  <text x="105" y="248" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">safe vs internal</text>
+  <text x="105" y="270" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">Error type carries:</text>
+  <text x="30" y="288" fill="#C9F5F2" font-family="monospace" font-size="9">SafeMessage()</text>
+  <text x="95" y="288" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">shown to user</text>
+  <text x="30" y="304" fill="#C9F5F2" font-family="monospace" font-size="9">Error()</text>
+  <text x="95" y="304" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">written to logs</text>
+</svg>

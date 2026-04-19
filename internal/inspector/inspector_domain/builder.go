@@ -51,7 +51,7 @@ const (
 
 // builderCacheKeyGenerator defines how to create a stable cache key.
 type builderCacheKeyGenerator interface {
-	// Generate produces documentation output from the analysed source files.
+	// Generates documentation output from the analysed source files.
 	//
 	// Takes config (inspector_dto.Config) which specifies the generation settings.
 	// Takes sourceContents (map[string][]byte) which provides the source file
@@ -157,7 +157,7 @@ type defaultKeyGenerator struct {
 	sandboxFactory safedisk.Factory
 }
 
-// Generate creates a cache key from the given configuration and sources.
+// Generate generates a cache key from the given configuration and sources.
 //
 // Takes config (inspector_dto.Config) which specifies the inspection settings.
 // Takes sources (map[string][]byte) which contains the source files to hash.

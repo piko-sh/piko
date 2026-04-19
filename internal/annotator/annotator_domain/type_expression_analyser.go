@@ -933,7 +933,7 @@ func isPointerType(typeExpr goast.Expr) bool {
 }
 
 // isMapStringInterface checks if a type expression is map[string]interface{}.
-// This type allows dot-notation access on collection data maps.
+// Allows dot-notation access on collection data maps.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //

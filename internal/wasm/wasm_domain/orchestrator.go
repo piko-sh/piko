@@ -165,8 +165,8 @@ func NewOrchestrator(opts ...Option) *Orchestrator {
 	return o
 }
 
-// Initialise loads the stdlib data and prepares the orchestrator.
-// This must be called before any other methods.
+// Initialise prepares the orchestrator by loading the stdlib data. Must be
+// called before any other methods.
 //
 // Returns error when the stdlib loader is not configured or fails to load.
 //
@@ -327,7 +327,7 @@ func (o *Orchestrator) GetHover(ctx context.Context, request *wasm_dto.HoverRequ
 	}, nil
 }
 
-// Validate performs quick validation of Go source code.
+// Validate runs a quick syntactic check on Go source code.
 //
 // Takes request (*wasm_dto.ValidateRequest) which contains the source code and
 // file path to validate.
@@ -555,7 +555,7 @@ func (o *Orchestrator) Generate(ctx context.Context, request *wasm_dto.GenerateF
 }
 
 // Render produces HTML from in-memory sources.
-// This method only supports static templates (no Go code execution).
+// Only supports static templates (no Go code execution).
 //
 // Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source
 // files and configuration.

@@ -65,7 +65,7 @@ func (s *Store) Load(_ context.Context, conversationID string) (*llm_dto.Convers
 //
 // Returns error when the state cannot be saved.
 //
-// Safe for concurrent use. The method holds a mutex while storing.
+// Safe for concurrent use. Holds a mutex while storing.
 func (s *Store) Save(_ context.Context, state *llm_dto.ConversationState) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

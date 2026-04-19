@@ -254,7 +254,7 @@ func (p *MailgunProvider) SendBulk(ctx context.Context, emails []*email_dto.Send
 }
 
 // Close releases resources held by the provider. The Mailgun client is
-// stateless, so this method does nothing.
+// stateless, so the call does nothing.
 //
 // Returns error when cleanup fails, though this always returns nil.
 func (*MailgunProvider) Close(_ context.Context) error {

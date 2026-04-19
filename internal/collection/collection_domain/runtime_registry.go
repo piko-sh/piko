@@ -160,8 +160,8 @@ func GetProvider(name string) (RuntimeProvider, error) {
 
 // FetchCollection is the runtime entry point for dynamic collections.
 //
-// This function is called by generated code when a component uses
-// data.GetCollection() with a dynamic provider.
+// Called by generated code when a component uses data.GetCollection() with
+// a dynamic provider.
 //
 // Takes providerName (string) which specifies the provider to use
 // (e.g., "headless-cms").
@@ -196,8 +196,8 @@ func FetchCollection(
 // ResetRuntimeProviderRegistry clears the runtime provider registry for test
 // isolation.
 //
-// This function should only be called from tests. It clears all registered
-// runtime providers so that tests start with a clean state.
+// Should only be called from tests. Clears all registered runtime providers
+// so that tests start with a clean state.
 //
 // Safe for concurrent use; protected by an internal mutex.
 func ResetRuntimeProviderRegistry() {

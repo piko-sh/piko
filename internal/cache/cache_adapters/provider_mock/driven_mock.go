@@ -297,7 +297,7 @@ func (m *MockAdapter[K, V]) Invalidate(_ context.Context, key K) error {
 	return nil
 }
 
-// Compute atomically computes a new value based on the current value.
+// Compute computes a new value atomically based on the current value.
 //
 // Takes key (K) which identifies the cache entry to compute.
 // Takes computeFunction (func(...)) which receives the current value

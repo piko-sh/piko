@@ -508,8 +508,8 @@ func (h *SecretHandle[T]) TryValue() (T, error) {
 	return h.secret.getValue()
 }
 
-// Release frees this handle and lowers the secret's reference count.
-// This method is idempotent; calling it more than once is safe.
+// Release frees the handle and lowers the secret's reference count.
+// Idempotent; calling more than once is safe.
 func (h *SecretHandle[T]) Release() {
 	if !h.released.CompareAndSwap(false, true) {
 		return

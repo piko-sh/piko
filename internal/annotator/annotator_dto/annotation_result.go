@@ -31,9 +31,9 @@ type AnnotationResult struct {
 	//
 	// It enables the LSP to provide context-aware intelligence features
 	// (hover, completion, definition) by accessing the symbol table and
-	// type information at each template location. This field uses any to
-	// avoid a circular dependency; the LSP type-asserts it to
-	// AnalysisContext from annotator_domain.
+	// type information at each template location. Uses any to avoid a
+	// circular dependency; the LSP type-asserts it to AnalysisContext
+	// from annotator_domain.
 	AnalysisMap any
 
 	// EntryPointStyleBlocks contains the style blocks from the entry

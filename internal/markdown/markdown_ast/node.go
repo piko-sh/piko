@@ -347,8 +347,8 @@ func (n *BaseNode) AppendChild(child Node) {
 	}
 }
 
-// getBaseNode extracts the embedded BaseNode from any Node. All concrete
-// node types in this package embed BaseNode, so this always succeeds.
+// getBaseNode extracts the embedded BaseNode from any Node. All concrete node types
+// embed BaseNode, so this always succeeds.
 //
 // Takes n (Node) which is the node to extract from.
 //

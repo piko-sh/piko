@@ -106,9 +106,8 @@ func (*FlatBufferEncoder) EncodeCollection(items []collection_dto.ContentItem) (
 // DecodeCollectionItem extracts a single item from the versioned blob using
 // binary search.
 //
-// This method performs an O(log n) lookup in the sorted items vector without
-// decoding the entire collection. It returns raw bytes that can be lazily
-// decoded by the caller.
+// Performs an O(log n) lookup in the sorted items vector without decoding the
+// entire collection. Returns raw bytes that can be lazily decoded by the caller.
 //
 // Takes blob ([]byte) which is the versioned encoded collection produced
 // by EncodeCollection.

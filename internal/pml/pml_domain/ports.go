@@ -72,9 +72,8 @@ type Transformer interface {
 	) (*ast_domain.TemplateAST, string, []*email_dto.EmailAssetRequest, []*Error)
 }
 
-// ComponentRegistry is a driven port for PikoML component lookup. The domain
-// uses this interface to find components without being coupled to
-// implementations.
+// ComponentRegistry is a driven port for PikoML component lookup. The domain uses
+// the registry to find components without being coupled to implementations.
 type ComponentRegistry interface {
 	// Register adds a component to the registry.
 	//
@@ -109,9 +108,9 @@ type ComponentRegistry interface {
 // validatorPort is a driven port responsible for validating the structure and
 // attributes of a PikoML AST.
 type validatorPort interface {
-	// Validate traverses the TemplateAST, checking for valid component usage,
-	// parent-child relationships, and attributes against the rules defined by
-	// registered components.
+	// Validates the TemplateAST by traversing it, checking for valid component
+	// usage, parent-child relationships, and attributes against the rules
+	// defined by registered components.
 	//
 	// Takes ast (*ast_domain.TemplateAST) which is the parsed template to check.
 	//

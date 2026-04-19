@@ -403,7 +403,7 @@ type fieldResolutionContext struct {
 	// SubstitutionMap holds the generic type argument substitutions to apply.
 	SubstitutionMap map[string]goast.Expr
 
-	// ParentTypeName holds the name of the type that owns this field.
+	// ParentTypeName holds the name of the type that owns the field.
 	ParentTypeName string
 
 	// InitialPackagePath holds the package path of the original importer.

@@ -41,9 +41,9 @@ const (
 
 // RuntimeFetcherCode represents generated Go code for runtime data fetching.
 //
-// This structure is the output of a dynamic provider's GenerateRuntimeFetcher
-// method. It contains the complete specification for code that will be
-// injected into the compiled component to fetch data at runtime.
+// Acts as the output of a dynamic provider's GenerateRuntimeFetcher method.
+// Contains the complete specification for code that will be injected into the
+// compiled component to fetch data at runtime.
 //
 // Design Philosophy:
 //   - AST-based: Uses Go's ast package for type-safe code generation
@@ -56,8 +56,8 @@ type RuntimeFetcherCode struct {
 	// The function signature should be:
 	//   func(ctx context.Context, opts FetchOptions) ([]TargetType, error)
 	//
-	// The generator will inject this function into the component's code and
-	// call it from the Render function.
+	// The generator injects the AST into the component's code and calls it
+	// from the Render function.
 	FetcherFunc *ast.FuncDecl
 
 	// RequiredImports specifies the Go packages needed by the fetcher function.

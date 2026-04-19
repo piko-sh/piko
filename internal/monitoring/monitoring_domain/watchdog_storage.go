@@ -254,9 +254,9 @@ func (store *profileStore) readHistory() (startupHistoryFile, bool, error) {
 	return file, true, nil
 }
 
-// writeHistory persists the supplied history file atomically. Older entries
-// are NOT trimmed by this method -- callers are responsible for keeping the
-// ring within bounds before calling.
+// writeHistory persists the supplied history file atomically. Older entries are NOT
+// trimmed -- callers are responsible for keeping the ring within bounds before
+// calling.
 //
 // Takes file (startupHistoryFile) which provides the entries to persist.
 //

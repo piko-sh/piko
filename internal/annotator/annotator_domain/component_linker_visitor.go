@@ -112,7 +112,7 @@ func (v *linkingVisitor) Enter(ctx context.Context, node *ast_domain.TemplateNod
 
 // Exit is called after a node and all its children have been visited.
 //
-// Returns error when processing fails; this method always returns nil.
+// Returns error when processing fails; always returns nil.
 func (*linkingVisitor) Exit(_ context.Context, _ *ast_domain.TemplateNode) error {
 	return nil
 }

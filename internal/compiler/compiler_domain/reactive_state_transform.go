@@ -81,7 +81,7 @@ type userFunctionDefinition struct {
 	// instance.
 	FunctionName string
 
-	// Statement is the AST node for this function declaration.
+	// Statement is the AST node for the function declaration.
 	Statement js_ast.Stmt
 }
 

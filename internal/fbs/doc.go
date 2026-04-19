@@ -53,10 +53,10 @@
 //
 // # Integration
 //
-// This package is used across Piko's caching infrastructure to version
-// FlatBuffer-serialised data including AST nodes, search indices, i18n
-// bundles, and collection manifests. Each schema module (e.g., ast/schema,
-// search/search_schema) maintains its own embedded schema hash.
+// Used across Piko's caching infrastructure to version FlatBuffer-serialised data
+// including AST nodes, search indices, i18n bundles, and collection manifests.
+// Each schema module (e.g., ast/schema, search/search_schema) maintains its own
+// embedded schema hash.
 //
 // # Debugging versioned files
 //

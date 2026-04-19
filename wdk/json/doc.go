@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package json provides a pluggable JSON encoding and decoding
-// abstraction. By default, all operations delegate to
-// [encoding/json] from the standard library.
+// Package json provides a pluggable JSON encoding and decoding abstraction. By
+// default, all operations delegate to [encoding/json] from the standard
+// library.
 //
-// This package is the public facade for the internal JSON package.
-// Code inside the piko module should import the internal package
-// directly; external consumers should import this package.
+// Acts as the public facade for the internal JSON package. Code inside the
+// piko module should import the internal package directly; external consumers
+// should import the json facade.
 package json

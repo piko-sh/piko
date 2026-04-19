@@ -19,8 +19,7 @@
 // Package highlight provides syntax highlighting for code blocks in
 // Piko applications.
 //
-// This package defines the [Highlighter] interface that backends must
-// implement to convert source code into highlighted HTML. Import a
-// specific adapter package and pass the highlighter to the Piko
-// server.
+// Defines the [Highlighter] interface that backends must implement to convert
+// source code into highlighted HTML. Import a specific adapter package and pass
+// the highlighter to the Piko server.
 package highlight

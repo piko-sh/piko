@@ -447,7 +447,7 @@ func (enc *Encoding) encodeBytesGeneric(data []byte) string {
 }
 
 // encodeBytesASCII encodes digits to a string using the byte-based alphabet.
-// This method avoids memory allocation where possible.
+// Avoids memory allocation where possible.
 //
 // Takes digits ([]int) which contains the numeric values to encode.
 // Takes leadingZeroCount (int) which specifies zeros to add at the start.

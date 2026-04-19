@@ -77,7 +77,7 @@ func validatePutParams(params *storage_dto.PutParams, config *ServiceConfig) err
 }
 
 // validateCASParams checks Content-Addressable Storage (CAS) parameters.
-// This function changes params in place to set defaults if needed.
+// Changes params in place to set defaults if needed.
 //
 // Takes params (*storage_dto.PutParams) which holds the CAS parameters to
 // check.

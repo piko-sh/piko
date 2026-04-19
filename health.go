@@ -84,8 +84,8 @@ const (
 )
 
 // HealthProbe is the interface that custom application health checks must
-// implement. Implementing this interface allows your application to take part
-// in Piko's health check system, which is exposed via the /live and /ready
+// implement. Implementing HealthProbe allows your application to take part in
+// Piko's health check system, which is exposed via the /live and /ready
 // endpoints.
 //
 // Interface definition:

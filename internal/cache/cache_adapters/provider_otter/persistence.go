@@ -43,7 +43,7 @@ type PersistenceConfig[K comparable, V any] struct {
 	Enabled bool
 }
 
-// Validate checks that the persistence configuration is valid.
+// Validate reports whether the persistence configuration is correct.
 //
 // Returns error when persistence is enabled but codecs are missing or the WAL
 // configuration is invalid.

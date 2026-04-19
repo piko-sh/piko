@@ -283,7 +283,7 @@ func (*document) checkDirectiveHoverContext(line string, cursor int, position pr
 //
 // Returns *protocol.Hover which contains the hover information to display,
 // or nil if the directive is not found.
-// Returns error which is always nil for this method.
+// Returns error which is always nil here.
 func (*document) getDirectiveHover(ctx *PKHoverContext) (*protocol.Hover, error) {
 	directiveDocumentation, exists := pikoDirectiveDocumentations[ctx.Name]
 	if !exists {

@@ -85,7 +85,7 @@ type Config struct {
 	// are stored.
 	//
 	// When Sandbox is nil this must be set and a real sandbox is created from
-	// it. When Sandbox is provided this field is ignored.
+	// it. When Sandbox is provided the value is ignored.
 	Directory string
 
 	// Filename is the base name of the log file (e.g. "app.log"), which must

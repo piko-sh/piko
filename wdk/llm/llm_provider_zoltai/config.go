@@ -59,7 +59,7 @@ type Config struct {
 	Seed int64
 }
 
-// Validate checks that the configuration is valid.
+// Validate reports whether the configuration is valid.
 // Zoltai requires no external credentials, so this always returns nil.
 //
 // Returns error which is always nil.

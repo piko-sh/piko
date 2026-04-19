@@ -76,7 +76,7 @@ type FileSystemWatcher interface {
 	Watch(ctx context.Context, recursiveDirs []string, nonRecursiveDirs []string) (<-chan lifecycle_dto.FileEvent, error)
 
 	// UpdateWatchedFiles adds or removes files from the watch list.
-	// This is used to track asset files found during builds.
+	// Used to track asset files found during builds.
 	//
 	// Takes files ([]string) which lists the file paths to watch.
 	//
@@ -148,7 +148,7 @@ type InterpretedBuildOrchestrator interface {
 
 	// GetAffectedComponents returns all component paths that transitively
 	// depend on the given component, found by BFS through the reverse
-	// dependency map. This is used to determine which components need
+	// dependency map. Used to determine which components need
 	// rebuilding when a partial changes.
 	//
 	// Takes relPath (string) which is the relative path of the changed
@@ -176,10 +176,10 @@ type TemplaterRunnerSwapper interface {
 }
 
 // BuildCacheInvalidator triggers a rebuild in interpreted mode.
-// The manifest runner implements this interface when it supports cache
+// The manifest runner implements BuildCacheInvalidator when it supports cache
 // invalidation.
 type BuildCacheInvalidator interface {
-	// InvalidateBuildCache clears any stored build outputs for this package.
+	// InvalidateBuildCache clears any stored build outputs held by the runner.
 	InvalidateBuildCache()
 }
 

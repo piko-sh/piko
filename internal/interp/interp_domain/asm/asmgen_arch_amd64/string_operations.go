@@ -537,10 +537,9 @@ func emitLenStringLtLoadAndCompare(e *asmgen.Emitter) {
 // (branch-not-taken path) and the branch-taken path, both ending in
 // DISPATCH_NEXT.
 //
-// On the not-taken path, the next instruction word is loaded and its
-// signed 16-bit offset (in bits 8-23) is sign-extended and added to
-// the program counter. On the taken path, the program counter simply
-// advances past the offset word.
+// On the not-taken path, the next instruction word is loaded and its signed 16-bit
+// offset (in bits 8-23) is sign-extended and added to the program counter. On the
+// taken path, the program counter advances past the offset word.
 //
 // Takes e (*asmgen.Emitter) which is the assembly emitter to write to.
 func emitLenStringLtJumpOffsetAndDispatch(e *asmgen.Emitter) {

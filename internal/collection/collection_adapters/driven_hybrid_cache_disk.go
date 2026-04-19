@@ -151,8 +151,8 @@ type diskHybridCache struct {
 
 // Load reads saved hybrid state from disk and registers it with the registry.
 //
-// This method uses graceful degradation:
-//   - Missing file: Not an error, simply no state to restore (cold start).
+// Uses graceful degradation:
+//   - Missing file: Not an error, no state to restore (cold start).
 //   - Corrupted file: Logs a warning and continues with empty state.
 //   - I/O error: Returns an error for the caller to handle.
 //

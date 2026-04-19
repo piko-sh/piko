@@ -246,7 +246,7 @@ func (s *SSRServer) Configure(publicConfig PublicConfig) {
 // If the component also implements HealthProbe, it will be added to the health
 // monitoring system and shown via the /health, /live, and /ready endpoints.
 //
-// This method may be called many times, but must be called before Run.
+// May be called many times, but must be called before Run.
 //
 // Takes component (LifecycleComponent) which is the component to add.
 //
@@ -311,7 +311,7 @@ func (s *SSRServer) WithSymbols(symbols templater_domain.SymbolExports) {
 	s.symbols = symbols
 }
 
-// Generate runs a Piko build using the two-phase bootstrap process.
+// Generate produces a Piko build using the two-phase bootstrap process.
 //
 // For dev-i mode, this also builds the daemon infrastructure to set up routes
 // on the AppRouter, allowing the server to serve requests immediately after
@@ -923,7 +923,7 @@ type Translation = i18n_domain.Translation
 // defines the supported locales, default locale, and URL strategy for i18n
 // routing.
 //
-// Use this type when calling GenerateLocaleHead to generate SEO metadata for
+// Use I18nConfig when calling GenerateLocaleHead to generate SEO metadata for
 // your pages.
 type I18nConfig struct {
 	// DefaultLocale is the fallback locale used when a translation is missing or
@@ -962,9 +962,9 @@ func New(opts ...bootstrap.Option) *SSRServer {
 
 // GenerateLocaleHead generates internationalisation SEO metadata for a page.
 //
-// This function is designed to be called from within a component's Render
-// function to populate the Metadata.Language, Metadata.CanonicalUrl, and
-// Metadata.AlternateLinks fields.
+// Designed to be called from within a component's Render function to populate
+// the Metadata.Language, Metadata.CanonicalUrl, and Metadata.AlternateLinks
+// fields.
 //
 // Takes r (*RequestData) which provides the current request data.
 // Takes i18nConfig (I18nConfig) which defines locales and URL strategy.
@@ -1027,7 +1027,7 @@ func RunHeadless(opts ...Option) (*bootstrap.Container, error) {
 // InitialiseForTesting initialises Piko's global services with minimal
 // dependencies suitable for unit and integration tests.
 //
-// This function creates a fully mocked Piko environment with:
+// Creates a fully mocked Piko environment with:
 //   - In-memory cache provider (no Redis/external cache required)
 //   - In-memory storage provider (no S3/disk writes)
 //   - In-memory registry (no metadata.db SQLite file created)

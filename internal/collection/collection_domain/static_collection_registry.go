@@ -471,9 +471,8 @@ func HasStaticCollection(collectionName string) bool {
 // ResetStaticCollectionRegistry clears the static collection registry for test
 // isolation.
 //
-// This function should only be called from tests. It clears all registered
-// static collections and their pre-decoded data so that tests start with a
-// clean state.
+// Should only be called from tests. Clears all registered static collections
+// and their pre-decoded data so that tests start with a clean state.
 //
 // Safe for use from any goroutine, but not concurrently with other registry
 // operations.

@@ -198,8 +198,8 @@ func (s *Server) SetConn(conn jsonrpc2.Conn) {
 	}
 }
 
-// Initialize handles the first request from the client. It sets up the
-// server's capabilities and configures the workspace root.
+// Initialize initialises the server in response to the first request from the
+// client, configuring capabilities and the workspace root.
 //
 // Takes params (*protocol.InitializeParams) which contains the client's
 // initialisation settings and workspace information.
@@ -498,8 +498,8 @@ func (s *Server) configureWorkspacePaths(ctx context.Context, rootURI protocol.D
 // dist/ts/ only if they do not already exist. This provides a way to set up
 // IDE support before the dev server has been run.
 //
-// The dev server writes type definitions when it starts, so this method only
-// fills in the gap when the LSP is opened before the dev server.
+// The dev server writes type definitions when it starts, so this only fills in
+// the gap when the LSP is opened before the dev server.
 //
 // Takes rootPath (string) which is the project root directory containing the
 // dist folder.

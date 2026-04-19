@@ -22,7 +22,6 @@
 // building blocks that are independent of any specific database
 // runtime (database/sql, pgx, etc.).
 //
-// This package does not implement CodeEmitterPort. Individual
-// emitter adapters compose these exported functions with their own
-// runtime-specific method builders.
+// Does not implement CodeEmitterPort. Individual emitter adapters compose these
+// exported functions with their own runtime-specific method builders.
 package emitter_shared

@@ -34,7 +34,7 @@ import (
 )
 
 // RenderPageParams holds all values needed to render a page or partial.
-// This struct groups related fields to reduce the number of function arguments.
+// Groups related fields to reduce the number of function arguments.
 type RenderPageParams struct {
 	// Writer is the destination for the rendered output.
 	Writer io.Writer

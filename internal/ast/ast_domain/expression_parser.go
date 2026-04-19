@@ -1033,7 +1033,7 @@ func (p *ExpressionParser) parseRemainingArguments(ctx context.Context, argument
 // Takes leftParenLocation (Location) which marks the opening bracket position.
 //
 // Returns *CallExpression which represents the complete function call node.
-// Returns []*Diagnostic which is always nil for this method.
+// Returns []*Diagnostic which is always nil here.
 func (p *ExpressionParser) completeCallExpr(callee Expression, arguments []Expression, leftParenLocation Location) (*CallExpression, []*Diagnostic) {
 	rparenTok := p.currentToken
 	rparenVal := p.tokenValue()

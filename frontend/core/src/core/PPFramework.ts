@@ -46,6 +46,7 @@ import {createA11yAnnouncer, type A11yAnnouncer} from '@/services/A11yAnnouncer'
 import {createFormStateManager, type FormStateManager} from '@/services/FormStateManager';
 import {createFetchClient, type FetchClient, type FetchResult} from '@/core/FetchClient';
 import {createRouter, type NavigateOptions, type PageLoadScrollOptions, type Router} from '@/core/Router';
+import fragmentMorpher, {type NodeKey} from '@/core/fragmentMorpher';
 import {handleAction} from '@/core/ActionExecutor';
 import {getActionFunction} from '@/pk/action';
 import {createRemoteRenderer, type PatchTarget, type RemoteRenderer, type RemoteRenderOptions} from '@/core/RemoteRenderer';
@@ -323,6 +324,21 @@ interface FrameworkServices {
 }
 
 /**
+ * Stable-key extractor for SPA navigation morphing.
+ *
+ * Matches data-stable-id, then p-key, then id. Mirrors RemoteRenderer so that
+ * full-page navigations and server-driven fragment patches use the same
+ * identity rules.
+ */
+function navigationNodeKey(node: Node): NodeKey {
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+        return null;
+    }
+    const el = node as HTMLElement;
+    return el.dataset.stableId ?? el.getAttribute('p-key') ?? (el.id || null);
+}
+
+/**
  * Scrolls to an anchor element synchronously.
  *
  * @param hash - The hash fragment (e.g., "#section").
@@ -385,7 +401,10 @@ function performDOMUpdate(
 
     getGlobalPageContext().clear();
 
-    oldAppRoot.innerHTML = newAppRoot.innerHTML;
+    fragmentMorpher(oldAppRoot as HTMLElement, newAppRoot, {
+        childrenOnly: true,
+        getNodeKey: navigationNodeKey
+    });
 
     handleScrollPosition(scrollOptions);
 

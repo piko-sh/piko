@@ -20,6 +20,7 @@ function waitForPiko(extensionName) {
 const SSE_URL = "/_piko/dev/events";
 const MAX_RECONNECTS = 30;
 const BASE_DELAY_MS = 500;
+const PREVIEW_PREFIX = "/_piko/dev/preview/";
 waitForPiko("dev").then((pk) => {
   let eventSource = null;
   let reconnectCount = 0;
@@ -40,6 +41,10 @@ waitForPiko("dev").then((pk) => {
     eventSource.addEventListener("rebuild-complete", (e) => {
       const data = JSON.parse(e.data);
       handleRebuild(pk, data.affectedRoutes);
+    });
+    eventSource.addEventListener("template-changed", (e) => {
+      const data = JSON.parse(e.data);
+      handleTemplateChanged(data.affectedPaths);
     });
     eventSource.onerror = () => {
       eventSource?.close();
@@ -70,6 +75,44 @@ waitForPiko("dev").then((pk) => {
     }
     console.debug("[piko/dev] Soft-refreshing page");
     piko.nav.navigate(window.location.href, { replace: true, scroll: false });
+  }
+  function handleTemplateChanged(affectedPaths) {
+    const currentPath = window.location.pathname;
+    if (!currentPath.startsWith(PREVIEW_PREFIX)) {
+      return;
+    }
+    const rest = currentPath.slice(PREVIEW_PREFIX.length);
+    const slashIndex = rest.indexOf("/");
+    if (slashIndex == -1) {
+      return;
+    }
+    const componentType = rest.slice(0, slashIndex);
+    let templatePath = rest.slice(slashIndex + 1);
+    if (templatePath.endsWith("/render")) {
+      templatePath = templatePath.slice(0, -"/render".length);
+    }
+    const typeToDir = {
+      email: "emails/",
+      pdf: "pdfs/",
+      page: "pages/",
+      partial: "partials/"
+    };
+    const dir = typeToDir[componentType];
+    if (!dir) {
+      return;
+    }
+    const sourcePath = dir + templatePath + ".pk";
+    if (affectedPaths.includes(sourcePath) || affectedPaths.includes("*")) {
+      console.debug("[piko/dev] Preview template changed, reloading");
+      const embed = document.querySelector('embed[type="application/pdf"]');
+      if (embed) {
+        const url = new URL(embed.src);
+        url.searchParams.set("_t", String(Date.now()));
+        embed.src = url.toString();
+        return;
+      }
+      window.location.reload();
+    }
   }
   connect();
   window.addEventListener("beforeunload", () => {

@@ -231,10 +231,9 @@ func (ti *TypeQuerier) resolveFromFileScope(aliasToResolve string, importerPacka
 // Returns string which is the package path if found, or empty string.
 // Returns bool which indicates whether a matching package was found.
 //
-// Note: This function iterates over imports in sorted order to ensure
-// deterministic resolution when multiple packages share the same name.
-// Without sorting, map iteration order is random and could cause different
-// packages to be selected across runs.
+// Note: iterates over imports in sorted order to ensure deterministic resolution
+// when multiple packages share the same name. Without sorting, map iteration
+// order is random and could cause different packages to be selected across runs.
 func (ti *TypeQuerier) resolveByImportedPackageName(fileImports map[string]string, aliasToResolve string) (string, bool) {
 	aliases := make([]string, 0, len(fileImports))
 	for alias := range fileImports {

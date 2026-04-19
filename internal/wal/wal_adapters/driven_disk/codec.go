@@ -132,8 +132,8 @@ func (c *BinaryCodec[K, V]) Encode(entry wal_domain.Entry[K, V]) ([]byte, error)
 }
 
 // EncodePooled serialises an entry using a pooled buffer for zero-allocation
-// encoding. This method uses FastKeyCodec and FastValueCodec if available,
-// otherwise falls back to the standard Encode method.
+// encoding. Uses FastKeyCodec and FastValueCodec if available, otherwise
+// falls back to the standard Encode method.
 //
 // The returned EncodeResult MUST have Release() called when the caller is done
 // with the data to return the buffer to the pool.
@@ -433,9 +433,9 @@ func (c *BinaryCodec[K, V]) EncodeWithLengthAndCRC(entry wal_domain.Entry[K, V])
 // The returned EncodeResult MUST have Release() called when the caller is done
 // with the data to return the buffer to the pool.
 //
-// When FastKeyCodec and FastValueCodec are available, this method achieves
-// zero allocations by encoding directly into the pooled buffer. Otherwise,
-// it falls back to allocating for the encode then copying into a pooled buffer.
+// When FastKeyCodec and FastValueCodec are available, achieves zero allocations
+// by encoding directly into the pooled buffer. Otherwise, falls back to
+// allocating for the encode then copying into a pooled buffer.
 //
 // Format: [CRC32:4][Payload]
 //
@@ -581,9 +581,9 @@ func (r *DecodeResult[K, V]) Release() {
 // DecodeWithCRC decodes an entry with CRC validation using pooled resources.
 // The returned DecodeResult MUST have Release() called when the caller is done.
 //
-// When FastKeyCodec and FastValueCodec are available, this method achieves
-// zero allocations by using mem.String for string fields. Otherwise, it falls
-// back to standard decoding which allocates.
+// When FastKeyCodec and FastValueCodec are available, achieves zero allocations
+// by using mem.String for string fields. Otherwise, falls back to standard
+// decoding which allocates.
 //
 // SAFETY: The decoded Entry may reference the input data buffer. The caller
 // must ensure the buffer outlives the Entry, or copy values if needed.
@@ -615,11 +615,11 @@ func (c *BinaryCodec[K, V]) DecodeWithCRC(data []byte) (DecodeResult[K, V], erro
 // Decode deserialises bytes to an entry using pooled resources.
 // The returned DecodeResult MUST have Release() called when the caller is done.
 //
-// The input does NOT include length prefix or CRC32 - those are stripped
-// by the WAL implementation before calling this method.
+// The input does NOT include length prefix or CRC32 - those are stripped by
+// the WAL implementation before invocation.
 //
-// When FastKeyCodec and FastValueCodec are available, this method achieves
-// zero allocations. Otherwise, it falls back to standard decoding.
+// When FastKeyCodec and FastValueCodec are available, achieves zero
+// allocations. Otherwise, falls back to standard decoding.
 //
 // SAFETY: The decoded Entry may reference the input data buffer. The caller
 // must ensure the buffer outlives the Entry, or copy values if needed.

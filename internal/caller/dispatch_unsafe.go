@@ -25,8 +25,8 @@ package caller
 // The argument skip is the number of frames to ascend, with 0 identifying the
 // caller of Caller.
 //
-// This function achieves zero allocations by using go:linkname to access
-// runtime.callers directly with pointer semantics.
+// Achieves zero allocations by using go:linkname to access runtime.callers
+// directly with pointer semantics.
 //
 // Takes skip (int) specifying how many stack frames to skip.
 //

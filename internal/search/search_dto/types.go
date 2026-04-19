@@ -80,9 +80,9 @@ type SearchField struct {
 	// Name is the field name to search.
 	Name string
 
-	// Weight is the importance multiplier for this field.
+	// Weight is the importance multiplier applied during scoring.
 	// Default: 1.0
-	// Higher values (e.g., 2.0) make matches in this field more important.
+	// Higher values (e.g., 2.0) make matches in the field more important.
 	Weight float64
 }
 

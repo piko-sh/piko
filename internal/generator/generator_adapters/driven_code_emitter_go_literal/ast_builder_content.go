@@ -491,7 +491,7 @@ func buildReturnStatement(result *annotator_dto.AnnotationResult, customTagsVarN
 // satisfy the Go compiler for unused variables in generated code.
 //
 // Takes isCollectionPage (bool) which controls whether to include the 'data'
-// variable assignment. This variable is only declared for collection pages.
+// variable assignment. The 'data' variable is only declared for collection pages.
 //
 // Returns []goast.Stmt which contains the blank identifier assignment
 // statements for each variable that needs to be acknowledged.

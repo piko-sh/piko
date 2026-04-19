@@ -960,7 +960,7 @@ func (p *Page) actionCtx() *browser_provider_chromedp.ActionContext {
 }
 
 // recreatePage closes the current page and creates a fresh one.
-// This is used to recover from unresponsive CDP connections.
+// Recovers from unresponsive CDP connections.
 //
 // Returns error when the browser fails to create a new incognito page.
 func (p *Page) recreatePage() error {

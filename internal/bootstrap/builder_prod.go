@@ -80,8 +80,7 @@ type prodDaemonBuilder struct {
 }
 
 // build assembles the production daemon by calling a series of helper methods.
-// This method follows the Extract Method pattern, with each step handled by a
-// focused helper.
+// Follows the Extract Method pattern, with each step handled by a focused helper.
 //
 // Returns daemon_domain.DaemonService which is the fully assembled daemon.
 // Returns error when any build step fails.

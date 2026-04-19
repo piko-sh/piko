@@ -19,11 +19,10 @@
 // Package config_provider_piko provides access to the Piko framework's
 // own configuration types.
 //
-// This package re-exports the framework's internal configuration structs
-// so that downstream applications can reference them directly. It is
-// useful when you need to extend [ServerConfig], inspect framework
-// settings for compatibility, or build tooling that interacts with
-// Piko's configuration layer.
+// Re-exports the framework's internal configuration structs so that downstream
+// applications can reference them directly. Useful when you need to extend
+// [ServerConfig], inspect framework settings for compatibility, or build
+// tooling that interacts with Piko's configuration layer.
 //
 // For most applications that define their own configuration, the parent
 // [config] package and its [config.Load] function are the recommended
@@ -37,8 +36,8 @@
 //
 // # Integration
 //
-// This package wraps [internal/config] and is intended as a stable
-// public surface. Use the parent config package for loading your own
-// application configuration; use this package only when you need
-// direct access to the framework's configuration types.
+// Wraps [internal/config] as a stable public surface. Use the parent config
+// package for loading your own application configuration; reach for
+// config_provider_piko only when you need direct access to the framework's
+// configuration types.
 package config_provider_piko

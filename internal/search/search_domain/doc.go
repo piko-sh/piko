@@ -40,7 +40,7 @@
 //
 // # Integration
 //
-// This package integrates with:
+// Integrates with:
 //
 //   - linguistics: Text analysis, stemming, and phonetic encoding
 //   - search_schema: FlatBuffer schema for zero-copy index serialisation

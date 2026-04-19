@@ -121,7 +121,7 @@ type GenericField struct {
 	// Tag is the raw struct tag, without surrounding backticks.
 	Tag string
 
-	// FieldType is the serialisable type tree for this field. The
+	// FieldType is the serialisable type tree for the field. The
 	// registry builds both a go/types.Type and a reflect.Type from it.
 	FieldType GenericFieldType
 

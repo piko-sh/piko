@@ -277,7 +277,7 @@ func (d *DAL) CreateTasks(ctx context.Context, tasks []*orchestrator_domain.Task
 //
 // Returns error when the update fails.
 //
-// Safe for concurrent use. The method holds a mutex lock while updating.
+// Safe for concurrent use; takes a mutex lock while updating.
 func (d *DAL) UpdateTask(ctx context.Context, task *orchestrator_domain.Task) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -365,7 +365,7 @@ func (d *DAL) CreateTaskWithDedup(ctx context.Context, task *orchestrator_domain
 // Returns int which is the count of tasks recovered.
 // Returns error when the recovery operation fails.
 //
-// Safe for concurrent use. The method holds the DAL mutex for its duration.
+// Safe for concurrent use; takes the DAL mutex for the call duration.
 func (d *DAL) RecoverStaleTasks(ctx context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -521,7 +521,7 @@ func (d *DAL) GetPendingReceiptsByWorkflow(_ context.Context, workflowID string)
 // Returns int which is the count of receipts deleted.
 // Returns error when the cleanup fails.
 //
-// Safe for concurrent use. The method holds a mutex lock for its duration.
+// Safe for concurrent use; takes a mutex lock for the call duration.
 func (d *DAL) CleanupOldResolvedReceipts(ctx context.Context, olderThan time.Time) (int, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()

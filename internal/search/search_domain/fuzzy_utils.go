@@ -168,14 +168,13 @@ func findTermsWithinEditDistance(
 
 // findBestFuzzyMatch finds the best fuzzy match for a search term.
 //
-// This function uses two methods to find matches:
+// Uses two methods to find matches:
 //   - Edit distance for close matches (good for small spelling errors)
 //   - Jaro-Winkler for similarity scoring (good for typos and swapped letters)
 //
-// It returns the result from whichever method gives the better match.
-//
-// When queryTerm is empty or vocabulary is empty, returns an empty string
-// with a score of zero.
+// Picks the result from whichever method gives the better match. When
+// queryTerm is empty or vocabulary is empty, an empty string with a score of
+// zero is produced.
 //
 // Takes queryTerm (string) which is the term to search for.
 // Takes vocabulary ([]string) which is the list of valid terms to match against.

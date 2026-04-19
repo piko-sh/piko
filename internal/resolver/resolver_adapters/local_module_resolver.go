@@ -89,8 +89,8 @@ func NewLocalModuleResolverWithFactory(startDir string, factory safedisk.Factory
 }
 
 // DetectLocalModule finds the project's root by locating the go.mod file and
-// parsing it to determine the module's name and base directory. This method
-// must be called before any resolution can occur.
+// parsing it to determine the module's name and base directory. Must be called
+// before any resolution can occur.
 //
 // Returns error when the go.mod file cannot be found or parsed.
 func (lmr *LocalModuleResolver) DetectLocalModule(ctx context.Context) error {
@@ -160,9 +160,10 @@ func (lmr *LocalModuleResolver) GetBaseDir() string {
 // It strips the module name prefix from an entry point path to create a
 // project-relative manifest key.
 //
-// This method is the authoritative converter between the two path formats used
-// in the Piko system:
-//   - Build-time: module-absolute (e.g., "github.com/org/app/pages/index.pk")
+// Acts as the authoritative converter between the two path formats used in
+// the Piko system:
+//   - Build-time: module-absolute, for example a GitHub-style path such as
+//     "example.com/org/app/pages/index.pk"
 //   - Runtime: project-relative (e.g., "pages/index.pk")
 //
 // The conversion uses the actual module name from go.mod, making it reliable

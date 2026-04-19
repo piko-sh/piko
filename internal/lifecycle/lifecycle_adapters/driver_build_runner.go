@@ -1270,7 +1270,7 @@ func (bs *buildService) createExternalSandbox(purpose, path string) (safedisk.Sa
 //
 // Takes configProvider (*config.Provider) which provides configuration settings.
 // Takes pathsConfig (lifecycle_domain.LifecyclePathsConfig) which holds the
-// resolved path settings for file system operations.
+// resolved path settings for filesystem operations.
 // Takes registry (registry_domain.RegistryService) which manages component
 // registration.
 // Takes orchestratorService (orchestrator_domain.OrchestratorService) which

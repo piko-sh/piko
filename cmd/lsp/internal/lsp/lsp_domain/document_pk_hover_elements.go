@@ -352,7 +352,7 @@ func (d *document) checkPikoElementHoverContext(line string, cursor int, positio
 // Takes ctx (*PKHoverContext) which provides the hover request context.
 //
 // Returns *protocol.Hover which contains the hover information to display.
-// Returns error which is always nil for this function.
+// Returns error which is always nil here.
 func (*document) getPikoElementHover(ctx *PKHoverContext) (*protocol.Hover, error) {
 	elementDoc, exists := pikoElementDocuments[ctx.Name]
 	if !exists {

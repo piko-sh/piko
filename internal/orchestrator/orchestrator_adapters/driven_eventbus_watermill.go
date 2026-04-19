@@ -213,10 +213,9 @@ func (b *watermillEventBus) Subscribe(ctx context.Context, topic string) (<-chan
 // SubscribeWithHandler subscribes to a topic using direct subscription with
 // proper Ack/Nack semantics for at-least-once delivery.
 //
-// Unlike the router-based Subscribe, this method creates its own message
-// processing goroutine, allowing subscriptions to be established after the
-// router has started running. This is essential for dynamic subscriptions
-// during application lifecycle.
+// Unlike the router-based Subscribe, creates its own message processing goroutine,
+// allowing subscriptions to be established after the router has started running.
+// Essential for dynamic subscriptions during application lifecycle.
 //
 // Takes topic (string) which specifies the topic name to subscribe to.
 // Takes handler (EventHandler) which processes each received message.
@@ -227,9 +226,8 @@ func (b *watermillEventBus) Subscribe(ctx context.Context, topic string) (<-chan
 // the message is Acked. If the handler returns an error, the message is Nacked
 // and will be redelivered depending on the underlying pub/sub implementation.
 //
-// This method is suitable for critical message processing where message loss
-// is unacceptable, such as processing artefact events that trigger
-// orchestrator tasks.
+// Suitable for critical message processing where message loss is unacceptable, such
+// as processing artefact events that trigger orchestrator tasks.
 //
 // The handler MUST be idempotent as messages may be delivered multiple times.
 func (b *watermillEventBus) SubscribeWithHandler(ctx context.Context, topic string, handler orchestrator_domain.EventHandler) error {

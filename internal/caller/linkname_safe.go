@@ -42,10 +42,10 @@ func callers(skip int, pcs []PC) int {
 
 // caller1 captures a single stack frame at the given skip depth.
 //
-// This is the safe version that uses runtime.Callers from the standard library.
-// It uses a stack-allocated buffer to minimise overhead.
+// The safe version that uses runtime.Callers from the standard library.
+// Uses a stack-allocated buffer to minimise overhead.
 //
-// The +2 skip accounts for both this function and [runtime.Callers] itself.
+// The +2 skip accounts for both caller1 and [runtime.Callers] itself.
 // The public dispatch functions (Caller, Callers, CallersFill) are marked
 // //go:noinline in the safe build to guarantee a consistent frame layout,
 // so the skip arithmetic is always correct.

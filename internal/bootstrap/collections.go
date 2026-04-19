@@ -25,6 +25,7 @@ import (
 
 	"piko.sh/piko/internal/cache/cache_domain"
 	_ "piko.sh/piko/internal/collection/collection_adapters/cache_factory" // registers hybrid-collections cache blueprint
+	"piko.sh/piko/internal/collection/collection_adapters/driver_asset_registrar"
 	"piko.sh/piko/internal/collection/collection_adapters/driver_markdown"
 	"piko.sh/piko/internal/collection/collection_adapters/driver_registry"
 	"piko.sh/piko/internal/collection/collection_domain"
@@ -70,12 +71,15 @@ func createCollectionService(c *Container) (collection_domain.CollectionService,
 		highlighter := c.GetHighlighter()
 		renderer := c.GetRenderer()
 
+		assetRegistrar := driver_asset_registrar.NewRegistryBackedRegistrar(c.GetRenderRegistry())
+
 		mdService := markdown_domain.NewMarkdownService(markdownParser, highlighter)
 		mdProvider := driver_markdown.NewMarkdownProvider(
 			"markdown",
 			contentSandbox,
 			mdService,
 			renderer,
+			assetRegistrar,
 		)
 
 		if err := registry.Register(mdProvider); err != nil {

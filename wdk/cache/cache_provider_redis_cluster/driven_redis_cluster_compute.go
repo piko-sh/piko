@@ -160,7 +160,7 @@ func (a *RedisClusterAdapter[K, V]) handleComputeRetryResult(ctx context.Context
 }
 
 // Compute atomically updates a cache entry using a compute function with
-// optimistic locking.
+// optimistic locking. Computes and writes the new value in one round trip.
 //
 // When the context is already cancelled or has exceeded its deadline, returns
 // the context's error without performing any work.

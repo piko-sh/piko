@@ -710,7 +710,7 @@ func analyseNodeForStaticity(node *ast_domain.TemplateNode) {
 //   - It has no partial invocation.
 //   - All its children are also fully prerenderable.
 //
-// This function must be called after analyseNodeForStaticity sets IsStatic.
+// Must be called after analyseNodeForStaticity sets IsStatic.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 func analyseNodeForPrerenderability(node *ast_domain.TemplateNode) {

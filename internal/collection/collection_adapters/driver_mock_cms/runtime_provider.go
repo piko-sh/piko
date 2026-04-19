@@ -79,8 +79,8 @@ func (p *MockCMSRuntimeProvider) Name() string {
 
 // Fetch retrieves collection data at runtime.
 //
-// This method is called by pikoruntime.FetchCollection() when generated
-// code needs to fetch dynamic data.
+// Called by pikoruntime.FetchCollection() when generated code needs to fetch
+// dynamic data.
 //
 // Takes collectionName (string) which identifies the collection to fetch.
 // Takes target (any) which is a pointer to a slice to populate with the

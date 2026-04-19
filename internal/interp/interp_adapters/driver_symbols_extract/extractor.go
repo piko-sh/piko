@@ -144,7 +144,7 @@ type LinkedGenericFieldInfo struct {
 	// Tag is the raw struct tag, without surrounding backticks.
 	Tag string
 
-	// FieldType is the serialisable type tree for this field.
+	// FieldType is the serialisable type tree for the field.
 	FieldType GenericFieldTypeInfo
 
 	// Exported mirrors the field's Go export visibility.

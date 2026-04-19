@@ -48,7 +48,7 @@ const (
 )
 
 // Config holds the configuration for the TUI monitoring tool.
-// This struct is populated by the public facade's With* options.
+// Populated by the public facade's With* options.
 type Config struct {
 	// Clock supplies the current time, allowing tests to inject a
 	// deterministic clock.

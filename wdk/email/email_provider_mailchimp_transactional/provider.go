@@ -351,7 +351,7 @@ func (p *MailchimpTransactionalProvider) SendBulk(ctx context.Context, emails []
 }
 
 // Close releases resources held by the provider. The HTTP client is stateless,
-// so this method does nothing.
+// so the call does nothing.
 //
 // Returns error when cleanup fails, though this always returns nil.
 func (*MailchimpTransactionalProvider) Close(_ context.Context) error {

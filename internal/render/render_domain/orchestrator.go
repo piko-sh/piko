@@ -466,12 +466,6 @@ func NewRenderOrchestrator(
 // Takes opts (RenderASTOptions) which configures rendering behaviour.
 //
 // Returns error when rendering fails for fragments or full pages.
-//
-// This function intentionally does not create its own span. The span
-// should be created at the templater level (TemplaterService.RenderPage or
-// RenderPartial) where it provides meaningful user-facing observability.
-// This function is a low-level framework internal that should be
-// "invisible fast."
 func (ro *RenderOrchestrator) RenderAST(
 	ctx context.Context,
 	w io.Writer,
@@ -558,9 +552,8 @@ func (*RenderOrchestrator) RenderASTToPlainText(
 }
 
 // GetLastEmailAssetRequests returns the asset requests collected during the
-// most recent email rendering operation. This method should be called
-// immediately after RenderEmail to retrieve assets that need to be embedded
-// via Content-ID (CID).
+// most recent email rendering operation. Should be called immediately after
+// RenderEmail to retrieve assets that need to be embedded via Content-ID (CID).
 //
 // Returns []*email_dto.EmailAssetRequest which contains the asset requests.
 // Returns an empty slice if no email has been rendered or if no assets were
@@ -573,10 +566,10 @@ func (ro *RenderOrchestrator) GetLastEmailAssetRequests() []*email_dto.EmailAsse
 }
 
 // RenderASTToString renders an AST to an HTML string without requiring HTTP
-// context. This is designed for headless rendering scenarios like WASM,
-// testing, and static site generation.
+// context. Designed for headless rendering scenarios like WASM, testing, and
+// static site generation.
 //
-// Unlike RenderAST, this method:
+// Unlike RenderAST:
 //   - Does not require http.Request or http.ResponseWriter
 //   - Skips CSRF token generation
 //   - Does not collect Link headers
@@ -1128,15 +1121,6 @@ func (ro *RenderOrchestrator) writeElementDirectivesExcluding(
 //
 // Returns *security_dto.CSRFPair which contains the token and cookie, or nil
 // if CSRF is not required or generation failed.
-//
-// This function does not mutate the AST. Callers should write CSRF attributes
-// directly to the output stream. CSRF generation is protected by sync.Once,
-// ensuring it runs at most once per request.
-//
-// This function avoids creating OTEL spans. CSRF generation is a fast,
-// once-per-request operation where span overhead (~40 allocations) would dwarf
-// the actual work. Errors are logged directly rather than through span
-// instrumentation.
 func (*RenderOrchestrator) getCSRFIfNeeded(
 	node *ast_domain.TemplateNode,
 	rctx *renderContext,
@@ -1384,7 +1368,7 @@ func releaseBufferedWriter(bw *bufio.Writer) {
 }
 
 // populateTagMap fills the destination map with tag names.
-// The destination map must be empty before calling this function.
+// The destination map must be empty before the call.
 //
 // Takes dest (map[string]struct{}) which is the map to fill with tags.
 // Takes tags ([]string) which contains the tag names to add.

@@ -147,8 +147,7 @@ func (s *DiskSnapshot[K, V]) initialiseCompression(ctx context.Context, sandbox 
 //
 // Returns error when encoding, compression, or writing to disk fails.
 //
-// Safe for concurrent use. The method holds a mutex lock for the entire
-// operation.
+// Safe for concurrent use. Holds a mutex lock for the entire operation.
 func (s *DiskSnapshot[K, V]) Save(ctx context.Context, entries []wal_domain.Entry[K, V]) error {
 	startTime := s.clock.Now()
 	s.mu.Lock()

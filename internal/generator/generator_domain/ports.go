@@ -33,7 +33,7 @@ import (
 // GeneratorService is the primary driving port for the entire compilation
 // process. It orchestrates the annotation and code generation stages.
 type GeneratorService interface {
-	// Generate orchestrates the full compilation pipeline for a single component.
+	// Generates the full compilation pipeline for a single component.
 	//
 	// It runs the annotator to build the dependency graph, then calls the code
 	// emitter. This is the primary method for development servers, single-file
@@ -217,7 +217,7 @@ type RegisterEmitterPort interface {
 	// Returns error when writing the output fails.
 	Emit(ctx context.Context, outputPath string, allPackagePaths []string) error
 
-	// Generate creates documentation output for the given package paths.
+	// Generates documentation output for the given package paths.
 	//
 	// Takes allPackagePaths ([]string) which lists the packages to document.
 	//
@@ -262,7 +262,7 @@ type CollectionEmitterPort interface {
 	// EmitCollection creates the binary and Go wrapper files for a static
 	// collection.
 	//
-	// This method:
+	// Workflow:
 	//   1. Encodes all items into a FlatBuffer binary using
 	//      CollectionSerialiserPort.
 	//   2. Writes the binary to dist/collections/{collectionName}/data.bin.
@@ -300,7 +300,7 @@ type CollectionEmitterPort interface {
 type SearchIndexEmitterPort interface {
 	// EmitSearchIndex generates search index binaries for a collection.
 	//
-	// This method builds inverted indexes from collection items, writes Fast and
+	// Builds inverted indexes from collection items, writes Fast and
 	// Smart mode index files to dist/collections/{collectionName}/, and updates
 	// the collection's generated.go to embed and register the indexes.
 	//
@@ -415,14 +415,14 @@ type ActionGeneratorPort interface {
 // time. This enables precomputing HTML for static subtrees, avoiding recursive
 // AST walking at render time.
 //
-// The renderer implements this interface. The generator uses it during code
+// The renderer implements StaticPrerenderer. The generator uses it during code
 // emission to prerender nodes marked with IsFullyPrerenderable=true.
 //
 // Architecture:
 //   - Interface defined here (generator owns) to maintain clean dependency
 //     direction
-//   - Renderer implements this with minimal context (no registry, no CSRF)
-//   - Generator calls this for nodes where entire subtree has no piko:* tags
+//   - Renderer implements StaticPrerenderer with minimal context (no registry, no CSRF)
+//   - Generator calls it for nodes where entire subtree has no piko:* tags
 type StaticPrerenderer interface {
 	// RenderStaticNode renders a static node subtree to HTML bytes.
 	//

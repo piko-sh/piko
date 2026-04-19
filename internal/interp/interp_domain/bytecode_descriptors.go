@@ -148,7 +148,7 @@ type typeDescriptor struct {
 	// primitive types.
 	basicKind uint8
 
-	// kind identifies the structural category of this type
+	// kind identifies the structural category of the type
 	// descriptor.
 	kind typeDescKind
 
@@ -163,14 +163,14 @@ type typeDescField struct {
 	// name is the Go identifier of the struct field.
 	name string
 
-	// tag is the raw struct tag string for this field.
+	// tag is the raw struct tag string for the field.
 	tag string
 
 	// packagePath is the import path of the package that
 	// defines the field, empty for exported fields.
 	packagePath string
 
-	// typ is the type descriptor for this field's type.
+	// typ is the type descriptor for the field's type.
 	typ typeDescriptor
 }
 

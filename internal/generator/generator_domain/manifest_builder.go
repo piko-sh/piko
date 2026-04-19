@@ -98,7 +98,7 @@ func NewManifestBuilder(pathsConfig GeneratorPathsConfig, i18nDefaultLocale stri
 }
 
 // Build creates a complete Manifest from the generated artefacts for a project.
-// This method is a pure transformation and has no side effects.
+// A pure transformation with no side effects.
 //
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains all
 // generated artefacts for the project.

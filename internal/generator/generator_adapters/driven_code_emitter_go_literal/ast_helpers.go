@@ -28,9 +28,8 @@ import (
 // nilLiteral is the string "nil" used to create nil expressions in Go code.
 const nilLiteral = "nil"
 
-// defineAndAssign creates a short variable declaration statement
-// (varName := rightHandSide).
-// This is used to create new local variables.
+// defineAndAssign creates a short variable declaration statement (varName :=
+// rightHandSide). Used to create new local variables.
 //
 // Takes varName (string) which is the name for the new variable.
 // Takes rightHandSide (goast.Expr) which is the expression to assign to it.
@@ -147,7 +146,7 @@ func callHelperArena(functionName string, arguments ...goast.Expr) *goast.CallEx
 // JavaScript-like truthiness checks.
 //
 // The control flow emitter decides when to use this based on type notes. If
-// the type is already a bool, this function is not called.
+// the type is already a bool, the wrapper is not called.
 //
 // Takes expression (goast.Expr) which is the expression to wrap.
 //

@@ -1,7 +1,10 @@
-<svg viewBox="0 0 500 198" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 500 198" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="types-flow-title types-flow-desc">
+  <title id="types-flow-title">Types flow end to end from Go struct to rendered output</title>
+  <desc id="types-flow-desc">A Go struct definition on the left flows into a PK template in the centre. The generator compiles both into fully typed Go source on the right, which renders to a web page and a PDF. Type information is preserved at every step with no reflection or serialisation.</desc>
   <defs>
     <marker id="arrow1" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#6BD5CC" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     </marker>
   </defs>
 
@@ -24,12 +27,12 @@
     <text x="20" y="156" fill="#FFEE9C" font-family="monospace" font-size="9">{{ state.Email }}</text>
   </g>
 
-  <text x="78" y="95" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="8">your code</text>
+  <text x="78" y="95" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="8">your code</text>
 
-  <text x="78" y="185" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="8">types checked at compile</text>
+  <text x="78" y="185" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="8">types checked at compile</text>
 
-  <line x1="155" y1="44" x2="200" y2="80" stroke="#6BD5CC" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow1)"/>
-  <line x1="155" y1="140" x2="200" y2="104" stroke="#6BD5CC" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow1)"/>
+  <line x1="155" y1="44" x2="200" y2="80" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow1)"/>
+  <line x1="155" y1="140" x2="200" y2="104" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow1)"/>
 
   <g>
     <rect x="206" y="68" width="95" height="48" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
@@ -37,7 +40,7 @@
     <text x="253" y="104" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">generate</text>
   </g>
 
-  <line x1="308" y1="92" x2="358" y2="92" stroke="#6BD5CC" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow1)"/>
+  <line x1="308" y1="92" x2="358" y2="92" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow1)"/>
 
   <g>
     <rect x="365" y="24" width="130" height="136" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
@@ -52,5 +55,5 @@
     <text x="377" y="152" fill="#C9F5F2" font-family="monospace" font-size="9">}</text>
   </g>
 
-  <text x="430" y="175" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="8">fully typed, no reflection</text>
+  <text x="430" y="175" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="8">fully typed, no reflection</text>
 </svg>

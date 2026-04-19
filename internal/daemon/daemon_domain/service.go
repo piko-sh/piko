@@ -39,8 +39,8 @@ import (
 )
 
 // DaemonServiceDeps contains all dependencies needed to create a DaemonService.
-// This struct-based dependency injection pattern improves testability by making
-// dependencies explicit and easier to mock.
+// Struct-based dependency injection improves testability by making dependencies
+// explicit and easier to mock.
 //
 // Build-triggered operations (asset manifest, interpreted mode, routing)
 // are handled by the lifecycle service. The daemon focuses on HTTP serving,

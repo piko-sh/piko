@@ -1,0 +1,98 @@
+<svg viewBox="0 0 620 340" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="email-title email-desc">
+  <title id="email-title">Email rendering pipeline: PML template to Outlook-safe HTML</title>
+  <desc id="email-desc">Piko email path on the top row. A PK file with PML tags and typed props compiles through the Go build, then flows through the premailer stages: parse, resolve variables, inline CSS, emit VML fallbacks, place leftover rules. The output is Outlook-safe HTML. The MJML path on the bottom row runs a separate Node toolchain with an untyped template and a different premailer.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-mjml" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#475569" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="20" y="25" fill="#0F766E" font-family="system-ui, sans-serif" font-size="11" font-weight="600" letter-spacing="1">PIKO: PML + PREMAILER</text>
+
+  
+  <rect x="20" y="40" width="140" height="76" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,40 H150 A10,10 0 0 1 160,50 V62 H20 V50 A10,10 0 0 1 30,40 Z" fill="#1C544F"/>
+  <circle cx="34" cy="51" r="4" fill="#ff5f57"/>
+  <circle cx="48" cy="51" r="4" fill="#febc2e"/>
+  <circle cx="62" cy="51" r="4" fill="#28c840"/>
+  <text x="135" y="56" text-anchor="end" fill="#C9F5F2" font-family="monospace" font-size="10">welcome.pk</text>
+
+  <text x="30" y="78" fill="#C9F5F2" font-family="monospace" font-size="10">&lt;pml-row&gt;</text>
+  <text x="30" y="92" fill="#A7F0E9" font-family="monospace" font-size="10">  &lt;pml-button</text>
+  <text x="30" y="106" fill="#FFEE9C" font-family="monospace" font-size="10">    {{ props.CTA }}</text>
+
+  <line x1="165" y1="78" x2="195" y2="78" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="200" y="40" width="120" height="76" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M210,40 H310 A10,10 0 0 1 320,50 V62 H200 V50 A10,10 0 0 1 210,40 Z" fill="#1C544F"/>
+  <text x="260" y="56" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">go build</text>
+  <text x="260" y="80" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">typed Render(</text>
+  <text x="260" y="94" text-anchor="middle" fill="#FFEE9C" font-family="monospace" font-size="10">Props {...}</text>
+  <text x="260" y="108" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">)</text>
+
+  <line x1="325" y1="78" x2="355" y2="78" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="360" y="40" width="140" height="76" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M370,40 H490 A10,10 0 0 1 500,50 V62 H360 V50 A10,10 0 0 1 370,40 Z" fill="#1C544F"/>
+  <text x="430" y="56" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">premailer</text>
+  <text x="370" y="76" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">parse &#183; vars &#183; inline</text>
+  <text x="370" y="90" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">VML &#183; leftovers &#183; cleanup</text>
+  <text x="370" y="106" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">shares Piko CSS tooling</text>
+
+  <line x1="505" y1="78" x2="535" y2="78" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="540" y="40" width="70" height="76" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M548,40 H602 A8,8 0 0 1 610,48 V58 H540 V48 A8,8 0 0 1 548,40 Z" fill="#364049"/>
+  <text x="575" y="52" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9" font-weight="600">HTML</text>
+  <text x="575" y="78" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">tables +</text>
+  <text x="575" y="92" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">VML +</text>
+  <text x="575" y="106" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">inline CSS</text>
+
+  
+  <line x1="20" y1="150" x2="610" y2="150" stroke="#485461" stroke-width="1" stroke-dasharray="2,3"/>
+
+  
+  <text x="20" y="170" fill="#475569" font-family="system-ui, sans-serif" font-size="11" font-weight="600" letter-spacing="1">MJML: SEPARATE NODE TOOLCHAIN (for comparison)</text>
+
+  
+  <rect x="20" y="188" width="140" height="76" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M30,188 H150 A10,10 0 0 1 160,198 V210 H20 V198 A10,10 0 0 1 30,188 Z" fill="#364049"/>
+  <text x="135" y="204" text-anchor="end" fill="#92A1AF" font-family="monospace" font-size="10">welcome.mjml</text>
+
+  <text x="30" y="226" fill="#C9F5F2" font-family="monospace" font-size="10">&lt;mj-section&gt;</text>
+  <text x="30" y="240" fill="#A7F0E9" font-family="monospace" font-size="10">  &lt;mj-button&gt;</text>
+  <text x="30" y="254" fill="#92A1AF" font-family="monospace" font-size="10">  {{ cta }}</text>
+
+  <line x1="165" y1="226" x2="195" y2="226" stroke="#475569" stroke-width="1.2" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrow-mjml)"/>
+
+  
+  <rect x="200" y="188" width="140" height="76" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M210,188 H330 A10,10 0 0 1 340,198 V210 H200 V198 A10,10 0 0 1 210,188 Z" fill="#364049"/>
+  <text x="270" y="204" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Node runtime</text>
+  <text x="270" y="226" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">mjml CLI</text>
+  <text x="270" y="240" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">+ juice inliner</text>
+  <text x="270" y="254" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">untyped interpolation</text>
+
+  <line x1="345" y1="226" x2="375" y2="226" stroke="#475569" stroke-width="1.2" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrow-mjml)"/>
+
+  
+  <rect x="380" y="188" width="140" height="76" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M390,188 H510 A10,10 0 0 1 520,198 V210 H380 V198 A10,10 0 0 1 390,188 Z" fill="#364049"/>
+  <text x="450" y="204" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">HTML output</text>
+  <text x="450" y="226" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">tables + inline</text>
+  <text x="450" y="244" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">parsed separately back</text>
+  <text x="450" y="257" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">into the Go app</text>
+
+  
+  <rect x="20" y="284" width="590" height="42" rx="8" fill="#1C544F"/>
+  <text x="310" y="302" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Piko integrates the premailer into the Go build. MJML keeps them in separate processes.</text>
+  <text x="310" y="318" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">PML trades component breadth for framework integration, typing, and shared CSS tooling.</text>
+</svg>

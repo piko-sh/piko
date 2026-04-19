@@ -120,11 +120,11 @@ type TaskDispatcher interface {
 	DispatchDelayed(ctx context.Context, task *Task, executeAt time.Time) error
 
 	// RegisterExecutor adds a task executor with the given name.
-	// This must be called before Start() for all executor types.
+	// Must be called before Start() for all executor types.
 	//
 	// Takes ctx (context.Context) which carries logging context.
 	// Takes name (string) which identifies the executor.
-	// Takes executor (TaskExecutor) which handles tasks of this type.
+	// Takes executor (TaskExecutor) which handles tasks of the named kind.
 	RegisterExecutor(ctx context.Context, name string, executor TaskExecutor)
 
 	// Start begins the worker pool and delayed task processor.

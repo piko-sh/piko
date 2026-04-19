@@ -1,26 +1,28 @@
 ---
 title: Introduction
-description: A website development kit for building server-side rendered applications with reactive client components
+description: Piko is a Go framework for building server-side-rendered web applications with reactive client components and swappable backends.
 nav:
   sidebar:
     section: "get-started"
-    subsection: "basics"
+    subsection: "overview"
     order: 10
 ---
 
 # Piko documentation
 
-Piko is a website development kit for building server-side rendered web applications with interactive client-side components. It combines Go's performance and type safety with a Vue-inspired templating syntax for building fast, SEO-friendly web applications.
+Piko is a website development kit for building server-side-rendered web applications with interactive client-side components ([about SSR](../explanation/about-ssr.md), [about reactivity](../explanation/about-reactivity.md)). It combines Go's performance and type safety with a Vue-inspired templating syntax ([about Piko, Vue, and Nuxt](../explanation/about-piko-vs-vue.md)). The hexagonal architecture lets a project swap storage, caching, email, or AI backends without touching application code ([about the hexagonal architecture](../explanation/about-the-hexagonal-architecture.md)).
 
-Beyond templating, Piko includes swappable backends for storage, caching, AI integration, and other services. You can start simple and swap implementations as you scale without changing application code.
+<p align="center">
+  <img src="../diagrams/one-binary.svg"
+       alt="Before and after architecture. On the left a traditional split: a Go API and a Next.js frontend connected across a CORS boundary, deployed as two services. On the right a single Piko binary containing both concerns, deployed once."
+       width="540"/>
+</p>
 
-Piko is built on a hexagonal architecture, so programmers can supply their own backends to extend what the framework supports.
+A Piko project ships as one Go binary. The HTTP server, compiled templates, actions, and assets all live inside that single file, which `go build` produces.
 
-## Preview & core features
+## A quick look
 
-Piko renders HTML on the server using Go. This results in fast initial page loads and excellent search engine optimisation. Pages are generated from `.pk` single file components that combine Go code with HTML templates.
-
-This is an example PK file:
+A single PK file contains template, Go, and CSS. Piko compiles the template against the Go types declared in the file and serves the rendered HTML.
 
 ```piko
 <template>
@@ -40,16 +42,16 @@ This is an example PK file:
   import "piko.sh/piko"
 
   type Response struct {
-    Headers map[string]string
+      Headers map[string]string
   }
 
   func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
-    return Response{
-      Headers: map[string]string{
-        "Content-Type": "text/html",
-        "X-Request-ID": "abc-123",
-      },
-    }, piko.Metadata{}, nil
+      return Response{
+          Headers: map[string]string{
+              "Content-Type": "text/html",
+              "X-Request-ID": "abc-123",
+          },
+      }, piko.Metadata{}, nil
   }
 </script>
 
@@ -63,71 +65,18 @@ This is an example PK file:
 </style>
 ```
 
-You will notice that the elements of a PK file are very similar to a VueJS file, where there is a template block, and a script block. In a VueJS file the script block is in Javascript, and in Piko it is SSR, so it is in Go.
+A PK file looks similar to a Vue.js single-file component, with a template block and a script block. The script is Go (not JavaScript), and the expression language inside `{{ }}` compiles to pure Go, so no code runs on the client. The [PK file format reference](../reference/pk-file-format.md) documents every section. [Concepts](concepts.md) walks through every other named piece (PKC components, actions, partials, collections, the querier, services, i18n). [Install and run](install.md) gets a server running in under five minutes.
 
-Piko is only inspired by VueJS and will often have clear differences, for example, the `p-for` above aligns more with the order of a `for` in Go. The expression language in templates is Piko's own and is in no way Javascript - we need an expression language that can be generated down to pure Go.
+## Where to read next
 
-## Quick start
+This folder holds four onboarding pages. Introduction, install, concepts, and project structure. After reading them, the rest of the documentation splits into five areas:
 
-Create a new Piko project using the interactive CLI wizard:
+- **Tutorials** teach Piko step by step. Start with [Your first page](../tutorials/01-your-first-page.md) after the dev server is running.
+- **How-to guides** answer "how do I?" for specific tasks: routing, forms, collections, i18n, testing, deployment.
+- **Reference** documents every public API, directive, file format, and configuration option.
+- **Explanation** answers "why": the rendering model, the action protocol, the hexagonal architecture.
+- **Showcase** walks through the [runnable example projects](../showcase/overview.md) under [`examples/scenarios/`](https://github.com/piko-sh/piko/tree/master/examples/scenarios).
 
-```bash
-# Install the Piko CLI
-go install piko.sh/piko/cmd/piko@latest
+## Requirements
 
-# Run the project creation wizard
-piko new
-
-# Follow the prompts to configure your project
-cd my-project
-```
-
-The wizard asks for your project name, location, and Go module path.
-
-## Run the development server
-
-You have two options for running the development server:
-
-### Option 1: Using Air (recommended)
-
-[Air](https://github.com/cosmtrek/air) provides live reloading when you modify Go files:
-
-```bash
-# Install Air (if not already installed)
-go install github.com/air-verse/air@latest
-
-# Start the development server with live reloading
-air
-```
-
-### Option 2: Direct execution
-
-Run the server directly without live reloading:
-
-```bash
-# Build assets for the first time
-go run ./cmd/generator/main.go all
-
-# Run server in dev mode
-go run ./cmd/main/main.go dev
-```
-
-Your application is now running at `http://localhost:8080` (or next available port).
-
-## Run modes
-
-Piko supports three run modes:
-
-| Mode    | Command                           | Description                                                  |
-| ------- | --------------------------------- | ------------------------------------------------------------ |
-| `dev`   | `go run ./cmd/main/main.go dev`   | Development mode with compiled templates                     |
-| `dev-i` | `go run ./cmd/main/main.go dev-i` | Interpreted mode (heavily experimental, likely won't even work) |
-| `prod`  | `go run ./cmd/main/main.go prod`  | Production mode with optimisations and disabling of development services |
-
-The included `.air.toml` configuration uses `dev-i` mode for the fastest development feedback loop.
-
-## Next steps
-
-1. **[Your first page](/docs/get-started/first-page)** → Build your first Piko component
-2. **[Core concepts](/docs/get-started/core-concepts)** → Understand the mental model behind Piko
-3. **[PK file format](/docs/guide/pk-templates)** → Learn the template syntax and directives
+Piko targets Go 1.26 or later. See [Install and run](install.md) for the full setup steps.

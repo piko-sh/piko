@@ -1,0 +1,74 @@
+<svg viewBox="0 0 620 340" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="wasm-title wasm-desc">
+  <title id="wasm-title">WASM scope: what ships and what does not</title>
+  <desc id="wasm-desc">Two boxes side by side. The inside-WASM box includes the template engine, the bytecode interpreter, and client-side template rendering. The outside-WASM box excludes the piko.sh/piko package itself, storage, cache, email, LLM, PDF, notification, and database drivers. Use cases for each side are listed underneath.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#6BD5CC" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="20" y="30" width="280" height="200" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,30 H290 A10,10 0 0 1 300,40 V56 H20 V40 A10,10 0 0 1 30,30 Z" fill="#1C544F"/>
+  <text x="160" y="48" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="12" font-weight="600">INSIDE WASM</text>
+
+  <rect x="36" y="70" width="248" height="28" rx="6" fill="#1C544F"/>
+  <text x="160" y="88" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">template parser</text>
+
+  <rect x="36" y="106" width="248" height="28" rx="6" fill="#1C544F"/>
+  <text x="160" y="124" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">bytecode interpreter</text>
+
+  <rect x="36" y="142" width="248" height="28" rx="6" fill="#1C544F"/>
+  <text x="160" y="160" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">PK-to-HTML renderer</text>
+
+  <rect x="36" y="178" width="248" height="42" rx="6" fill="#1C544F"/>
+  <text x="160" y="194" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10" font-weight="600">client-side template evaluation</text>
+  <text x="160" y="210" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">no server round-trip</text>
+
+  
+  <rect x="320" y="30" width="280" height="200" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+  <path d="M330,30 H590 A10,10 0 0 1 600,40 V56 H320 V40 A10,10 0 0 1 330,30 Z" fill="#364049"/>
+  <text x="460" y="48" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="12" font-weight="600">OUTSIDE WASM</text>
+
+  <rect x="336" y="70" width="120" height="22" rx="6" fill="#364049"/>
+  <text x="396" y="84" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">piko.sh/piko</text>
+
+  <rect x="464" y="70" width="120" height="22" rx="6" fill="#364049"/>
+  <text x="524" y="84" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">ActionMetadata</text>
+
+  <rect x="336" y="98" width="120" height="22" rx="6" fill="#364049"/>
+  <text x="396" y="112" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">RequestData</text>
+
+  <rect x="464" y="98" width="120" height="22" rx="6" fill="#364049"/>
+  <text x="524" y="112" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">storage</text>
+
+  <rect x="336" y="126" width="120" height="22" rx="6" fill="#364049"/>
+  <text x="396" y="140" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">cache</text>
+
+  <rect x="464" y="126" width="120" height="22" rx="6" fill="#364049"/>
+  <text x="524" y="140" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">email</text>
+
+  <rect x="336" y="154" width="120" height="22" rx="6" fill="#364049"/>
+  <text x="396" y="168" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">LLM</text>
+
+  <rect x="464" y="154" width="120" height="22" rx="6" fill="#364049"/>
+  <text x="524" y="168" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">PDF</text>
+
+  <rect x="336" y="182" width="248" height="38" rx="6" fill="#364049"/>
+  <text x="460" y="198" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">database drivers &#183; notifications</text>
+  <text x="460" y="214" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">every hexagonal service stays server-side</text>
+
+  
+  <text x="160" y="258" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="11" font-weight="600">use for:</text>
+  <text x="160" y="278" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">live editors, playgrounds,</text>
+  <text x="160" y="294" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">user-composed templates,</text>
+  <text x="160" y="310" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">preview-as-you-type</text>
+
+  <text x="460" y="258" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11" font-weight="600">not for:</text>
+  <text x="460" y="278" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">running the whole app</text>
+  <text x="460" y="294" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">in the browser;</text>
+  <text x="460" y="310" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">server pieces stay server-side</text>
+
+  <text x="310" y="332" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">A WASM build keeps the template engine portable; the rest of the framework stays honest about where it runs.</text>
+</svg>

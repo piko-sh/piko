@@ -484,8 +484,8 @@ func RegisterASTFunc(packagePath string, registryFunction ASTFunc) {
 	defaultRegistry.RegisterASTFunc(packagePath, registryFunction)
 }
 
-// RegisterCachePolicyFunc registers a cache policy function for a given
-// component package. This function is safe for use from multiple goroutines.
+// RegisterCachePolicyFunc registers a cache policy function for a given component
+// package. Safe for use from multiple goroutines.
 //
 // Takes packagePath (string) which specifies the component package path.
 // Takes registryFunction (CachePolicyFunc) which provides the cache policy logic.
@@ -494,7 +494,7 @@ func RegisterCachePolicyFunc(packagePath string, registryFunction CachePolicyFun
 }
 
 // RegisterMiddlewareFunc registers a middleware function for a given component
-// package. This function is safe for use by multiple goroutines.
+// package. Safe for use by multiple goroutines.
 //
 // Takes packagePath (string) which specifies the component package path.
 // Takes registryFunction (MiddlewareFunc) which provides the
@@ -504,8 +504,7 @@ func RegisterMiddlewareFunc(packagePath string, registryFunction MiddlewareFunc)
 }
 
 // RegisterSupportedLocalesFunc registers the SupportedLocales function for a
-// given component package. This function is safe for use by multiple
-// goroutines.
+// given component package. Safe for use by multiple goroutines.
 //
 // Takes packagePath (string) which identifies the component package.
 // Takes registryFunction (SupportedLocalesFunc) which provides the

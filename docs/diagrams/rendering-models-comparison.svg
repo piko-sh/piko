@@ -1,0 +1,103 @@
+<svg viewBox="0 0 620 380" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="rmc-title rmc-desc">
+  <title id="rmc-title">Three rendering models: SPA, hydrating SSR, and islands</title>
+  <desc id="rmc-desc">Three columns compare rendering models. SPA ships an empty shell plus a large JS bundle; the browser builds everything. Hydrating SSR sends rendered HTML then reruns the full page in JS to attach event handlers. Islands render server HTML once and run JS only for the scattered interactive regions. A time-to-paint bar under each column shows relative speed.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="105" y="22" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11" font-weight="600">SPA</text>
+  <text x="310" y="22" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11" font-weight="600">SSR + hydration</text>
+  <text x="515" y="22" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Piko: SSR + islands</text>
+
+  
+  
+  <rect x="25" y="40" width="170" height="56" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="25" y="40" width="170" height="18" fill="#364049"/>
+  <text x="110" y="53" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">server response</text>
+  <text x="110" y="72" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">empty &lt;div id="root"&gt;</text>
+  <text x="110" y="87" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">big app.js bundle</text>
+
+  
+  <line x1="110" y1="99" x2="110" y2="117" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="25" y="120" width="170" height="96" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <rect x="25" y="120" width="170" height="18" fill="#1C544F"/>
+  <text x="110" y="133" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">browser runtime</text>
+  <text x="110" y="153" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">download bundle</text>
+  <text x="110" y="168" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">parse, boot framework</text>
+  <text x="110" y="183" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">fetch data, render</text>
+  <text x="110" y="202" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">browser builds all</text>
+
+  
+  <rect x="25" y="226" width="170" height="48" rx="6" fill="#1C544F"/>
+  <text x="110" y="242" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">SEO: spinner on first hit</text>
+  <text x="110" y="256" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">first paint: slow (JS blocks)</text>
+  <text x="110" y="268" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">JS: runs on every page</text>
+
+  
+  <text x="110" y="296" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9" font-weight="600">time to paint</text>
+  <rect x="30" y="302" width="160" height="10" rx="3" fill="#364049"/>
+  <rect x="30" y="302" width="140" height="10" rx="3" fill="#92A1AF"/>
+  <text x="110" y="330" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">slow</text>
+
+  
+  <rect x="225" y="40" width="170" height="56" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="225" y="40" width="170" height="18" fill="#364049"/>
+  <text x="310" y="53" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">server response</text>
+  <text x="310" y="72" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">rendered HTML</text>
+  <text x="310" y="87" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">+ page-sized app.js</text>
+
+  <line x1="310" y1="99" x2="310" y2="117" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="225" y="120" width="170" height="96" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <rect x="225" y="120" width="170" height="18" fill="#1C544F"/>
+  <text x="310" y="133" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">browser runtime</text>
+  <text x="310" y="153" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">paint HTML</text>
+  <text x="310" y="168" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">download bundle</text>
+  <text x="310" y="183" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">re-run render in JS</text>
+  <text x="310" y="202" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">attach listeners everywhere</text>
+
+  <rect x="225" y="226" width="170" height="48" rx="6" fill="#1C544F"/>
+  <text x="310" y="242" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">SEO: fine</text>
+  <text x="310" y="256" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">first paint: fast</text>
+  <text x="310" y="268" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">JS: whole page pays cost</text>
+
+  <text x="310" y="296" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9" font-weight="600">time to paint</text>
+  <rect x="230" y="302" width="160" height="10" rx="3" fill="#364049"/>
+  <rect x="230" y="302" width="60" height="10" rx="3" fill="#92A1AF"/>
+  <text x="310" y="330" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">fast paint, whole-page hydration</text>
+
+  
+  <rect x="425" y="40" width="170" height="56" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="425" y="40" width="170" height="18" fill="#364049"/>
+  <text x="510" y="53" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">server response</text>
+  <text x="510" y="72" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">rendered HTML</text>
+  <text x="510" y="87" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">+ PKC tags only</text>
+
+  <line x1="510" y1="99" x2="510" y2="117" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="425" y="120" width="170" height="96" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <rect x="425" y="120" width="170" height="18" fill="#1C544F"/>
+  <text x="510" y="133" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">browser runtime</text>
+  <text x="510" y="153" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">paint HTML</text>
+  <text x="510" y="168" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">download only PKCs used</text>
+  <text x="510" y="183" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">boot component in place</text>
+  <text x="510" y="202" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">only islands pay JS cost</text>
+
+  <rect x="425" y="226" width="170" height="48" rx="6" fill="#1C544F"/>
+  <text x="510" y="242" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">SEO: fine</text>
+  <text x="510" y="256" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">first paint: very fast</text>
+  <text x="510" y="268" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">JS: scales with interactivity</text>
+
+  <text x="510" y="296" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9" font-weight="600">time to paint</text>
+  <rect x="430" y="302" width="160" height="10" rx="3" fill="#364049"/>
+  <rect x="430" y="302" width="40" height="10" rx="3" fill="#6BD5CC"/>
+  <text x="510" y="330" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9">fastest, JS only where needed</text>
+
+  <text x="310" y="367" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">Piko chooses the right-hand model: server builds HTML, browser runs JS only for PKC components.</text>
+</svg>

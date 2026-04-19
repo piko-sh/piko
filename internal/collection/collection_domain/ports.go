@@ -24,6 +24,7 @@ import (
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 // ProviderType indicates how a provider fetches and handles data.
@@ -58,6 +59,47 @@ const (
 	// This implements Incremental Static Regeneration (ISR) pattern.
 	ProviderTypeHybrid ProviderType = "hybrid"
 )
+
+// AssetRegistrar is a DRIVEN port for registering files discovered inside a
+// collection's source sandbox as runtime-servable artefacts.
+//
+// Static providers that pull content from external module sandboxes
+// (e.g. the markdown provider reading docs from a Go module) need a way to
+// publish sibling asset files (images, diagrams, SVGs) referenced from
+// content. This port lets a provider hand off the file-to-URL work without
+// depending on the registry hexagon directly.
+//
+// Implementations are expected to:
+//   - Read the file through the supplied sandbox (so kernel-level
+//     containment is preserved for external modules).
+//   - Upsert the bytes into the artefact registry under a deterministic
+//     artefactID that is stable across rebuilds for the same input path.
+//   - Return a servable URL rooted at the configured asset serve path.
+//
+// Thread-safety: Implementations must be safe for concurrent use since
+// multiple collections may be fetched in parallel at build time.
+type AssetRegistrar interface {
+	// RegisterCollectionAsset reads sandboxRelPath via sandbox, registers the
+	// bytes with the artefact registry, and returns the serve URL.
+	//
+	// Takes sandbox (safedisk.Sandbox) which provides kernel-enforced read
+	// access to the source content tree.
+	// Takes sandboxRelPath (string) which is the cleaned path of the asset
+	// file relative to the sandbox root.
+	// Takes collectionName (string) which identifies the owning collection.
+	// Used to scope the artefactID so assets from different collections do
+	// not collide.
+	//
+	// Returns serveURL (string) which is the absolute URL to use in rewritten
+	// src attributes (e.g. "/_piko/assets/docs/diagrams/bar.svg").
+	// Returns error when the file cannot be read or registration fails.
+	RegisterCollectionAsset(
+		ctx context.Context,
+		sandbox safedisk.Sandbox,
+		sandboxRelPath string,
+		collectionName string,
+	) (serveURL string, err error)
+}
 
 // CollectionProvider is the primary DRIVEN port for data source adapters.
 // It implements collection_domain.CollectionProvider and hybridCapableProvider.
@@ -131,9 +173,9 @@ type CollectionProvider interface {
 
 	// FetchStaticContent retrieves all content from a collection at BUILD TIME.
 	//
-	// This method is called for Static and Hybrid providers during the build
-	// process. It must return ALL items in the collection, as they will be
-	// embedded in the compiled binary.
+	// Called for Static and Hybrid providers during the build process. Must
+	// return ALL items in the collection, as they will be embedded in the
+	// compiled binary.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -150,9 +192,9 @@ type CollectionProvider interface {
 
 	// GenerateRuntimeFetcher generates Go code for fetching data at RUNTIME.
 	//
-	// This method is called for Dynamic and Hybrid providers during the build
-	// process. It must generate a complete, compilable Go function that will fetch
-	// data when the compiled application runs.
+	// Called for Dynamic and Hybrid providers during the build process. Must
+	// generate a complete, compilable Go function that fetches data when the
+	// compiled application runs.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -190,9 +232,9 @@ type CollectionProvider interface {
 	// ComputeETag computes a content fingerprint for hybrid mode staleness
 	// detection.
 	//
-	// This method is called at build time to create an ETag that represents the
-	// current state of the collection. At runtime, this ETag is compared against
-	// the current content to detect changes.
+	// Called at build time to create an ETag that represents the current
+	// state of the collection. At runtime, the ETag is compared against the
+	// current content to detect changes.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -213,8 +255,8 @@ type CollectionProvider interface {
 
 	// ValidateETag checks if the current content matches an expected ETag.
 	//
-	// This method is called at runtime during background revalidation to determine
-	// if content has changed since the last check.
+	// Called at runtime during background revalidation to determine if
+	// content has changed since the last check.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -226,7 +268,7 @@ type CollectionProvider interface {
 	//   - changed: true if the content has changed
 	//   - error: If validation fails
 	//
-	// This method should be efficient:
+	// Implementations should be efficient:
 	//   - For files: Check modification times (avoid reading content)
 	//   - For APIs: Use conditional requests (If-None-Match header)
 	//   - For databases: Check row versions without full scan
@@ -237,8 +279,8 @@ type CollectionProvider interface {
 	// GenerateRevalidator generates Go code for runtime ETag validation and
 	// refresh.
 	//
-	// This method is called at build time for hybrid providers to generate the
-	// code that will run in background goroutines to revalidate stale content.
+	// Called at build time for hybrid providers to generate the code that
+	// runs in background goroutines to revalidate stale content.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -267,10 +309,10 @@ type CollectionProvider interface {
 }
 
 // RuntimeProvider defines the interface for providers that operate at runtime.
-// It implements collection_domain.RuntimeProvider and runtime.RuntimeProvider.
+// Implements collection_domain.RuntimeProvider and runtime.RuntimeProvider.
 //
-// Dynamic and Hybrid providers must implement this interface AND register it
-// with the runtime when the application starts.
+// Dynamic and Hybrid providers must implement RuntimeProvider AND register
+// it with the runtime when the application starts.
 //
 // Design Philosophy:
 //   - Separation: Build-time (CollectionProvider) and runtime (RuntimeProvider)
@@ -278,7 +320,7 @@ type CollectionProvider interface {
 //   - Performance: Providers control caching and optimisation
 //
 // Implementation Guide:
-//  1. Implement this interface in a separate file (e.g., runtime_provider.go)
+//  1. Implement RuntimeProvider in a separate file (e.g., runtime_provider.go)
 //  2. Register with pikoruntime.RegisterProvider() in main.go
 //  3. Implement efficient caching strategy
 //  4. Handle errors gracefully (use fallbacks if available)
@@ -335,7 +377,7 @@ type RuntimeProvider interface {
 type CollectionEncoderPort interface {
 	// EncodeCollection packs a full collection into a binary blob.
 	//
-	// This method transforms a slice of ContentItems into a binary format that:
+	// Transforms a slice of ContentItems into a binary format that:
 	//   1. Can be embedded directly into the compiled binary (via //go:embed)
 	//   2. Supports O(log n) lookups by route at runtime
 	//   3. Allows lazy decoding of individual items
@@ -358,8 +400,8 @@ type CollectionEncoderPort interface {
 	// DecodeCollectionItem extracts a single item from an encoded
 	// collection.
 	//
-	// This method performs a binary search lookup in the blob and returns the raw
-	// data for a specific route without decoding the entire collection.
+	// Performs a binary search lookup in the blob and returns the raw data
+	// for a specific route without decoding the entire collection.
 	//
 	// Takes blob ([]byte) which is the encoded collection blob.
 	// Takes route (string) which is the route to look up (e.g., "/docs/actions").
@@ -378,8 +420,8 @@ type CollectionEncoderPort interface {
 
 // ProviderRegistryPort is the DRIVER port for managing providers.
 //
-// This interface defines how the framework manages the collection of registered
-// providers. The actual implementation (adapter) lives in collection_adapters.
+// Defines how the framework manages the collection of registered providers.
+// The actual implementation (adapter) lives in collection_adapters.
 //
 // Design Philosophy:
 //   - Simple CRUD operations
@@ -422,7 +464,7 @@ type ProviderRegistryPort interface {
 	//
 	// Returns bool which is true if the provider exists, false otherwise.
 	//
-	// This method is safe to call from multiple goroutines.
+	// Safe to call from multiple goroutines.
 	Has(name string) bool
 }
 
@@ -439,8 +481,8 @@ type CollectionService interface {
 	// ProcessCollectionDirective expands a p-collection directive into entry
 	// points.
 	//
-	// This method is called by the Coordinator when it encounters a .pk file with
-	// a p-collection directive. It orchestrates the provider to generate virtual
+	// Called by the Coordinator when it encounters a .pk file with a
+	// p-collection directive. Orchestrates the provider to generate virtual
 	// entry points for each content item.
 	//
 	// Parameters:
@@ -467,8 +509,8 @@ type CollectionService interface {
 
 	// ProcessGetCollectionCall handles data.GetCollection() in user code.
 	//
-	// This method is called by the Annotator's TypeResolver when it encounters
-	// a GetCollection() call. It receives semantic information extracted from the
+	// Called by the Annotator's TypeResolver when it encounters a
+	// GetCollection() call. Receives semantic information extracted from the
 	// Piko AST and generates the appropriate annotation for the Generator.
 	//
 	// Parameters:
@@ -500,7 +542,7 @@ type CollectionService interface {
 
 	// ValidateConfiguration checks all provider configurations at startup.
 	//
-	// This method is called during application initialisation to ensure:
+	// Called during application initialisation to ensure:
 	//   - All referenced providers are registered
 	//   - Provider configurations are valid
 	//   - Collections exist and are accessible
@@ -710,7 +752,7 @@ type HybridRegistryPort interface {
 	// Takes providerName (string) which identifies the data provider.
 	// Takes collectionName (string) which identifies the collection to revalidate.
 	//
-	// The function returns at once; revalidation runs in the background.
+	// Returns at once; revalidation runs in the background.
 	// Concurrent calls are combined into a single revalidation.
 	TriggerRevalidation(ctx context.Context, providerName, collectionName string)
 }

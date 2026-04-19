@@ -20,9 +20,9 @@ package render_domain
 
 import "reflect"
 
-// cmsMediaWrapper wraps an object that has CMS media methods.
-// It uses reflection to call methods, allowing duck typing without needing
-// the type to import this package.
+// cmsMediaWrapper wraps an object that has CMS media methods. Uses reflection to
+// call methods, allowing duck typing without needing the type to import the render
+// package.
 type cmsMediaWrapper struct {
 	// value holds the reflected value of the wrapped media object.
 	value reflect.Value

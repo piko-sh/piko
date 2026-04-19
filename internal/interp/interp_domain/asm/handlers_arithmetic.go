@@ -348,13 +348,12 @@ func handlerLoadIntConstSmall() asmgen.HandlerDefinition[BytecodeArchitecturePor
 // for any three-operand integer binary operation of the form
 // ints[A] = ints[B] <op> ints[C].
 //
-// This function abstracts the common pattern shared by AddInt, SubInt, MulInt,
-// BitAnd, BitOr, BitXor, and BitAndNot. All of these opcodes have identical
-// structure: they extract three 8-bit operand indices (A, B, C) from the
-// instruction word, delegate to the architecture adapter's
-// IntegerBinaryOperation method, and then dispatch to the next instruction. The
-// only difference between them is the operation string passed to the adapter,
-// which selects the concrete ALU instruction.
+// Abstracts the common pattern shared by AddInt, SubInt, MulInt, BitAnd, BitOr,
+// BitXor, and BitAndNot. All of these opcodes have identical structure: they
+// extract three 8-bit operand indices (A, B, C) from the instruction word, delegate
+// to the architecture adapter's IntegerBinaryOperation method, and then dispatch to
+// the next instruction. The only difference between them is the operation string
+// passed to the adapter, which selects the concrete ALU instruction.
 //
 // The operation parameter is a symbolic name ("ADD", "SUB", "MUL", "AND",
 // "OR", "XOR", "ANDNOT") that the architecture adapter maps to a
@@ -752,10 +751,9 @@ func handlerBitXor() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 // adapter handles this operation differently on each architecture. On amd64,
 // there is no native AND-NOT instruction, so the adapter loads ints[C] into
 // SI, applies NOTQ SI to invert the mask, then applies ANDQ with ints[B] as a
-// memory operand to produce the result, and stores SI into ints[A]. On arm64,
-// the BIC (bit clear) instruction natively computes Rd = Rn AND NOT(Rm), so
-// the adapter simply loads both operands and emits BIC R7, R6, R6 followed by
-// a store.
+// memory operand to produce the result, and stores SI into ints[A]. On arm64, the
+// BIC (bit clear) instruction natively computes Rd = Rn AND NOT(Rm), so the adapter
+// loads both operands and emits BIC R7, R6, R6 followed by a store.
 //
 // Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
 // handler definition for the BitAndNot opcode.
@@ -886,13 +884,12 @@ func handlerShiftRight() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 // any three-operand floating-point binary operation of the form
 // floats[A] = floats[B] <op> floats[C].
 //
-// This function abstracts the common pattern shared by AddFloat, SubFloat,
-// MulFloat, and DivFloat. All of these opcodes have identical structure: they
-// extract three 8-bit operand indices (A, B, C) from the instruction word,
-// delegate to the architecture adapter's FloatBinaryOperation method, and then
-// dispatch to the next instruction. The only difference between them is the
-// operation string passed to the adapter, which selects the concrete
-// floating-point instruction.
+// Abstracts the common pattern shared by AddFloat, SubFloat, MulFloat, and DivFloat.
+// All of these opcodes have identical structure: they extract three 8-bit operand
+// indices (A, B, C) from the instruction word, delegate to the architecture
+// adapter's FloatBinaryOperation method, and then dispatch to the next instruction.
+// The only difference between them is the operation string passed to the adapter,
+// which selects the concrete floating-point instruction.
 //
 // The operation parameter is a symbolic name ("ADD", "SUB", "MUL", "DIV") that
 // the architecture adapter maps to a platform-specific mnemonic. On amd64, the

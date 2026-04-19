@@ -55,10 +55,9 @@ func (s SizingMode) String() string {
 	return cssKeywordUnknown
 }
 
-// layoutInput carries the constraints and context passed from
-// a parent formatting context to a child layout algorithm.
-// This struct evolves into a full constraint space as layout
-// algorithms are progressively enriched.
+// layoutInput carries the constraints and context passed from a parent formatting
+// context to a child layout algorithm. Evolves into a full constraint space as
+// layout algorithms are progressively enriched.
 type layoutInput struct {
 	// FontMetrics provides text measurement and font
 	// metric queries.

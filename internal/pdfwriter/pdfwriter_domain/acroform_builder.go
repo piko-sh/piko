@@ -271,7 +271,7 @@ func (b *AcroFormBuilder) WriteObjects(
 // Takes zapfFontNum (int) which is the ZapfDingbats font object number.
 // Takes helveticaNum (int) which is the Helvetica font object number.
 //
-// Returns string which is the PDF object reference for this field.
+// Returns string which is the PDF object reference for the field.
 func (b *AcroFormBuilder) writeField(
 	writer *PdfDocumentWriter,
 	field *FormField,

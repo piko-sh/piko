@@ -84,6 +84,6 @@ By convention, pages should contain minimal markup themselves. Their main role i
 
 To understand the full capabilities of `.pk` files, refer to the official Piko documentation:
 
--   **[Introduction to server templates (.pk)](https://piko.sh/docs/guide/pk-templates)**
--   **[Partials: reusable server components](https://piko.sh/docs/guide/partials)**
+-   **[Introduction to server templates (.pk)](https://piko.sh/docs/reference/pk-file-format)**
+-   **[Partials: reusable server components](https://piko.sh/docs/reference/pk-file-format)**
 -   **[Data fetching](https://piko.sh/docs/guide/data-fetching)**

@@ -210,12 +210,9 @@ func parseAndSeparateSFC(data []byte) (*sfcparser.ParseResult, Sources, error) {
 // validateScriptBlocks checks all script blocks for missing or unrecognised
 // lang/type attributes and returns diagnostics for any problems found.
 //
-// Valid settings are:
-//   - Go: type="application/x-go", type="application/go", lang="go",
-//     lang="golang"
-//   - JavaScript: type="application/javascript", type="text/javascript",
-//     type="module", lang="js", lang="javascript"
-//   - TypeScript: lang="ts", lang="typescript", type="application/typescript"
+// Valid lang and type combinations cover Go, JavaScript, and TypeScript. See
+// the implementation for the recognised lang and MIME type strings accepted
+// for each language.
 //
 // Script blocks without a lang or type attribute will trigger a warning.
 //
@@ -339,8 +336,8 @@ func buildParsedComponent(
 }
 
 // resolveCollectionSourceAlias finds the full import path for a given alias.
-// This is used to resolve p-collection-source attributes that reference Go
-// imports for external markdown content.
+// Resolves p-collection-source attributes that reference Go imports for external
+// markdown content.
 //
 // Takes alias (string) which is the import alias to look up.
 // Takes goImports ([]*goast.ImportSpec) which contains the parsed Go imports.

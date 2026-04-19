@@ -18,16 +18,15 @@
 
 package asmgen
 
-// ArchitecturePort defines the minimal driven port that each
-// architecture adapter must implement. It provides only the identity
-// information needed by the file generation framework to produce
-// correctly named and tagged .s files.
+// ArchitecturePort defines the minimal driven port that each architecture
+// adapter must implement. It provides only the identity information needed by
+// the file generation framework to produce correctly named and tagged .s files.
 //
-// Domain-specific operations are defined as separate interfaces in
-// their respective consumer packages, embedding ArchitecturePort.
-// Adapters implement both this interface and whichever domain
-// interfaces they support. The framework does not prescribe any
-// particular assembly operations; consumers bring their own.
+// Domain-specific operations are defined as separate interfaces in their
+// respective consumer packages, embedding ArchitecturePort. Adapters implement
+// both ArchitecturePort and whichever domain interfaces they support. The
+// framework does not prescribe any particular assembly operations; consumers
+// bring their own.
 type ArchitecturePort interface {
 	// Arch returns the target architecture identifier.
 	Arch() Architecture
@@ -40,8 +39,8 @@ type ArchitecturePort interface {
 }
 
 // RegisterBank identifies which virtual register bank to access.
-// This type is defined in the core so that both domain packages and
-// adapter packages can reference the same enum values.
+// Defined in the core so that both domain packages and adapter packages can
+// reference the same enum values.
 type RegisterBank int
 
 const (

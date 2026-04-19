@@ -29,8 +29,8 @@ import (
 // DecodeCollectionBlob decodes a FlatBuffer collection blob into a typed
 // slice. Each item's metadata JSON is unmarshalled into T.
 //
-// This function is called by generated hybrid collection getter functions
-// to convert the cached FlatBuffer blob back into the user's typed slice.
+// Called by generated hybrid collection getter functions to convert the cached
+// FlatBuffer blob back into the user's typed slice.
 //
 // Takes blob ([]byte) which is the FlatBuffer-encoded collection data.
 //

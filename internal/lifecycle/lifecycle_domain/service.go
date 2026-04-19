@@ -208,7 +208,7 @@ type LifecycleServiceDeps struct {
 	// Nil in production mode.
 	DevEventNotifier DevEventNotifier
 
-	// FileSystem provides file system operations; nil uses the OS file system.
+	// FileSystem provides filesystem operations; nil uses the OS filesystem.
 	FileSystem FileSystem
 
 	// ComponentRegistry holds the PKC component registry for auto-discovery.

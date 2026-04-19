@@ -70,7 +70,7 @@
 //
 // # Integration
 //
-// This package depends on:
+// Depends on:
 //
 //   - ast_domain: Provides [ast_domain.TemplateAST] and node types that
 //     the premailer walks and mutates

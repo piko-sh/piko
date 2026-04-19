@@ -268,12 +268,10 @@ func (cf *CompiledFunction) ExportName() string { return cf.name }
 
 // ExportSourceFile returns the source file name for serialisation.
 //
-// Returns string which is the source file path where this function
-// was defined.
+// Returns string which is the source file path where the function was defined.
 func (cf *CompiledFunction) ExportSourceFile() string { return cf.sourceFile }
 
-// ExportIsVariadic returns whether the function accepts variadic
-// arguments.
+// ExportIsVariadic reports whether variadic arguments are accepted.
 //
 // Returns bool which is true when the function's last parameter is
 // variadic.

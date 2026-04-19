@@ -86,8 +86,8 @@ func NewCacheKeyGenerator() *CacheKeyGenerator {
 	return &CacheKeyGenerator{}
 }
 
-// Generate creates a cache key from a completion request and provider.
-// The key is a SHA-256 hash of the normalised request content.
+// Generate generates a cache key from a completion request and provider. The
+// key is a SHA-256 hash of the normalised request content.
 //
 // Takes request (*llm_dto.CompletionRequest) which is the request to hash.
 // Takes provider (string) which is the provider name.

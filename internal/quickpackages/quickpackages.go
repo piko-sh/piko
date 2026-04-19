@@ -215,7 +215,7 @@ func Visit(pkgs []*packages.Package, pre func(*packages.Package) bool, post func
 // goListPkg is the JSON structure returned by go list -json -deps
 // -export.
 type goListPkg struct {
-	// Module is the module containing this package.
+	// Module is the module containing the package.
 	Module *packages.Module
 
 	// Error is the error reported by go list, if any.
@@ -265,7 +265,7 @@ type goListError struct {
 type loaderPkg struct {
 	*packages.Package
 
-	// parseFile is the parse callback for this package.
+	// parseFile is the parse callback for the package.
 	parseFile parseFileFunc
 
 	// importMap maps source import paths to resolved import

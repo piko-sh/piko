@@ -16,26 +16,23 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache provides a provider-agnostic caching framework for
-// Piko applications.
+// Package cache provides a provider-agnostic caching framework for Piko
+// applications.
 //
-// This package is the public facade for Piko's caching subsystem. It
-// re-exports core types from the internal domain and DTO packages,
-// giving application developers a single, stable import path for all
-// caching functionality.
+// Serves as the public facade for Piko's caching subsystem, re-exporting core
+// types from the internal domain and DTO packages to give application
+// developers a single, stable import path for all caching functionality.
 //
 // # Providers
 //
-// Cache backend providers are available in the cache_provider_*
-// sub-packages, including in-memory, distributed, and multilevel
-// options.
+// Cache backend providers are available in the cache_provider_* sub-packages,
+// including in-memory, distributed, and multilevel options.
 //
 // # Value transformers
 //
-// Pluggable transformers can compress, encrypt, or otherwise
-// transform values transparently during Set and Get operations.
-// See the cache_transformer_* sub-packages for available
-// transformers.
+// Pluggable transformers can compress, encrypt, or otherwise transform values
+// transparently during Set and Get operations. See the cache_transformer_*
+// sub-packages for available transformers.
 //
 // # Usage
 //

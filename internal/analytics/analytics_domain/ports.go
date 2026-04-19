@@ -26,9 +26,9 @@ import (
 
 // Collector is the driven port that analytics backends implement.
 //
-// Implementations must be safe for concurrent use from multiple
-// goroutines. The Event passed to Collect must not be retained after
-// the method returns; copy any needed data.
+// Implementations must be safe for concurrent use from multiple goroutines. The
+// Event passed to Collect must not be retained after Collect completes; copy
+// any needed data.
 type Collector interface {
 	// Start launches any background goroutines (e.g. flush loops)
 	// needed by the collector.

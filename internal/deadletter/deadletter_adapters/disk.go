@@ -164,9 +164,9 @@ func (d *DiskDeadLetterQueue[T]) Get(ctx context.Context, limit int) ([]T, error
 
 // Remove removes entries from the dead letter queue.
 //
-// This method rewrites the file, which is slow but needed for the JSON lines
-// format. Without a way to identify entries, actual removal is not yet
-// supported. Services should create their own DLQ port with ID-based removal.
+// Rewrites the file, which is slow but needed for the JSON lines format. Without
+// a way to identify entries, actual removal is not yet supported. Services should
+// create their own DLQ port with ID-based removal.
 //
 // Takes entries ([]T) which specifies the entries to remove.
 //
@@ -227,7 +227,7 @@ func (d *DiskDeadLetterQueue[T]) Count(_ context.Context) (int, error) {
 //
 // Returns error when the queue file cannot be removed.
 //
-// Safe for concurrent use. The method holds the mutex for the whole operation.
+// Safe for concurrent use. Holds the mutex for the whole operation.
 func (d *DiskDeadLetterQueue[T]) Clear(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 

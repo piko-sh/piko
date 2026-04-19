@@ -29,13 +29,11 @@
 //
 // # Design rationale
 //
-// Go's default behaviour terminates the entire process when a
-// goroutine panics without recovery. In a long-running server that
-// calls into user-supplied or third-party provider code, a single
-// panic would bring down every connection. This package centralises
-// recovery with observability (OTel counters, structured logging) so
-// panics are caught, reported, and the process continues. The SafeCall
-// wrappers also distinguish provider-internal timeouts from caller
-// timeouts, which is important for accurate error attribution in
-// systems with multiple context scopes.
+// Go's default behaviour terminates the entire process when a goroutine panics
+// without recovery. In a long-running server that calls into user-supplied or
+// third-party provider code, a single panic would bring down every connection.
+// Centralises recovery with observability (OTel counters, structured logging) so
+// panics are caught, reported, and the process continues. The SafeCall wrappers
+// also distinguish provider-internal timeouts from caller timeouts, which is
+// important for accurate error attribution in systems with multiple context scopes.
 package goroutine

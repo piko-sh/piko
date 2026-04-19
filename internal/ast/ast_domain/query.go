@@ -167,8 +167,8 @@ func (ast *TemplateAST) InvalidateQueryContext() {
 // Returns []*TemplateNode which contains all matching nodes found.
 // Returns []*Diagnostic which contains any issues found during the query.
 //
-// This method creates a new search context with this node as the root. This
-// means selectors that depend on position in the full document (like sibling
+// Creates a new search context with this node as the root. As a result,
+// selectors that depend on position in the full document (like sibling
 // selectors + and ~, or :first-child) will work relative to this node, not
 // the original document. For queries that need the full document context, use
 // the top-level QueryAll function instead.

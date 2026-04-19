@@ -22,8 +22,8 @@ import "sync"
 
 // ProbeData holds data collected during the probe phase (CollectMetadata) that
 // can be reused by the render phase (RenderAST) to avoid redundant cache
-// lookups. This struct is pooled and designed to be expanded as more data is
-// plumbed between probe and render in future.
+// lookups. Pooled and designed to be expanded as more data is plumbed between
+// probe and render in future.
 type ProbeData struct {
 	// ComponentMetadata maps component tag names to their metadata. Populated
 	// by BulkGetComponentMetadata during the probe phase.

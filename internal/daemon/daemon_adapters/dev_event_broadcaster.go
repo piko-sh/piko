@@ -491,12 +491,11 @@ func (b *DevEventBroadcaster) broadcastSystemStats(provider monitoring_domain.Sy
 	}
 }
 
-// broadcastFullState pushes build, health, resources, providers, and
-// memory-detail SSE events to all connected clients. Each event is
-// independent so a nil provider simply skips that event.
+// broadcastFullState pushes build, health, resources, providers, and memory-detail
+// SSE events to all connected clients. Each event is independent so a nil provider
+// skips that event.
 //
-// Takes statsProvider
-// (monitoring_domain.SystemStatsProvider) which supplies
+// Takes statsProvider (monitoring_domain.SystemStatsProvider) which supplies
 // system metrics for memory-detail events.
 //
 // Safe for concurrent use; reads provider fields under mu.RLock.

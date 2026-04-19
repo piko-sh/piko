@@ -488,7 +488,7 @@ func (w *transformerWrapper[K, V]) computeCallback(
 	}
 }
 
-// Compute atomically computes a new value for the given key.
+// Compute computes a new value atomically for the given key.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to compute.
@@ -1042,7 +1042,7 @@ func (w *transformerWrapper[K, V]) SetExpiresAfter(ctx context.Context, key K, e
 
 // SetRefreshableAfter manually sets the refresh time for a key.
 //
-// This method is pass-through safe.
+// Pass-through safe.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.

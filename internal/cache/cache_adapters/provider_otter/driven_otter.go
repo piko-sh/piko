@@ -445,8 +445,8 @@ func (a *OtterAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	return nil
 }
 
-// Compute atomically updates the value in the cache using the provided
-// function.
+// Compute computes and atomically updates the value in the cache using the
+// provided function.
 //
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the old value and

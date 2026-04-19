@@ -820,7 +820,7 @@ func (d *DAL) PopGCHints(_ context.Context, limit int) ([]registry_dto.GCHint, e
 //
 // Returns error when any action fails.
 //
-// Safe for concurrent use; the method holds a mutex for the entire batch.
+// Safe for concurrent use; holds a mutex for the entire batch.
 func (d *DAL) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()

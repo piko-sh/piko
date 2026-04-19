@@ -19,13 +19,12 @@
 // Package pml_domain defines the core interfaces and domain models for
 // the PikoML transformation engine.
 //
-// PikoML (Piko Markup Language) transforms custom <pml-*> components
-// into email-safe HTML with responsive CSS. This package defines the
-// contracts ([Transformer], [ComponentRegistry], [Component],
-// [MediaQueryCollector], [MSOConditionalCollector]) between the
-// transformation engine, component implementations, and validation
-// logic, plus supporting types like [TransformationContext] and
-// [StyleManager].
+// PikoML (Piko Markup Language) transforms custom <pml-*> components into
+// email-safe HTML with responsive CSS. Defines the contracts ([Transformer],
+// [ComponentRegistry], [Component], [MediaQueryCollector],
+// [MSOConditionalCollector]) between the transformation engine, component
+// implementations, and validation logic, plus supporting types like
+// [TransformationContext] and [StyleManager].
 //
 // # Transformation pipeline
 //

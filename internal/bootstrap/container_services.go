@@ -491,7 +491,7 @@ func (c *Container) SetDefaultImageTransformer(name string) {
 //
 // Takes imageConfig (*image_domain.ImageConfig) which contains the complete
 // settings including providers, predefined variants, and service options.
-// If imageConfig is nil, the method returns without making changes.
+// Returns without making changes when imageConfig is nil.
 func (c *Container) SetImageConfig(imageConfig *image_domain.ImageConfig) {
 	if imageConfig == nil {
 		return

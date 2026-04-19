@@ -31,9 +31,8 @@ import (
 // base64-encoded key. This is a convenience function for loading keys from
 // environment variables.
 //
-// This function is only used internally by the bootstrap container for
-// config-based initialisation. For modern applications, prefer using the
-// option-based approach:
+// Used only internally by the bootstrap container for config-based initialisation.
+// For modern applications, prefer using the option-based approach:
 // import "piko.sh/piko/wdk/crypto/crypto_provider_local_aes_gcm"
 // keyBytes, _ := base64.StdEncoding.DecodeString(base64Key)
 // provider, _ := crypto_provider_local_aes_gcm.NewProvider(

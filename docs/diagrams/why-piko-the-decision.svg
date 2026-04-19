@@ -1,0 +1,63 @@
+<svg viewBox="0 0 600 220" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="why-piko-the-decision-title why-piko-the-decision-desc">
+  <title id="why-piko-the-decision-title">One Go module producing two render targets</title>
+  <desc id="why-piko-the-decision-desc">A teal Go module container on the left with a struct shape inside. Two dashed teal arrows fan out to the right. The upper arrow terminates in a grey container labelled HTML rendered on the server from a pk file. The lower arrow terminates in a grey container labelled Web Component running in the browser from a pkc file. Types flow from the module to both.</desc>
+
+  <defs>
+    <marker id="why-decision-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6"
+            fill="none" stroke="#0F766E" stroke-width="1.5"
+            stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <g>
+    <rect x="20" y="55" width="200" height="110" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+    <rect x="20" y="55" width="200" height="26" fill="#1C544F"/>
+    <circle cx="32" cy="68" r="4" fill="#ff5f57"/>
+    <circle cx="46" cy="68" r="4" fill="#febc2e"/>
+    <circle cx="60" cy="68" r="4" fill="#28c840"/>
+    <text x="216" y="72" text-anchor="end" fill="#6BD5CC" font-family="monospace" font-size="10">your-app/</text>
+
+    <text x="30" y="100" fill="#C9F5F2" font-family="monospace" font-size="11">type Response</text>
+    <text x="30" y="116" fill="#C9F5F2" font-family="monospace" font-size="11">struct {</text>
+    <text x="40" y="132" fill="#FFEE9C" font-family="monospace" font-size="11">Title     string</text>
+    <text x="40" y="148" fill="#FFEE9C" font-family="monospace" font-size="11">Customers []Customer</text>
+    <text x="30" y="164" fill="#C9F5F2" font-family="monospace" font-size="11">}</text>
+  </g>
+  <text x="120" y="187" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="11" font-weight="600">one Go module</text>
+  <text x="120" y="202" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10">one type system</text>
+
+  
+  <g>
+    <rect x="380" y="30" width="200" height="70" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+    <rect x="380" y="30" width="200" height="22" fill="#364049"/>
+    <text x="572" y="45" text-anchor="end" fill="#92A1AF" font-family="monospace" font-size="9">page.pk</text>
+    <text x="480" y="72" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="12" font-weight="600">HTML</text>
+    <text x="480" y="88" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">rendered on the server</text>
+  </g>
+
+  
+  <g>
+    <rect x="380" y="120" width="200" height="70" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+    <rect x="380" y="120" width="200" height="22" fill="#364049"/>
+    <text x="572" y="135" text-anchor="end" fill="#92A1AF" font-family="monospace" font-size="9">component.pkc</text>
+    <text x="480" y="162" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Web Component</text>
+    <text x="480" y="178" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">running in the browser</text>
+  </g>
+
+  
+  <path d="M 220,90 C 290,90 310,65 376,65"
+        fill="none" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3"
+        stroke-linecap="round" marker-end="url(#why-decision-arrow)"/>
+  <path d="M 220,130 C 290,130 310,155 376,155"
+        fill="none" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3"
+        stroke-linecap="round" marker-end="url(#why-decision-arrow)"/>
+
+  <text x="300" y="72" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9">types flow</text>
+  <text x="300" y="170" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9">types flow</text>
+
+  
+  <text x="300" y="18" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" letter-spacing="0.5">one compilation unit, two render targets</text>
+</svg>

@@ -341,8 +341,8 @@ func (s *ManifestStore) FindErrorPage(statusCode int, requestPath string) (templ
 }
 
 // LinkFuncs connects a static manifest entry to the compiled functions that
-// were registered during the application's init phase. This method is exported
-// so that InterpretedBuildOrchestrator can call it.
+// were registered during the application's init phase. Exported so that
+// InterpretedBuildOrchestrator can call it.
 func (pe *PageEntry) LinkFuncs() {
 	registry := pe.registry
 	if registry == nil {
@@ -362,9 +362,9 @@ func (pe *PageEntry) LinkFuncs() {
 // InitialiseCachedMetadata rebuilds the pre-computed JS script metadata and
 // static metadata caches.
 //
-// Call this after linking functions from a registry when LinkFuncs is not used
+// Call after linking functions from a registry when LinkFuncs is not used
 // (e.g. the JIT interpreted build path). The supportedLocalesFunc must be set
-// before calling this method because initialiseCachedStaticMetadata invokes it.
+// before calling because initialiseCachedStaticMetadata invokes it.
 func (pe *PageEntry) InitialiseCachedMetadata() {
 	pe.initialiseCachedJSScriptMetas()
 	pe.initialiseCachedStaticMetadata()
@@ -768,8 +768,8 @@ func (pe *PageEntry) initialiseCachedStaticMetadata() {
 }
 
 // WithBaseDir sets the project root directory for the manifest store.
-// This is used to build full paths from relative paths in runtime
-// diagnostics, making error messages easier to use for IDE navigation.
+// Used to build full paths from relative paths in runtime diagnostics, making
+// error messages easier to use for IDE navigation.
 //
 // Takes baseDir (string) which specifies the project root directory path.
 //

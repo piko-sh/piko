@@ -26,9 +26,9 @@ import (
 // into the shared section/row shape consumed by the CLI Printer and the
 // TUI detail panel renderer.
 //
-// The protobuf already carries titled sections containing key/value
-// entries; this builder simply re-shapes them as DetailSection values
-// without altering field order or labels.
+// The protobuf already carries titled sections containing key/value entries;
+// this builder re-shapes them as DetailSection values without altering field
+// order or labels.
 //
 // Takes response (*pb.DescribeProviderResponse) which contains the
 // provider detail payload returned by the monitoring API.

@@ -191,8 +191,8 @@ func (mv *ModuleVirtualiser) Virtualise(
 }
 
 // injectDefaultBoilerplateFuncs adds missing Render and CachePolicy functions
-// to each component. If a component lacks either function, this method inserts
-// a safe default into its Go AST before type analysis runs.
+// to each component. If a component lacks either function, a safe default is
+// inserted into its Go AST before type analysis runs.
 //
 // Takes ctx (context.Context) which carries cancellation and logging.
 //

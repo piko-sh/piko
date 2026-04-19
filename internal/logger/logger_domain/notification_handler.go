@@ -172,7 +172,7 @@ func (h *NotificationHandler) SetDebounceDuration(d time.Duration) {
 }
 
 // GetPendingErrorCount returns the number of unique grouped errors that are
-// waiting to be sent. This method is mainly for test checks.
+// waiting to be sent. Mainly for test checks.
 //
 // Returns int which is the count of pending grouped errors.
 //
@@ -184,7 +184,7 @@ func (h *NotificationHandler) GetPendingErrorCount() int {
 }
 
 // HasPendingBatch returns true if there are any grouped errors waiting to be
-// sent. This method is primarily for test verification.
+// sent. Primarily for test verification.
 //
 // Returns bool which indicates whether pending errors exist in the batch.
 //
@@ -196,7 +196,7 @@ func (h *NotificationHandler) HasPendingBatch() bool {
 }
 
 // GetPendingErrors returns a copy of the current grouped errors map.
-// This method is primarily for test verification and debugging.
+// Primarily for test verification and debugging.
 //
 // Returns map[string]*GroupedError which is a shallow copy of the pending
 // errors. Modifications to the returned map will not affect the handler's
@@ -213,7 +213,7 @@ func (h *NotificationHandler) GetPendingErrors() map[string]*GroupedError {
 }
 
 // GetDebounceDuration returns the current debounce duration.
-// This method is primarily for test verification.
+// Primarily for test verification.
 //
 // Returns time.Duration which is the current debounce interval.
 //
@@ -225,7 +225,7 @@ func (h *NotificationHandler) GetDebounceDuration() time.Duration {
 }
 
 // GetMinLevel returns the minimum log level for notifications.
-// This method is primarily for test verification.
+// Primarily for test verification.
 //
 // Returns slog.Level which is the current minimum notification level.
 //
@@ -313,9 +313,8 @@ func (h *NotificationHandler) sendBatch(batch map[string]*GroupedError) {
 // newNotificationHandlerWithClock creates a notification handler with a custom
 // clock.
 //
-// This function is mainly for testing. It lets you pass in a mock clock to
-// control time-based behaviour. The handler is added to the
-// defaultLifecycleManager for shutdown.
+// Mainly for testing; accepts a mock clock to control time-based behaviour. The
+// handler is added to the defaultLifecycleManager for shutdown.
 //
 // Takes next (slog.Handler) which is the handler to wrap.
 // Takes notificationPort (NotificationPort) which sends notifications.

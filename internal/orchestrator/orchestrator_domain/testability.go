@@ -42,7 +42,7 @@ const (
 type randFunc func(n int) int
 
 // completionEventData holds the data for a task completion event.
-// This struct makes the completion event schema explicit and testable.
+// Makes the completion event schema explicit and testable.
 type completionEventData struct {
 	// CompletedAt is when the task finished.
 	CompletedAt time.Time

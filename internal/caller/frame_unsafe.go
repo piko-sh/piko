@@ -30,14 +30,12 @@ type runtimeFrame = runtime.Frame
 
 // runtimeFrames mirrors the internal layout of runtime.Frames as of Go 1.23+.
 //
-// This struct must be kept in sync with Go's internal
-// implementation. The layout was verified against Go 1.23 and later
-// versions. The nextPC field was added in Go 1.23 to support
-// improved inlining information.
+// Must be kept in sync with Go's internal implementation. The layout was
+// verified against Go 1.23 and later versions. The nextPC field was added in Go
+// 1.23 to support improved inlining information.
 //
-// IMPORTANT: Field order is load-bearing - it must match
-// runtime.Frames exactly. Do NOT reorder these fields. The struct
-// is cast via unsafe.Pointer.
+// IMPORTANT: Field order is load-bearing - it must match runtime.Frames exactly.
+// Do NOT reorder these fields. The struct is cast via unsafe.Pointer.
 //
 //nolint:govet // must match runtime.Frames layout
 type runtimeFrames struct {
@@ -63,9 +61,8 @@ type runtimeFrames struct {
 // resolveFrame returns the function name, file path, and line number for this
 // program counter.
 //
-// This method builds a runtime.Frames struct on the stack to avoid heap
-// allocation. It then casts the struct to *runtime.Frames and calls Next()
-// to get the frame details.
+// Builds a runtime.Frames struct on the stack to avoid heap allocation. It then
+// casts the struct to *runtime.Frames and calls Next() to get the frame details.
 //
 // Returns name (string) which is the fully qualified function name.
 // Returns file (string) which is the full file path.

@@ -29,6 +29,8 @@ import (
 	"strings"
 	"time"
 
+	"piko.sh/piko/internal/assetpath"
+	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
@@ -57,6 +59,11 @@ const (
 
 	// fnv1aPrime64 is the 64-bit prime number used in FNV-1a hash calculations.
 	fnv1aPrime64 = 0x100000001b3
+
+	// maxNodesPerDocument caps AST traversal depth for asset resolution to
+	// protect against pathologically large documents driving unbounded
+	// registrar calls.
+	maxNodesPerDocument = 200_000
 )
 
 // MarkdownProvider implements CollectionProvider for static markdown files.
@@ -91,6 +98,12 @@ type MarkdownProvider struct {
 	// renderService extracts plain text from AST for search indexing.
 	renderService render_domain.RenderService
 
+	// assetRegistrar publishes sibling asset files (referenced from markdown
+	// via relative <img> src attributes) to the runtime artefact registry
+	// and returns the URL to rewrite into the rendered AST. When nil, asset
+	// resolution is skipped and relative src values pass through unchanged.
+	assetRegistrar collection_domain.AssetRegistrar
+
 	// scanner finds content files in collection directories.
 	// Used by DiscoverCollections and Check for project-level operations.
 	scanner *fileScanner
@@ -111,6 +124,10 @@ type MarkdownProvider struct {
 // Takes renderService (render_domain.RenderService) which extracts plain text
 // from AST for search indexing. Can be nil if plain text extraction is not
 // needed.
+// Takes assetRegistrar (collection_domain.AssetRegistrar) which registers
+// sibling asset files discovered inside a .md file so they are served at
+// runtime and rewrites the AST src to the registry URL. Can be nil when
+// asset resolution is not needed (for example in narrow unit tests).
 //
 // Returns *MarkdownProvider which is fully initialised and ready for use.
 func NewMarkdownProvider(
@@ -118,11 +135,13 @@ func NewMarkdownProvider(
 	sandbox safedisk.Sandbox,
 	markdownService markdown_domain.MarkdownService,
 	renderService render_domain.RenderService,
+	assetRegistrar collection_domain.AssetRegistrar,
 ) *MarkdownProvider {
 	m := &MarkdownProvider{
 		sandbox:         sandbox,
 		markdownService: markdownService,
 		renderService:   renderService,
+		assetRegistrar:  assetRegistrar,
 		scanner:         newFileScanner(sandbox),
 		name:            name,
 	}
@@ -286,11 +305,11 @@ func (m *MarkdownProvider) FetchStaticContent(
 
 // GenerateRuntimeFetcher generates code for runtime data fetching.
 //
-// Markdown is a static provider, so this method returns an error.
+// Markdown is a static provider, so an error is returned.
 // Dynamic fetching is not supported for markdown files.
 //
-// If hybrid (ISR) support is added in the future, this method would generate
-// code to re-parse the markdown file at runtime for revalidation.
+// If hybrid (ISR) support is added in the future, the implementation would
+// generate code to re-parse the markdown file at runtime for revalidation.
 //
 // Returns *collection_dto.RuntimeFetcherCode which is always nil for this
 // provider.
@@ -414,8 +433,8 @@ func (m *MarkdownProvider) ComputeETag(
 
 // ValidateETag checks if the current content matches an expected ETag.
 //
-// This method efficiently detects changes by recomputing the ETag and comparing
-// it against the expected value. It avoids reading file contents.
+// Efficiently detects changes by recomputing the ETag and comparing it against
+// the expected value. Avoids reading file contents.
 //
 // Takes collectionName (string) which specifies the collection to validate.
 // Takes expectedETag (string) which is the previously computed ETag to
@@ -580,7 +599,215 @@ func (m *MarkdownProvider) processMarkdownFile(
 		return collection_dto.ContentItem{}, fmt.Errorf("processing markdown: %w", err)
 	}
 
+	m.resolveAndRewriteAssets(ctx, sandbox, file.relativePath, collectionName, analyser, processed.PageAST)
+	m.resolveAndRewriteAssets(ctx, sandbox, file.relativePath, collectionName, analyser, processed.ExcerptAST)
+
 	return m.buildContentItem(ctx, processed, pathInfo, collectionName, content, file.relativePath)
+}
+
+// resolveAndRewriteAssets rewrites relative <img> srcs and <a> hrefs
+// inside an AST.
+//
+// Both Markdown-syntax nodes (which become img/a Elements) and raw HTML
+// blocks that contain <img>/<a> tags (which render as NodeRawHTML) are
+// handled.
+//
+// For images: each relative src (e.g. "../diagrams/foo.svg") is resolved
+// against the .md file's directory, registered with the artefact
+// registry, and replaced with the returned serve URL.
+//
+// For anchors: each relative href whose path component ends in .md is
+// resolved against the .md file's directory and rewritten to the public
+// URL produced by analyser, preserving any "#fragment" or "?query"
+// suffix. This lets a single source link (e.g. "../tutorials/foo.md")
+// render as a working file link on GitHub and as a clean URL on the
+// website.
+//
+// Non-relative refs (absolute URLs, data URIs, mailto:, fragment-only
+// anchors, already-served paths) and non-.md hrefs are left untouched.
+// Failures for individual nodes are logged and do not fail the overall
+// build; the original attribute is preserved.
+//
+// Takes sandbox (safedisk.Sandbox) which is the source tree for this
+// content. For external modules the sandbox covers the module's content
+// root so relative paths like "../diagrams/..." resolve inside it.
+// Takes mdRelativePath (string) which is the .md file path relative to
+// the sandbox root; used as the anchor for resolving relative refs.
+// Takes collectionName (string) which scopes the artefactID and prefixes
+// the public URL produced for anchor hrefs.
+// Takes analyser (*pathAnalyser) which maps a resolved .md path to its
+// public URL. May be nil to disable anchor href rewriting.
+// Takes tree (*ast_domain.TemplateAST) which is walked and mutated in
+// place. A nil tree is ignored.
+func (m *MarkdownProvider) resolveAndRewriteAssets(
+	ctx context.Context,
+	sandbox safedisk.Sandbox,
+	mdRelativePath string,
+	collectionName string,
+	analyser *pathAnalyser,
+	tree *ast_domain.TemplateAST,
+) {
+	if (m.assetRegistrar == nil && analyser == nil) || tree == nil || sandbox == nil {
+		return
+	}
+	if filepath.IsAbs(mdRelativePath) {
+		return
+	}
+
+	ctx, l := logger_domain.From(ctx, log)
+	mdDirectory := filepath.Dir(mdRelativePath)
+
+	nodeCount := 0
+	for node := range tree.Nodes() {
+		if err := ctx.Err(); err != nil {
+			l.Warn("Context cancelled while rewriting markdown attributes",
+				logger_domain.String(keyPath, mdRelativePath),
+				logger_domain.Error(err))
+			return
+		}
+		if node == nil {
+			continue
+		}
+		nodeCount++
+		if nodeCount > maxNodesPerDocument {
+			l.Warn("Exceeded node-walk cap while rewriting markdown attributes",
+				logger_domain.String(keyPath, mdRelativePath),
+				logger_domain.Int("max", maxNodesPerDocument))
+			return
+		}
+
+		m.rewriteAssetNode(ctx, sandbox, mdDirectory, collectionName, mdRelativePath, analyser, node)
+	}
+}
+
+// rewriteAssetNode dispatches a single AST node to the correct rewriter
+// based on its type. Element nodes other than <img>/<a> and empty
+// RawHTML nodes are ignored.
+//
+// Takes node (*ast_domain.TemplateNode) which is mutated in place when a
+// rewrite applies.
+func (m *MarkdownProvider) rewriteAssetNode(
+	ctx context.Context,
+	sandbox safedisk.Sandbox,
+	mdDirectory string,
+	collectionName string,
+	mdRelativePath string,
+	analyser *pathAnalyser,
+	node *ast_domain.TemplateNode,
+) {
+	switch node.NodeType {
+	case ast_domain.NodeElement:
+		switch node.TagName {
+		case tagNameImg:
+			m.rewriteElementImg(ctx, sandbox, mdDirectory, collectionName, mdRelativePath, node)
+		case tagNameAnchor:
+			m.rewriteElementAnchor(ctx, mdDirectory, collectionName, mdRelativePath, analyser, node)
+		}
+
+	case ast_domain.NodeRawHTML:
+		if node.TextContent == "" {
+			return
+		}
+		rewritten, changed := rewriteRelativeURLs(ctx, sandbox, m.assetRegistrar, analyser,
+			mdDirectory, collectionName, mdRelativePath, node.TextContent)
+		if changed {
+			node.TextContent = rewritten
+		}
+	}
+}
+
+// rewriteElementImg handles a single <img> element node, registering the
+// referenced asset via the registrar and mutating the node's src attribute
+// in place when a rewrite is possible.
+//
+// Takes node (*ast_domain.TemplateNode) which is mutated in place on
+// success. Non-relative srcs and traversals outside the sandbox leave the
+// node unchanged.
+func (m *MarkdownProvider) rewriteElementImg(
+	ctx context.Context,
+	sandbox safedisk.Sandbox,
+	mdDirectory string,
+	collectionName string,
+	mdRelativePath string,
+	node *ast_domain.TemplateNode,
+) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	src, ok := node.GetAttribute(attributeSrc)
+	if !ok || src == "" {
+		return
+	}
+	if !assetpath.NeedsTransform(src, assetpath.DefaultServePath) {
+		return
+	}
+
+	resolved := filepath.Clean(filepath.Join(mdDirectory, src))
+	if resolved == "." || resolved == "" || strings.HasPrefix(resolved, "..") || filepath.IsAbs(resolved) {
+		l.Warn("Skipping markdown asset that escapes sandbox",
+			logger_domain.String(keyPath, mdRelativePath),
+			logger_domain.String("src", src))
+		return
+	}
+
+	serveURL, err := m.assetRegistrar.RegisterCollectionAsset(ctx, sandbox, resolved, collectionName)
+	if err != nil {
+		l.Warn("Failed to register markdown asset; preserving original src",
+			logger_domain.String(keyPath, mdRelativePath),
+			logger_domain.String("src", src),
+			logger_domain.String("resolved", resolved),
+			logger_domain.Error(err))
+		return
+	}
+
+	node.SetAttribute(attributeSrc, serveURL)
+	l.Trace("Rewrote markdown asset src",
+		logger_domain.String(keyPath, mdRelativePath),
+		logger_domain.String("original_src", src),
+		logger_domain.String("serve_url", serveURL))
+}
+
+// rewriteElementAnchor handles a single <a> element node, rewriting an
+// .md href that points at a sibling document inside the collection to
+// the public URL produced by analyser. Hrefs that aren't relative .md
+// links (absolute URLs, fragments, queries, mailto:, paths without .md)
+// leave the node unchanged.
+//
+// On a successful rewrite the tag is also promoted from <a> to <piko:a>
+// so the runtime renderer emits the soft-navigation marker attribute and
+// the frontend intercepts the click for SPA-style navigation. Only
+// in-collection links get promoted; external and non-md anchors stay as
+// plain <a> tags.
+//
+// Takes node (*ast_domain.TemplateNode) which is mutated in place when a
+// rewrite applies.
+func (*MarkdownProvider) rewriteElementAnchor(
+	ctx context.Context,
+	mdDirectory string,
+	collectionName string,
+	mdRelativePath string,
+	analyser *pathAnalyser,
+	node *ast_domain.TemplateNode,
+) {
+	if analyser == nil {
+		return
+	}
+	href, ok := node.GetAttribute(attributeHref)
+	if !ok || href == "" {
+		return
+	}
+
+	newHref, ok := resolveAnchorHref(href, mdDirectory, collectionName, analyser)
+	if !ok {
+		return
+	}
+
+	node.SetAttribute(attributeHref, newHref)
+	node.TagName = tagNamePikoAnchor
+	_, l := logger_domain.From(ctx, log)
+	l.Trace("Rewrote markdown anchor href",
+		logger_domain.String(keyPath, mdRelativePath),
+		logger_domain.String("original_href", href),
+		logger_domain.String("new_href", newHref))
 }
 
 // resolveContentPath returns the sandbox-relative path for a content file.

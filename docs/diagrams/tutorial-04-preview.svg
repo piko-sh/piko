@@ -1,0 +1,58 @@
+<svg viewBox="0 0 500 325" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="t04-title t04-desc">
+  <title id="t04-title">Tutorial 4 preview: blog site with shared layout and deployment</title>
+  <desc id="t04-desc">A browser window showing the finished blog site built in tutorial 4. A layout with header and footer wraps a post page. The post has a heading, table of contents on the left, body content in the centre, and a newsletter signup form at the bottom. A footer note shows the single binary ready for deployment.</desc>
+  <defs/>
+
+  <text x="250" y="18" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">WHAT YOU WILL BUILD</text>
+
+  
+  <rect x="30" y="35" width="440" height="240" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M40,35 H460 A10,10 0 0 1 470,45 V65 H30 V45 A10,10 0 0 1 40,35 Z" fill="#1C544F"/>
+  <circle cx="46" cy="49" r="4" fill="#ff5f57"/>
+  <circle cx="60" cy="49" r="4" fill="#febc2e"/>
+  <circle cx="74" cy="49" r="4" fill="#28c840"/>
+
+  <rect x="100" y="42" width="340" height="14" rx="4" fill="#364049"/>
+  <text x="115" y="53" fill="#C9F5F2" font-family="monospace" font-size="9">http://example.com/blog/hello-world</text>
+
+  
+  <rect x="50" y="78" width="400" height="22" rx="4" fill="#1C544F"/>
+  <text x="60" y="93" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">My Blog</text>
+  <text x="440" y="93" text-anchor="end" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">Home &#183; Posts &#183; About</text>
+
+  
+  
+  <rect x="50" y="110" width="100" height="105" rx="6" fill="#1C544F"/>
+  <text x="60" y="125" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="9" font-weight="600">contents</text>
+  <text x="60" y="143" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">&#183; Intro</text>
+  <text x="60" y="158" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">&#183; The idea</text>
+  <text x="60" y="173" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">&#183; The trade</text>
+  <text x="60" y="188" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">&#183; Next steps</text>
+
+  
+  <rect x="160" y="110" width="290" height="105" rx="6" fill="#1C544F"/>
+  <text x="170" y="125" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Hello, world</text>
+  <rect x="170" y="135" width="270" height="4" rx="2" fill="#A7F0E9" opacity="0.6"/>
+  <rect x="170" y="144" width="260" height="4" rx="2" fill="#A7F0E9" opacity="0.5"/>
+  <rect x="170" y="153" width="240" height="4" rx="2" fill="#A7F0E9" opacity="0.4"/>
+  <rect x="170" y="168" width="250" height="4" rx="2" fill="#A7F0E9" opacity="0.6"/>
+  <rect x="170" y="177" width="220" height="4" rx="2" fill="#A7F0E9" opacity="0.5"/>
+  <rect x="170" y="186" width="200" height="4" rx="2" fill="#A7F0E9" opacity="0.4"/>
+  <rect x="170" y="195" width="270" height="4" rx="2" fill="#A7F0E9" opacity="0.3"/>
+
+  
+  <rect x="50" y="225" width="400" height="32" rx="6" fill="#1C544F" stroke="#6BD5CC" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="60" y="244" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Subscribe</text>
+  <rect x="145" y="232" width="200" height="18" rx="4" fill="#236962" stroke="#485461" stroke-width="1"/>
+  <text x="152" y="244" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">you@example.com</text>
+  <rect x="355" y="232" width="85" height="18" rx="4" fill="#6BD5CC"/>
+  <text x="397" y="245" text-anchor="middle" fill="#1C544F" font-family="system-ui, sans-serif" font-size="9" font-weight="600">Sign up</text>
+
+  
+  <rect x="30" y="280" width="440" height="14" rx="3" fill="#2B333B" stroke="#485461" stroke-width="1"/>
+  <text x="40" y="291" fill="#92A1AF" font-family="monospace" font-size="9">go build -&gt; ./app (single binary, ready to deploy)</text>
+  <text x="460" y="291" text-anchor="end" fill="#28c840" font-family="system-ui, sans-serif" font-size="9" font-weight="600">OK</text>
+
+  <text x="250" y="315" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11">Layout, content, signup, and a single-binary deploy</text>
+</svg>

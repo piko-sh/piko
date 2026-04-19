@@ -27,7 +27,7 @@ import (
 var _ ItemRenderer[any] = (*SimpleRenderer[any])(nil)
 
 // ItemRenderer defines how to render items of a specific type.
-// Implement this interface for each panel's data type.
+// Implement for each panel's data type.
 type ItemRenderer[T any] interface {
 	// RenderRow renders the main row for an item in the list view.
 	//
@@ -215,7 +215,7 @@ type SimpleRenderer[T any] struct {
 	// search query; required. The query is already lowercased.
 	MatchesFilterFunction func(T, string) bool
 
-	// RenderRowFunction renders the main row for an item; this field is required.
+	// RenderRowFunction renders the main row for an item; required.
 	RenderRowFunction func(T, int, bool, bool, int) string
 
 	// RenderExpandedFunction renders detail lines for an expanded

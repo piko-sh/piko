@@ -215,7 +215,7 @@ func (d *document) GetSupertypes(ctx context.Context, item TypeHierarchyItem) ([
 //
 // Takes item (TypeHierarchyItem) which identifies the type to query.
 //
-// Returns []TypeHierarchyItem which contains the types that embed this type.
+// Returns []TypeHierarchyItem which contains the embedding types.
 // Returns error when the lookup fails.
 func (d *document) GetSubtypes(ctx context.Context, item TypeHierarchyItem) ([]TypeHierarchyItem, error) {
 	return d.getTypeHierarchyRelations(ctx, item, "GetSubtypes",

@@ -142,8 +142,9 @@ func (*GoModuleCacheResolver) GetBaseDir() string {
 
 // ConvertEntryPointPathToManifestKey returns the path as-is for external
 // components. External components use their full module path as the manifest
-// key (e.g., "github.com/ui/lib/components/button.pk") to distinguish them
-// from local components and prevent naming conflicts.
+// key (for example a GitHub-style path such as
+// "example.com/ui/lib/components/button.pk") to distinguish them from local
+// components and prevent naming conflicts.
 //
 // Takes entryPointPath (string) which is the full module path of the external
 // component.
@@ -492,11 +493,11 @@ func (gmcr *GoModuleCacheResolver) cacheModuleDir(ctx context.Context, modulePat
 // within the module. It uses definitive module boundaries from go.mod rather
 // than heuristics.
 //
-// This works correctly with any module path format:
-//   - Standard: github.com/org/repo
+// Works correctly with any module path format:
+//   - Standard: a GitHub-hosted module path like example.com/org/repo
 //   - Custom domains: go.uber.org/zap
 //   - Vanity imports: gopkg.in/yaml.v2
-//   - Nested modules: github.com/org/repo/submodule
+//   - Nested modules: example.com/org/repo/submodule
 //
 // Takes importPath (string) which is the full import path to split
 // into module and subpath components.

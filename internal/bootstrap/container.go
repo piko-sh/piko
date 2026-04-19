@@ -1559,7 +1559,7 @@ func (c *Container) walkAndRegisterComponents(absDir, baseDir string) (int, []st
 
 // contextCloser defines a service that can be closed with a context for
 // timeout control. Services set via Set* or Add* methods are registered
-// for shutdown if they implement this interface.
+// for shutdown if they implement the contract.
 type contextCloser interface {
 	// Close releases resources held by the service.
 	//
@@ -1650,8 +1650,7 @@ func defaultMetadataCacheProvider() registry_domain.MetadataCache {
 //   - Stop(context.Context) error
 //   - io.Closer (Close() error)
 //
-// If the service does not use any shutdown interface, this function does
-// nothing.
+// Does nothing if the service does not use any shutdown interface.
 //
 // Takes name (string) which identifies the service in shutdown logs.
 // Takes service (any) which is the service to check for shutdown support.

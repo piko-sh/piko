@@ -52,7 +52,7 @@ func IsInternalPackage(packagePath string) bool {
 // CanAccessInternalPackage checks if a module can access an internal package
 // based on path analysis alone.
 //
-// This function handles two cases:
+// Handles two cases:
 //   - User's own internal packages -> accessible (direct imports allowed)
 //   - Stdlib internal packages -> filtered (truly unreachable, e.g.
 //     crypto/internal)
@@ -61,7 +61,7 @@ func IsInternalPackage(packagePath string) bool {
 // takes a hasModule parameter for more reliable detection.
 //
 // Takes userModulePath (string) which is the user's module path (e.g.
-// "nd-estates-website" or "github.com/foo/bar").
+// a local module name or a GitHub-hosted module path).
 // Takes targetPath (string) which is the package path being checked.
 //
 // Returns bool which is true if targetPath is the user's own internal package.

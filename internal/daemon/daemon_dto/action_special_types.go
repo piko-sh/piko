@@ -26,7 +26,7 @@ import (
 )
 
 // FileUpload represents an uploaded file from a multipart form request.
-// The action parser recognises this type and generates appropriate multipart
+// The action parser recognises uploads and generates appropriate multipart
 // handling code in the wrapper functions.
 type FileUpload struct {
 	// header is the underlying multipart.FileHeader for advanced use.

@@ -793,7 +793,7 @@ func (w *Watchdog) SetProfilingController(controller ProfilingController) {
 
 // Start begins periodic monitoring by spawning a background goroutine that
 // evaluates system metrics on each tick. If the watchdog is disabled via
-// config, this method is a no-op.
+// config, the call is a no-op.
 //
 // The background goroutine runs until Stop is called or the context is
 // cancelled.

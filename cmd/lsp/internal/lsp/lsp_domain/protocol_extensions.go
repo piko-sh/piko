@@ -70,7 +70,7 @@ type TypeHierarchyItem struct {
 	// Detail provides additional information about the type.
 	Detail string `json:"detail,omitempty"`
 
-	// URI is the document containing this type.
+	// URI is the document containing the type.
 	URI protocol.DocumentURI `json:"uri"`
 
 	// Tags contains additional symbol tags.
@@ -82,7 +82,7 @@ type TypeHierarchyItem struct {
 	// Range is the full range of the type definition.
 	Range protocol.Range `json:"range"`
 
-	// SelectionRange is the range to select when navigating to this type.
+	// SelectionRange is the range to select when navigating to the type.
 	SelectionRange protocol.Range `json:"selectionRange"`
 }
 

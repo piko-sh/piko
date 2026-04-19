@@ -251,7 +251,7 @@ func (cl *ComponentLinker) setupRootContextForLinking(
 // Returns *annotator_dto.LinkingResult which contains the linking result with
 // empty unique invocations.
 // Returns []*ast_domain.Diagnostic which passes through the input diagnostics.
-// Returns error which is always nil for this function.
+// Returns error which is always nil here.
 func createEmptyLinkingResult(
 	flattenedAST *ast_domain.TemplateAST,
 	combinedCSS string,

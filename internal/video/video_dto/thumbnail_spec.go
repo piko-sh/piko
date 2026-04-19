@@ -74,7 +74,7 @@ func NewThumbnailSpec() ThumbnailSpec {
 	}
 }
 
-// Validate checks that the spec has valid values.
+// Validate reports whether the spec has valid values.
 //
 // Returns error when any field has an invalid value.
 func (s *ThumbnailSpec) Validate() error {

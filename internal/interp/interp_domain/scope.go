@@ -38,11 +38,10 @@ const spillAreaOffset = 256
 
 // varLocation records where a variable's value lives at runtime.
 //
-// IMPORTANT: The field layout of this struct is accessed at runtime by
-// ASM dispatch code via hardcoded offsets in dispatch_offsets.h. The
-// fields upvalueIndex, register, kind, isUpvalue, isIndirect, and
-// originalKind MUST remain at their current offsets. New fields must
-// be appended after isCaptured.
+// IMPORTANT: The field layout is accessed at runtime by ASM dispatch code via
+// hardcoded offsets in dispatch_offsets.h. The fields upvalueIndex, register, kind,
+// isUpvalue, isIndirect, and originalKind MUST remain at their current offsets. New
+// fields must be appended after isCaptured.
 type varLocation struct {
 	// upvalueIndex is the index into the upvalue table when isUpvalue
 	// is true.
@@ -69,12 +68,12 @@ type varLocation struct {
 	// into the correct typed register.
 	originalKind registerKind
 
-	// isCaptured is true when this variable has been captured by a
+	// isCaptured is true when the variable has been captured by a
 	// closure. Writes to captured variables must emit opWriteSharedCell
 	// to keep the upvalue cell in sync with the register.
 	isCaptured bool
 
-	// isSpilled is true when this variable lives in the spill area
+	// isSpilled is true when the variable lives in the spill area
 	// (register file index >= 256) rather than a directly-addressable
 	// register. Must be materialised via opReload before use in
 	// instructions and stored back via opSpill after writes.

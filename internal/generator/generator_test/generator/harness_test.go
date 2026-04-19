@@ -124,7 +124,7 @@ func runTestCase(t *testing.T, tc testCase) {
 	markdownParser := markdown_testparser.NewParser()
 	markdownService := markdown_domain.NewMarkdownService(markdownParser, nil)
 	markdownSandbox, _ := safedisk.NewNoOpSandbox(absSrcDir, safedisk.ModeReadOnly)
-	markdownProvider := driver_markdown.NewMarkdownProvider("markdown", markdownSandbox, markdownService, nil)
+	markdownProvider := driver_markdown.NewMarkdownProvider("markdown", markdownSandbox, markdownService, nil, nil)
 	_ = providerRegistry.Register(markdownProvider)
 
 	collectionService := collection_domain.NewCollectionService(context.Background(), providerRegistry,

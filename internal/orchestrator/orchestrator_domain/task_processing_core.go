@@ -52,7 +52,7 @@ var (
 // TaskProcessingCore contains the shared task processing logic used by both
 // the local channel dispatcher and the Watermill dispatcher.
 //
-// This struct encapsulates:
+// Encapsulates:
 //   - Executor registry and lookup
 //   - Task execution with timeout
 //   - Success/failure handling with retry logic
@@ -183,7 +183,7 @@ func NewTaskProcessingCore(
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes name (string) which identifies the executor.
-// Takes executor (TaskExecutor) which handles tasks of this type.
+// Takes executor (TaskExecutor) which handles tasks of the named kind.
 //
 // Safe for concurrent use.
 func (c *TaskProcessingCore) RegisterExecutor(ctx context.Context, name string, executor TaskExecutor) {

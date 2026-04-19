@@ -482,7 +482,11 @@ function syncToAttrs(fromEl: HTMLElement, toEl: HTMLElement, ctx: MorphAttrsCont
             continue;
         }
         if (fromEl.getAttributeNS(toAttr.namespaceURI, toAttr.localName) !== toAttr.value) {
-            fromEl.setAttributeNS(toAttr.namespaceURI, toAttr.name, toAttr.value);
+            if (toAttr.namespaceURI) {
+                fromEl.setAttributeNS(toAttr.namespaceURI, toAttr.name, toAttr.value);
+            } else {
+                fromEl.setAttribute(toAttr.name, toAttr.value);
+            }
         }
     }
 }
@@ -677,7 +681,6 @@ function morphChildren(fromEl: HTMLElement, toEl: HTMLElement, isParentPreserved
 
     let fromChild = fromEl.firstChild;
 
-    /** Advances the fromChild pointer past insignificant nodes. */
     const advanceFromPointer = () => {
         while (fromChild && !isSignificantNode(fromChild)) {
             fromChild = fromChild.nextSibling;
@@ -692,7 +695,14 @@ function morphChildren(fromEl: HTMLElement, toEl: HTMLElement, isParentPreserved
         const fromMatch = findFromMatch(toChild, state, getNodeKey);
 
         if (fromMatch) {
+            const cursorWasMatch = fromChild === fromMatch;
             const morphedNode = morphNode(fromMatch, toChild, isParentPreserved, options);
+
+            if (cursorWasMatch) {
+                fromChild = morphedNode.nextSibling;
+                advanceFromPointer();
+                continue;
+            }
 
             advanceFromPointer();
             if (fromChild !== morphedNode) {

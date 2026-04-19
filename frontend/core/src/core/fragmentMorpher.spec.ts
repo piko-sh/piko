@@ -132,6 +132,20 @@ describe('fragmentMorpher', () => {
             expect(fromEl.children[0].id).toBe('3');
         });
 
+        it('should not throw when a keyed first child is replaced with an incompatible nodeName', () => {
+            setup('<div><div id="a">old</div><p id="b">two</p></div>');
+
+            expect(() => {
+                fragmentMorpher(fromEl, '<div><span id="a">new</span><p id="b">two</p></div>', opts);
+            }).not.toThrow();
+
+            expect(fromEl.children.length).toBe(2);
+            expect(fromEl.children[0].tagName).toBe('SPAN');
+            expect(fromEl.children[0].id).toBe('a');
+            expect(fromEl.children[0].textContent).toBe('new');
+            expect(fromEl.children[1].id).toBe('b');
+        });
+
         it('should handle complex reordering and additions/removals', () => {
             setup('<div><p id="a"></p><b id="b"></b><i id="c"></i><span id="d"></span></div>');
             const p = fromEl.querySelector('#a');
@@ -586,6 +600,14 @@ describe('fragmentMorpher', () => {
 
             const useEl = fromEl.querySelector('use');
             expect(useEl?.getAttributeNS('http://www.w3.org/1999/xlink', 'href')).toBe('#icon-2');
+        });
+
+        it('should update colon-prefixed HTML attributes without throwing NamespaceError', () => {
+            setup('<button p-on:click="oldHandler">x</button>');
+            expect(() => {
+                fragmentMorpher(fromEl, '<button p-on:click="newHandler">x</button>');
+            }).not.toThrow();
+            expect(fromEl.getAttribute('p-on:click')).toBe('newHandler');
         });
     });
 

@@ -363,8 +363,8 @@ func jsGetRuntimeInfo(_ js.Value, _ []js.Value) any {
 
 // jsParseTemplate parses a PK template.
 //
-// This function is not yet working. It returns an error to show that the
-// feature is still being built.
+// Not yet working: returns an error to indicate that the feature is still being
+// built.
 //
 // Returns any which is an error result showing the function is not ready.
 func jsParseTemplate(_ js.Value, _ []js.Value) any {

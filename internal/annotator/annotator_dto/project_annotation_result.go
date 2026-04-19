@@ -28,10 +28,10 @@ import (
 type ProjectAnnotationResult struct {
 	// FinalGeneratedArtefacts holds the fully-emitted code for each component.
 	//
-	// This field is populated by the coordinator after code emission and contains
-	// the complete, executable Go code (including BuildAST, init(), etc.) that is
-	// either compiled (in dev/prod modes) or interpreted (in dev-i mode). This
-	// field is critical for interpreted mode to receive the correct code.
+	// Populated by the coordinator after code emission and contains the
+	// complete, executable Go code (including BuildAST, init(), etc.) that is
+	// either compiled (in dev/prod modes) or interpreted (in dev-i mode).
+	// Critical for interpreted mode to receive the correct code.
 	//
 	// Type: any (actual type is []*generator_dto.GeneratedArtefact).
 	// Uses any to avoid import cycles between annotator and generator.

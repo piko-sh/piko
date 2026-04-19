@@ -152,8 +152,8 @@ type EngineDirectivePort interface {
 }
 
 // EngineCataloguePort provides built-in catalogues and schema metadata.
-// Components that need access to the engine's default schema, built-in
-// functions, types, or table-valued functions depend on this interface.
+// Components that need access to the engine's default schema, built-in functions,
+// types, or table-valued functions depend on the port.
 type EngineCataloguePort interface {
 	// DefaultSchema returns the default schema name for this engine dialect.
 	// PostgreSQL uses "public", SQLite uses "main", MySQL uses "" (empty).
@@ -260,11 +260,11 @@ type FunctionResolverPort interface {
 	) (*querier_dto.FunctionResolution, error)
 }
 
-// MultiStatementAnalyserPort is an optional extension interface that engine
-// adapters can implement to handle multi-statement query blocks where earlier
-// statements provide setup (temp tables, variable assignments) for the primary
-// query. If an engine does not implement this interface, only the last
-// statement in the block is analysed.
+// MultiStatementAnalyserPort is an optional extension interface that engine adapters
+// can implement to handle multi-statement query blocks where earlier statements
+// provide setup (temp tables, variable assignments) for the primary query. If an
+// engine does not implement the extension, only the last statement in the block is
+// analysed.
 type MultiStatementAnalyserPort interface {
 	// AnalyseMultiStatement analyses a sequence of statements as a single
 	// logical query block, accumulating scope from setup statements into the
@@ -454,7 +454,7 @@ type MigrationServicePort interface {
 	// Returns error when a rollback fails or no down migration exists.
 	DownTo(ctx context.Context, targetVersion int64) (int, error)
 
-	// Validate checks that all applied migration checksums match their
+	// Validates that all applied migration checksums match their
 	// on-disk files without executing anything.
 	//
 	// Takes ctx (context.Context) for cancellation and timeout control.

@@ -827,7 +827,7 @@ func produceWalkTasks(ctx context.Context, tasks chan<- *TemplateNode, walkFunc 
 // resetIteratorFramePool clears the iterator frame pool to ensure test
 // isolation.
 //
-// Call this function via t.Cleanup(resetIteratorFramePool) in tests.
+// Call via t.Cleanup(resetIteratorFramePool) in tests.
 func resetIteratorFramePool() {
 	iteratorFramePool = sync.Pool{
 		New: func() any {

@@ -1,0 +1,80 @@
+<svg viewBox="0 0 680 320" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="mt-title mt-desc">
+  <title id="mt-title">Monitoring transport, OTLP push, and the consumers each surface serves</title>
+  <desc id="mt-desc">A Piko process is shown in the centre. On the right, an OTLP exporter pushes traces and metrics outward to an external collector and a vendor backend, suited for long-term aggregation. On the left, a gRPC monitoring server exposes health, metrics, traces, watchdog, profiling, and inspector services to local consumers, including piko tui, the piko watchdog CLI, and the piko get and piko watch commands. Both surfaces share the same OTel SDK factories.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-push" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#A16207" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="240" y="40" width="200" height="220" rx="12" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M252,40 H428 A12,12 0 0 1 440,52 V68 H240 V52 A12,12 0 0 1 252,40 Z" fill="#1C544F"/>
+  <text x="340" y="59" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="12" font-weight="700">Piko process</text>
+
+  <text x="252" y="86" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">OTel SDK factories</text>
+  <rect x="252" y="92" width="176" height="44" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="340" y="109" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">spans, metrics</text>
+  <text x="340" y="125" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="9">shared by both surfaces</text>
+
+  <text x="252" y="158" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">watchdog</text>
+  <rect x="252" y="164" width="176" height="38" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="340" y="180" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">events, profiles</text>
+  <text x="340" y="194" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="9">profile store on disk</text>
+
+  <text x="252" y="222" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">application</text>
+  <rect x="252" y="228" width="176" height="24" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="340" y="244" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">pages, actions, services</text>
+
+  
+  <text x="120" y="22" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">PULL: gRPC MONITORING</text>
+
+  <rect x="20" y="40" width="200" height="220" rx="12" fill="#2B333B" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M32,40 H208 A12,12 0 0 1 220,52 V62 H20 V52 A12,12 0 0 1 32,40 Z" fill="#1C544F"/>
+  <text x="120" y="56" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">:9091 (default)</text>
+
+  <text x="32" y="78" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">services exposed</text>
+  <text x="32" y="96" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">- HealthService</text>
+  <text x="32" y="112" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">- MetricsService</text>
+  <text x="32" y="128" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">- WatchdogService</text>
+  <text x="32" y="144" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">- ProfilingService</text>
+  <text x="32" y="160" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">- OrchestratorInspector</text>
+  <text x="32" y="176" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">- RegistryInspector</text>
+
+  <text x="32" y="202" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">consumers</text>
+  <text x="32" y="220" fill="#FFEE9C" font-family="monospace" font-size="10">piko tui</text>
+  <text x="32" y="234" fill="#FFEE9C" font-family="monospace" font-size="10">piko watchdog ...</text>
+  <text x="32" y="248" fill="#FFEE9C" font-family="monospace" font-size="10">piko get | watch | describe</text>
+
+  <line x1="226" y1="150" x2="240" y2="150" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <text x="560" y="22" text-anchor="middle" fill="#A16207" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">PUSH: OTLP EXPORTER</text>
+
+  <rect x="460" y="40" width="200" height="100" rx="12" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M472,40 H648 A12,12 0 0 1 660,52 V62 H460 V52 A12,12 0 0 1 472,40 Z" fill="#364049"/>
+  <text x="560" y="56" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="11" font-weight="600">collector / vendor</text>
+  <text x="560" y="84" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">spans, metrics, logs</text>
+  <text x="560" y="100" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">durable, aggregated</text>
+  <text x="560" y="124" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">Datadog, Honeycomb,</text>
+  <text x="560" y="138" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">Grafana Cloud, ...</text>
+
+  <line x1="440" y1="100" x2="460" y2="100" stroke="#A16207" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow-push)"/>
+  <text x="450" y="92" text-anchor="middle" fill="#A16207" font-family="system-ui, sans-serif" font-size="9">push</text>
+
+  
+  <rect x="460" y="160" width="200" height="100" rx="12" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M472,160 H648 A12,12 0 0 1 660,172 V182 H460 V172 A12,12 0 0 1 472,160 Z" fill="#364049"/>
+  <text x="560" y="176" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="11" font-weight="600">dashboards / alerting</text>
+  <text x="560" y="204" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">days or weeks of history</text>
+  <text x="560" y="220" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">cross-process aggregation</text>
+  <text x="560" y="244" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">downstream of OTLP</text>
+
+  <text x="340" y="298" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">The pull surface answers what is true now. The push surface answers what was true over time.</text>
+  <text x="340" y="312" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">Both run together; the OTel factories drive both.</text>
+</svg>

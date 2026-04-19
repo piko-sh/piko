@@ -1,0 +1,98 @@
+<svg viewBox="0 0 620 380" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="gen-title gen-desc">
+  <title id="gen-title">Piko generator pipeline: five stages from source to emitted Go</title>
+  <desc id="gen-desc">Source directories on the left feed a five-stage generator in the middle: walk, parse PK files, discover actions, discover PKC components, read collection frontmatter. The generator emits typed Go source under the .piko and dist directories on the right, which go build picks up.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="80" y="22" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">SOURCE</text>
+
+  <rect x="20" y="35" width="170" height="300" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M30,35 H180 A10,10 0 0 1 190,45 V57 H20 V45 A10,10 0 0 1 30,35 Z" fill="#364049"/>
+  <text x="105" y="50" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">project tree</text>
+
+  <text x="32" y="77" fill="#C9F5F2" font-family="monospace" font-size="10">pages/*.pk</text>
+  <text x="32" y="97" fill="#C9F5F2" font-family="monospace" font-size="10">partials/*.pk</text>
+  <text x="32" y="117" fill="#C9F5F2" font-family="monospace" font-size="10">emails/*.pk</text>
+  <text x="32" y="143" fill="#C9F5F2" font-family="monospace" font-size="10">actions/*.go</text>
+  <text x="32" y="169" fill="#C9F5F2" font-family="monospace" font-size="10">components/*.pkc</text>
+  <text x="32" y="195" fill="#C9F5F2" font-family="monospace" font-size="10">content/**/*.md</text>
+
+  <text x="32" y="230" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">config.json</text>
+  <text x="32" y="246" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">piko.yaml</text>
+  <text x="32" y="262" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">go.mod</text>
+
+  <text x="32" y="296" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="9" font-weight="600">entry point:</text>
+  <text x="32" y="312" fill="#C9F5F2" font-family="monospace" font-size="10">cmd/generator/</text>
+  <text x="32" y="326" fill="#C9F5F2" font-family="monospace" font-size="10">  main.go</text>
+
+  
+  <text x="310" y="22" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">GENERATOR STAGES</text>
+
+  <rect x="210" y="35" width="200" height="50" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="225" y="55" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">1.</text>
+  <text x="310" y="55" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11" font-weight="600">walk the tree</text>
+  <text x="310" y="72" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">collect candidate files</text>
+
+  <line x1="310" y1="88" x2="310" y2="100" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="210" y="104" width="200" height="50" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="225" y="124" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">2.</text>
+  <text x="310" y="124" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11" font-weight="600">parse PK files into AST</text>
+  <text x="310" y="141" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">pages, partials, emails</text>
+
+  <line x1="310" y1="157" x2="310" y2="169" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="210" y="173" width="200" height="50" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="225" y="193" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">3.</text>
+  <text x="310" y="193" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11" font-weight="600">discover actions</text>
+  <text x="310" y="210" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">scan for piko.ActionMetadata</text>
+
+  <line x1="310" y1="226" x2="310" y2="238" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="210" y="242" width="200" height="50" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="225" y="262" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">4.</text>
+  <text x="310" y="262" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11" font-weight="600">compile PKC components</text>
+  <text x="310" y="279" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">template + script + style</text>
+
+  <line x1="310" y1="295" x2="310" y2="307" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="210" y="311" width="200" height="50" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="225" y="331" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">5.</text>
+  <text x="310" y="331" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11" font-weight="600">read collection frontmatter</text>
+  <text x="310" y="348" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">register items for routing</text>
+
+  
+  <text x="530" y="22" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">EMITTED</text>
+
+  <rect x="440" y="35" width="170" height="300" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M450,35 H600 A10,10 0 0 1 610,45 V57 H440 V45 A10,10 0 0 1 450,35 Z" fill="#364049"/>
+  <text x="525" y="50" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">typed Go source</text>
+
+  <text x="452" y="80" fill="#C9F5F2" font-family="monospace" font-size="10">.piko/</text>
+  <text x="452" y="96" fill="#A7F0E9" font-family="monospace" font-size="10">  pages.go</text>
+  <text x="452" y="112" fill="#A7F0E9" font-family="monospace" font-size="10">  partials.go</text>
+  <text x="452" y="128" fill="#A7F0E9" font-family="monospace" font-size="10">  actions.go</text>
+  <text x="452" y="144" fill="#A7F0E9" font-family="monospace" font-size="10">  components.go</text>
+  <text x="452" y="160" fill="#A7F0E9" font-family="monospace" font-size="10">  emails.go</text>
+  <text x="452" y="176" fill="#A7F0E9" font-family="monospace" font-size="10">  collections.go</text>
+
+  <text x="452" y="204" fill="#C9F5F2" font-family="monospace" font-size="10">dist/</text>
+  <text x="452" y="220" fill="#A7F0E9" font-family="monospace" font-size="10">  manifest.bin</text>
+  <text x="452" y="236" fill="#A7F0E9" font-family="monospace" font-size="10">  assets/*.js</text>
+  <text x="452" y="252" fill="#A7F0E9" font-family="monospace" font-size="10">  assets/*.css</text>
+
+  <text x="525" y="290" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">go build ./...</text>
+  <text x="525" y="308" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">one binary, no separate</text>
+  <text x="525" y="320" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="9">runtime bundler</text>
+
+  
+  <line x1="193" y1="60" x2="205" y2="60" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="415" y1="336" x2="437" y2="336" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <text x="310" y="378" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">Template errors surface before the Go compiler runs. A missing action or broken directive is a build-time failure.</text>
+</svg>

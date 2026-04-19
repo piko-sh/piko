@@ -37,8 +37,8 @@ type compilerOrchestrator struct {
 	// sfcCompiler converts raw SFC bytes into compiled artefacts.
 	sfcCompiler SFCCompiler
 
-	// moduleName is the Go module name from go.mod, such as
-	// "github.com/org/repo". Used to resolve @/ aliases in asset paths.
+	// moduleName is the Go module name from go.mod, such as a GitHub-hosted
+	// module path. Used to resolve @/ aliases in asset paths.
 	moduleName string
 
 	// cssPreProcessor resolves CSS @import statements before CSS is embedded
@@ -192,8 +192,8 @@ func WithSFCCompiler(c SFCCompiler) OrchestratorOption {
 // WithOrchestratorModuleName sets the Go module name for @/ alias resolution.
 // The module name should come from the resolver's GetModuleName() method.
 //
-// Takes moduleName (string) which is the Go module name, for example
-// "github.com/org/repo".
+// Takes moduleName (string) which is the Go module name, for example a
+// GitHub-hosted module path.
 //
 // Returns OrchestratorOption which configures the orchestrator to use the
 // given module name for path resolution.

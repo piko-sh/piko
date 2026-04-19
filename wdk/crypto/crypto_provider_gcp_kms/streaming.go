@@ -36,25 +36,20 @@ import (
 // aes256KeyBytes is the key size in bytes for AES-256 encryption.
 const aes256KeyBytes = 32
 
-// EncryptStream implements streaming encryption using GCP KMS
-// envelope encryption.
+// EncryptStream implements streaming encryption using GCP KMS envelope
+// encryption.
 //
-// This method generates a data encryption key (DEK) locally,
-// encrypts it with GCP KMS, and uses it to perform local AES-GCM
-// streaming encryption. The encrypted DEK is stored in the
-// streaming header.
+// Generates a data encryption key (DEK) locally, encrypts it with GCP KMS, and
+// uses it to perform local AES-GCM streaming encryption. The encrypted DEK is
+// stored in the streaming header.
 //
-// Cost: 1 GCP KMS API call (Encrypt) per stream, regardless of
-// file size.
+// Cost: 1 GCP KMS API call (Encrypt) per stream, regardless of file size.
 // Memory: O(chunk_size) ~64KB, regardless of file size.
 //
-// Takes output (io.Writer) which receives the encrypted data
-// stream.
-// Takes request (*crypto.EncryptRequest) which specifies encryption
-// options.
+// Takes output (io.Writer) which receives the encrypted data stream.
+// Takes request (*crypto.EncryptRequest) which specifies encryption options.
 //
-// Returns io.WriteCloser which wraps output and encrypts data
-// written to it.
+// Returns io.WriteCloser which wraps output and encrypts data written to it.
 // Returns error when DEK generation or KMS encryption fails.
 //
 // Example:
@@ -104,9 +99,8 @@ func (p *Provider) EncryptStream(ctx context.Context, output io.Writer, request 
 // DecryptStream implements streaming decryption using GCP KMS envelope
 // encryption.
 //
-// This method reads the streaming header, decrypts the data encryption key
-// (DEK) using GCP KMS, and uses it to perform local AES-GCM streaming
-// decryption.
+// Reads the streaming header, decrypts the data encryption key (DEK) using GCP
+// KMS, and uses it to perform local AES-GCM streaming decryption.
 //
 // Takes input (io.Reader) which provides the encrypted data stream.
 //

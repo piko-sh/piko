@@ -46,7 +46,7 @@ import (
 type CollectionServicePort interface {
 	// ProcessGetCollectionCall handles r.GetCollection() calls in user code.
 	//
-	// This method receives semantic information extracted from the Piko AST.
+	// Receives semantic information extracted from the Piko AST.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation
@@ -69,9 +69,9 @@ type CollectionServicePort interface {
 	// ProcessCollectionDirective expands a p-collection directive into entry
 	// points.
 	//
-	// This method is called after building the component graph when a component
-	// has a p-collection directive. It returns virtual entry points for each
-	// content item (for static providers) or a single dynamic route entry point
+	// Called after building the component graph when a component has a
+	// p-collection directive. Returns virtual entry points for each content
+	// item (for static providers) or a single dynamic route entry point
 	// (for dynamic providers).
 	//
 	// Parameters:
@@ -106,10 +106,10 @@ type TypeResolver struct {
 // packageMemberAnnotationParams holds parameters for creating package member
 // annotations.
 type packageMemberAnnotationParams struct {
-	// typeExpr is the AST expression for this package member's type.
+	// typeExpr is the AST expression for the package member's type.
 	typeExpr goast.Expr
 
-	// packageAlias is the import alias used to refer to this package member.
+	// packageAlias is the import alias used to refer to the package member.
 	packageAlias string
 
 	// canonicalPath is the full import path of the package.
@@ -118,7 +118,7 @@ type packageMemberAnnotationParams struct {
 	// memberName is the name of the package member being annotated.
 	memberName string
 
-	// loc is the source position where this package member is referenced.
+	// loc is the source position where the package member is referenced.
 	loc ast_domain.Location
 
 	// defLine is the line number where the symbol is defined.
@@ -225,9 +225,9 @@ func (tr *TypeResolver) DetermineIterationIndexType(ctx *AnalysisContext, collec
 }
 
 // lookupPikoImportAlias checks if the given alias is a user-defined Piko import
-// alias and returns the corresponding hashed package name. This is used to
-// resolve template expressions like card.FormatPrice() where "card" is the
-// user's import alias but the actual package name is partials_card_abc123.
+// alias and returns the corresponding hashed package name. Resolves template
+// expressions like card.FormatPrice() where "card" is the user's import alias
+// but the actual package name is partials_card_abc123.
 //
 // Takes goPackagePath (string) which is the full Go package path of the component.
 // Takes alias (string) which is the potential Piko import alias to look up.
@@ -721,7 +721,7 @@ type argumentValidationContext struct {
 	// argIndex is the zero-based position of the argument being checked.
 	argIndex int
 
-	// isVariadic indicates whether the function accepts variadic arguments.
+	// isVariadic indicates whether variadic arguments are accepted.
 	isVariadic bool
 
 	// location is the position of the argument in the source code.
@@ -1172,8 +1172,8 @@ func isSignatureVariadic(sig *inspector_dto.FunctionSignature) bool {
 // Takes n (*ast_domain.CallExpression) which is the call expression to check.
 // Takes sig (*inspector_dto.FunctionSignature) which defines the expected
 // parameters.
-// Takes isVariadic (bool) which shows if the function accepts a variable
-// number of arguments.
+// Takes isVariadic (bool) which shows whether a variable number of arguments
+// is supported.
 // Takes location (ast_domain.Location) which is the source location for errors.
 //
 // Returns bool which is true when the argument count is valid.
@@ -1209,8 +1209,8 @@ func validateArgumentCount(ctx *AnalysisContext, n *ast_domain.CallExpression, s
 // details for each argument.
 // Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base
 // type context.
-// Takes isVariadic (bool) which indicates whether the function accepts a
-// variable number of arguments.
+// Takes isVariadic (bool) which indicates whether a variable number of
+// arguments is supported.
 // Takes location (ast_domain.Location) which specifies where to report any errors.
 func validateEachArgument(
 	ctx *AnalysisContext,
@@ -1281,8 +1281,8 @@ func validateSingleArgument(params *argumentValidationContext) {
 // Takes sig (*inspector_dto.FunctionSignature) which holds the function
 // signature with its parameter types.
 // Takes argIndex (int) which is the zero-based position of the argument.
-// Takes isVariadic (bool) which shows if the function accepts a variable
-// number of arguments.
+// Takes isVariadic (bool) which shows whether a variable number of arguments
+// is supported.
 //
 // Returns string which is the parameter type. For variadic functions, the
 // "..." prefix is removed when the argument is beyond the last fixed
@@ -1299,8 +1299,8 @@ func getExpectedParamType(sig *inspector_dto.FunctionSignature, argIndex int, is
 // Takes sig (*inspector_dto.FunctionSignature) which holds the function
 // signature with its parameter types.
 // Takes argIndex (int) which is the position of the argument to look up.
-// Takes isVariadic (bool) which shows if the function accepts a varying
-// number of arguments.
+// Takes isVariadic (bool) which shows whether a varying number of arguments
+// is supported.
 //
 // Returns string which is the expected type, or empty if not found.
 func getExpectedTypeForError(sig *inspector_dto.FunctionSignature, argIndex int, isVariadic bool) string {

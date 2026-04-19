@@ -1,0 +1,61 @@
+<svg viewBox="0 0 600 340" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="pmc-title pmc-desc">
+  <title id="pmc-title">Page middleware wrap order</title>
+  <desc id="pmc-desc">A request enters at the top and travels inward through three nested middlewares before reaching the page handler. The first entry in the Middlewares slice is the outermost wrapper, so it is the first to see the request and the last to see the response. The third entry is the innermost wrapper, closest to the handler. The response leaves in the reverse order. A code panel on the right shows the matching slice declaration.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-back" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#A16207" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="170" y="22" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">REQUEST</text>
+  <line x1="170" y1="28" x2="170" y2="50" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="40" y="56" width="260" height="200" rx="12" fill="#2B333B" stroke="#485461" stroke-width="1.4"/>
+  <path d="M52,56 H288 A12,12 0 0 1 300,68 V78 H40 V68 A12,12 0 0 1 52,56 Z" fill="#364049"/>
+  <text x="52" y="71" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">middleware [0] outermost</text>
+  <text x="290" y="71" text-anchor="end" fill="#A7F0E9" font-family="monospace" font-size="10">first in slice</text>
+
+  
+  <rect x="58" y="92" width="224" height="148" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M68,92 H272 A10,10 0 0 1 282,102 V112 H58 V102 A10,10 0 0 1 68,92 Z" fill="#364049"/>
+  <text x="70" y="106" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">middleware [1]</text>
+  <text x="272" y="106" text-anchor="end" fill="#A7F0E9" font-family="monospace" font-size="10">second</text>
+
+  
+  <rect x="76" y="124" width="188" height="100" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M86,124 H254 A10,10 0 0 1 264,134 V144 H76 V134 A10,10 0 0 1 86,124 Z" fill="#1C544F"/>
+  <text x="88" y="138" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">middleware [2] innermost</text>
+  <text x="254" y="138" text-anchor="end" fill="#A7F0E9" font-family="monospace" font-size="10">third</text>
+
+  
+  <rect x="100" y="156" width="140" height="52" rx="8" fill="#1C544F" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="170" y="174" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">page Render()</text>
+  <text x="170" y="192" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">runs after every</text>
+  <text x="170" y="204" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">middleware enters</text>
+
+  
+  <line x1="170" y1="262" x2="170" y2="284" stroke="#A16207" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow-back)"/>
+  <text x="170" y="304" text-anchor="middle" fill="#A16207" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">RESPONSE</text>
+  <text x="170" y="320" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">reverse order: [2] then [1] then [0]</text>
+
+  
+  <rect x="332" y="56" width="248" height="200" rx="10" fill="#1C544F"/>
+  <text x="344" y="74" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">declared in pages/admin/x.pk</text>
+  <text x="344" y="98" fill="#C9F5F2" font-family="monospace" font-size="10">func Middlewares()</text>
+  <text x="344" y="112" fill="#C9F5F2" font-family="monospace" font-size="10">    []func(http.Handler)</text>
+  <text x="344" y="126" fill="#C9F5F2" font-family="monospace" font-size="10">         http.Handler {</text>
+  <text x="344" y="146" fill="#C9F5F2" font-family="monospace" font-size="10">  return []...{</text>
+  <text x="356" y="162" fill="#A7F0E9" font-family="monospace" font-size="10">RequestLogger,    // [0]</text>
+  <text x="356" y="178" fill="#A7F0E9" font-family="monospace" font-size="10">RequireAuth,      // [1]</text>
+  <text x="356" y="194" fill="#A7F0E9" font-family="monospace" font-size="10">RequireAdmin,     // [2]</text>
+  <text x="344" y="210" fill="#C9F5F2" font-family="monospace" font-size="10">  }</text>
+  <text x="344" y="224" fill="#C9F5F2" font-family="monospace" font-size="10">}</text>
+  <text x="344" y="246" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">first entry wraps the rest</text>
+</svg>

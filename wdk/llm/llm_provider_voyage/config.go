@@ -56,7 +56,7 @@ var voyageEmbeddingDimensions = map[string]int{
 	"voyage-law-2":     1024,
 }
 
-// Validate checks that the configuration is valid.
+// Validate reports whether the configuration is valid.
 //
 // Returns error when the API key is missing.
 func (c *Config) Validate() error {

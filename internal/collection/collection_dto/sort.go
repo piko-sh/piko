@@ -48,8 +48,8 @@ type PaginationMeta struct {
 
 // SortItems sorts a slice of content items based on the given sort options.
 //
-// This function sorts the slice in place. If you need to keep the original
-// order, make a copy of the slice first.
+// Sorts the slice in place. To keep the original order, make a copy of the
+// slice first.
 //
 // When the first sort option uses SortRandom, the slice is shuffled randomly
 // and any later sort options are ignored.

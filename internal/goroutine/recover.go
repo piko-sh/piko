@@ -30,10 +30,9 @@ import (
 // information and stack trace at error level and incrementing an OTel
 // counter.
 //
-// This function must be called via defer. It is designed to work alongside
-// other deferred calls such as wg.Done(). Because Go executes defers in
-// LIFO order, declare RecoverPanic after wg.Done so that recovery happens
-// first:
+// Must be called via defer. Designed to work alongside other deferred calls such
+// as wg.Done(). Because Go executes defers in LIFO order, declare RecoverPanic
+// after wg.Done so that recovery happens first:
 //
 //	go func() {
 //	    defer wg.Done()
@@ -67,14 +66,13 @@ func RecoverPanic(ctx context.Context, component string) {
 // panic information at error level, incrementing an OTel counter, and
 // sending the panic as an error on the provided channel.
 //
-// This is intended for goroutines that communicate failures via error
-// channels, such as background server processes. The panic is converted
-// to an error and sent on errCh. If the channel is full or nil, the error
-// is logged but not sent, to avoid blocking the recovery.
+// Intended for goroutines that communicate failures via error channels, such as
+// background server processes. The panic is converted to an error and sent on
+// errCh. If the channel is full or nil, the error is logged but not sent, to
+// avoid blocking the recovery.
 //
-// This function must be called via defer. Declare it after close(errCh) in
-// the defer stack so that recovery and the channel send happen before the
-// close:
+// Must be called via defer. Declare after close(errCh) in the defer stack so that
+// recovery and the channel send happen before the close:
 //
 //	go func() {
 //	    defer close(errCh)

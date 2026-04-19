@@ -30,7 +30,7 @@ type activeDeclaration struct {
 	// name is the variable name introduced by the declaration.
 	name string
 
-	// location is the register allocation for this variable.
+	// location is the register allocation for the variable.
 	location varLocation
 }
 

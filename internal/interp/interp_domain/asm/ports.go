@@ -52,7 +52,7 @@ type BytecodeArchitecturePort interface {
 	// LoadImmediate emits an instruction to load an immediate value into a register.
 	LoadImmediate(emitter *asmgen.Emitter, value, destination string)
 
-	// Return emits a return instruction to exit the current handler.
+	// Returns emits a return instruction to exit the current handler.
 	Return(emitter *asmgen.Emitter)
 
 	// BranchOnCondition emits a conditional branch to the given label.

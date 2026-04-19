@@ -485,9 +485,9 @@ func (dw *DirectWriter) SetName(name string) *DirectWriter {
 //
 // Returns string which is the combined content of all parts.
 //
-// The result is cached after the first call. Use this method only when a
-// string is needed in Go code. For rendering, use WriteTo or write directly
-// via the quicktemplate writer.
+// The result is cached after the first call. Use only when a string is needed
+// in Go code. For rendering, use WriteTo or write directly via the quicktemplate
+// writer.
 func (dw *DirectWriter) String() string {
 	if dw == nil || dw.len == 0 {
 		return ""
@@ -842,7 +842,7 @@ func PutDirectWriter(dw *DirectWriter) {
 }
 
 // ResetDirectWriterPool clears the direct writer pool to ensure test isolation.
-// Call this function via t.Cleanup(ResetDirectWriterPool) in tests.
+// Call via t.Cleanup(ResetDirectWriterPool) in tests.
 func ResetDirectWriterPool() {
 	directWriterPool = sync.Pool{
 		New: func() any {

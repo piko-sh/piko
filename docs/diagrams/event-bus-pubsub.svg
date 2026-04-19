@@ -1,0 +1,72 @@
+<svg viewBox="0 0 620 365" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="bus-title bus-desc">
+  <title id="bus-title">Client event bus: one emitter, many subscribers</title>
+  <desc id="bus-desc">Component A emits a named event via piko.bus.emit. The event bus delivers the payload to every subscriber for that name. Components B and C both receive it. Naming conventions cluster events into three tiers: component-prefixed, feature-prefixed, and app-prefixed.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="30" y="90" width="150" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M40,90 H170 A10,10 0 0 1 180,100 V112 H30 V100 A10,10 0 0 1 40,90 Z" fill="#1C544F"/>
+  <text x="105" y="105" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Component A</text>
+  <text x="105" y="128" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">piko.bus.emit(</text>
+  <text x="105" y="144" text-anchor="middle" fill="#FFEE9C" font-family="monospace" font-size="10">"chat:message",</text>
+  <text x="105" y="160" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">  payload)</text>
+  <text x="105" y="174" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">one call</text>
+
+  
+  <rect x="235" y="90" width="150" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M245,90 H375 A10,10 0 0 1 385,100 V112 H235 V100 A10,10 0 0 1 245,90 Z" fill="#1C544F"/>
+  <text x="310" y="105" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">piko.bus</text>
+  <text x="310" y="128" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">subscriber registry</text>
+  <text x="310" y="144" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">Map&lt;name, handler[]&gt;</text>
+  <text x="310" y="160" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">sync dispatch</text>
+  <text x="310" y="174" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">no buffering</text>
+
+  
+  <rect x="440" y="40" width="150" height="80" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M450,40 H580 A10,10 0 0 1 590,50 V62 H440 V50 A10,10 0 0 1 450,40 Z" fill="#1C544F"/>
+  <text x="515" y="55" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Component B</text>
+  <text x="515" y="78" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">piko.bus.on(</text>
+  <text x="515" y="94" text-anchor="middle" fill="#FFEE9C" font-family="monospace" font-size="10">"chat:message",</text>
+  <text x="515" y="108" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">  handler)</text>
+
+  <rect x="440" y="150" width="150" height="80" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M450,150 H580 A10,10 0 0 1 590,160 V172 H440 V160 A10,10 0 0 1 450,150 Z" fill="#1C544F"/>
+  <text x="515" y="165" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Component C</text>
+  <text x="515" y="188" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">piko.bus.on(</text>
+  <text x="515" y="204" text-anchor="middle" fill="#FFEE9C" font-family="monospace" font-size="10">"chat:message",</text>
+  <text x="515" y="218" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">  handler)</text>
+
+  
+  <line x1="185" y1="135" x2="230" y2="135" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="208" y="127" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">emit</text>
+
+  
+  <polyline points="370,90 370,70 438,70" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+  <text x="404" y="62" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">deliver</text>
+
+  <polyline points="370,180 370,200 438,200" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+  <text x="404" y="213" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">deliver</text>
+
+  
+  <rect x="30" y="240" width="560" height="92" rx="10" fill="#1C544F"/>
+  <text x="42" y="260" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">naming conventions</text>
+
+  <text x="42" y="282" fill="#C9F5F2" font-family="monospace" font-size="10">&lt;tag&gt;:event</text>
+  <text x="180" y="282" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">scoped to one component kind</text>
+  <text x="480" y="282" fill="#92A1AF" font-family="monospace" font-size="9">pp-counter:increment</text>
+
+  <text x="42" y="302" fill="#C9F5F2" font-family="monospace" font-size="10">feature:event</text>
+  <text x="180" y="302" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">shared across a feature area</text>
+  <text x="480" y="302" fill="#92A1AF" font-family="monospace" font-size="9">chat:message</text>
+
+  <text x="42" y="322" fill="#C9F5F2" font-family="monospace" font-size="10">app:event</text>
+  <text x="180" y="322" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">global, for whole-app signals</text>
+  <text x="480" y="322" fill="#92A1AF" font-family="monospace" font-size="9">app:theme-changed</text>
+
+  <text x="310" y="354" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11">Subscribe in onConnected, unsubscribe in onDisconnected to avoid leaks.</text>
+</svg>

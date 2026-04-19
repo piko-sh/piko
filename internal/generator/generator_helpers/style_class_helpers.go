@@ -85,7 +85,7 @@ func (t *stringTokeniser) next() (token string, ok bool) {
 
 // delimTokeniser provides zero-allocation single-byte delimiter tokenisation.
 // It replaces strings.SplitSeq to avoid the iterator/coroutine state escaping
-// to the heap (https://github.com/golang/go/issues/73524).
+// to the heap (see GitHub issue golang/go#73524).
 type delimTokeniser struct {
 	// input is the input string to tokenise.
 	input string

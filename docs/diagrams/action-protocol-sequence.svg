@@ -1,0 +1,95 @@
+<svg viewBox="0 0 800 540" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="action-title action-desc">
+  <title id="action-title">Action protocol: dispatch from browser call to Call or StreamProgress</title>
+  <desc id="action-desc">A horizontal flow with a clean return channel along the bottom. The browser on the left invokes piko.actions.customer.Upsert.call. The request travels right via POST to the Piko dispatch layer in the centre, which runs CSRF check, parameter binding, cache and rate-limit check, and inspects the Accept header. The dispatch then forks horizontally: the default branch goes to the Call method (top right) which returns a JSON body; the text/event-stream branch goes to StreamProgress (bottom right) which returns an SSE stream. Two clean L-shaped return paths along the bottom of the diagram carry the JSON response and the SSE events back to the browser.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-return" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#475569" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="400" y="22" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">ACTION DISPATCH</text>
+
+  
+  <rect x="20" y="140" width="180" height="120" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,140 H190 A10,10 0 0 1 200,150 V164 H20 V150 A10,10 0 0 1 30,140 Z" fill="#1C544F"/>
+  <circle cx="34" cy="152" r="4" fill="#ff5f57"/>
+  <circle cx="48" cy="152" r="4" fill="#febc2e"/>
+  <circle cx="62" cy="152" r="4" fill="#28c840"/>
+  <text x="125" y="156" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">browser</text>
+  <text x="32" y="186" fill="#C9F5F2" font-family="monospace" font-size="10">piko.actions</text>
+  <text x="32" y="202" fill="#A7F0E9" font-family="monospace" font-size="10">  .customer</text>
+  <text x="32" y="218" fill="#A7F0E9" font-family="monospace" font-size="10">  .Upsert</text>
+  <text x="32" y="240" fill="#FFEE9C" font-family="monospace" font-size="10" font-weight="600">  .call(...)</text>
+
+  
+  <rect x="240" y="70" width="260" height="270" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M250,70 H490 A10,10 0 0 1 500,80 V94 H240 V80 A10,10 0 0 1 250,70 Z" fill="#1C544F"/>
+  <text x="370" y="86" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Piko dispatch layer</text>
+
+  
+  <rect x="252" y="110" width="236" height="24" rx="6" fill="#1C544F"/>
+  <text x="370" y="126" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">CSRF check</text>
+
+  <rect x="252" y="142" width="236" height="24" rx="6" fill="#1C544F"/>
+  <text x="370" y="158" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">bind parameters</text>
+
+  <rect x="252" y="174" width="236" height="24" rx="6" fill="#1C544F"/>
+  <text x="370" y="190" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">cache / rate check</text>
+
+  
+  <rect x="252" y="216" width="236" height="56" rx="6" fill="#1C544F" stroke="#6BD5CC" stroke-width="1"/>
+  <text x="370" y="234" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Accept header?</text>
+  <text x="370" y="250" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">text/event-stream</text>
+  <text x="370" y="265" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">(decides the branch)</text>
+
+  <text x="370" y="298" text-anchor="middle" fill="#92A1AF" font-family="monospace" font-size="9">POST /actions/customer.Upsert</text>
+
+  
+  <rect x="540" y="100" width="200" height="120" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+  <path d="M548,100 H732 A8,8 0 0 1 740,108 V122 H540 V108 A8,8 0 0 1 548,100 Z" fill="#364049"/>
+  <text x="640" y="116" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Call method</text>
+  <text x="552" y="146" fill="#C9F5F2" font-family="monospace" font-size="10">func (a *X) Call(</text>
+  <text x="552" y="162" fill="#FFEE9C" font-family="monospace" font-size="10" font-weight="600">  input ...</text>
+  <text x="552" y="178" fill="#C9F5F2" font-family="monospace" font-size="10">) (Response, error)</text>
+  <text x="640" y="206" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">returns JSON body</text>
+
+  
+  <rect x="540" y="240" width="200" height="140" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+  <path d="M548,240 H732 A8,8 0 0 1 740,248 V262 H540 V248 A8,8 0 0 1 548,240 Z" fill="#364049"/>
+  <text x="640" y="256" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">StreamProgress</text>
+  <text x="552" y="282" fill="#C9F5F2" font-family="monospace" font-size="10">stream.Send(</text>
+  <text x="552" y="298" fill="#FFEE9C" font-family="monospace" font-size="10" font-weight="600">  "progress", n)</text>
+  <text x="552" y="318" fill="#C9F5F2" font-family="monospace" font-size="10">stream.Complete(</text>
+  <text x="552" y="334" fill="#FFEE9C" font-family="monospace" font-size="10" font-weight="600">  response)</text>
+  <text x="640" y="364" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">returns SSE stream</text>
+
+  
+  
+  <line x1="200" y1="200" x2="236" y2="200" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="218" y="192" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">POST</text>
+
+  
+  <line x1="500" y1="160" x2="536" y2="160" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="518" y="152" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">default</text>
+
+  
+  <line x1="500" y1="310" x2="536" y2="310" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="518" y="302" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">SSE</text>
+
+  
+  
+  <path d="M640,100 V55 H90 V140" stroke="#475569" stroke-width="1.4" stroke-dasharray="4,3" stroke-linecap="round" stroke-linejoin="round" fill="none" marker-end="url(#arrow-return)"/>
+  <text x="370" y="48" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9" font-weight="600">JSON response</text>
+
+  
+  <path d="M640,380 V440 H130 V260" stroke="#475569" stroke-width="1.4" stroke-dasharray="4,3" stroke-linecap="round" stroke-linejoin="round" fill="none" marker-end="url(#arrow-return)"/>
+  <text x="370" y="434" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9" font-weight="600">SSE events + complete</text>
+
+  
+  <text x="400" y="510" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">error shape drives HTTP status: nil &#8594; 200 &#183; ValidationField &#8594; 400 &#183; other &#8594; 500</text>
+</svg>

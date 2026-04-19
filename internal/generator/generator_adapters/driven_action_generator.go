@@ -85,7 +85,7 @@ func NewActionGeneratorAdapter(opts ...ActionGeneratorOption) *ActionGeneratorAd
 
 // GenerateActions generates all action code artefacts from the manifest.
 //
-// This method converts the ActionManifest to ActionSpec format and generates:
+// Converts the ActionManifest to ActionSpec format and generates:
 //   - dist/actions/registry.go - action name to handler mapping
 //   - dist/actions/wrappers.go - type-safe wrapper functions
 //   - dist/ts/actions.gen.ts - TypeScript client types

@@ -92,8 +92,8 @@ func (b *UploadBuilder) Key(key string) *UploadBuilder {
 
 // Repository sets the destination repository for the object.
 //
-// If this method is not called, the upload will go to the
-// default repository (StorageRepositoryDefault).
+// If not called, the upload will go to the default repository
+// (StorageRepositoryDefault).
 //
 // Takes repo (string) which specifies the repository name.
 //
@@ -168,7 +168,7 @@ func (b *UploadBuilder) CAS(algorithm string, expectedHash ...string) *UploadBui
 }
 
 // Transformer adds a stream transformer to the upload pipeline by name.
-// Call this method multiple times to chain transformers in order of priority.
+// Call multiple times to chain transformers in order of priority.
 //
 // Takes name (string) which is the registered name of the transformer.
 // Takes options (...any) which provides transformer-specific options
@@ -203,8 +203,8 @@ func (b *UploadBuilder) Multipart(config storage_dto.MultipartUploadConfig) *Upl
 }
 
 // Dispatch queues the upload for asynchronous processing via the storage
-// dispatcher. If no dispatcher is configured, this method has no effect and
-// the upload remains synchronous.
+// dispatcher. If no dispatcher is configured, the call has no effect and the
+// upload remains synchronous.
 //
 // Returns *UploadBuilder which allows method chaining.
 func (b *UploadBuilder) Dispatch() *UploadBuilder {
@@ -244,7 +244,7 @@ func (b *UploadBuilder) Do(ctx context.Context) error {
 // Build finalises the construction of the upload spec for bulk upload
 // operations.
 //
-// This method consumes the reader and can only be called once.
+// Consumes the reader and can only be called once.
 //
 // Returns storage_dto.PutObjectSpec which contains the configured upload
 // specification.

@@ -348,7 +348,7 @@ func (c *Controller) CaptureProfile(ctx context.Context, profileType string, dur
 }
 
 // extendSession extends a running profiling session's deadline. The caller
-// must hold c.mu and must unlock it after this method returns.
+// must hold c.mu and must unlock it after extendSession returns.
 //
 // Takes duration (time.Duration) which is the new session duration.
 //

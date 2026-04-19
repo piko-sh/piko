@@ -1,0 +1,81 @@
+<svg viewBox="0 0 620 400" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="sg-title sg-desc">
+  <title id="sg-title">Showcase scenarios grouped by concern</title>
+  <desc id="sg-desc">A grid of nine categories covering all thirty showcase scenarios: server-side rendering, client-side components, server actions, cross-component communication, storage and infrastructure, databases, content pipelines, component libraries, and full applications. Each tile names the category and lists the scenario numbers within it.</desc>
+  <defs/>
+
+  <text x="310" y="22" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">30 SCENARIOS, 9 CATEGORIES</text>
+
+  
+  
+  <rect x="20" y="40" width="190" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,40 H200 A10,10 0 0 1 210,50 V62 H20 V50 A10,10 0 0 1 30,40 Z" fill="#1C544F"/>
+  <text x="115" y="55" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Server-Side Rendering</text>
+  <text x="30" y="80" fill="#C9F5F2" font-family="monospace" font-size="10">001 &#183; 004 &#183; 005</text>
+  <text x="30" y="96" fill="#C9F5F2" font-family="monospace" font-size="10">006 &#183; 015</text>
+  <text x="30" y="119" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">templates, partials, collections</text>
+
+  
+  <rect x="215" y="40" width="190" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M225,40 H395 A10,10 0 0 1 405,50 V62 H215 V50 A10,10 0 0 1 225,40 Z" fill="#1C544F"/>
+  <text x="310" y="55" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Client components</text>
+  <text x="225" y="80" fill="#C9F5F2" font-family="monospace" font-size="10">003 &#183; 007 &#183; 009</text>
+  <text x="225" y="119" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">reactive state, events</text>
+
+  
+  <rect x="410" y="40" width="190" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M420,40 H590 A10,10 0 0 1 600,50 V62 H410 V50 A10,10 0 0 1 420,40 Z" fill="#1C544F"/>
+  <text x="505" y="55" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Server actions</text>
+  <text x="420" y="80" fill="#C9F5F2" font-family="monospace" font-size="10">002 &#183; 010 &#183; 016</text>
+  <text x="420" y="96" fill="#C9F5F2" font-family="monospace" font-size="10">017 &#183; 030</text>
+  <text x="420" y="119" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">typed RPC, SSE, caching</text>
+
+  
+  
+  <rect x="20" y="145" width="190" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,145 H200 A10,10 0 0 1 210,155 V167 H20 V155 A10,10 0 0 1 30,145 Z" fill="#1C544F"/>
+  <text x="115" y="160" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Cross-component comms</text>
+  <text x="30" y="185" fill="#C9F5F2" font-family="monospace" font-size="10">008 &#183; 011</text>
+  <text x="30" y="224" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">event bus, real-time SSE</text>
+
+  
+  <rect x="215" y="145" width="190" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M225,145 H395 A10,10 0 0 1 405,155 V167 H215 V155 A10,10 0 0 1 225,145 Z" fill="#1C544F"/>
+  <text x="310" y="160" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Storage and infrastructure</text>
+  <text x="225" y="185" fill="#C9F5F2" font-family="monospace" font-size="10">012 &#183; 013 &#183; 029</text>
+  <text x="225" y="224" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">S3, TLS, serverless</text>
+
+  
+  <rect x="410" y="145" width="190" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M420,145 H590 A10,10 0 0 1 600,155 V167 H410 V155 A10,10 0 0 1 420,145 Z" fill="#1C544F"/>
+  <text x="505" y="160" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Databases</text>
+  <text x="420" y="185" fill="#C9F5F2" font-family="monospace" font-size="10">022 &#183; 023 &#183; 024</text>
+  <text x="420" y="201" fill="#C9F5F2" font-family="monospace" font-size="10">025</text>
+  <text x="420" y="224" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">SQLite, MySQL, Postgres, DuckDB</text>
+
+  
+  
+  <rect x="20" y="250" width="190" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,250 H200 A10,10 0 0 1 210,260 V272 H20 V260 A10,10 0 0 1 30,250 Z" fill="#1C544F"/>
+  <text x="115" y="265" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Content pipelines</text>
+  <text x="30" y="290" fill="#C9F5F2" font-family="monospace" font-size="10">014 &#183; 026 &#183; 027</text>
+  <text x="30" y="306" fill="#C9F5F2" font-family="monospace" font-size="10">028</text>
+  <text x="30" y="329" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">Tailwind, email, PDF, analytics</text>
+
+  
+  <rect x="215" y="250" width="190" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M225,250 H395 A10,10 0 0 1 405,260 V272 H215 V260 A10,10 0 0 1 225,250 Z" fill="#1C544F"/>
+  <text x="310" y="265" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Component libraries</text>
+  <text x="225" y="290" fill="#C9F5F2" font-family="monospace" font-size="10">018 &#183; 019</text>
+  <text x="225" y="329" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">built-ins, Material Design 3</text>
+
+  
+  <rect x="410" y="250" width="190" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M420,250 H590 A10,10 0 0 1 600,260 V272 H410 V260 A10,10 0 0 1 420,250 Z" fill="#1C544F"/>
+  <text x="505" y="265" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Full applications</text>
+  <text x="420" y="290" fill="#C9F5F2" font-family="monospace" font-size="10">020 &#183; 021</text>
+  <text x="420" y="329" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">recipe app, live playground</text>
+
+  <text x="310" y="370" text-anchor="middle" fill="#A16207" font-family="system-ui, sans-serif" font-size="10" font-weight="600">every scenario has a walkthrough below and runnable source on GitHub</text>
+  <text x="310" y="388" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">clone, run, read; each scenario stands on its own</text>
+</svg>

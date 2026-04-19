@@ -153,7 +153,7 @@ func (s *Server) handleTypeHierarchySupertypes(ctx context.Context, params any) 
 }
 
 // handleTypeHierarchySubtypes handles typeHierarchy/subtypes requests.
-// Returns the subtypes (types that embed this type) of the given type.
+// Returns the subtypes (embedding types) of the given type.
 //
 // Takes params (any) which should be TypeHierarchySubtypesParams.
 //

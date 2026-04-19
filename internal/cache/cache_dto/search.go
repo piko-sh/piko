@@ -91,14 +91,14 @@ type FieldSchema struct {
 	// non-vector field types.
 	DistanceMetric string
 
-	// Type specifies how this field should be searchable.
+	// Type specifies how the field should be searchable.
 	Type FieldType
 
 	// Dimension is the vector dimensionality for VECTOR fields. Required when Type
 	// is FieldTypeVector; ignored for other field types.
 	Dimension int
 
-	// Sortable enables sorting on this field.
+	// Sortable enables sorting on the field.
 	// Has memory cost as the provider maintains sorted structures.
 	Sortable bool
 

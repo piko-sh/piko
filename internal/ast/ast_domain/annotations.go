@@ -102,7 +102,7 @@ type GoGeneratorAnnotation struct {
 	// Srcset holds image variants used to build responsive srcset attributes.
 	Srcset []ResponsiveVariantMetadata
 
-	// Stringability indicates how this type can be converted to a string.
+	// Stringability indicates how the type can be converted to a string.
 	// A value of 0 means the type cannot be converted to a string.
 	Stringability int
 
@@ -142,7 +142,7 @@ type GoGeneratorAnnotation struct {
 }
 
 // ResponsiveVariantMetadata holds metadata for a single responsive image
-// variant. This is used to build srcset attributes at code generation time.
+// variant. Used to build srcset attributes at code generation time.
 type ResponsiveVariantMetadata struct {
 	// Density is the pixel density descriptor for this variant (e.g. "1x", "2x").
 	Density string
@@ -182,13 +182,14 @@ type ResolvedTypeInfo struct {
 	TypeExpression goast.Expr
 
 	// PackageAlias is the local name used for the package in the source file where
-	// this type was resolved. For example, "uuid" in
-	// `import uuid "github.com/google/uuid"`, or a generated name like
-	// "main_1b2e523d" for types local to a component.
+	// the type was resolved. For example, "uuid" for a GitHub-hosted import of
+	// google/uuid, or a generated name like "main_1b2e523d" for types local to a
+	// component.
 	PackageAlias string
 
-	// CanonicalPackagePath is the full Go package import path, such as
-	// "github.com/google/uuid" or "my-project/dist/pages/main_1b2e523d".
+	// CanonicalPackagePath is the full Go package import path, such as a
+	// GitHub-hosted module path for google/uuid, or a project-local path like
+	// "my-project/dist/pages/main_1b2e523d".
 	CanonicalPackagePath string
 
 	// InitialPackagePath is the package path where a generic type was
@@ -201,7 +202,7 @@ type ResolvedTypeInfo struct {
 	// used in generic types.
 	InitialFilePath string
 
-	// IsSynthetic indicates this type is a placeholder for type-checking that
+	// IsSynthetic indicates the type is a placeholder for type-checking that
 	// does not correspond to a real Go type. Synthetic types like $event
 	// (js.Event) must not leak into Go code generation.
 	IsSynthetic bool
@@ -217,7 +218,7 @@ type ResolvedTypeInfo struct {
 
 // JSAnnotation holds metadata for generating JavaScript code from expressions.
 type JSAnnotation struct {
-	// JSType is the JavaScript type annotation for this field.
+	// JSType is the JavaScript type annotation for the field.
 	JSType string
 
 	// IsClientSafe indicates whether this annotation is safe to send to clients.

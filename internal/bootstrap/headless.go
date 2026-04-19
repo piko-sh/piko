@@ -31,7 +31,7 @@ import (
 // services (image processing, storage, cache, persistence) without running an
 // HTTP server.
 //
-// Unlike ConfigAndContainer, this function:
+// Unlike ConfigAndContainer, this entry point:
 //   - Does not require an AppRouter or Dependencies struct
 //   - Does not load configuration files (piko.yaml, config.json)
 //   - Does not initialise the logger from configuration
@@ -42,9 +42,9 @@ import (
 // providers that are accessible via the global service functions such as
 // media.GetImageDimensions and storage.GetDefaultService.
 //
-// This function must be called before any code that uses global service access.
-// It can only be called once per process (subsequent calls are no-ops due to
-// sync.Once in initialiseGlobalServices).
+// Must be called before any code that uses global service access. Can only
+// be called once per process (subsequent calls are no-ops due to sync.Once in
+// initialiseGlobalServices).
 //
 // Takes opts which configure the container with providers.
 //

@@ -1,0 +1,58 @@
+<svg viewBox="0 0 620 340" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="dsl-title dsl-desc">
+  <title id="dsl-title">One expression DSL lowers to Go or JavaScript depending on the file kind</title>
+  <desc id="dsl-desc">A shared expression written once in the DSL branches at compile time. For PK files, the lowering goes to Go: ternary becomes an immediately invoked closure, nullish coalescing becomes a nil check, template literals become fmt.Sprintf, loose equality becomes a safeconv helper. For PKC files, the lowering goes to JavaScript: ternary, nullish coalescing, and template literals are native; loose equality uses == instead of ===. The surface syntax stays the same.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="120" y="30" width="380" height="68" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M130,30 H490 A10,10 0 0 1 500,40 V52 H120 V40 A10,10 0 0 1 130,30 Z" fill="#1C544F"/>
+  <text x="310" y="45" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">shared expression DSL</text>
+  <text x="310" y="72" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">{{ user.age ~= 18 ? greet(user) ?? "hi" : "no" }}</text>
+  <text x="310" y="90" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">same syntax in PK and PKC files</text>
+
+  
+  <line x1="260" y1="105" x2="180" y2="145" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="210" y="128" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">PK path</text>
+
+  <line x1="360" y1="105" x2="440" y2="145" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="410" y="128" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">PKC path</text>
+
+  
+  <rect x="20" y="150" width="280" height="170" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M30,150 H290 A10,10 0 0 1 300,160 V172 H20 V160 A10,10 0 0 1 30,150 Z" fill="#364049"/>
+  <text x="160" y="165" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">lowered to Go (server)</text>
+
+  <text x="30" y="188" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">ternary: wrap in closure</text>
+  <text x="30" y="202" fill="#C9F5F2" font-family="monospace" font-size="10">func() T { if ... }()</text>
+
+  <text x="30" y="224" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">nullish coalescing:</text>
+  <text x="30" y="238" fill="#C9F5F2" font-family="monospace" font-size="10">if a != nil { a } else { b }</text>
+
+  <text x="30" y="260" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">loose equality:</text>
+  <text x="30" y="274" fill="#C9F5F2" font-family="monospace" font-size="10">safeconv.Equals(a, b)</text>
+
+  <text x="30" y="296" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">template literal:</text>
+  <text x="30" y="310" fill="#C9F5F2" font-family="monospace" font-size="10">fmt.Sprintf("%s...", expr)</text>
+
+  
+  <rect x="320" y="150" width="280" height="170" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M330,150 H590 A10,10 0 0 1 600,160 V172 H320 V160 A10,10 0 0 1 330,150 Z" fill="#364049"/>
+  <text x="460" y="165" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">lowered to JavaScript (browser)</text>
+
+  <text x="330" y="188" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">ternary: native</text>
+  <text x="330" y="202" fill="#C9F5F2" font-family="monospace" font-size="10">cond ? a : b</text>
+
+  <text x="330" y="224" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">nullish coalescing: native</text>
+  <text x="330" y="238" fill="#C9F5F2" font-family="monospace" font-size="10">a ?? b</text>
+
+  <text x="330" y="260" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">loose equality: ==</text>
+  <text x="330" y="274" fill="#C9F5F2" font-family="monospace" font-size="10">a == b &#183; (not ===)</text>
+
+  <text x="330" y="296" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">template literal: native</text>
+  <text x="330" y="310" fill="#C9F5F2" font-family="monospace" font-size="10">`${expr}`</text>
+</svg>

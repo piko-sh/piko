@@ -16,8 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package json_provider_sonic provides a JSON provider backed by
-// [github.com/bytedance/sonic]. Once active, all JSON operations
-// throughout the application use sonic's JIT-compiled encoder and
-// decoder.
+// Package json_provider_sonic provides a JSON provider backed by the
+// GitHub-hosted bytedance/sonic library. Once active, all JSON operations
+// throughout the application use sonic's JIT-compiled encoder and decoder.
 package json_provider_sonic

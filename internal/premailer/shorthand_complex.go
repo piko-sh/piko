@@ -294,9 +294,9 @@ func isBackgroundKeyword(value string) bool {
 // CSS font shorthand follows this pattern:
 // [font-style] [font-variant] [font-weight] font-size[/line-height] font-family
 //
-// The size and family are required. The style, variant, and weight are optional
-// but must appear in that order. This function is needed because many email
-// clients do not handle the font shorthand well.
+// The size and family are required. The style, variant, and weight are optional but
+// must appear in that order. Needed because many email clients do not handle the
+// font shorthand well.
 //
 // Takes value (string) which is the CSS font shorthand value to expand.
 //

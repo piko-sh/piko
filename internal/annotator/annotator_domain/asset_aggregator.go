@@ -45,8 +45,8 @@ type aggregatedAsset struct {
 }
 
 // AggregateProjectAssets creates a single, de-duplicated, and merged asset
-// manifest for the entire project from all page results. This function is the
-// final step in asset processing within the annotator hexagon.
+// manifest for the entire project from all page results. Acts as the final step
+// in asset processing within the annotator hexagon.
 //
 // Takes pageResults ([]*annotator_dto.AnnotationResult) which contains the
 // annotation results from all processed pages.

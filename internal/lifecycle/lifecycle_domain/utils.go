@@ -26,8 +26,8 @@ import (
 // isRelevantFileForProcessing checks if a file should be processed by the
 // Piko build system based on its extension and directory location.
 //
-// This function is the single source of truth used by both the initial file
-// seeder and the live file watcher.
+// Acts as the single source of truth used by both the initial file seeder and the
+// live file watcher.
 //
 // Takes relPath (string) which is the path to the file relative to the project
 // root.

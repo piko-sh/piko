@@ -93,7 +93,7 @@ type GenerateRequest struct {
 	// non-virtual pages.
 	CollectionName string
 
-	// ModuleName is the Go module name from go.mod (e.g., "github.com/org/repo").
+	// ModuleName is the Go module name from go.mod (e.g., a GitHub-hosted module path).
 	// Used for @/ alias resolution in dynamic src attributes at runtime.
 	ModuleName string
 

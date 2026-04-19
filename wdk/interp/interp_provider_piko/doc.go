@@ -16,17 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package interp_provider_piko provides an interpreter
-// implementation backed by Piko's internal bytecode interpreter
-// for the interpreted development mode (dev-i).
+// Package interp_provider_piko provides an interpreter implementation backed
+// by Piko's internal bytecode interpreter for the interpreted development mode
+// (dev-i).
 //
-// This is an optional module. Users who do not use interpreted
-// mode do not need to import this package. The package includes
-// WASM-aware symbol filtering for browser-based interpreted
-// execution. Additional symbols can be exposed to interpreted
-// code via [Provider.RegisterSymbols].
+// Optional module: users who do not use interpreted mode do not need to import
+// it. Includes WASM-aware symbol filtering for browser-based interpreted
+// execution. Additional symbols can be exposed to interpreted code via
+// [Provider.RegisterSymbols].
 //
-// [Provider] is not safe for concurrent use after calling
-// RegisterSymbols. The interpreter pool returned by
-// [Provider.NewInterpreterPool] is safe for concurrent use.
+// [Provider] is not safe for concurrent use after calling RegisterSymbols. The
+// interpreter pool returned by [Provider.NewInterpreterPool] is safe for
+// concurrent use.
 package interp_provider_piko

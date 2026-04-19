@@ -210,9 +210,9 @@ type errorPageRequest struct {
 	StatusCode int
 }
 
-// responseTracker wraps an http.ResponseWriter to track whether a response
-// body or status code has been written. This is used to determine whether it
-// is safe to render an error page after a rendering failure.
+// responseTracker wraps an http.ResponseWriter to track whether a response body
+// or status code has been written. Used to determine whether it is safe to render
+// an error page after a rendering failure.
 type responseTracker struct {
 	http.ResponseWriter
 

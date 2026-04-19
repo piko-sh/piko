@@ -24,14 +24,14 @@ import (
 )
 
 // SymbolExports maps package paths to symbol names and their reflected values.
-// This type alias lets the public API accept symbol exports without depending
-// on a specific interpreter package.
+// Acts as a type alias that lets the public API accept symbol exports without
+// depending on a specific interpreter package.
 type SymbolExports = map[string]map[string]reflect.Value
 
 // InterpreterPort abstracts the Go interpreter used for JIT compilation.
-// This interface allows the templater domain to remain decoupled from the
-// concrete interpreter implementation, enabling the interpreter to be an
-// optional dependency.
+// Allows the templater domain to remain decoupled from the concrete
+// interpreter implementation, enabling the interpreter to be an optional
+// dependency.
 type InterpreterPort interface {
 	// Eval evaluates Go source code and returns the result.
 	//
@@ -131,7 +131,7 @@ type BatchInterpreterPort interface {
 // InterpreterProviderPort is the top-level interface for interpreter providers.
 // It combines symbol management with interpreter pool creation.
 //
-// Implementations of this interface are provided by optional modules such as
+// Implementations are provided by optional modules such as
 // piko.sh/piko/wdk/interp/interp_provider_piko.
 type InterpreterProviderPort interface {
 	// NewSymbolProvider creates a symbol provider with stdlib symbols loaded.

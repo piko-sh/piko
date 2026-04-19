@@ -303,7 +303,8 @@ func (m *MultiLevelAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	return m.l1Provider.Invalidate(ctx, key)
 }
 
-// Compute atomically updates the value in L1 cache using the provided function.
+// Compute computes and atomically updates the value in L1 cache using the
+// provided function.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.

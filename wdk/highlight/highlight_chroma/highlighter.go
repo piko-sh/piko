@@ -69,8 +69,8 @@ var _ highlight_domain.Highlighter = (*Highlighter)(nil)
 
 // Config holds configuration options for the Chroma highlighter.
 type Config struct {
-	// Style is the Chroma style name (e.g., "dracula", "monokai", "github").
-	// Defaults to "dracula" if empty.
+	// Style is the Chroma style name (for example "dracula", "monokai", or
+	// a GitHub-themed style). Defaults to "dracula" if empty.
 	Style string
 
 	// WithClasses outputs CSS class names instead of inline styles. When true

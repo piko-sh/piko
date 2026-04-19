@@ -511,8 +511,8 @@ func (executor *Executor) executeWithoutTransactionUp(
 }
 
 // executeWithoutTransactionDown handles non-transactional down migrations.
-// Down migrations do not use dirty state tracking since they simply delete
-// the history record on success.
+// Down migrations do not use dirty state tracking since they delete the history
+// record on success.
 //
 // Takes migration (querier_dto.MigrationRecord) which holds the migration SQL
 // and metadata.

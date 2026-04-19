@@ -41,7 +41,7 @@ type summaryEntry struct {
 	// Source is the name of the source that provided the final value.
 	Source string
 
-	// Tag holds the struct tag for this field. Used to check for metadata
+	// Tag holds the struct tag for the field. Used to check for metadata
 	// like `summary:"hide"` to redact sensitive values.
 	Tag reflect.StructTag
 }

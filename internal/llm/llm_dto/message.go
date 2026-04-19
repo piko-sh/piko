@@ -52,8 +52,8 @@ type Message struct {
 	Content string
 
 	// ContentParts holds multi-modal content such as text and images.
-	// When set, this field takes priority over Content for providers
-	// that support vision.
+	// When set, takes priority over Content for providers that support
+	// vision.
 	ContentParts []ContentPart
 
 	// ToolCalls holds tool or function calls made by the assistant.

@@ -32,7 +32,8 @@ type EmbeddedAsset struct {
 	// ETag is the HTTP ETag header value identifying the asset version.
 	ETag string
 
-	// MimeType is the asset's IANA media type (e.g. "text/javascript").
+	// MimeType is the asset's IANA media type (for example, the JavaScript
+	// type "text/javascript").
 	MimeType string
 
 	// Encoding identifies a content-encoding (e.g. "br", "gzip", "")

@@ -722,14 +722,14 @@ func (d *DAL) runInTransaction(ctx context.Context, fn func(ctx context.Context,
 	return tx.Commit()
 }
 
-// withTransaction is an internal helper that executes a function within a
+// withTransaction is an internal helper that executes an operation within a
 // database transaction, creating a transaction-scoped DAL clone.
 //
 // Takes operation (func(ctx context.Context, dal RegistryDAL) error) which is
-// the function to execute within the transaction scope.
+// the callback to execute within the transaction scope.
 //
 // Returns error when the DAL is not initialised, the transaction cannot be
-// started, the function returns an error, or the commit fails.
+// started, the callback returns an error, or the commit fails.
 //
 // Panics if operation panics. The transaction is rolled back before
 // re-panicking.

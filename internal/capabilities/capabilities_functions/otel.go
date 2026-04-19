@@ -28,7 +28,7 @@ var (
 	// log is the package-level logger for the capabilities_functions package.
 	log = logger_domain.GetLogger("piko/internal/capabilities/capabilities_functions")
 
-	// meter is the OpenTelemetry meter for this package's metrics.
+	// meter is the OpenTelemetry meter for capabilities_functions metrics.
 	meter = otel.Meter("piko/internal/capabilities/capabilities_functions")
 
 	// compilationDuration tracks time spent compiling components.

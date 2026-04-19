@@ -122,6 +122,10 @@ lint: lint-go lint-scripts lint-licences ## Run all linters
 lint-go: ## Lint all Go code (all workspace modules)
 	@$(HACK_DIR)/lint/go.sh
 
+.PHONY: check-doc-structure
+check-doc-structure: ## Verify every doc page sits in the correct quadrant folder per frontmatter
+	@$(HACK_DIR)/lint/doc-structure.sh
+
 .PHONY: lint-go-all
 lint-go-all: ## Lint all Go code including build-constrained modules
 	@$(HACK_DIR)/lint/go.sh --all

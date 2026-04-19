@@ -58,7 +58,7 @@ type WASMService interface {
 	// Returns error when the hover lookup fails.
 	GetHover(ctx context.Context, request *wasm_dto.HoverRequest) (*wasm_dto.HoverResponse, error)
 
-	// Validate checks Go source code for errors.
+	// Validates Go source code for errors.
 	//
 	// Takes request (*wasm_dto.ValidateRequest) which contains the source code to
 	// check.
@@ -91,7 +91,7 @@ type WASMService interface {
 	// Returns error when the runtime information cannot be retrieved.
 	GetRuntimeInfo(ctx context.Context) (*wasm_dto.RuntimeInfo, error)
 
-	// Generate produces code artefacts from in-memory sources.
+	// Generates code artefacts from in-memory sources.
 	//
 	// Takes ctx (context.Context) which is the request context.
 	// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source
@@ -103,7 +103,7 @@ type WASMService interface {
 	Generate(ctx context.Context, request *wasm_dto.GenerateFromSourcesRequest) (*wasm_dto.GenerateFromSourcesResponse, error)
 
 	// Render produces HTML from in-memory sources.
-	// This method only supports static templates (no Go code execution).
+	// Only supports static templates (no Go code execution).
 	//
 	// Takes ctx (context.Context) which is the request context.
 	// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source
@@ -196,7 +196,7 @@ type ConsolePort interface {
 // It allows generating Go code from in-memory PK template sources without
 // requiring file system access.
 type GeneratorPort interface {
-	// Generate produces code artefacts from in-memory sources.
+	// Generates code artefacts from in-memory sources.
 	//
 	// Takes ctx (context.Context) which is the request context.
 	// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source

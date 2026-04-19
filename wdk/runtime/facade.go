@@ -637,8 +637,8 @@ var (
 	RegisterPreviewFunc = templater_domain.RegisterPreviewFunc
 
 	// RegisterStaticCollectionBlob registers a binary blob for a static
-	// collection. Generated code calls this function in init() using //go:embed
-	// directives.
+	// collection. Generated code invokes RegisterStaticCollectionBlob in init()
+	// using //go:embed directives.
 	//
 	// The blob is a FlatBuffer binary that holds all collection items. It is built
 	// for zero-copy access and O(log n) lookups.
@@ -732,8 +732,8 @@ type SearchField struct {
 	// Name is the field name to search.
 	Name string
 
-	// Weight is the importance multiplier for this field; default is 1.0.
-	// Higher values make matches in this field count for more.
+	// Weight is the importance multiplier for the field; default is 1.0.
+	// Higher values make matches in the field count for more.
 	Weight float64
 }
 
@@ -897,7 +897,7 @@ func GetData[T any](r *templater_dto.RequestData) T {
 }
 
 // GetDataLink is the //piko:link sibling for GetData. The interpreter
-// dispatches to this function when a .pk file calls GetData[T] with a
+// dispatches to GetDataLink when a .pk file calls GetData[T] with a
 // user-defined T that has no compiled instantiation in the binary.
 //
 // Takes tType (reflect.Type) which is the instantiated type argument
@@ -916,9 +916,9 @@ func GetDataLink(tType reflect.Type, r *templater_dto.RequestData) reflect.Value
 // returns the current locale, canonical URL, and alternate hreflang links for
 // all supported locales.
 //
-// This function is designed to be called from within a component's Render
-// function to populate the Metadata.Language, Metadata.CanonicalUrl, and
-// Metadata.AlternateLinks fields.
+// Designed to be called from within a component's Render function to populate
+// the Metadata.Language, Metadata.CanonicalUrl, and Metadata.AlternateLinks
+// fields.
 //
 // Takes r (*templater_dto.RequestData) which provides the current request data.
 // Takes i18nConfig (I18nConfig) which defines locales and URL strategy.
@@ -953,9 +953,8 @@ func GenerateLocaleHead(
 // GetHybridBlob retrieves the current FlatBuffer blob from the hybrid
 // registry.
 //
-// This function is called by generated code to access hybrid collection data.
-// It returns the current blob and whether background revalidation should be
-// triggered.
+// Called by generated code to access hybrid collection data.
+// Returns the current blob and whether background revalidation should be triggered.
 //
 // Takes ctx (context.Context) which controls cancellation and tracing.
 // Takes providerName (string) which identifies the provider that owns this
@@ -973,8 +972,8 @@ func GetHybridBlob(ctx context.Context, providerName, collectionName string) ([]
 // TriggerHybridRevalidation triggers background revalidation for a hybrid
 // collection.
 //
-// It validates the ETag and updates the cache if the content has changed.
-// The function returns immediately.
+// Validates the ETag and updates the cache if the content has changed.
+// Returns immediately.
 //
 // Takes providerName (string) which identifies the provider.
 // Takes collectionName (string) which identifies the collection.
@@ -985,8 +984,8 @@ func TriggerHybridRevalidation(ctx context.Context, providerName, collectionName
 // DecodeCollectionBlob decodes a FlatBuffer collection blob into a typed
 // slice. Each item's metadata JSON is unmarshalled into T.
 //
-// This function is called by generated hybrid collection getter functions
-// to convert the cached FlatBuffer blob back into the user's typed slice.
+// Called by generated hybrid collection getter functions to convert the cached
+// FlatBuffer blob back into the user's typed slice.
 //
 // Takes blob ([]byte) which is the FlatBuffer-encoded collection data.
 //
@@ -998,8 +997,8 @@ func DecodeCollectionBlob[T any](blob []byte) ([]T, error) {
 
 // RegisterHybridSnapshot registers a build-time snapshot for runtime use.
 //
-// This function is called from generated init() functions to register the
-// embedded FlatBuffer blob and its ETag for hybrid mode operation.
+// Called from generated init() functions to register the embedded FlatBuffer
+// blob and its ETag for hybrid mode operation.
 //
 // Takes ctx (context.Context) which controls cancellation and tracing.
 // Takes providerName (string) which identifies the provider that generated
@@ -1045,8 +1044,8 @@ func GetHybridETag(providerName, collectionName string) string {
 
 // FetchCollection fetches dynamic collection data at runtime.
 //
-// This function is called by generated code when a component uses
-// data.GetCollection() with a dynamic provider (e.g., headless CMS, database).
+// Called by generated code when a component uses data.GetCollection() with a
+// dynamic provider (e.g., headless CMS, database).
 //
 // Takes providerName (string) which specifies the provider to use.
 // Takes collectionName (string) which specifies the collection to fetch.
@@ -1272,11 +1271,11 @@ func GetSections(r *templater_dto.RequestData) []Section {
 // GetStaticCollectionItem retrieves a single item from a static collection by
 // route.
 //
-// This function performs an O(log n) binary search lookup in the embedded
-// FlatBuffer blob and returns the metadata and ASTs for the requested route.
+// Performs an O(log n) binary search lookup in the embedded FlatBuffer blob
+// and returns the metadata and ASTs for the requested route.
 //
-// This function is used by generated BuildAST code to populate r.CollectionData
-// for collection pages.
+// Used by generated BuildAST code to populate r.CollectionData for collection
+// pages.
 //
 // Takes ctx (context.Context) which controls cancellation and tracing.
 // Takes collectionName (string) which is the name of the collection (e.g.,
@@ -1305,9 +1304,9 @@ func GetStaticCollectionItem(ctx context.Context, collectionName, route string) 
 
 // GetAllCollectionItems retrieves all items from a static collection.
 //
-// This function returns metadata only, without ASTs. Use it to build
-// navigation, sitemaps, or RSS feeds where you need to iterate over all items
-// in a collection but do not need the full content ASTs.
+// Retrieves metadata only, without ASTs. Use to build navigation, sitemaps, or
+// RSS feeds where you need to iterate over all items in a collection but do
+// not need the full content ASTs.
 //
 // Takes collectionName (string) which specifies the collection to retrieve
 // (e.g., "docs", "blog").
@@ -1649,7 +1648,7 @@ func WithAdvancedMinScore(score float64) AdvancedSearchOption {
 // AdvancedSearch performs full-text search using the inverted index and BM25
 // scoring.
 //
-// This function uses the zero-copy search index embedded in the binary for:
+// Uses the zero-copy search index embedded in the binary for:
 //   - O(log n) term lookups
 //   - BM25 probabilistic ranking
 //   - Optional stemming and phonetic matching (Smart mode)
@@ -1764,8 +1763,8 @@ func DefaultNavigationConfig() NavigationConfig {
 // BuildNavigationFromMetadata constructs hierarchical navigation from
 // collection metadata maps.
 //
-// This function takes metadata maps (from GetAllCollectionItems) and builds
-// navigation trees based on the "Navigation" field in each item's metadata.
+// Takes metadata maps (from GetAllCollectionItems) and builds navigation trees
+// based on the "Navigation" field in each item's metadata.
 //
 // Takes metadataItems ([]map[string]any) which provides metadata maps from a
 // collection.

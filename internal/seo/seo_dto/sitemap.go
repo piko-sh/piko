@@ -54,7 +54,7 @@ type SitemapURL struct {
 	// one news entry per URL.
 	News *NewsEntry `xml:"news:news,omitempty"`
 
-	// Location is the full URL of the page. This field is required.
+	// Location is the full URL of the page. Required.
 	Location string `xml:"loc"`
 
 	// LastMod is the date of last modification in W3C Datetime format
@@ -96,7 +96,7 @@ type AlternateLink struct {
 // ImageEntry represents an image within a sitemap URL entry. Including images
 // in sitemaps helps search engines discover and index them more effectively.
 type ImageEntry struct {
-	// Location is the full URL of the image file. This field is required.
+	// Location is the full URL of the image file. Required.
 	Location string `xml:"image:loc"`
 
 	// Caption is a descriptive caption for the image.
@@ -337,7 +337,7 @@ type PageSEOMetadata struct {
 // It is used when a site has multiple sitemap files, typically for sites
 // with 50,000+ URLs.
 type SitemapIndex struct {
-	// XMLName marks this struct as an XML sitemapindex element.
+	// XMLName marks the type as an XML sitemapindex element.
 	XMLName xml.Name `xml:"sitemapindex"`
 
 	// Xmlns is the XML namespace attribute for the sitemap index.

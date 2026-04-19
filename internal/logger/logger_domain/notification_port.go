@@ -48,7 +48,7 @@ type GroupedError struct {
 }
 
 // NotificationPort defines the logger's driven port for sending notifications.
-// The notification service implements this interface through an adapter.
+// The notification service implements the port through an adapter.
 type NotificationPort interface {
 	// SendGroupedErrors sends a batch of grouped errors as notifications.
 	//

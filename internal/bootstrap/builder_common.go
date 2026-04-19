@@ -91,7 +91,7 @@ func wireMonitoringInspectors(c *Container, renderRegistry render_domain.Registr
 }
 
 // buildDaemonWithWatcher is a common helper for building a daemon that requires
-// a file system watcher, typically for development modes.
+// a filesystem watcher, typically for development modes.
 //
 // Takes ctx (context.Context) which carries logging context for trace/request
 // ID propagation.

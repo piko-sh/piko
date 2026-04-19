@@ -38,9 +38,9 @@ const (
 
 var _ FileSystem = (*MockFileSystem)(nil)
 
-// MockFileSystem is an in-memory implementation of FileSystem for
-// testing, allowing tests to simulate file system operations without
-// touching the real file system.
+// MockFileSystem is an in-memory implementation of the filesystem interface for
+// testing, allowing tests to simulate filesystem operations without touching the
+// real filesystem.
 //
 // Map access is guarded by a sync.RWMutex because tests may populate
 // files during setup while parallel subtests read concurrently.
@@ -48,14 +48,14 @@ type MockFileSystem struct {
 	// files maps cleaned file paths to their mock file data.
 	files map[string]*mockFile
 
-	// dirs holds paths that are directories in the mock file system.
+	// dirs holds paths that are directories in the mock filesystem.
 	dirs map[string]bool
 
 	// mu guards access to the files and dirs maps.
 	mu sync.RWMutex
 }
 
-// mockFile represents a file in the mock file system.
+// mockFile represents a file in the mock filesystem.
 type mockFile struct {
 	// modTime is the simulated file modification time.
 	modTime time.Time
@@ -67,7 +67,7 @@ type mockFile struct {
 	mode fs.FileMode
 }
 
-// NewMockFileSystem creates an empty mock file system for testing.
+// NewMockFileSystem creates an empty mock filesystem for testing.
 //
 // Returns *MockFileSystem which is ready for use.
 func NewMockFileSystem() *MockFileSystem {
@@ -77,7 +77,7 @@ func NewMockFileSystem() *MockFileSystem {
 	}
 }
 
-// AddFile adds a file to the mock file system.
+// AddFile adds a file to the mock filesystem.
 //
 // Takes path (string) which specifies the file path to create.
 // Takes content ([]byte) which provides the file contents.

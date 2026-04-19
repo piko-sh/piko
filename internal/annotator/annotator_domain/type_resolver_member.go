@@ -37,7 +37,7 @@ import (
 
 // tryResolveField looks up a field on a struct type.
 //
-// This function handles full field resolution, including:
+// Handles full field resolution, including:
 //   - switching context for external packages
 //   - resolving type aliases
 //   - working out if the type can be converted to a string
@@ -344,8 +344,8 @@ func (*TypeResolver) logAliasResolution(
 // stringability information.
 // Returns map[string]goast.Expr which contains any generic type
 // parameter substitutions from the field's parent type.
-// Returns bool which is always true since this method is only called
-// when the field has been found.
+// Returns bool which is always true since the call only happens when
+// the field has been found.
 func (tr *TypeResolver) buildFieldAnnotation(
 	goCtx context.Context,
 	ctx *AnalysisContext,

@@ -28,7 +28,7 @@ import (
 )
 
 // FileSystem defines file operations for reading and traversing files.
-// Tests can use mock versions instead of real file system access.
+// Tests can use mock versions instead of real filesystem access.
 type FileSystem interface {
 	// WalkDir walks the file tree rooted at root, calling
 	// walkFunction for each file or directory.
@@ -87,7 +87,7 @@ var (
 	_ FileSystem = (*sandboxedFileSystem)(nil)
 )
 
-// osFileSystem implements the FileSystem interface using the os package.
+// osFileSystem implements the filesystem interface using the os package.
 type osFileSystem struct{}
 
 // WalkDir walks the file tree rooted at root.
@@ -149,11 +149,11 @@ func (*osFileSystem) IsNotExist(err error) bool {
 	return os.IsNotExist(err)
 }
 
-// sandboxedFileSystem provides safe file system access within a restricted
-// directory. It implements the FileSystem interface using safedisk.Sandbox
-// for secure, sandboxed operations.
+// sandboxedFileSystem provides safe filesystem access within a restricted directory.
+// It implements the filesystem interface using safedisk.Sandbox for secure,
+// sandboxed operations.
 type sandboxedFileSystem struct {
-	// sandbox provides file system operations within a safe boundary.
+	// sandbox provides filesystem operations within a safe boundary.
 	sandbox safedisk.Sandbox
 }
 
@@ -220,9 +220,9 @@ func (*sandboxedFileSystem) IsNotExist(err error) bool {
 	return os.IsNotExist(err)
 }
 
-// newOSFileSystem creates a file system that uses the operating system.
+// newOSFileSystem creates a filesystem that uses the operating system.
 //
-// Returns FileSystem which provides access to the real file system.
+// Returns FileSystem which provides access to the real filesystem.
 func newOSFileSystem() FileSystem {
 	return &osFileSystem{}
 }

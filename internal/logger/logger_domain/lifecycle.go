@@ -147,9 +147,8 @@ func ClearLifecycle() {
 	defaultLifecycleManager.closableOutputs = nil
 }
 
-// Shutdown stops the logger subsystem by calling all registered shutdown hooks
-// and closing all registered closable resources. This function uses the
-// defaultLifecycleManager.
+// Shutdown stops the logger subsystem by calling all registered shutdown hooks and
+// closing all registered closable resources. Uses the defaultLifecycleManager.
 //
 // Returns error when any closable resource fails to close.
 func Shutdown(ctx context.Context) error {

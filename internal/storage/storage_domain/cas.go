@@ -48,7 +48,7 @@ const (
 var errCASDeduplicated = errors.New("CAS object already exists, upload skipped")
 
 // CASResult holds the results of a successful content-addressing operation.
-// The caller is responsible for managing the resources returned in this struct.
+// The caller is responsible for managing the returned resources.
 type CASResult struct {
 	// Reader provides access to the object content; the caller must close it.
 	Reader io.ReadCloser
@@ -146,9 +146,9 @@ func checkCASDeduplication(
 // handleContentAddressing processes content-addressable storage by streaming
 // input to a temporary file while computing its hash.
 //
-// The function returns a CASResult that contains the new reader, the generated
-// key, and a cleanup function. The caller takes ownership of these resources
-// and must call the cleanup function when done.
+// Produces a CASResult holding the new reader, the generated key, and a
+// cleanup function. The caller takes ownership of these resources and must
+// call the cleanup function when done.
 //
 // Takes provider (StorageProviderPort) which handles storage operations.
 // Takes params (*storage_dto.PutParams) which specifies the input and hash

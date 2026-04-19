@@ -233,9 +233,9 @@ type generatorServiceOptions struct {
 	enableDwarfLineDirectives bool
 }
 
-// Generate orchestrates the full annotation and generation pipeline for a
-// single entry-point component. It is a convenience wrapper for development
-// and single-file builds.
+// Generate runs the full annotation and generation pipeline for a single
+// entry-point component. A convenience wrapper for development and single-file
+// builds.
 //
 // Takes request (generator_dto.GenerateRequest) which specifies the source path
 // and generation options.
@@ -585,9 +585,8 @@ func (s *generatorService) runAnnotationPhase(
 // generateStaticCollections creates binary collection files for all static
 // collections.
 //
-// This method gets collection data from the VirtualModule (created during
-// annotation), groups items by collection, and writes binary files to
-// dist/collections/{collectionName}/.
+// Gets collection data from the VirtualModule (created during annotation), groups
+// items by collection, and writes binary files to dist/collections/{collectionName}/.
 //
 // Takes projectResult (*annotator_dto.ProjectAnnotationResult) which contains
 // the virtual module with collection data.
@@ -668,8 +667,8 @@ func (s *generatorService) emitCollections(
 // generateSearchIndexes generates search index binaries for all static
 // collections.
 //
-// This method builds inverted indexes for Fast and Smart modes, enabling
-// zero-copy full-text search with BM25 ranking at runtime.
+// Builds inverted indexes for Fast and Smart modes, enabling zero-copy full-text
+// search with BM25 ranking at runtime.
 //
 // Takes collectionItems (map[string][]collection_dto.ContentItem) which maps
 // collection names to their content items.

@@ -79,7 +79,7 @@ type ParsedComponent struct {
 	SourcePath string
 
 	// ModuleImportPath is the full import path for this component
-	// (e.g. "github.com/ui/lib/button.pk").
+	// (e.g. a GitHub-hosted module path like "example.com/ui/lib/button.pk").
 	ModuleImportPath string
 
 	// CollectionName is the name from the p-collection attribute.

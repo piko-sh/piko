@@ -35,8 +35,7 @@ var (
 	ErrInvalidVersion = errors.New("wal: unsupported format version")
 
 	// ErrSnapshotNotFound indicates no snapshot file exists.
-	// This is not necessarily an error during recovery; it may simply mean
-	// this is a fresh start.
+	// Not necessarily an error during recovery; it may indicate a fresh start.
 	ErrSnapshotNotFound = errors.New("wal: snapshot not found")
 
 	// ErrInvalidConfig indicates the WAL configuration is invalid.

@@ -76,7 +76,7 @@ func (*mockEmailTemplateService) Render(
 // InitialiseForTesting initialises Piko's global services with minimal
 // dependencies suitable for unit and integration tests.
 //
-// This function creates a fully mocked Piko environment with:
+// Creates a fully mocked Piko environment with:
 //   - In-memory cache provider (no Redis/external cache)
 //   - In-memory storage provider (no S3/disk writes)
 //   - In-memory registry (no metadata.db SQLite file)

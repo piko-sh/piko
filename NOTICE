@@ -23,3 +23,11 @@ This product includes icons from Google Material Design Icons.
 Copyright (c) Google LLC
 Licence: Apache License 2.0
 Source: https://github.com/google/material-design-icons
+
+=========================================================================
+
+This product includes Vale prose-linting rules adapted from the Google
+developer documentation style guide Vale package.
+Copyright (c) 2018 - 2019 Joseph Kato
+Licence: MIT
+Source: https://github.com/errata-ai/Google

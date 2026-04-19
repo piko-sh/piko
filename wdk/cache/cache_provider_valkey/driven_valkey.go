@@ -417,7 +417,7 @@ func (a *ValkeyAdapter[K, V]) encodeValue(value V) ([]byte, error) {
 }
 
 // Compute atomically updates a cache entry using a compute function with
-// optimistic locking.
+// optimistic locking. Computes and writes the new value in one round trip.
 //
 // When the context is already cancelled or has exceeded its deadline, returns
 // the context's error without performing any work.
@@ -1356,9 +1356,8 @@ func (a *ValkeyAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads the new values for the keys.
 //
-// Safe for concurrent use. Spawns a goroutine that loads
-// values and updates the cache. The function returns
-// immediately; errors are logged but not returned.
+// Safe for concurrent use. Spawns a goroutine that loads values and updates
+// the cache. Returns immediately; errors are logged but not returned.
 func (a *ValkeyAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoader cache.BulkLoader[K, V]) {
 	ctx, l := logger.From(ctx, log)
 

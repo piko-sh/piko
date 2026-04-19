@@ -259,8 +259,8 @@ func (s *orchestratorService) Dispatch(ctx context.Context, task *Task) (*Workfl
 // the async batch insertion queue. This is primarily for testing where
 // deterministic, synchronous task dispatch is required.
 //
-// Unlike Dispatch, this method blocks until the task is persisted and
-// dispatched, making tests predictable without timing dependencies.
+// Unlike Dispatch, blocks until the task is persisted and dispatched, making tests
+// predictable without timing dependencies.
 //
 // Takes task (*Task) which specifies the task to persist and dispatch.
 //

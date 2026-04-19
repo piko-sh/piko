@@ -41,8 +41,7 @@ const (
 )
 
 // DidOpen handles notification that a text document was opened in the editor.
-// This method satisfies the protocol.Server interface by delegating to
-// DidOpenTextDocument.
+// Satisfies the protocol.Server interface by delegating to DidOpenTextDocument.
 //
 // Takes params (*protocol.DidOpenTextDocumentParams) which contains the
 // document URI and content.
@@ -53,8 +52,7 @@ func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocume
 }
 
 // DidChange handles text document change notifications from the client.
-// This method satisfies the protocol.Server interface by delegating to
-// DidChangeTextDocument.
+// Satisfies the protocol.Server interface by delegating to DidChangeTextDocument.
 //
 // Takes params (*protocol.DidChangeTextDocumentParams) which contains the
 // document URI and the content changes to apply.
@@ -65,8 +63,7 @@ func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDo
 }
 
 // DidSave handles notification that a document was saved.
-// This method satisfies the protocol.Server interface by delegating to
-// DidSaveTextDocument.
+// Satisfies the protocol.Server interface by delegating to DidSaveTextDocument.
 //
 // Takes params (*protocol.DidSaveTextDocumentParams) which contains the
 // document URI and optional text content.
@@ -77,8 +74,7 @@ func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocume
 }
 
 // DidClose handles notification that a text document was closed in the editor.
-// This method satisfies the protocol.Server interface by delegating to
-// DidCloseTextDocument.
+// Satisfies the protocol.Server interface by delegating to DidCloseTextDocument.
 //
 // Takes params (*protocol.DidCloseTextDocumentParams) which identifies the
 // closed document.

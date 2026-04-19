@@ -1,0 +1,94 @@
+<svg viewBox="0 0 620 400" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="pk-title pk-desc">
+  <title id="pk-title">PK file anatomy and what each block compiles to</title>
+  <desc id="pk-desc">A single PK file window on the left contains five blocks: template, Go script, TypeScript client glue, scoped style, and i18n translations. Arrows lead from each block to its compiled output on the right: server-rendered HTML, compiled Go in the binary, browser JavaScript, scoped CSS, and typed translation functions.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="30" y="30" width="270" height="340" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <rect x="30" y="30" width="270" height="26" fill="#1C544F"/>
+  <circle cx="46" cy="43" r="4" fill="#ff5f57"/>
+  <circle cx="60" cy="43" r="4" fill="#febc2e"/>
+  <circle cx="74" cy="43" r="4" fill="#28c840"/>
+  <text x="165" y="48" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">pages/index.pk</text>
+
+  
+  <rect x="42" y="68" width="246" height="52" rx="6" fill="#1C544F"/>
+  <text x="52" y="84" fill="#6BD5CC" font-family="monospace" font-size="11" font-weight="600">&lt;template&gt;</text>
+  <text x="52" y="100" fill="#C9F5F2" font-family="monospace" font-size="10">  &lt;h1&gt;{{ state.Title }}&lt;/h1&gt;</text>
+  <text x="52" y="114" fill="#6BD5CC" font-family="monospace" font-size="11" font-weight="600">&lt;/template&gt;</text>
+
+  
+  <rect x="42" y="128" width="246" height="68" rx="6" fill="#1C544F"/>
+  <text x="52" y="144" fill="#6BD5CC" font-family="monospace" font-size="11" font-weight="600">&lt;script type="application/x-go"&gt;</text>
+  <text x="52" y="159" fill="#C9F5F2" font-family="monospace" font-size="10">  type Response struct {</text>
+  <text x="52" y="173" fill="#A7F0E9" font-family="monospace" font-size="10">    Title </text>
+  <text x="103" y="173" fill="#FFEE9C" font-family="monospace" font-size="10">string</text>
+  <text x="141" y="173" fill="#A7F0E9" font-family="monospace" font-size="10"> }</text>
+  <text x="52" y="188" fill="#6BD5CC" font-family="monospace" font-size="11" font-weight="600">&lt;/script&gt;</text>
+
+  
+  <rect x="42" y="204" width="246" height="40" rx="6" fill="#1C544F"/>
+  <text x="52" y="220" fill="#6BD5CC" font-family="monospace" font-size="11" font-weight="600">&lt;script lang="ts"&gt;</text>
+  <text x="52" y="236" fill="#C9F5F2" font-family="monospace" font-size="10">  document.title = "Hi";</text>
+
+  
+  <rect x="42" y="252" width="246" height="40" rx="6" fill="#1C544F"/>
+  <text x="52" y="268" fill="#6BD5CC" font-family="monospace" font-size="11" font-weight="600">&lt;style&gt;</text>
+  <text x="52" y="284" fill="#C9F5F2" font-family="monospace" font-size="10">  h1 { color: blue; }</text>
+
+  
+  <rect x="42" y="300" width="246" height="56" rx="6" fill="#1C544F"/>
+  <text x="52" y="316" fill="#6BD5CC" font-family="monospace" font-size="11" font-weight="600">&lt;i18n lang="json"&gt;</text>
+  <text x="52" y="331" fill="#C9F5F2" font-family="monospace" font-size="10">  "en": { "hi": "Hi" },</text>
+  <text x="52" y="345" fill="#C9F5F2" font-family="monospace" font-size="10">  "fr": { "hi": "Salut" }</text>
+
+  
+  
+  <rect x="440" y="56" width="170" height="44" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="440" y="56" width="170" height="18" fill="#364049"/>
+  <text x="525" y="69" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Rendered HTML</text>
+  <text x="525" y="92" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">served on request</text>
+
+  
+  <rect x="440" y="134" width="170" height="44" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="440" y="134" width="170" height="18" fill="#364049"/>
+  <text x="525" y="147" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Go in the binary</text>
+  <text x="525" y="170" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">go build ./...</text>
+
+  
+  <rect x="440" y="196" width="170" height="44" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="440" y="196" width="170" height="18" fill="#364049"/>
+  <text x="525" y="209" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Browser glue JS</text>
+  <text x="525" y="232" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">page-local, no state</text>
+
+  
+  <rect x="440" y="248" width="170" height="44" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="440" y="248" width="170" height="18" fill="#364049"/>
+  <text x="525" y="261" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Scoped CSS</text>
+  <text x="525" y="284" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">file-level scope</text>
+
+  
+  <rect x="440" y="312" width="170" height="44" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <rect x="440" y="312" width="170" height="18" fill="#364049"/>
+  <text x="525" y="325" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Typed i18n functions</text>
+  <text x="525" y="348" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">t.Hi()</text>
+
+  
+  <line x1="295" y1="94" x2="435" y2="78" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="295" y1="162" x2="435" y2="156" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="295" y1="224" x2="435" y2="218" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="295" y1="272" x2="435" y2="270" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="295" y1="328" x2="435" y2="334" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <text x="165" y="20" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">SOURCE</text>
+  <text x="525" y="44" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">COMPILED OUTPUTS</text>
+
+  
+  <text x="310" y="392" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">piko generate compiles every block into typed Go source before go build runs.</text>
+</svg>

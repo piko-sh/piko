@@ -1,0 +1,123 @@
+<svg viewBox="0 0 620 500" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="hex-title hex-desc">
+  <title id="hex-title">Piko core at the centre, surrounded by ports and pluggable adapters</title>
+  <desc id="hex-desc">A large Piko Core container sits in the centre. Six port interfaces surround it: Cache, Storage, and Email above; LLM, Image, and Notification below. Each port has two or three named adapters plugged into it. Dashed arrows connect every port to the Piko Core.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-plug" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#475569" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="310" y="18" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">ADAPTERS</text>
+
+  
+  
+  <rect x="60" y="30" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="120" y="44" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">in-memory</text>
+  <rect x="60" y="56" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="120" y="70" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">Valkey / Redis</text>
+  <rect x="60" y="82" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="120" y="96" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">DuckDB</text>
+
+  
+  <rect x="250" y="30" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="310" y="44" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">local disk</text>
+  <rect x="250" y="56" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="310" y="70" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">S3 / R2 / GCS</text>
+  <rect x="250" y="82" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="310" y="96" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">custom HTTP</text>
+
+  
+  <rect x="440" y="30" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="500" y="44" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">stdout (dev)</text>
+  <rect x="440" y="56" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="500" y="70" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">SES / SendGrid</text>
+  <rect x="440" y="82" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="500" y="96" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">SMTP</text>
+
+  
+  <line x1="120" y1="108" x2="120" y2="134" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow-plug)"/>
+  <line x1="310" y1="108" x2="310" y2="134" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow-plug)"/>
+  <line x1="500" y1="108" x2="500" y2="134" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow-plug)"/>
+
+  
+  <rect x="60" y="140" width="120" height="34" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="120" y="156" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">PORT</text>
+  <text x="120" y="168" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">cache.Provider</text>
+
+  <rect x="250" y="140" width="120" height="34" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="310" y="156" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">PORT</text>
+  <text x="310" y="168" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">storage.Port</text>
+
+  <rect x="440" y="140" width="120" height="34" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="500" y="156" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">PORT</text>
+  <text x="500" y="168" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">email.Port</text>
+
+  
+  <line x1="120" y1="178" x2="120" y2="210" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="310" y1="178" x2="310" y2="210" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="500" y1="178" x2="500" y2="210" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="50" y="215" width="520" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <rect x="50" y="215" width="520" height="26" fill="#1C544F"/>
+  <circle cx="66" cy="228" r="4" fill="#ff5f57"/>
+  <circle cx="80" cy="228" r="4" fill="#febc2e"/>
+  <circle cx="94" cy="228" r="4" fill="#28c840"/>
+  <text x="310" y="233" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Piko Core</text>
+
+  <text x="310" y="262" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11">The framework defines the interfaces it depends on.</text>
+  <text x="310" y="278" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="11">piko.GetCache()   piko.GetStorage()   piko.GetEmail()</text>
+  <text x="310" y="295" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">Application code talks to the port, never the adapter.</text>
+
+  
+  <line x1="120" y1="310" x2="120" y2="342" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="310" y1="310" x2="310" y2="342" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="500" y1="310" x2="500" y2="342" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <rect x="60" y="346" width="120" height="34" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="120" y="362" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">PORT</text>
+  <text x="120" y="374" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">llm.Port</text>
+
+  <rect x="250" y="346" width="120" height="34" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="310" y="362" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">PORT</text>
+  <text x="310" y="374" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">image.Port</text>
+
+  <rect x="440" y="346" width="120" height="34" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="500" y="362" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">PORT</text>
+  <text x="500" y="374" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">notification.Port</text>
+
+  
+  <line x1="120" y1="384" x2="120" y2="410" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow-plug)"/>
+  <line x1="310" y1="384" x2="310" y2="410" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow-plug)"/>
+  <line x1="500" y1="384" x2="500" y2="410" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow-plug)"/>
+
+  
+  
+  <rect x="60" y="416" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="120" y="430" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">OpenAI</text>
+  <rect x="60" y="442" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="120" y="456" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">Anthropic</text>
+  <rect x="60" y="468" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="120" y="482" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">Ollama (local)</text>
+
+  
+  <rect x="250" y="416" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="310" y="430" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">libvips</text>
+  <rect x="250" y="442" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="310" y="456" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">imaginary</text>
+
+  
+  <rect x="440" y="416" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="500" y="430" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">Slack / Discord</text>
+  <rect x="440" y="442" width="120" height="20" rx="6" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="500" y="456" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">SMTP</text>
+
+  
+  <text x="310" y="495" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">ADAPTERS</text>
+</svg>

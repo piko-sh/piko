@@ -61,7 +61,7 @@ type queryPropInfo struct {
 	// IsPointer indicates whether the field type is a pointer.
 	IsPointer bool
 
-	// ShouldCoerce indicates whether type conversion is enabled for this field.
+	// ShouldCoerce indicates whether type conversion is enabled for the field.
 	ShouldCoerce bool
 }
 

@@ -231,7 +231,7 @@ func (p *Provider) validateServerPaths() error {
 // newTestConfigProvider creates a configuration provider with mock
 // dependencies for testing.
 //
-// Takes fs (fileSystem) which provides file system operations.
+// Takes fs (fileSystem) which provides filesystem operations.
 //
 // Returns *Provider which is the configured provider ready for use.
 func newTestConfigProvider(fs fileSystem) *Provider {

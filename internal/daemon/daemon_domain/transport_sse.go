@@ -33,8 +33,8 @@ var errClientDisconnected = errors.New("client disconnected")
 // Server-Sent Events (SSE) streaming. When an action implements this
 // interface, clients can request SSE transport for progressive updates.
 type SSECapable interface {
-	// StreamProgress handles SSE streaming for this action.
-	// The stream is automatically closed when this method returns.
+	// StreamProgress handles SSE streaming for the action.
+	// The stream is automatically closed when the call returns.
 	StreamProgress(stream *SSEStream) error
 }
 
