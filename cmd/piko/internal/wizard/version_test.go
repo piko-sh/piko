@@ -20,6 +20,9 @@ package wizard
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSelectVersion_PrefersStable(t *testing.T) {
@@ -32,12 +35,8 @@ func TestSelectVersion_PrefersStable(t *testing.T) {
 	}
 
 	version, err := selectVersion(releases)
-	if err != nil {
-		t.Fatalf("selectVersion() error = %v", err)
-	}
-	if version != "v0.1.0" {
-		t.Errorf("selectVersion() = %q, want %q", version, "v0.1.0")
-	}
+	require.NoErrorf(t, err, "selectVersion() error = %v", err)
+	assert.Equalf(t, "v0.1.0", version, "selectVersion() = %q, want %q", version, "v0.1.0")
 }
 
 func TestSelectVersion_FallsBackToPrerelease(t *testing.T) {
@@ -49,12 +48,8 @@ func TestSelectVersion_FallsBackToPrerelease(t *testing.T) {
 	}
 
 	version, err := selectVersion(releases)
-	if err != nil {
-		t.Fatalf("selectVersion() error = %v", err)
-	}
-	if version != "v0.0.0-alpha.6" {
-		t.Errorf("selectVersion() = %q, want %q", version, "v0.0.0-alpha.6")
-	}
+	require.NoErrorf(t, err, "selectVersion() error = %v", err)
+	assert.Equalf(t, "v0.0.0-alpha.6", version, "selectVersion() = %q, want %q", version, "v0.0.0-alpha.6")
 }
 
 func TestSelectVersion_SkipsDrafts(t *testing.T) {
@@ -66,12 +61,8 @@ func TestSelectVersion_SkipsDrafts(t *testing.T) {
 	}
 
 	version, err := selectVersion(releases)
-	if err != nil {
-		t.Fatalf("selectVersion() error = %v", err)
-	}
-	if version != "v0.1.0" {
-		t.Errorf("selectVersion() = %q, want %q", version, "v0.1.0")
-	}
+	require.NoErrorf(t, err, "selectVersion() error = %v", err)
+	assert.Equalf(t, "v0.1.0", version, "selectVersion() = %q, want %q", version, "v0.1.0")
 }
 
 func TestSelectVersion_SkipsEmptyTagName(t *testing.T) {
@@ -83,21 +74,15 @@ func TestSelectVersion_SkipsEmptyTagName(t *testing.T) {
 	}
 
 	version, err := selectVersion(releases)
-	if err != nil {
-		t.Fatalf("selectVersion() error = %v", err)
-	}
-	if version != "v0.0.0-alpha.1" {
-		t.Errorf("selectVersion() = %q, want %q", version, "v0.0.0-alpha.1")
-	}
+	require.NoErrorf(t, err, "selectVersion() error = %v", err)
+	assert.Equalf(t, "v0.0.0-alpha.1", version, "selectVersion() = %q, want %q", version, "v0.0.0-alpha.1")
 }
 
 func TestSelectVersion_NoReleases(t *testing.T) {
 	t.Parallel()
 
 	_, err := selectVersion(nil)
-	if err == nil {
-		t.Error("selectVersion(nil) should return error")
-	}
+	assert.Error(t, err, "selectVersion(nil) should return error")
 }
 
 func TestSelectVersion_OnlyDrafts(t *testing.T) {
@@ -108,7 +93,5 @@ func TestSelectVersion_OnlyDrafts(t *testing.T) {
 	}
 
 	_, err := selectVersion(releases)
-	if err == nil {
-		t.Error("selectVersion() should return error when only drafts exist")
-	}
+	assert.Error(t, err, "selectVersion() should return error when only drafts exist")
 }

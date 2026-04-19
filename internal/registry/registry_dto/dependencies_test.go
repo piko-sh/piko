@@ -19,8 +19,10 @@
 package registry_dto
 
 import (
-	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDependencies_AddAndGet(t *testing.T) {
@@ -30,41 +32,25 @@ func TestDependencies_AddAndGet(t *testing.T) {
 	d.Add("b")
 	d.Add("c")
 
-	if d.Len() != 3 {
-		t.Fatalf("Len() = %d, want 3", d.Len())
-	}
-	if got := d.Get(0); got != "a" {
-		t.Errorf("Get(0) = %q, want %q", got, "a")
-	}
-	if got := d.Get(1); got != "b" {
-		t.Errorf("Get(1) = %q, want %q", got, "b")
-	}
-	if got := d.Get(2); got != "c" {
-		t.Errorf("Get(2) = %q, want %q", got, "c")
-	}
+	require.Equal(t, 3, d.Len())
+	assert.Equal(t, "a", d.Get(0))
+	assert.Equal(t, "b", d.Get(1))
+	assert.Equal(t, "c", d.Get(2))
 }
 
 func TestDependencies_IsEmpty(t *testing.T) {
 	var d Dependencies
-	if !d.IsEmpty() {
-		t.Error("new Dependencies should be empty")
-	}
+	assert.True(t, d.IsEmpty(), "new Dependencies should be empty")
 	d.Add("x")
-	if d.IsEmpty() {
-		t.Error("Dependencies with one item should not be empty")
-	}
+	assert.False(t, d.IsEmpty(), "Dependencies with one item should not be empty")
 }
 
 func TestDependencies_First(t *testing.T) {
 	var d Dependencies
-	if got := d.First(); got != "" {
-		t.Errorf("First() on empty = %q, want empty", got)
-	}
+	assert.Empty(t, d.First(), "First() on empty should be empty")
 
 	d.Add("first")
-	if got := d.First(); got != "first" {
-		t.Errorf("First() = %q, want %q", got, "first")
-	}
+	assert.Equal(t, "first", d.First())
 }
 
 func TestDependencies_All(t *testing.T) {
@@ -78,9 +64,7 @@ func TestDependencies_All(t *testing.T) {
 		got = append(got, v)
 	}
 	want := []string{"a", "b", "c"}
-	if !slices.Equal(got, want) {
-		t.Errorf("All() = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestDependencies_AllEarlyExit(t *testing.T) {
@@ -97,26 +81,19 @@ func TestDependencies_AllEarlyExit(t *testing.T) {
 		}
 	}
 	want := []string{"a", "b"}
-	if !slices.Equal(got, want) {
-		t.Errorf("All() early exit = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestDependencies_ToSlice(t *testing.T) {
 	var d Dependencies
-	if got := d.ToSlice(); got != nil {
-		t.Errorf("ToSlice() on empty = %v, want nil", got)
-	}
+	assert.Nil(t, d.ToSlice(), "ToSlice() on empty should be nil")
 
 	d.Add("a")
 	d.Add("b")
 	d.Add("c")
 
-	got := d.ToSlice()
 	want := []string{"a", "b", "c"}
-	if !slices.Equal(got, want) {
-		t.Errorf("ToSlice() = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, d.ToSlice())
 }
 
 func TestDependencies_Clone(t *testing.T) {
@@ -126,14 +103,10 @@ func TestDependencies_Clone(t *testing.T) {
 	d.Add("c")
 
 	clone := d.Clone()
-	if !slices.Equal(clone.ToSlice(), d.ToSlice()) {
-		t.Errorf("Clone() = %v, want %v", clone.ToSlice(), d.ToSlice())
-	}
+	assert.Equal(t, d.ToSlice(), clone.ToSlice())
 
 	d.Add("d")
-	if clone.Len() != 3 {
-		t.Errorf("Clone was mutated by original: len=%d", clone.Len())
-	}
+	assert.Equal(t, 3, clone.Len(), "Clone was mutated by original")
 }
 
 func TestDependencies_JSON(t *testing.T) {
@@ -143,32 +116,20 @@ func TestDependencies_JSON(t *testing.T) {
 	d.Add("z")
 
 	data, err := d.MarshalJSON()
-	if err != nil {
-		t.Fatalf("MarshalJSON: %v", err)
-	}
+	require.NoError(t, err, "MarshalJSON")
 
 	var d2 Dependencies
-	if err := d2.UnmarshalJSON(data); err != nil {
-		t.Fatalf("UnmarshalJSON: %v", err)
-	}
-	if !slices.Equal(d.ToSlice(), d2.ToSlice()) {
-		t.Errorf("round-trip: got %v, want %v", d2.ToSlice(), d.ToSlice())
-	}
+	require.NoError(t, d2.UnmarshalJSON(data), "UnmarshalJSON")
+	assert.Equal(t, d.ToSlice(), d2.ToSlice())
 }
 
 func TestDependencies_UnmarshalJSON_Invalid(t *testing.T) {
 	var d Dependencies
-	if err := d.UnmarshalJSON([]byte(`not json`)); err == nil {
-		t.Error("expected error for invalid JSON")
-	}
+	assert.Error(t, d.UnmarshalJSON([]byte(`not json`)), "expected error for invalid JSON")
 }
 
 func TestDependenciesFromSlice(t *testing.T) {
 	d := DependenciesFromSlice([]string{"a", "b", "c"})
-	if d.Len() != 3 {
-		t.Fatalf("Len() = %d, want 3", d.Len())
-	}
-	if got := d.Get(2); got != "c" {
-		t.Errorf("Get(2) = %q, want %q", got, "c")
-	}
+	require.Equal(t, 3, d.Len())
+	assert.Equal(t, "c", d.Get(2))
 }

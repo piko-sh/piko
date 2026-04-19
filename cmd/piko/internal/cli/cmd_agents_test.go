@@ -24,6 +24,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/cmd/piko/internal/wizard/templates"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -32,73 +34,58 @@ func TestCopyClaudeCodePlugin_WritesCorrectFiles(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
-	if err := templates.CopyClaudeCodePlugin(directory); err != nil {
-		t.Fatalf("CopyClaudeCodePlugin() = %v", err)
-	}
+	err := templates.CopyClaudeCodePlugin(directory)
+	require.NoError(t, err, "CopyClaudeCodePlugin() = %v", err)
 
-	if _, err := os.Stat(filepath.Join(directory, "SKILL.md")); err != nil {
-		t.Error("SKILL.md not created")
-	}
+	_, err = os.Stat(filepath.Join(directory, "SKILL.md"))
+	assert.NoError(t, err, "SKILL.md not created")
 
-	if _, err := os.Stat(filepath.Join(directory, "references", "pk-file-format.md")); err != nil {
-		t.Error("references/pk-file-format.md not created")
-	}
-	if _, err := os.Stat(filepath.Join(directory, "references", "template-syntax.md")); err != nil {
-		t.Error("references/template-syntax.md not created")
-	}
+	_, err = os.Stat(filepath.Join(directory, "references", "pk-file-format.md"))
+	assert.NoError(t, err, "references/pk-file-format.md not created")
+	_, err = os.Stat(filepath.Join(directory, "references", "template-syntax.md"))
+	assert.NoError(t, err, "references/template-syntax.md not created")
 
-	if _, err := os.Stat(filepath.Join(directory, ".claude-plugin", "plugin.json")); err != nil {
-		t.Error(".claude-plugin/plugin.json not created")
-	}
+	_, err = os.Stat(filepath.Join(directory, ".claude-plugin", "plugin.json"))
+	assert.NoError(t, err, ".claude-plugin/plugin.json not created")
 
 	lspConfig, err := os.ReadFile(filepath.Join(directory, ".lsp.json"))
-	if err != nil {
-		t.Errorf(".lsp.json not created: %v", err)
-	} else if !strings.Contains(string(lspConfig), "pikopls") {
-		t.Error(".lsp.json should configure the pikopls command")
+	if assert.NoError(t, err, ".lsp.json not created: %v", err) {
+		assert.Contains(t, string(lspConfig), "pikopls", ".lsp.json should configure the pikopls command")
 	}
 
-	if _, err := os.Stat(filepath.Join(directory, "AGENTS.md")); err == nil {
-		t.Error("AGENTS.md should not be written by CopyClaudeCodePlugin")
-	}
+	_, err = os.Stat(filepath.Join(directory, "AGENTS.md"))
+	assert.Error(t, err, "AGENTS.md should not be written by CopyClaudeCodePlugin")
 }
 
 func TestCopyProjectAgents_WritesCorrectFiles(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
-	if err := templates.CopyProjectAgents(directory); err != nil {
-		t.Fatalf("CopyProjectAgents() = %v", err)
-	}
+	err := templates.CopyProjectAgents(directory)
+	require.NoError(t, err, "CopyProjectAgents() = %v", err)
 
-	if _, err := os.Stat(filepath.Join(directory, "AGENTS.md")); err != nil {
-		t.Error("AGENTS.md not created")
-	}
+	_, err = os.Stat(filepath.Join(directory, "AGENTS.md"))
+	assert.NoError(t, err, "AGENTS.md not created")
 
-	if _, err := os.Stat(filepath.Join(directory, "references", "pk-file-format.md")); err != nil {
-		t.Error("references/pk-file-format.md not created")
-	}
+	_, err = os.Stat(filepath.Join(directory, "references", "pk-file-format.md"))
+	assert.NoError(t, err, "references/pk-file-format.md not created")
 
-	if _, err := os.Stat(filepath.Join(directory, "SKILL.md")); err == nil {
-		t.Error("SKILL.md should not be written by CopyProjectAgents")
-	}
+	_, err = os.Stat(filepath.Join(directory, "SKILL.md"))
+	assert.Error(t, err, "SKILL.md should not be written by CopyProjectAgents")
 
-	if _, err := os.Stat(filepath.Join(directory, ".claude-plugin")); err == nil {
-		t.Error(".claude-plugin/ should not be written by CopyProjectAgents")
-	}
+	_, err = os.Stat(filepath.Join(directory, ".claude-plugin"))
+	assert.Error(t, err, ".claude-plugin/ should not be written by CopyProjectAgents")
 }
 
 func TestCopyAgentFiles_SkipsGoFiles(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
-	if err := templates.CopyClaudeCodePlugin(directory); err != nil {
-		t.Fatalf("CopyClaudeCodePlugin() = %v", err)
-	}
+	err := templates.CopyClaudeCodePlugin(directory)
+	require.NoError(t, err, "CopyClaudeCodePlugin() = %v", err)
 
-	if _, err := os.Stat(filepath.Join(directory, "embed.go")); err == nil {
-		t.Error("embed.go should not be written to the destination")
-	}
+	_, err = os.Stat(filepath.Join(directory, "embed.go"))
+	assert.Error(t, err, "embed.go should not be written to the destination")
 }
 
 func TestCopyClaudeCodePlugin_OverwritesExisting(t *testing.T) {
@@ -107,22 +94,16 @@ func TestCopyClaudeCodePlugin_OverwritesExisting(t *testing.T) {
 	directory := t.TempDir()
 
 	skillPath := filepath.Join(directory, "SKILL.md")
-	if err := os.WriteFile(skillPath, []byte("old content"), 0640); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(skillPath, []byte("old content"), 0640)
+	require.NoError(t, err)
 
-	if err := templates.CopyClaudeCodePlugin(directory); err != nil {
-		t.Fatalf("CopyClaudeCodePlugin() = %v", err)
-	}
+	err = templates.CopyClaudeCodePlugin(directory)
+	require.NoError(t, err, "CopyClaudeCodePlugin() = %v", err)
 
 	content, err := os.ReadFile(skillPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if string(content) == "old content" {
-		t.Error("SKILL.md should have been overwritten but still contains old content")
-	}
+	assert.NotEqual(t, "old content", string(content), "SKILL.md should have been overwritten but still contains old content")
 }
 
 func TestCopyClaudeCodePlugin_RemovesStaleFiles(t *testing.T) {
@@ -131,21 +112,17 @@ func TestCopyClaudeCodePlugin_RemovesStaleFiles(t *testing.T) {
 	directory := t.TempDir()
 
 	refsDir := filepath.Join(directory, "references")
-	if err := os.MkdirAll(refsDir, 0750); err != nil {
-		t.Fatal(err)
-	}
+	err := os.MkdirAll(refsDir, 0750)
+	require.NoError(t, err)
 	stalePath := filepath.Join(refsDir, "old-removed-reference.md")
-	if err := os.WriteFile(stalePath, []byte("stale"), 0640); err != nil {
-		t.Fatal(err)
-	}
+	err = os.WriteFile(stalePath, []byte("stale"), 0640)
+	require.NoError(t, err)
 
-	if err := templates.CopyClaudeCodePlugin(directory); err != nil {
-		t.Fatalf("CopyClaudeCodePlugin() = %v", err)
-	}
+	err = templates.CopyClaudeCodePlugin(directory)
+	require.NoError(t, err, "CopyClaudeCodePlugin() = %v", err)
 
-	if _, err := os.Stat(stalePath); err == nil {
-		t.Error("stale file should have been removed but still exists")
-	}
+	_, err = os.Stat(stalePath)
+	assert.Error(t, err, "stale file should have been removed but still exists")
 }
 
 func TestCopyProjectAgents_OverwritesExisting(t *testing.T) {
@@ -154,22 +131,16 @@ func TestCopyProjectAgents_OverwritesExisting(t *testing.T) {
 	directory := t.TempDir()
 
 	agentsPath := filepath.Join(directory, "AGENTS.md")
-	if err := os.WriteFile(agentsPath, []byte("old content"), 0640); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(agentsPath, []byte("old content"), 0640)
+	require.NoError(t, err)
 
-	if err := templates.CopyProjectAgents(directory); err != nil {
-		t.Fatalf("CopyProjectAgents() = %v", err)
-	}
+	err = templates.CopyProjectAgents(directory)
+	require.NoError(t, err, "CopyProjectAgents() = %v", err)
 
 	content, err := os.ReadFile(agentsPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if string(content) == "old content" {
-		t.Error("AGENTS.md should have been overwritten but still contains old content")
-	}
+	assert.NotEqual(t, "old content", string(content), "AGENTS.md should have been overwritten but still contains old content")
 }
 
 func TestCopyProjectAgents_RemovesStaleReferences(t *testing.T) {
@@ -178,25 +149,20 @@ func TestCopyProjectAgents_RemovesStaleReferences(t *testing.T) {
 	directory := t.TempDir()
 
 	refsDir := filepath.Join(directory, "references")
-	if err := os.MkdirAll(refsDir, 0750); err != nil {
-		t.Fatal(err)
-	}
+	err := os.MkdirAll(refsDir, 0750)
+	require.NoError(t, err)
 	stalePath := filepath.Join(refsDir, "old-removed-reference.md")
-	if err := os.WriteFile(stalePath, []byte("stale"), 0640); err != nil {
-		t.Fatal(err)
-	}
+	err = os.WriteFile(stalePath, []byte("stale"), 0640)
+	require.NoError(t, err)
 
-	if err := templates.CopyProjectAgents(directory); err != nil {
-		t.Fatalf("CopyProjectAgents() = %v", err)
-	}
+	err = templates.CopyProjectAgents(directory)
+	require.NoError(t, err, "CopyProjectAgents() = %v", err)
 
-	if _, err := os.Stat(stalePath); err == nil {
-		t.Error("stale reference file should have been removed but still exists")
-	}
+	_, err = os.Stat(stalePath)
+	assert.Error(t, err, "stale reference file should have been removed but still exists")
 
-	if _, err := os.Stat(filepath.Join(refsDir, "pk-file-format.md")); err != nil {
-		t.Error("references/pk-file-format.md should exist after update")
-	}
+	_, err = os.Stat(filepath.Join(refsDir, "pk-file-format.md"))
+	assert.NoError(t, err, "references/pk-file-format.md should exist after update")
 }
 
 func TestNewAgentsUninstallModel_OmitsAbsentAgentsMD(t *testing.T) {
@@ -206,20 +172,14 @@ func TestNewAgentsUninstallModel_OmitsAbsentAgentsMD(t *testing.T) {
 	defer func() { _ = os.Chdir(orig) }()
 
 	factory, err := safedisk.NewCLIFactory(".")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	m := newAgentsUninstallModel(factory)
 
 	for _, tgt := range m.targets {
-		if tgt.name == "AGENTS.md" {
-			t.Error("AGENTS.md target should not appear when file does not exist")
-		}
+		assert.NotEqual(t, "AGENTS.md", tgt.name, "AGENTS.md target should not appear when file does not exist")
 	}
-	if m.Step != agentsUninstallStepSelect {
-		t.Errorf("step = %d, want agentsUninstallStepSelect (%d)", m.Step, agentsUninstallStepSelect)
-	}
+	assert.Equal(t, agentsUninstallStepSelect, m.Step, "step = %d, want agentsUninstallStepSelect (%d)", m.Step, agentsUninstallStepSelect)
 }
 
 func TestNewAgentsUninstallModel_DetectsAgentsMD(t *testing.T) {
@@ -228,14 +188,11 @@ func TestNewAgentsUninstallModel_DetectsAgentsMD(t *testing.T) {
 	_ = os.Chdir(directory)
 	defer func() { _ = os.Chdir(orig) }()
 
-	if err := os.WriteFile(filepath.Join(directory, "AGENTS.md"), []byte("agents"), 0640); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(directory, "AGENTS.md"), []byte("agents"), 0640)
+	require.NoError(t, err)
 
 	factory, err := safedisk.NewCLIFactory(".")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	m := newAgentsUninstallModel(factory)
 
@@ -246,9 +203,7 @@ func TestNewAgentsUninstallModel_DetectsAgentsMD(t *testing.T) {
 			break
 		}
 	}
-	if !found {
-		t.Error("AGENTS.md target should be detected when file exists")
-	}
+	assert.True(t, found, "AGENTS.md target should be detected when file exists")
 }
 
 func TestRemoveGitignoreEntries_RemovesExactBlock(t *testing.T) {
@@ -256,35 +211,23 @@ func TestRemoveGitignoreEntries_RemovesExactBlock(t *testing.T) {
 
 	directory := t.TempDir()
 	content := "node_modules/\ndist/\n" + gitignoreEntries + "*.log\n"
-	if err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(content), 0600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(content), 0600)
+	require.NoError(t, err)
 
 	builder, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer builder.Close()
 
-	if err := removeGitignoreEntries(builder); err != nil {
-		t.Fatalf("removeGitignoreEntries() = %v", err)
-	}
+	err = removeGitignoreEntries(builder)
+	require.NoError(t, err, "removeGitignoreEntries() = %v", err)
 
 	got, err := os.ReadFile(filepath.Join(directory, ".gitignore"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	result := string(got)
-	if strings.Contains(result, "AGENTS.md") {
-		t.Error("AGENTS.md should have been removed from .gitignore")
-	}
-	if !strings.Contains(result, "node_modules/") {
-		t.Error("existing entries should be preserved")
-	}
-	if !strings.Contains(result, "*.log") {
-		t.Error("entries after the agent block should be preserved")
-	}
+	assert.NotContains(t, result, "AGENTS.md", "AGENTS.md should have been removed from .gitignore")
+	assert.Contains(t, result, "node_modules/", "existing entries should be preserved")
+	assert.Contains(t, result, "*.log", "entries after the agent block should be preserved")
 }
 
 func TestRemoveGitignoreEntries_RemovesIndividualLines(t *testing.T) {
@@ -292,38 +235,24 @@ func TestRemoveGitignoreEntries_RemovesIndividualLines(t *testing.T) {
 
 	directory := t.TempDir()
 	content := "node_modules/\nAGENTS.md\nreferences/\n*.log\n"
-	if err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(content), 0600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(content), 0600)
+	require.NoError(t, err)
 
 	builder, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer builder.Close()
 
-	if err := removeGitignoreEntries(builder); err != nil {
-		t.Fatalf("removeGitignoreEntries() = %v", err)
-	}
+	err = removeGitignoreEntries(builder)
+	require.NoError(t, err, "removeGitignoreEntries() = %v", err)
 
 	got, err := os.ReadFile(filepath.Join(directory, ".gitignore"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	result := string(got)
-	if strings.Contains(result, "AGENTS.md") {
-		t.Error("AGENTS.md should have been removed")
-	}
-	if strings.Contains(result, "references/") {
-		t.Error("references/ should have been removed")
-	}
-	if !strings.Contains(result, "node_modules/") {
-		t.Error("unrelated entries should be preserved")
-	}
-	if !strings.Contains(result, "*.log") {
-		t.Error("unrelated entries should be preserved")
-	}
+	assert.NotContains(t, result, "AGENTS.md", "AGENTS.md should have been removed")
+	assert.NotContains(t, result, "references/", "references/ should have been removed")
+	assert.Contains(t, result, "node_modules/", "unrelated entries should be preserved")
+	assert.Contains(t, result, "*.log", "unrelated entries should be preserved")
 }
 
 func TestRemoveGitignoreEntries_NoopWhenNotPresent(t *testing.T) {
@@ -331,28 +260,20 @@ func TestRemoveGitignoreEntries_NoopWhenNotPresent(t *testing.T) {
 
 	directory := t.TempDir()
 	content := "node_modules/\ndist/\n"
-	if err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(content), 0600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(content), 0600)
+	require.NoError(t, err)
 
 	builder, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer builder.Close()
 
-	if err := removeGitignoreEntries(builder); err != nil {
-		t.Fatalf("removeGitignoreEntries() = %v", err)
-	}
+	err = removeGitignoreEntries(builder)
+	require.NoError(t, err, "removeGitignoreEntries() = %v", err)
 
 	got, err := os.ReadFile(filepath.Join(directory, ".gitignore"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if string(got) != content {
-		t.Errorf("file should be unchanged, got %q", string(got))
-	}
+	assert.Equal(t, content, string(got), "file should be unchanged, got %q", string(got))
 }
 
 func TestRemoveGitignoreEntries_NoopWhenMissing(t *testing.T) {
@@ -360,38 +281,25 @@ func TestRemoveGitignoreEntries_NoopWhenMissing(t *testing.T) {
 
 	directory := t.TempDir()
 	builder, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer builder.Close()
 
-	if err := removeGitignoreEntries(builder); err != nil {
-		t.Fatalf("removeGitignoreEntries() = %v", err)
-	}
+	err = removeGitignoreEntries(builder)
+	require.NoError(t, err, "removeGitignoreEntries() = %v", err)
 }
 
 func TestNewAgentsModel_Initialisation(t *testing.T) {
 	t.Parallel()
 
 	factory, err := safedisk.NewCLIFactory(".")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	m := newAgentsModel(factory, "0.0.0-test")
 
-	if len(m.targets) != 2 {
-		t.Errorf("len(targets) = %d, want 2", len(m.targets))
-	}
-	if len(m.Selected) != 2 {
-		t.Errorf("len(selected) = %d, want 2", len(m.Selected))
-	}
-	if m.Step != agentsStepSelect {
-		t.Errorf("step = %d, want agentsStepSelect (%d)", m.Step, agentsStepSelect)
-	}
-	if m.Cursor != len(m.targets) {
-		t.Errorf("cursor = %d, want %d (Continue button)", m.Cursor, len(m.targets))
-	}
+	assert.Len(t, m.targets, 2, "len(targets) = %d, want 2", len(m.targets))
+	assert.Len(t, m.Selected, 2, "len(selected) = %d, want 2", len(m.Selected))
+	assert.Equal(t, agentsStepSelect, m.Step, "step = %d, want agentsStepSelect (%d)", m.Step, agentsStepSelect)
+	assert.Len(t, m.targets, m.Cursor, "cursor = %d, want %d (Continue button)", m.Cursor, len(m.targets))
 }
 
 func TestAppendGitignoreEntries_CreatesFile(t *testing.T) {
@@ -399,27 +307,18 @@ func TestAppendGitignoreEntries_CreatesFile(t *testing.T) {
 
 	directory := t.TempDir()
 	builder, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer builder.Close()
 
-	if err := appendGitignoreEntries(builder); err != nil {
-		t.Fatalf("appendGitignoreEntries() = %v", err)
-	}
+	err = appendGitignoreEntries(builder)
+	require.NoError(t, err, "appendGitignoreEntries() = %v", err)
 
 	content, err := os.ReadFile(filepath.Join(directory, ".gitignore"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	got := string(content)
-	if !strings.Contains(got, "AGENTS.md") {
-		t.Error(".gitignore should contain AGENTS.md entry")
-	}
-	if !strings.Contains(got, "references/") {
-		t.Error(".gitignore should contain references/ entry")
-	}
+	assert.Contains(t, got, "AGENTS.md", ".gitignore should contain AGENTS.md entry")
+	assert.Contains(t, got, "references/", ".gitignore should contain references/ entry")
 }
 
 func TestAppendGitignoreEntries_AppendsToExisting(t *testing.T) {
@@ -427,32 +326,22 @@ func TestAppendGitignoreEntries_AppendsToExisting(t *testing.T) {
 
 	directory := t.TempDir()
 	existing := "node_modules/\ndist/\n"
-	if err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(existing), 0600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(existing), 0600)
+	require.NoError(t, err)
 
 	builder, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer builder.Close()
 
-	if err := appendGitignoreEntries(builder); err != nil {
-		t.Fatalf("appendGitignoreEntries() = %v", err)
-	}
+	err = appendGitignoreEntries(builder)
+	require.NoError(t, err, "appendGitignoreEntries() = %v", err)
 
 	content, err := os.ReadFile(filepath.Join(directory, ".gitignore"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	got := string(content)
-	if !strings.Contains(got, "node_modules/") {
-		t.Error("existing .gitignore content should be preserved")
-	}
-	if !strings.Contains(got, "AGENTS.md") {
-		t.Error(".gitignore should contain AGENTS.md entry")
-	}
+	assert.Contains(t, got, "node_modules/", "existing .gitignore content should be preserved")
+	assert.Contains(t, got, "AGENTS.md", ".gitignore should contain AGENTS.md entry")
 }
 
 func TestAppendGitignoreEntries_SkipsIfAlreadyPresent(t *testing.T) {
@@ -460,26 +349,18 @@ func TestAppendGitignoreEntries_SkipsIfAlreadyPresent(t *testing.T) {
 
 	directory := t.TempDir()
 	existing := "AGENTS.md\nreferences/\n"
-	if err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(existing), 0600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(directory, ".gitignore"), []byte(existing), 0600)
+	require.NoError(t, err)
 
 	builder, err := safedisk.NewNoOpSandbox(directory, safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer builder.Close()
 
-	if err := appendGitignoreEntries(builder); err != nil {
-		t.Fatalf("appendGitignoreEntries() = %v", err)
-	}
+	err = appendGitignoreEntries(builder)
+	require.NoError(t, err, "appendGitignoreEntries() = %v", err)
 
 	content, err := os.ReadFile(filepath.Join(directory, ".gitignore"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if strings.Count(string(content), "AGENTS.md") > 1 {
-		t.Error("AGENTS.md should not be duplicated in .gitignore")
-	}
+	assert.False(t, strings.Count(string(content), "AGENTS.md") > 1, "AGENTS.md should not be duplicated in .gitignore")
 }

@@ -43,7 +43,7 @@ PIKO_LOG_LEVEL=-8 ./app prod 2>&1 | head -200
 Typical causes:
 
 - Port already in use (see below).
-- Missing generated assets in the working directory (`.piko/`, `.out/`).
+- Missing generated assets in the working directory (`dist/`, `.piko/`) for a binary built with `--no-embed`; a default `piko build` binary embeds them and does not read the working directory.
 - Database connection failure (see "database connection failed").
 - Migration failure on startup.
 
@@ -129,10 +129,10 @@ The binary embeds every migration. You cannot skip one selectively. Fix the unde
 
 ### Routes not found
 
-Verify the generator ran before you built the binary:
+Verify the generator ran before you built the binary. A default `piko build` binary embeds its artefacts at build time, so rebuild with `piko build` rather than inspecting the server's disk. For a `--no-embed` binary, check the working directory it serves from:
 
 ```bash
-ls -la .piko .out dist/generated.go 2>/dev/null
+ls -la .piko dist dist/embed_gen.go 2>/dev/null
 go run ./cmd/generator/main.go all
 ```
 
@@ -148,7 +148,7 @@ ssr := piko.New(
 
 ### Static assets 404
 
-Static asset manifests live under `.piko` and `.out`. Include them in the deployment artefact (the Dockerfile under `how-to: production build` does this). A missing manifest usually surfaces as assets 404 or the browser loading an outdated build.
+The compiled manifest lives at `dist/manifest.bin`, and content-addressed asset blobs under `.piko/blobs`. A default `piko build` binary embeds both, so a missing asset means the generator did not run before the build: rebuild with `piko build`. A `--no-embed` binary reads them from disk, so include both `dist/` and `.piko/` in the deployment artefact (the file-based alternative in [how to production build](production-build.md) shows the COPY lines). A missing manifest usually surfaces as assets 404 or the browser loading an outdated build.
 
 ## 500 errors
 
@@ -228,7 +228,7 @@ Typical causes:
 
 - `CMD` points at a path that does not exist in the image.
 - Working directory missing (`WorkingDir` in the Dockerfile does not match the binary's expectations).
-- Generator artefacts (`.piko/`, `.out/`) not copied into the runtime image.
+- Generator artefacts (`dist/`, `.piko/`) not copied into the runtime image, when the binary was built with `--no-embed`. The default self-contained image copies only the binary.
 
 ### Health checks fail in the container
 
@@ -286,9 +286,10 @@ Keep the previous binary or image reachable until the new deploy has been health
 |---|---|
 | `bind: address already in use` | Another process on 8080 or 9090. |
 | `connection refused` | App not running, wrong port, firewall. |
-| `no such file or directory` | Missing generated assets, wrong working directory. |
+| `no such file or directory` | Missing generated assets (`--no-embed` builds), wrong working directory. |
 | `permission denied` | File permissions, SELinux/AppArmor, privileged port without capability. |
 | `database connection failed` | Wrong URL, DB down, network policy, SSL mismatch. |
+| `Release digest conflict` | Two different builds share one release identifier. Set `WithReleaseID` per build, or retire the conflicting release. See [how to canary and rolling deploys](canary-and-rolling-deploys.md). |
 
 ## Configuration reference
 

@@ -84,7 +84,7 @@ func (m *MockMetadataStore) GetArtefact(_ context.Context, artefactID string) (*
 
 	artefact, exists := m.artefacts[artefactID]
 	if !exists {
-		return nil, fmt.Errorf("artefact not found: %s", artefactID)
+		return nil, fmt.Errorf("artefact %q: %w", artefactID, registry_domain.ErrArtefactNotFound)
 	}
 
 	return cloneArtefactMeta(artefact), nil
@@ -199,7 +199,7 @@ func (m *MockMetadataStore) FindArtefactByVariantStorageKey(_ context.Context, s
 
 	artefactID, exists := m.variantIndex[storageKey]
 	if !exists {
-		return nil, fmt.Errorf("no artefact found with variant storage key: %s", storageKey)
+		return nil, fmt.Errorf("no artefact with variant storage key %q: %w", storageKey, registry_domain.ErrArtefactNotFound)
 	}
 
 	artefact, exists := m.artefacts[artefactID]

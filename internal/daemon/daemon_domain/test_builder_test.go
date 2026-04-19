@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -137,9 +138,7 @@ func TestNewDaemonTestBuilder_ReturnsBuilder(t *testing.T) {
 	builder := newDaemonTestBuilder()
 
 	require.NotNil(t, builder, "Expected non-nil builder")
-	if builder.mockSignalNotifier != nil {
-		t.Error("Expected mockSignalNotifier to be nil initially")
-	}
+	assert.Nil(t, builder.mockSignalNotifier, "Expected mockSignalNotifier to be nil initially")
 }
 
 func TestDaemonTestBuilder_WithPort(t *testing.T) {
@@ -147,9 +146,7 @@ func TestDaemonTestBuilder_WithPort(t *testing.T) {
 
 	builder := newDaemonTestBuilder().WithPort("9000")
 
-	if builder.deps.DaemonConfig.NetworkPort != "9000" {
-		t.Errorf("Expected Port '9000', got '%s'", builder.deps.DaemonConfig.NetworkPort)
-	}
+	assert.Equal(t, "9000", builder.deps.DaemonConfig.NetworkPort, "Expected Port '9000'")
 }
 
 func TestDaemonTestBuilder_WithServer(t *testing.T) {
@@ -158,9 +155,7 @@ func TestDaemonTestBuilder_WithServer(t *testing.T) {
 	mockServer := &MockServerAdapter{}
 	builder := newDaemonTestBuilder().WithServer(mockServer)
 
-	if builder.deps.Server != mockServer {
-		t.Error("Expected Server to be set")
-	}
+	assert.Same(t, mockServer, builder.deps.Server, "Expected Server to be set")
 }
 
 func TestDaemonTestBuilder_WithRouter(t *testing.T) {
@@ -169,9 +164,7 @@ func TestDaemonTestBuilder_WithRouter(t *testing.T) {
 	mockRouter := http.NewServeMux()
 	builder := newDaemonTestBuilder().WithRouter(mockRouter)
 
-	if builder.deps.FinalRouter != mockRouter {
-		t.Error("Expected FinalRouter to be set")
-	}
+	assert.Same(t, mockRouter, builder.deps.FinalRouter, "Expected FinalRouter to be set")
 }
 
 func TestDaemonTestBuilder_WithHealthServer(t *testing.T) {
@@ -180,9 +173,7 @@ func TestDaemonTestBuilder_WithHealthServer(t *testing.T) {
 	mockServer := &MockServerAdapter{}
 	builder := newDaemonTestBuilder().WithHealthServer(mockServer)
 
-	if builder.deps.HealthServer != mockServer {
-		t.Error("Expected HealthServer to be set")
-	}
+	assert.Same(t, mockServer, builder.deps.HealthServer, "Expected HealthServer to be set")
 }
 
 func TestDaemonTestBuilder_WithHealthRouter(t *testing.T) {
@@ -191,9 +182,7 @@ func TestDaemonTestBuilder_WithHealthRouter(t *testing.T) {
 	mockRouter := http.NewServeMux()
 	builder := newDaemonTestBuilder().WithHealthRouter(mockRouter)
 
-	if builder.deps.HealthRouter != mockRouter {
-		t.Error("Expected HealthRouter to be set")
-	}
+	assert.Same(t, mockRouter, builder.deps.HealthRouter, "Expected HealthRouter to be set")
 }
 
 func TestDaemonTestBuilder_WithSignalNotifier(t *testing.T) {
@@ -202,9 +191,7 @@ func TestDaemonTestBuilder_WithSignalNotifier(t *testing.T) {
 	mockNotifier := NewMockSignalNotifier()
 	builder := newDaemonTestBuilder().WithSignalNotifier(mockNotifier)
 
-	if builder.deps.SignalNotifier != mockNotifier {
-		t.Error("Expected SignalNotifier to be set")
-	}
+	assert.Same(t, mockNotifier, builder.deps.SignalNotifier, "Expected SignalNotifier to be set")
 }
 
 func TestDaemonTestBuilder_WithMockSignalNotifier(t *testing.T) {
@@ -212,12 +199,9 @@ func TestDaemonTestBuilder_WithMockSignalNotifier(t *testing.T) {
 
 	builder := newDaemonTestBuilder().WithMockSignalNotifier()
 
-	if builder.mockSignalNotifier == nil {
-		t.Fatal("Expected mockSignalNotifier to be created")
-	}
-	if builder.deps.SignalNotifier != builder.mockSignalNotifier {
-		t.Error("Expected SignalNotifier to be set to the mock")
-	}
+	require.NotNil(t, builder.mockSignalNotifier, "Expected mockSignalNotifier to be created")
+	assert.Same(t, builder.mockSignalNotifier, builder.deps.SignalNotifier,
+		"Expected SignalNotifier to be set to the mock")
 }
 
 func TestDaemonTestBuilder_GetMockSignalNotifier(t *testing.T) {
@@ -227,9 +211,7 @@ func TestDaemonTestBuilder_GetMockSignalNotifier(t *testing.T) {
 
 	notifier := builder.GetMockSignalNotifier()
 
-	if notifier == nil {
-		t.Error("Expected to get mock signal notifier")
-	}
+	assert.NotNil(t, notifier, "Expected to get mock signal notifier")
 }
 
 func TestDaemonTestBuilder_GetMockSignalNotifier_ReturnsNil_WhenNotSet(t *testing.T) {
@@ -239,9 +221,7 @@ func TestDaemonTestBuilder_GetMockSignalNotifier_ReturnsNil_WhenNotSet(t *testin
 
 	notifier := builder.GetMockSignalNotifier()
 
-	if notifier != nil {
-		t.Error("Expected nil when mock signal notifier not set")
-	}
+	assert.Nil(t, notifier, "Expected nil when mock signal notifier not set")
 }
 
 func TestDaemonTestBuilder_WithSEOService(t *testing.T) {
@@ -250,9 +230,7 @@ func TestDaemonTestBuilder_WithSEOService(t *testing.T) {
 	mockSEO := &MockSEOService{}
 	builder := newDaemonTestBuilder().WithSEOService(mockSEO)
 
-	if builder.deps.SEOService != mockSEO {
-		t.Error("Expected SEOService to be set")
-	}
+	assert.Same(t, mockSEO, builder.deps.SEOService, "Expected SEOService to be set")
 }
 
 func TestDaemonTestBuilder_Build(t *testing.T) {
@@ -260,9 +238,7 @@ func TestDaemonTestBuilder_Build(t *testing.T) {
 
 	service := newDaemonTestBuilder().Build()
 
-	if service == nil {
-		t.Fatal("Expected Build to return a service")
-	}
+	require.NotNil(t, service, "Expected Build to return a service")
 }
 
 func TestDaemonTestBuilder_GetDeps(t *testing.T) {
@@ -271,9 +247,7 @@ func TestDaemonTestBuilder_GetDeps(t *testing.T) {
 	builder := newDaemonTestBuilder()
 	deps := builder.GetDeps()
 
-	if deps == nil {
-		t.Fatal("Expected GetDeps to return non-nil")
-	}
+	require.NotNil(t, deps, "Expected GetDeps to return non-nil")
 }
 
 func TestDaemonTestBuilder_FluentChaining(t *testing.T) {
@@ -289,9 +263,7 @@ func TestDaemonTestBuilder_FluentChaining(t *testing.T) {
 		WithMockSignalNotifier().
 		Build()
 
-	if service == nil {
-		t.Error("Expected fluent chaining to work")
-	}
+	assert.NotNil(t, service, "Expected fluent chaining to work")
 }
 
 func TestDefaultTestDeps_ReturnsValidDeps(t *testing.T) {
@@ -299,7 +271,5 @@ func TestDefaultTestDeps_ReturnsValidDeps(t *testing.T) {
 
 	deps := defaultTestDeps()
 
-	if deps.DaemonConfig.NetworkPort != "8080" {
-		t.Errorf("Expected NetworkPort to be '8080', got '%s'", deps.DaemonConfig.NetworkPort)
-	}
+	assert.Equal(t, "8080", deps.DaemonConfig.NetworkPort, "Expected NetworkPort to be '8080'")
 }

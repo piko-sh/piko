@@ -33,11 +33,18 @@ type Driver interface {
 	// WithTx returns a driver whose queries run inside tx.
 	WithTx(tx *sql.Tx) Driver
 
-	// GetArtefactData returns the FlatBuffer payload for a single artefact.
-	GetArtefactData(ctx context.Context, artefactID string) ([]byte, error)
+	// GetArtefactLayers returns every tagged layer of a single artefact, ordered by release
+	// id.
+	GetArtefactLayers(ctx context.Context, artefactID string) ([]ArtefactLayerData, error)
 
-	// GetMultipleArtefactsData returns the FlatBuffer payloads for the given artefact IDs.
-	GetMultipleArtefactsData(ctx context.Context, artefactIDs []string) ([][]byte, error)
+	// GetArtefactLayersForUpdate returns every tagged layer under a row-level lock held for
+	// the enclosing transaction (Postgres FOR UPDATE; SQLite mirrors GetArtefactLayers
+	// because its single-writer transaction already serialises writes).
+	GetArtefactLayersForUpdate(ctx context.Context, artefactID string) ([]ArtefactLayerData, error)
+
+	// GetMultipleArtefactLayers returns every layer of the given artefacts, tagged with the
+	// artefact ID so the core can group and merge them.
+	GetMultipleArtefactLayers(ctx context.Context, artefactIDs []string) ([]ArtefactLayerData, error)
 
 	// ListAllArtefactsData returns the FlatBuffer payloads for every artefact.
 	ListAllArtefactsData(ctx context.Context) ([][]byte, error)
@@ -58,8 +65,8 @@ type Driver interface {
 	FindArtefactIDsByTagValues(ctx context.Context, tagKey string, tagValues []string) ([]string, error)
 
 	// FindArtefactIDByVariantStorageKey returns the artefact ID owning the variant stored at
-	// storageKey.
-	FindArtefactIDByVariantStorageKey(ctx context.Context, storageKey string) (string, error)
+	// storageKey, and a bool that is false when no variant references the key.
+	FindArtefactIDByVariantStorageKey(ctx context.Context, storageKey string) (string, bool, error)
 
 	// ListVariantStatusCounts returns variant counts grouped by status.
 	ListVariantStatusCounts(ctx context.Context) ([]VariantStatusCount, error)
@@ -69,15 +76,17 @@ type Driver interface {
 	IncrementBlobRefCount(ctx context.Context, params IncrementBlobRefCountParams) (int, error)
 
 	// DecrementBlobRefCount decrements the reference count for a blob and returns the new
-	// count.
-	DecrementBlobRefCount(ctx context.Context, storageKey string, lastReferencedAt int64) (int, error)
+	// count. The bool is false when no row was decremented, because the blob is absent or
+	// its count is already zero (the query guards on ref_count > 0).
+	DecrementBlobRefCount(ctx context.Context, storageKey string, lastReferencedAt int64) (int, bool, error)
 
 	// DeleteBlobReferenceIfZero deletes the blob reference record when its count has reached
 	// zero.
 	DeleteBlobReferenceIfZero(ctx context.Context, storageKey string) error
 
-	// GetBlobRefCount returns the current reference count for a blob.
-	GetBlobRefCount(ctx context.Context, storageKey string) (int, error)
+	// GetBlobRefCount returns the current reference count for a blob, and a bool that is
+	// false when no reference record exists for the key.
+	GetBlobRefCount(ctx context.Context, storageKey string) (int, bool, error)
 
 	// PopGCHints returns up to limit garbage-collection hints.
 	PopGCHints(ctx context.Context, limit int) ([]GCHintRow, error)
@@ -88,36 +97,129 @@ type Driver interface {
 	// AddGCHint records a garbage-collection hint for a storage key.
 	AddGCHint(ctx context.Context, backendID, storageKey string, createdAt int64) error
 
-	// UpsertArtefact inserts or updates an artefact record.
+	// UpsertArtefact inserts or updates one layer of an artefact, keyed by (id, release_id).
 	UpsertArtefact(ctx context.Context, params UpsertArtefactParams) error
 
-	// DeleteArtefact deletes an artefact by ID.
+	// InsertArtefactLayerIfAbsent inserts one artefact layer only when its (id, release_id)
+	// is not already present. It returns true when a row was inserted, so publish increments
+	// blob ref counts exactly once per newly published layer and is idempotent across nodes.
+	InsertArtefactLayerIfAbsent(ctx context.Context, params UpsertArtefactParams) (bool, error)
+
+	// DeleteArtefact deletes every layer of an artefact by ID.
 	DeleteArtefact(ctx context.Context, artefactID string) error
 
-	// DeleteVariantTagsForArtefact removes all variant tags belonging to an artefact.
-	DeleteVariantTagsForArtefact(ctx context.Context, artefactID string) error
+	// DeleteArtefactLayer deletes one artefact layer, keyed by (id, release_id).
+	DeleteArtefactLayer(ctx context.Context, artefactID, releaseID string) error
 
-	// DeleteChunksForVariant removes all chunks belonging to a variant.
-	DeleteChunksForVariant(ctx context.Context, artefactID, variantID string) error
+	// DeleteArtefactLayersForRelease deletes every artefact layer of a release, retiring it.
+	DeleteArtefactLayersForRelease(ctx context.Context, releaseID string) error
 
-	// DeleteVariantsForArtefact removes all variants belonging to an artefact.
-	DeleteVariantsForArtefact(ctx context.Context, artefactID string) error
+	// ReclaimArtefactLayersForRelease deletes every artefact layer of a release and returns
+	// the deleted layers in one statement, so exactly one of two racing reapers observes the
+	// rows and decrements blob references.
+	ReclaimArtefactLayersForRelease(ctx context.Context, releaseID string) ([]ArtefactLayerData, error)
 
-	// DeleteDesiredProfilesForArtefact removes all desired profiles belonging to an
-	// artefact.
-	DeleteDesiredProfilesForArtefact(ctx context.Context, artefactID string) error
+	// DeleteVariantTagsForArtefact removes an artefact layer's variant tags.
+	DeleteVariantTagsForArtefact(ctx context.Context, artefactID, releaseID string) error
+
+	// DeleteChunksForArtefact removes an artefact layer's chunks, across all its variants.
+	// It is used when clearing a layer's projection rows before a re-import, because the
+	// incoming variant list may not name a variant whose chunks are still stored.
+	DeleteChunksForArtefact(ctx context.Context, artefactID, releaseID string) error
+
+	// DeleteVariantsForArtefact removes an artefact layer's variants.
+	DeleteVariantsForArtefact(ctx context.Context, artefactID, releaseID string) error
+
+	// DeleteDesiredProfilesForArtefact removes an artefact layer's desired profiles.
+	DeleteDesiredProfilesForArtefact(ctx context.Context, artefactID, releaseID string) error
 
 	// InsertVariant stores a variant record.
 	InsertVariant(ctx context.Context, params InsertVariantParams) error
 
-	// InsertVariantTag stores a single metadata tag for a variant.
-	InsertVariantTag(ctx context.Context, artefactID, variantID, tagKey, tagValue string) error
+	// InsertVariantTag stores a single metadata tag for a variant in a layer.
+	InsertVariantTag(ctx context.Context, artefactID, releaseID, variantID, tagKey, tagValue string) error
 
 	// InsertVariantChunk stores a single chunk record for a variant.
 	InsertVariantChunk(ctx context.Context, params InsertVariantChunkParams) error
 
 	// InsertDesiredProfile stores a single desired-profile record.
 	InsertDesiredProfile(ctx context.Context, params InsertDesiredProfileParams) error
+
+	// ClaimRelease attempts to claim publishing rights for a release. It returns true when
+	// this caller won the claim, and false when another caller already holds it.
+	ClaimRelease(ctx context.Context, params ClaimReleaseParams) (bool, error)
+
+	// GetRelease returns a release lease, or false when the release is unknown.
+	GetRelease(ctx context.Context, releaseID string) (ReleaseLease, bool, error)
+
+	// MarkReleasePublished flips a release lease to published and stamps its timestamps.
+	MarkReleasePublished(ctx context.Context, releaseID string, publishedAt, heartbeatAt int64) error
+
+	// HeartbeatRelease advances a release's heartbeat when the new value is more recent.
+	HeartbeatRelease(ctx context.Context, releaseID string, heartbeatAt int64) error
+
+	// ListExpiredReleases returns published releases whose heartbeat predates the cutoff,
+	// excluding the caller's own release.
+	ListExpiredReleases(ctx context.Context, cutoff int64, ownRelease string) ([]string, error)
+
+	// DeleteReleaseLease removes a release lease row.
+	DeleteReleaseLease(ctx context.Context, releaseID string) error
+
+	// DeleteStalePublishingLease removes a publishing lease whose heartbeat predates
+	// staleBefore, so a publish that died mid-flight can be re-claimed by another node.
+	DeleteStalePublishingLease(ctx context.Context, releaseID string, staleBefore int64) error
+}
+
+// ArtefactLayerData tags one artefact layer's payload with its artefact ID and its
+// release.
+type ArtefactLayerData struct {
+	// ID is the artefact identifier.
+	ID string
+
+	// ReleaseID is the layer's release; empty for the runtime layer.
+	ReleaseID string
+
+	// Data is the layer's FlatBuffer payload.
+	Data []byte
+}
+
+// ClaimReleaseParams carries the fields required to claim a release for publishing.
+type ClaimReleaseParams struct {
+	// ReleaseID identifies the release being claimed.
+	ReleaseID string
+
+	// PublishDigest is the digest of the payload this release will publish.
+	PublishDigest string
+
+	// FirstSeenAt is the claim time in Unix seconds.
+	FirstSeenAt int64
+
+	// HeartbeatAt is the initial heartbeat time in Unix seconds.
+	HeartbeatAt int64
+}
+
+// ReleaseLease is one published-release record.
+type ReleaseLease struct {
+	// ReleaseID identifies the release.
+	ReleaseID string
+
+	// PublishDigest is the digest of the payload the release published.
+	PublishDigest string
+
+	// State is 'publishing' or 'published'.
+	State string
+
+	// FirstSeenAt is when the release was first claimed, in Unix seconds.
+	FirstSeenAt int64
+
+	// PublishedAt is when the release finished publishing, in Unix seconds.
+	PublishedAt int64
+
+	// HeartbeatAt is the release's most recent heartbeat, in Unix seconds.
+	HeartbeatAt int64
+
+	// RetiredAt is when the release was retired, in Unix seconds, or zero.
+	RetiredAt int64
 }
 
 // VariantStatusCount pairs a variant status with the number of variants in that status.
@@ -141,10 +243,14 @@ type GCHintRow struct {
 	ID int64
 }
 
-// UpsertArtefactParams carries the fields required to insert or update an artefact.
+// UpsertArtefactParams carries the fields required to insert or update one artefact
+// layer.
 type UpsertArtefactParams struct {
 	// ID is the artefact identifier.
 	ID string
+
+	// ReleaseID is the layer this payload belongs to (empty for the default runtime layer).
+	ReleaseID string
 
 	// SourcePath is the artefact's source path.
 	SourcePath string
@@ -189,6 +295,9 @@ type InsertVariantParams struct {
 	// ArtefactID identifies the parent artefact.
 	ArtefactID string
 
+	// ReleaseID is the layer this variant belongs to.
+	ReleaseID string
+
 	// VariantID identifies the variant.
 	VariantID string
 
@@ -218,6 +327,9 @@ type InsertVariantChunkParams struct {
 
 	// ArtefactID identifies the parent artefact.
 	ArtefactID string
+
+	// ReleaseID is the layer this chunk belongs to.
+	ReleaseID string
 
 	// VariantID identifies the parent variant.
 	VariantID string
@@ -252,6 +364,9 @@ type InsertVariantChunkParams struct {
 type InsertDesiredProfileParams struct {
 	// ArtefactID identifies the parent artefact.
 	ArtefactID string
+
+	// ReleaseID is the layer this profile belongs to.
+	ReleaseID string
 
 	// Name is the desired profile name.
 	Name string

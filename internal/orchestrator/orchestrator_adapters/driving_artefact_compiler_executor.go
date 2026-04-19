@@ -35,6 +35,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
+	"piko.sh/piko/internal/capabilities/capabilities_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -145,7 +146,6 @@ func (e *compilerExecutor) Execute(ctx context.Context, payload map[string]any) 
 // enrichContext attaches task-specific fields to the logger and returns the enriched
 // context.
 //
-// Takes ctx (context.Context) which carries the current context.
 // Takes l (logger_domain.Logger) which is the current logger to enrich.
 // Takes p (*compilerPayload) which provides the task fields to attach.
 //
@@ -164,7 +164,6 @@ func (*compilerExecutor) enrichContext(ctx context.Context, l logger_domain.Logg
 // runCompilation executes the full compilation pipeline: fetch metadata, read source, run
 // capability, store output, and register the variant.
 //
-// Takes ctx (context.Context) which carries tracing and cancellation.
 // Takes span (trace.Span) which is the parent tracing span.
 // Takes startTime (time.Time) which marks when compilation started.
 // Takes p (*compilerPayload) which holds the compilation task details.
@@ -222,7 +221,6 @@ func (e *compilerExecutor) runCompilation(ctx context.Context, span trace.Span, 
 // handleCapabilityError records the capability error metric and wraps the error, marking
 // it as fatal when appropriate.
 //
-// Takes ctx (context.Context) which carries tracing and metrics context.
 // Takes span (trace.Span) which is the parent tracing span.
 // Takes l (logger_domain.Logger) which logs the failure.
 // Takes p (*compilerPayload) which provides the capability name for the error message.
@@ -238,7 +236,6 @@ func (*compilerExecutor) handleCapabilityError(ctx context.Context, span trace.S
 
 // parsePayload parses and validates the compiler payload.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes payload (map[string]any) which contains the raw payload data to parse.
 //
 // Returns *compilerPayload which is the parsed and validated payload.
@@ -262,7 +259,6 @@ func (*compilerExecutor) parsePayload(
 
 // fetchTaskMetadata gets the artefact, source variant, and desired profile for a task.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes p (*compilerPayload) which holds the task details to look up.
 //
 // Returns *registry_dto.ArtefactMeta which is the artefact metadata.
@@ -291,7 +287,6 @@ func (e *compilerExecutor) fetchTaskMetadata(
 
 // fetchSourceStream retrieves the source data stream for a variant.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes sourceVariant (*registry_dto.Variant) which identifies the variant to fetch.
 //
 // Returns io.ReadCloser which provides the source data stream.
@@ -314,7 +309,6 @@ func (e *compilerExecutor) fetchSourceStream(
 
 // executeCapability runs the capability transformation on the source stream.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes p (*compilerPayload) which contains the capability and its parameters.
 // Takes sourceStream (io.Reader) which provides the input data to transform.
 //
@@ -345,7 +339,6 @@ func (e *compilerExecutor) executeCapability(
 
 // storeAndCreateVariant stores the output stream and creates a variant record.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes p (*compilerPayload) which contains the compilation request details.
 // Takes artefact (*registry_dto.ArtefactMeta) which provides artefact metadata.
 // Takes sourceVariant (*registry_dto.Variant) which is the parent variant used as input
@@ -389,6 +382,11 @@ func (e *compilerExecutor) storeAndCreateVariant(
 	tags.Set(registry_dto.TagEtag, fmt.Sprintf(`"%x"`, result.hash))
 
 	mimeType, _ := desiredProfile.ResultingTags.GetByName("mimeType")
+	transform := buildCompilerTransform(p, sourceVariant)
+	inputFingerprint, fpErr := transform.Fingerprint()
+	if fpErr != nil {
+		return registry_dto.Variant{}, fmt.Errorf("fingerprinting build variant %q: %w", p.DesiredProfileName, fpErr)
+	}
 	return registry_dto.Variant{
 		VariantID:        p.DesiredProfileName,
 		StorageBackendID: storageBackendID,
@@ -401,12 +399,39 @@ func (e *compilerExecutor) storeAndCreateVariant(
 		CreatedAt:        time.Now().UTC(),
 		Status:           registry_dto.VariantStatusReady,
 		Chunks:           nil,
+		Kind:             registry_dto.KindDerived,
+		Transform:        transform,
+		InputFingerprint: inputFingerprint,
 	}, nil
+}
+
+// buildCompilerTransform describes how a compiled build variant was derived, so its
+// validity can be checked at read time against the current source.
+//
+// The parameters are the capability parameters actually executed, fingerprinted with the
+// source content hash and the capability's output version.
+//
+// Takes p (*compilerPayload) which carries the source variant ID, capability and its
+// parameters.
+// Takes sourceVariant (*registry_dto.Variant) which supplies the parent content hash.
+//
+// Returns registry_dto.VariantTransform which is the derivation recipe.
+func buildCompilerTransform(p *compilerPayload, sourceVariant *registry_dto.Variant) registry_dto.VariantTransform {
+	var params registry_dto.ProfileParams
+	for key, value := range p.CapabilityParams {
+		params.SetByName(key, value)
+	}
+	return registry_dto.VariantTransform{
+		ParentVariantID:   p.SourceVariantID,
+		ParentContentHash: sourceVariant.ContentHash,
+		CapabilityName:    p.CapabilityToRun,
+		CapabilityVersion: capabilities_dto.Version(capabilities_dto.Capability(p.CapabilityToRun)),
+		Params:            params,
+	}
 }
 
 // getBlobStore gets the blob store for a given storage backend.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes storageBackendID (string) which identifies the storage backend.
 //
 // Returns registry_domain.BlobStore which gives access to blob storage.
@@ -468,7 +493,6 @@ func acquireCompilerHashers() (sha256Hasher hash.Hash, sha384Hasher hash.Hash, e
 // streamToStorage writes the output stream to blob storage and returns the hash, size,
 // and final storage key.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes p (*compilerPayload) which contains the task ID for temporary storage.
 // Takes artefact (*registry_dto.ArtefactMeta) which provides the source path for building
 // the final key.
@@ -550,7 +574,6 @@ func (*compilerExecutor) streamToStorage(
 
 // registerVariant adds a new variant to an artefact in the registry.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes artefactID (string) which identifies the target artefact.
 // Takes newVariant (registry_dto.Variant) which specifies the variant to add.
 //
@@ -659,7 +682,6 @@ func wrapFatalIfNeeded(cause, wrapped error) error {
 
 // recordCompilationSuccess logs a successful compilation and returns the result.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes startTime (time.Time) which marks when compilation started.
 // Takes newVariant (registry_dto.Variant) which holds the compiled output.
 //

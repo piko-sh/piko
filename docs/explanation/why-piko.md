@@ -50,7 +50,7 @@ One compilation unit. Two render targets. The same Go types reach both.
 
 The consequences show up in the day-to-day loop.
 
-**Single-binary deployment.** `go build` produces one file. No `npm build`, no separate frontend bundle, no `dist/` folder to sync. Three commands ship a project. See [tutorial 04](../tutorials/04-shipping-a-real-site.md) for the full path from first edit to a running production server.
+**Single-binary deployment.** `piko build` produces one file. No `npm build`, no separate frontend bundle, no `dist/` folder to sync. Three commands ship a project. See [tutorial 04](../tutorials/04-shipping-a-real-site.md) for the full path from first edit to a running production server.
 
 **No OpenAPI spec, no generated client.** An action is a Go function. The client calls it by name. The types are the contract. See [about the action protocol](about-the-action-protocol.md) for the wire format.
 

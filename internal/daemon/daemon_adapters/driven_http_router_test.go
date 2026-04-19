@@ -1634,7 +1634,7 @@ func TestBuildRouter_InstallsNotFoundHandlerOnMainRouter(t *testing.T) {
 		&config.WebsiteConfig{},
 	)
 
-	builder := NewHTTPRouterBuilder(nil)
+	builder := NewHTTPRouterBuilder(nil, "")
 	mainRouter, err := builder.BuildRouter(
 		&daemon_domain.RouterConfig{
 			DistServePath:     "/_piko/dist",

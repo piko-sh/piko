@@ -19,6 +19,7 @@
 package registry_schema
 
 import (
+	"math"
 	"slices"
 	"sync"
 
@@ -151,6 +152,11 @@ func buildVariantFB(builder *flatbuffers.Builder, v *registry_dto.Variant) flatb
 	mimeTypeOffset := builder.CreateString(v.MimeType)
 	statusOffset := builder.CreateString(string(v.Status))
 	contentHashOffset := builder.CreateString(v.ContentHash)
+	originOffset := builder.CreateString(string(v.Origin))
+	buildReleaseOffset := builder.CreateString(v.BuildRelease)
+	buildHashOffset := builder.CreateString(v.BuildHash)
+	inputFingerprintOffset := builder.CreateString(v.InputFingerprint)
+	sriHashOffset := builder.CreateString(v.SRIHash)
 
 	tagOffsets := make([]flatbuffers.UOffsetT, 0, v.MetadataTags.Len())
 	for key, value := range v.MetadataTags.All() {
@@ -174,6 +180,8 @@ func buildVariantFB(builder *flatbuffers.Builder, v *registry_dto.Variant) flatb
 	}
 	chunksVectorOffset := builder.EndVector(len(chunkOffsets))
 
+	transformOffset := buildVariantTransformFB(builder, &v.Transform)
+
 	fbs.VariantFBStart(builder)
 	fbs.VariantFBAddVariantId(builder, variantIDOffset)
 	fbs.VariantFBAddStorageBackendId(builder, storageBackendIDOffset)
@@ -185,7 +193,49 @@ func buildVariantFB(builder *flatbuffers.Builder, v *registry_dto.Variant) flatb
 	fbs.VariantFBAddCreatedAt(builder, v.CreatedAt.Unix())
 	fbs.VariantFBAddMetadataTags(builder, tagsVectorOffset)
 	fbs.VariantFBAddChunks(builder, chunksVectorOffset)
+	fbs.VariantFBAddOrigin(builder, originOffset)
+	fbs.VariantFBAddBuildRelease(builder, buildReleaseOffset)
+	fbs.VariantFBAddBuildHash(builder, buildHashOffset)
+	fbs.VariantFBAddInputFingerprint(builder, inputFingerprintOffset)
+	fbs.VariantFBAddSriHash(builder, sriHashOffset)
+	fbs.VariantFBAddProducer(builder, producerToFB(v.Producer))
+	fbs.VariantFBAddKind(builder, kindToFB(v.Kind))
+	fbs.VariantFBAddTransform(builder, transformOffset)
 	return fbs.VariantFBEnd(builder)
+}
+
+// buildVariantTransformFB serialises a variant's derivation recipe to FlatBuffers format.
+//
+// The params vector is built before the transform table is started, as FlatBuffers
+// requires nested objects to be complete before their parent table opens.
+//
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffers builder to use.
+// Takes transform (*registry_dto.VariantTransform) which contains the derivation recipe.
+//
+// Returns flatbuffers.UOffsetT which is the offset of the serialised transform.
+func buildVariantTransformFB(builder *flatbuffers.Builder, transform *registry_dto.VariantTransform) flatbuffers.UOffsetT {
+	parentVariantIDOffset := builder.CreateString(transform.ParentVariantID)
+	parentContentHashOffset := builder.CreateString(transform.ParentContentHash)
+	capabilityNameOffset := builder.CreateString(transform.CapabilityName)
+
+	paramOffsets := make([]flatbuffers.UOffsetT, 0, transform.Params.Len())
+	for key, value := range transform.Params.All() {
+		paramOffsets = append(paramOffsets, buildKeyValueFB(builder, key, value))
+	}
+
+	fbs.VariantTransformFBStartParamsVector(builder, len(paramOffsets))
+	for _, paramOffset := range slices.Backward(paramOffsets) {
+		builder.PrependUOffsetT(paramOffset)
+	}
+	paramsVectorOffset := builder.EndVector(len(paramOffsets))
+
+	fbs.VariantTransformFBStart(builder)
+	fbs.VariantTransformFBAddParentVariantId(builder, parentVariantIDOffset)
+	fbs.VariantTransformFBAddParentContentHash(builder, parentContentHashOffset)
+	fbs.VariantTransformFBAddCapabilityName(builder, capabilityNameOffset)
+	fbs.VariantTransformFBAddCapabilityVersion(builder, transform.CapabilityVersion)
+	fbs.VariantTransformFBAddParams(builder, paramsVectorOffset)
+	return fbs.VariantTransformFBEnd(builder)
 }
 
 // buildVariantChunkFB serialises a variant chunk to FlatBuffers format.
@@ -289,4 +339,28 @@ func buildKeyValueFB(builder *flatbuffers.Builder, key, value string) flatbuffer
 	fbs.KeyValueFBAddKey(builder, keyOffset)
 	fbs.KeyValueFBAddValue(builder, valueOffset)
 	return fbs.KeyValueFBEnd(builder)
+}
+
+// producerToFB reinterprets a DTO producer enum as its FlatBuffers int8 counterpart.
+//
+// Takes producer (registry_dto.VariantProducer) which is the DTO producer enum.
+//
+// Returns fbs.VariantProducerFB which is the FlatBuffers producer enum.
+func producerToFB(producer registry_dto.VariantProducer) fbs.VariantProducerFB {
+	if producer > math.MaxInt8 {
+		return 0
+	}
+	return fbs.VariantProducerFB(producer)
+}
+
+// kindToFB reinterprets a DTO kind enum as its FlatBuffers int8 counterpart.
+//
+// Takes kind (registry_dto.VariantKind) which is the DTO kind enum.
+//
+// Returns fbs.VariantKindFB which is the FlatBuffers kind enum.
+func kindToFB(kind registry_dto.VariantKind) fbs.VariantKindFB {
+	if kind > math.MaxInt8 {
+		return 0
+	}
+	return fbs.VariantKindFB(kind)
 }

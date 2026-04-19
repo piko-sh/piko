@@ -23,6 +23,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -32,35 +35,23 @@ func TestResolveSandboxPaths(t *testing.T) {
 	t.Run("current directory", func(t *testing.T) {
 		t.Parallel()
 		sandboxDir, checkPath := resolveSandboxPaths(".")
-		if checkPath != "." {
-			t.Errorf("checkPath = %q, want %q", checkPath, ".")
-		}
+		assert.Equalf(t, ".", checkPath, "checkPath = %q, want %q", checkPath, ".")
 
-		if sandboxDir == "" {
-			t.Error("sandboxDir should not be empty for current directory")
-		}
+		assert.NotEmpty(t, sandboxDir, "sandboxDir should not be empty for current directory")
 	})
 
 	t.Run("subdirectory", func(t *testing.T) {
 		t.Parallel()
 		sandboxDir, checkPath := resolveSandboxPaths("my-project")
-		if checkPath != "my-project" {
-			t.Errorf("checkPath = %q, want %q", checkPath, "my-project")
-		}
-		if sandboxDir != "." {
-			t.Errorf("sandboxDir = %q, want %q", sandboxDir, ".")
-		}
+		assert.Equalf(t, "my-project", checkPath, "checkPath = %q, want %q", checkPath, "my-project")
+		assert.Equalf(t, ".", sandboxDir, "sandboxDir = %q, want %q", sandboxDir, ".")
 	})
 
 	t.Run("nested path", func(t *testing.T) {
 		t.Parallel()
 		sandboxDir, checkPath := resolveSandboxPaths("foo/bar")
-		if checkPath != "bar" {
-			t.Errorf("checkPath = %q, want %q", checkPath, "bar")
-		}
-		if sandboxDir != "foo" {
-			t.Errorf("sandboxDir = %q, want %q", sandboxDir, "foo")
-		}
+		assert.Equalf(t, "bar", checkPath, "checkPath = %q, want %q", checkPath, "bar")
+		assert.Equalf(t, "foo", sandboxDir, "sandboxDir = %q, want %q", sandboxDir, "foo")
 	})
 }
 
@@ -70,9 +61,7 @@ func testFactory(t *testing.T) safedisk.Factory {
 		AllowedPaths: []string{os.TempDir()},
 		Enabled:      true,
 	})
-	if err != nil {
-		t.Fatalf("failed to create test factory: %v", err)
-	}
+	require.NoErrorf(t, err, "failed to create test factory: %v", err)
 	return factory
 }
 
@@ -84,9 +73,7 @@ func TestValidateDestination_NewPath(t *testing.T) {
 	newPath := filepath.Join(directory, "new-project")
 
 	err := validateDestination(factory, newPath)
-	if err != nil {
-		t.Errorf("validateDestination() = %v, want nil for non-existent path", err)
-	}
+	assert.NoErrorf(t, err, "validateDestination() = %v, want nil for non-existent path", err)
 }
 
 func TestValidateDestination_ExistingDir(t *testing.T) {
@@ -94,14 +81,10 @@ func TestValidateDestination_ExistingDir(t *testing.T) {
 
 	directory := t.TempDir()
 	existingDir := filepath.Join(directory, "existing")
-	if err := os.Mkdir(existingDir, 0750); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.Mkdir(existingDir, 0750))
 
 	err := validateDestination(testFactory(t), existingDir)
-	if err == nil {
-		t.Error("validateDestination() should return error for existing directory")
-	}
+	assert.Error(t, err, "validateDestination() should return error for existing directory")
 }
 
 func TestValidateDestination_ExistingFile(t *testing.T) {
@@ -109,14 +92,10 @@ func TestValidateDestination_ExistingFile(t *testing.T) {
 
 	directory := t.TempDir()
 	filePath := filepath.Join(directory, "somefile")
-	if err := os.WriteFile(filePath, []byte("data"), 0640); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(filePath, []byte("data"), 0640))
 
 	err := validateDestination(testFactory(t), filePath)
-	if err == nil {
-		t.Error("validateDestination() should return error for existing file")
-	}
+	assert.Error(t, err, "validateDestination() should return error for existing file")
 }
 
 func TestCreateDirs(t *testing.T) {
@@ -124,14 +103,10 @@ func TestCreateDirs(t *testing.T) {
 
 	directory := t.TempDir()
 	dest := filepath.Join(directory, "project")
-	if err := os.Mkdir(dest, 0750); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.Mkdir(dest, 0750))
 
 	err := createDirs(testFactory(t), ScaffoldData{DestinationPath: dest, EnableInterpreted: true})
-	if err != nil {
-		t.Fatalf("createDirs() = %v", err)
-	}
+	require.NoErrorf(t, err, "createDirs() = %v", err)
 
 	expectedDirs := []string{
 		"actions/greeting",
@@ -150,13 +125,10 @@ func TestCreateDirs(t *testing.T) {
 	for _, d := range expectedDirs {
 		fullPath := filepath.Join(dest, d)
 		info, err := os.Stat(fullPath)
-		if err != nil {
-			t.Errorf("directory %q not created: %v", d, err)
+		if !assert.NoErrorf(t, err, "directory %q not created: %v", d, err) {
 			continue
 		}
-		if !info.IsDir() {
-			t.Errorf("%q exists but is not a directory", d)
-		}
+		assert.Truef(t, info.IsDir(), "%q exists but is not a directory", d)
 	}
 }
 
@@ -173,9 +145,7 @@ func TestCreateProject_HappyPath(t *testing.T) {
 	}
 
 	err := CreateProject(data)
-	if err != nil {
-		t.Fatalf("CreateProject() = %v", err)
-	}
+	require.NoErrorf(t, err, "CreateProject() = %v", err)
 
 	expectedFiles := []string{
 		"go.mod",
@@ -197,9 +167,8 @@ func TestCreateProject_HappyPath(t *testing.T) {
 
 	for _, f := range expectedFiles {
 		fullPath := filepath.Join(dest, f)
-		if _, err := os.Stat(fullPath); err != nil {
-			t.Errorf("expected file %q not found: %v", f, err)
-		}
+		_, err := os.Stat(fullPath)
+		assert.NoErrorf(t, err, "expected file %q not found: %v", f, err)
 	}
 }
 
@@ -217,9 +186,7 @@ func TestCreateProject_WithAgents(t *testing.T) {
 	}
 
 	err := CreateProject(data)
-	if err != nil {
-		t.Fatalf("CreateProject() = %v", err)
-	}
+	require.NoErrorf(t, err, "CreateProject() = %v", err)
 
 	expectedFiles := []string{
 		"AGENTS.md",
@@ -230,9 +197,8 @@ func TestCreateProject_WithAgents(t *testing.T) {
 
 	for _, f := range expectedFiles {
 		fullPath := filepath.Join(dest, f)
-		if _, err := os.Stat(fullPath); err != nil {
-			t.Errorf("expected agent file %q not found: %v", f, err)
-		}
+		_, err := os.Stat(fullPath)
+		assert.NoErrorf(t, err, "expected agent file %q not found: %v", f, err)
 	}
 
 	excludedFiles := []string{
@@ -243,9 +209,8 @@ func TestCreateProject_WithAgents(t *testing.T) {
 
 	for _, f := range excludedFiles {
 		fullPath := filepath.Join(dest, f)
-		if _, err := os.Stat(fullPath); err == nil {
-			t.Errorf("Claude Code file %q should not be in project scaffold", f)
-		}
+		_, err := os.Stat(fullPath)
+		assert.Errorf(t, err, "Claude Code file %q should not be in project scaffold", f)
 	}
 }
 
@@ -263,9 +228,7 @@ func TestCreateProject_WithoutAgents(t *testing.T) {
 	}
 
 	err := CreateProject(data)
-	if err != nil {
-		t.Fatalf("CreateProject() = %v", err)
-	}
+	require.NoErrorf(t, err, "CreateProject() = %v", err)
 
 	agentFiles := []string{
 		"AGENTS.md",
@@ -276,9 +239,8 @@ func TestCreateProject_WithoutAgents(t *testing.T) {
 
 	for _, f := range agentFiles {
 		fullPath := filepath.Join(dest, f)
-		if _, err := os.Stat(fullPath); err == nil {
-			t.Errorf("agent file %q should not exist when EnableAgents is false", f)
-		}
+		_, err := os.Stat(fullPath)
+		assert.Errorf(t, err, "agent file %q should not exist when EnableAgents is false", f)
 	}
 }
 
@@ -287,9 +249,7 @@ func TestCreateProject_ExistingDir(t *testing.T) {
 
 	directory := t.TempDir()
 	dest := filepath.Join(directory, "existing")
-	if err := os.Mkdir(dest, 0750); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.Mkdir(dest, 0750))
 
 	data := ScaffoldData{
 		ProjectName:     "existing",
@@ -297,7 +257,5 @@ func TestCreateProject_ExistingDir(t *testing.T) {
 	}
 
 	err := CreateProject(data)
-	if err == nil {
-		t.Error("CreateProject() should return error for existing directory")
-	}
+	assert.Error(t, err, "CreateProject() should return error for existing directory")
 }

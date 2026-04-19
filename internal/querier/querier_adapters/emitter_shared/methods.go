@@ -52,6 +52,11 @@ func BuildQueryMethod(
 
 	switch query.Command {
 	case querier_dto.QueryCommandOne:
+		if query.Optional {
+			strategy.NoRowsImport(tracker)
+			tracker.AddImport("errors")
+			return BuildOptionalOneMethod(query, mappings, tracker, strategy)
+		}
 		return BuildOneMethod(query, mappings, tracker, strategy)
 	case querier_dto.QueryCommandMany:
 		if HasGroupByKey(query) {
@@ -204,6 +209,115 @@ func buildOneMethodScanStatements(rowTypeName string, queryRowCall ast.Expr, sca
 			),
 		),
 		BuildErrCheck(goastutil.CompositeLit(goastutil.CachedIdent(rowTypeName))),
+	)
+	return statements
+}
+
+// BuildOptionalOneMethod constructs an optional :one query method using QueryRow + Scan
+// that returns (row, bool, error). A zero-row result yields (zeroRow, false, nil) rather
+// than the driver no-rows sentinel, so a legitimately empty match is an ordinary outcome
+// the caller distinguishes by the bool instead of an error it must special-case. It is
+// emitted for a command:one query whose header sets optional: true.
+//
+// Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
+// Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
+// Takes tracker (*ImportTracker) for import collection.
+// Takes strategy (MethodStrategy) which provides database-specific AST nodes.
+//
+// Returns *ast.FuncDecl which is the method declaration.
+func BuildOptionalOneMethod(
+	query *querier_dto.AnalysedQuery,
+	mappings *querier_dto.TypeMappingTable,
+	tracker *ImportTracker,
+	strategy MethodStrategy,
+) *ast.FuncDecl {
+	rowTypeName := query.Name + "Row"
+	scanArguments := BuildScanArgs(query, strategy, mappings)
+	sentinel := strategy.NoRowsSentinel()
+
+	statements := make([]ast.Stmt, 0, 5+len(query.OutputColumns))
+
+	if NeedsSliceExpansion(query, strategy) {
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy,
+			goastutil.CompositeLit(goastutil.CachedIdent(rowTypeName)),
+			goastutil.CachedIdent("false"))...)
+		queryRowCall := &ast.CallExpr{
+			Fun: goastutil.SelectorExprFrom(
+				goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentQueriesReceiver), strategy.ConnectionField(query)),
+				strategy.QueryRowMethod(),
+			),
+			Args:     BuildSliceDBCallArgs(),
+			Ellipsis: 1,
+		}
+		statements = append(statements, buildOptionalOneScanStatements(rowTypeName, queryRowCall, scanArguments, query, sentinel)...)
+	} else {
+		queryArguments := BuildQueryArgs(query, strategy)
+		queryRowCall := goastutil.CallExpr(
+			goastutil.SelectorExprFrom(
+				goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentQueriesReceiver), strategy.ConnectionField(query)),
+				strategy.QueryRowMethod(),
+			),
+			queryArguments...,
+		)
+		statements = append(statements, buildOptionalOneScanStatements(rowTypeName, queryRowCall, scanArguments, query, sentinel)...)
+	}
+
+	statements = append(statements, BuildEmbedNilCheckStatements(query)...)
+	statements = append(statements,
+		goastutil.ReturnStmt(goastutil.CachedIdent(IdentRow), goastutil.CachedIdent("true"), goastutil.CachedIdent(IdentNil)),
+	)
+
+	return &ast.FuncDecl{
+		Recv: strategy.QueriesReceiver(),
+		Name: goastutil.CachedIdent(query.Name),
+		Type: &ast.FuncType{
+			Params: BuildMethodParams(query, mappings, tracker),
+			Results: goastutil.FieldList(
+				goastutil.Field("", goastutil.CachedIdent(rowTypeName)),
+				goastutil.Field("", goastutil.CachedIdent(IdentBool)),
+				goastutil.Field("", goastutil.CachedIdent(IdentError)),
+			),
+		},
+		Body: goastutil.BlockStmt(statements...),
+	}
+}
+
+// buildOptionalOneScanStatements mirrors buildOneMethodScanStatements but tells a
+// zero-row scan apart from a real error: errors.Is(err, sentinel) returns (zeroRow,
+// false, nil), any other error returns (zeroRow, false, err), and success falls through
+// to the caller's (row, true, nil) return.
+//
+// Takes rowTypeName (string) which is the row struct name.
+// Takes queryRowCall (ast.Expr) which is the QueryRow call expression.
+// Takes scanArguments ([]ast.Expr) which are the Scan call arguments.
+// Takes query (*querier_dto.AnalysedQuery) for embed pre-allocation.
+// Takes sentinel (ast.Expr) which is the driver no-rows sentinel tested with errors.Is.
+//
+// Returns []ast.Stmt which contains the scan statements.
+func buildOptionalOneScanStatements(rowTypeName string, queryRowCall ast.Expr, scanArguments []ast.Expr, query *querier_dto.AnalysedQuery, sentinel ast.Expr) []ast.Stmt {
+	embedStatements := BuildEmbedPreAllocStatements(query)
+	statements := make([]ast.Stmt, 0, 4+len(embedStatements))
+	statements = append(statements, goastutil.VarDecl(IdentRow, goastutil.CachedIdent(rowTypeName)))
+	statements = append(statements, embedStatements...)
+	statements = append(statements,
+		goastutil.DefineStmt(IdentErr,
+			goastutil.CallExpr(
+				goastutil.SelectorExprFrom(queryRowCall, "Scan"),
+				scanArguments...,
+			),
+		),
+		goastutil.IfStmt(nil,
+			goastutil.CallExpr(goastutil.SelectorExpr("errors", "Is"), goastutil.CachedIdent(IdentErr), sentinel),
+			goastutil.BlockStmt(goastutil.ReturnStmt(
+				goastutil.CompositeLit(goastutil.CachedIdent(rowTypeName)),
+				goastutil.CachedIdent("false"),
+				goastutil.CachedIdent(IdentNil),
+			)),
+		),
+		BuildErrCheck(
+			goastutil.CompositeLit(goastutil.CachedIdent(rowTypeName)),
+			goastutil.CachedIdent("false"),
+		),
 	)
 	return statements
 }

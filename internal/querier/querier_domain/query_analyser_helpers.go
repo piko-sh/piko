@@ -119,6 +119,7 @@ func (a *queryAnalyser) assembleQuery(input assembleQueryInput) *querier_dto.Ana
 		DynamicRuntime:          input.directives.DynamicRuntime,
 		ReadOnly:                readOnly,
 		BaseQueryHasWhereClause: input.rawAnalysis.HasWhereClause,
+		Optional:                input.directives.Optional,
 	}
 
 	if input.directives.DynamicRuntime {

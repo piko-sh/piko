@@ -97,9 +97,7 @@ func TestNewDriverHTTPServerAdapter_HasMainPurpose(t *testing.T) {
 	t.Parallel()
 
 	adapter, ok := NewDriverHTTPServerAdapter().(*driverHTTPServerAdapter)
-	if !ok {
-		t.Fatal("expected *driverHTTPServerAdapter")
-	}
+	require.True(t, ok, "expected *driverHTTPServerAdapter")
 	assert.Equal(t, serverPurposeMain, adapter.purpose)
 }
 
@@ -122,9 +120,7 @@ func TestNewHealthServerAdapter_HasHealthPurpose(t *testing.T) {
 	t.Parallel()
 
 	adapter, ok := NewHealthServerAdapter().(*driverHTTPServerAdapter)
-	if !ok {
-		t.Fatal("expected *driverHTTPServerAdapter")
-	}
+	require.True(t, ok, "expected *driverHTTPServerAdapter")
 	assert.Equal(t, serverPurposeHealth, adapter.purpose)
 }
 

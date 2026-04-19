@@ -23,6 +23,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"piko.sh/piko/internal/netutil"
 )
 
@@ -94,9 +95,7 @@ func TestIsPortInUseError(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			result := netutil.IsPortInUseError(tc.err)
-			if result != tc.expected {
-				t.Errorf("netutil.IsPortInUseError(%v) = %v, want %v", tc.err, result, tc.expected)
-			}
+			assert.Equalf(t, tc.expected, result, "netutil.IsPortInUseError(%v)", tc.err)
 		})
 	}
 }

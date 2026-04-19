@@ -230,6 +230,8 @@ SSRServer: |- # Kind: Struct
       // Method
       RegisterLifecycle(piko.LifecycleComponent)
       // Method
+      RetireRelease(context.Context, string) error
+      // Method
       Run(string) error
       // Method
       Setup() error

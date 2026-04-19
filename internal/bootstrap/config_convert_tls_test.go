@@ -22,6 +22,8 @@ import (
 	"crypto/tls"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/tlscert"
 )
@@ -32,12 +34,8 @@ func TestNewTLSValues_Disabled_ReturnsOff(t *testing.T) {
 	tlsConfig := &config.TLSConfig{}
 	v := NewTLSValues(tlsConfig)
 
-	if v.Mode != tlscert.TLSModeOff {
-		t.Errorf("expected TLSModeOff, got %d", v.Mode)
-	}
-	if v.Enabled() {
-		t.Error("expected Enabled() to return false")
-	}
+	assert.Equal(t, tlscert.TLSModeOff, v.Mode)
+	assert.False(t, v.Enabled(), "expected Enabled() to return false")
 }
 
 func TestNewTLSValues_ExplicitlyDisabled_ReturnsOff(t *testing.T) {
@@ -46,9 +44,7 @@ func TestNewTLSValues_ExplicitlyDisabled_ReturnsOff(t *testing.T) {
 	tlsConfig := &config.TLSConfig{Enabled: new(false)}
 	v := NewTLSValues(tlsConfig)
 
-	if v.Mode != tlscert.TLSModeOff {
-		t.Errorf("expected TLSModeOff, got %d", v.Mode)
-	}
+	assert.Equal(t, tlscert.TLSModeOff, v.Mode)
 }
 
 func TestNewTLSValues_CertFile_Mode(t *testing.T) {
@@ -61,18 +57,10 @@ func TestNewTLSValues_CertFile_Mode(t *testing.T) {
 	}
 	v := NewTLSValues(tlsConfig)
 
-	if v.Mode != tlscert.TLSModeCertFile {
-		t.Errorf("expected TLSModeCertFile, got %d", v.Mode)
-	}
-	if !v.Enabled() {
-		t.Error("expected Enabled() to return true")
-	}
-	if v.CertFile != "/certs/server.pem" {
-		t.Errorf("CertFile mismatch: got %q", v.CertFile)
-	}
-	if v.KeyFile != "/certs/server-key.pem" {
-		t.Errorf("KeyFile mismatch: got %q", v.KeyFile)
-	}
+	assert.Equal(t, tlscert.TLSModeCertFile, v.Mode)
+	assert.True(t, v.Enabled(), "expected Enabled() to return true")
+	assert.Equal(t, "/certs/server.pem", v.CertFile, "CertFile mismatch")
+	assert.Equal(t, "/certs/server-key.pem", v.KeyFile, "KeyFile mismatch")
 }
 
 func TestNewTLSValues_ClientAuth_RequireAndVerify(t *testing.T) {
@@ -87,12 +75,8 @@ func TestNewTLSValues_ClientAuth_RequireAndVerify(t *testing.T) {
 	}
 	v := NewTLSValues(tlsConfig)
 
-	if v.ClientAuthType != tls.RequireAndVerifyClientCert {
-		t.Errorf("expected RequireAndVerifyClientCert, got %d", v.ClientAuthType)
-	}
-	if v.ClientCAFile != "ca.pem" {
-		t.Errorf("ClientCAFile mismatch: got %q", v.ClientCAFile)
-	}
+	assert.Equal(t, tls.RequireAndVerifyClientCert, v.ClientAuthType)
+	assert.Equal(t, "ca.pem", v.ClientCAFile, "ClientCAFile mismatch")
 }
 
 func TestNewTLSValues_MinVersion_1_3(t *testing.T) {
@@ -106,9 +90,7 @@ func TestNewTLSValues_MinVersion_1_3(t *testing.T) {
 	}
 	v := NewTLSValues(tlsConfig)
 
-	if v.MinVersion != tls.VersionTLS13 {
-		t.Errorf("expected VersionTLS13 (%d), got %d", tls.VersionTLS13, v.MinVersion)
-	}
+	assert.Equal(t, uint16(tls.VersionTLS13), v.MinVersion)
 }
 
 func TestNewTLSValues_MinVersion_Default_1_2(t *testing.T) {
@@ -121,9 +103,7 @@ func TestNewTLSValues_MinVersion_Default_1_2(t *testing.T) {
 	}
 	v := NewTLSValues(tlsConfig)
 
-	if v.MinVersion != tls.VersionTLS12 {
-		t.Errorf("expected VersionTLS12 (%d), got %d", tls.VersionTLS12, v.MinVersion)
-	}
+	assert.Equal(t, uint16(tls.VersionTLS12), v.MinVersion)
 }
 
 func TestNewTLSValues_HotReload(t *testing.T) {
@@ -137,9 +117,7 @@ func TestNewTLSValues_HotReload(t *testing.T) {
 	}
 	v := NewTLSValues(tlsConfig)
 
-	if !v.HotReload {
-		t.Error("expected HotReload to be true")
-	}
+	assert.True(t, v.HotReload, "expected HotReload to be true")
 }
 
 func TestParseTLSClientAuth_AllModes(t *testing.T) {
@@ -160,9 +138,7 @@ func TestParseTLSClientAuth_AllModes(t *testing.T) {
 
 	for _, tc := range tests {
 		result := parseTLSClientAuth(tc.input)
-		if result != tc.expected {
-			t.Errorf("parseTLSClientAuth(%q): expected %d, got %d", tc.input, tc.expected, result)
-		}
+		assert.Equalf(t, tc.expected, result, "parseTLSClientAuth(%q)", tc.input)
 	}
 }
 
@@ -181,9 +157,7 @@ func TestParseTLSMinVersion_AllVersions(t *testing.T) {
 
 	for _, tc := range tests {
 		result := parseTLSMinVersion(tc.input)
-		if result != tc.expected {
-			t.Errorf("parseTLSMinVersion(%q): expected %d, got %d", tc.input, tc.expected, result)
-		}
+		assert.Equalf(t, tc.expected, result, "parseTLSMinVersion(%q)", tc.input)
 	}
 }
 
@@ -193,9 +167,7 @@ func TestNewHealthTLSValues_Disabled(t *testing.T) {
 	tlsConfig := &config.HealthTLSConfig{}
 	v := NewHealthTLSValues(tlsConfig)
 
-	if v.Mode != tlscert.TLSModeOff {
-		t.Errorf("expected TLSModeOff, got %d", v.Mode)
-	}
+	assert.Equal(t, tlscert.TLSModeOff, v.Mode)
 }
 
 func TestNewHealthTLSValues_Enabled(t *testing.T) {
@@ -208,15 +180,9 @@ func TestNewHealthTLSValues_Enabled(t *testing.T) {
 	}
 	v := NewHealthTLSValues(tlsConfig)
 
-	if v.Mode != tlscert.TLSModeCertFile {
-		t.Errorf("expected TLSModeCertFile, got %d", v.Mode)
-	}
-	if v.CertFile != "health-cert.pem" {
-		t.Errorf("CertFile mismatch: got %q", v.CertFile)
-	}
-	if v.KeyFile != "health-key.pem" {
-		t.Errorf("KeyFile mismatch: got %q", v.KeyFile)
-	}
+	assert.Equal(t, tlscert.TLSModeCertFile, v.Mode)
+	assert.Equal(t, "health-cert.pem", v.CertFile, "CertFile mismatch")
+	assert.Equal(t, "health-key.pem", v.KeyFile, "KeyFile mismatch")
 }
 
 func TestNewHealthTLSValues_MinVersion(t *testing.T) {
@@ -230,7 +196,5 @@ func TestNewHealthTLSValues_MinVersion(t *testing.T) {
 	}
 	v := NewHealthTLSValues(tlsConfig)
 
-	if v.MinVersion != tls.VersionTLS13 {
-		t.Errorf("expected VersionTLS13, got %d", v.MinVersion)
-	}
+	assert.Equal(t, uint16(tls.VersionTLS13), v.MinVersion)
 }

@@ -75,6 +75,9 @@ type MockRegistryService struct {
 	// PopGCHintsFunc is the function called by PopGCHints.
 	PopGCHintsFunc func(ctx context.Context, limit int) ([]registry_dto.GCHint, error)
 
+	// GetBlobRefCountFunc is the function called by GetBlobRefCount.
+	GetBlobRefCountFunc func(ctx context.Context, storageKey string) (int, error)
+
 	// ListBlobStoreIDsFunc is the function called by ListBlobStoreIDs.
 	ListBlobStoreIDsFunc func() []string
 
@@ -135,7 +138,6 @@ type MockRegistryService struct {
 
 // UpsertArtefact creates or updates an artefact with its source data.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact to create or update.
 // Takes sourcePath (string) which is the original path of the source file.
 // Takes sourceData (io.Reader) which provides the source data to store.
@@ -161,7 +163,6 @@ func (m *MockRegistryService) UpsertArtefact(
 
 // AddVariant adds a new variant to an existing artefact.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact to add a variant to.
 // Takes newVariant (*registry_dto.Variant) which is the variant to add.
 //
@@ -176,7 +177,6 @@ func (m *MockRegistryService) AddVariant(ctx context.Context, artefactID string,
 
 // DeleteArtefact removes an artefact by ID.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact to delete.
 //
 // Returns error, or nil if DeleteArtefactFunc is nil.
@@ -190,7 +190,6 @@ func (m *MockRegistryService) DeleteArtefact(ctx context.Context, artefactID str
 
 // GetArtefact retrieves artefact metadata by ID.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact to look up.
 //
 // Returns (*ArtefactMeta, error), or (nil, nil) if GetArtefactFunc is nil.
@@ -204,7 +203,6 @@ func (m *MockRegistryService) GetArtefact(ctx context.Context, artefactID string
 
 // GetMultipleArtefacts retrieves metadata for multiple artefacts.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactIDs ([]string) which lists the artefact IDs to look up.
 //
 // Returns ([]*ArtefactMeta, error), or (nil, nil) if GetMultipleArtefactsFunc is nil.
@@ -229,7 +227,6 @@ func (m *MockRegistryService) ListAllArtefactIDs(ctx context.Context) ([]string,
 
 // SearchArtefacts searches for artefacts matching the query.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes query (SearchQuery) which defines the search criteria.
 //
 // Returns ([]*ArtefactMeta, error), or (nil, nil) if SearchArtefactsFunc is nil.
@@ -243,7 +240,6 @@ func (m *MockRegistryService) SearchArtefacts(ctx context.Context, query SearchQ
 
 // SearchArtefactsByTagValues finds artefacts by tag key and values.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes tagKey (string) which is the tag key to filter by.
 // Takes tagValues ([]string) which lists the tag values to match.
 //
@@ -259,7 +255,6 @@ func (m *MockRegistryService) SearchArtefactsByTagValues(ctx context.Context, ta
 
 // FindArtefactByVariantStorageKey looks up an artefact by variant storage key.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes storageKey (string) which is the variant storage key to search for.
 //
 // Returns (*ArtefactMeta, error), or (nil, nil) if FindArtefactByVariantStorageKeyFunc is
@@ -274,7 +269,6 @@ func (m *MockRegistryService) FindArtefactByVariantStorageKey(ctx context.Contex
 
 // GetVariantData retrieves the full data for a variant.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes variant (*registry_dto.Variant) which identifies the variant to retrieve.
 //
 // Returns (io.ReadCloser, error), or (nil, nil) if GetVariantDataFunc is nil.
@@ -288,7 +282,6 @@ func (m *MockRegistryService) GetVariantData(ctx context.Context, variant *regis
 
 // GetVariantChunk retrieves a specific chunk of variant data.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes variant (*registry_dto.Variant) which identifies the variant to read from.
 // Takes chunkID (string) which identifies the specific chunk to retrieve.
 //
@@ -303,7 +296,6 @@ func (m *MockRegistryService) GetVariantChunk(ctx context.Context, variant *regi
 
 // GetVariantDataRange retrieves a byte range of variant data.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes variant (*registry_dto.Variant) which identifies the variant to read from.
 // Takes offset (int64) which is the byte position to start reading from.
 // Takes length (int64) which is the number of bytes to read.
@@ -332,7 +324,6 @@ func (m *MockRegistryService) GetBlobStore(backendID string) (BlobStore, error) 
 
 // PopGCHints pops garbage collection hints up to the given limit.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes limit (int) which is the maximum number of hints to return.
 //
 // Returns ([]GCHint, error), or (nil, nil) if PopGCHintsFunc is nil.
@@ -342,6 +333,18 @@ func (m *MockRegistryService) PopGCHints(ctx context.Context, limit int) ([]regi
 		return m.PopGCHintsFunc(ctx, limit)
 	}
 	return nil, nil
+}
+
+// GetBlobRefCount returns the current reference count for a blob.
+//
+// Takes storageKey (string) which identifies the blob to count references for.
+//
+// Returns (int, error), or (0, nil) if GetBlobRefCountFunc is nil.
+func (m *MockRegistryService) GetBlobRefCount(ctx context.Context, storageKey string) (int, error) {
+	if m.GetBlobRefCountFunc != nil {
+		return m.GetBlobRefCountFunc(ctx, storageKey)
+	}
+	return 0, nil
 }
 
 // ListBlobStoreIDs returns the identifiers of all registered blob storage backends.

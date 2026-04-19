@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"piko.sh/piko/internal/ast/ast_adapters"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/bootstrap/embedregistry"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/generator/generator_dto"
@@ -601,6 +602,25 @@ var (
 	// 	    pikoruntime.RegisterStaticCollectionBlob("docs", collectionBlob)
 	// 	}
 	RegisterStaticCollectionBlob = collection_domain.RegisterStaticCollectionBlob
+
+	// RegisterEmbeddedRuntime registers the embedded runtime payload (the .piko tree and the
+	// compiled manifest) for pickup at boot, so a production run of a piko_embed-tagged
+	// build serves entirely from the binary. Generated code invokes it in init() using
+	// //go:embed directives; the filesystem and manifest must register together.
+	//
+	// Example generated code:
+	//
+	// 	//go:embed manifest.bin
+	// 	var embeddedManifest []byte
+	//
+	// 	//go:embed all:embed/piko
+	// 	var embeddedPikoTree embed.FS
+	//
+	// 	func init() {
+	// 	    sub, _ := fs.Sub(embeddedPikoTree, "embed/piko")
+	// 	    pikoruntime.RegisterEmbeddedRuntime(context.Background(), sub, embeddedManifest)
+	// 	}
+	RegisterEmbeddedRuntime = embedregistry.Register
 )
 
 // I18nConfig contains the internationalisation configuration for generating SEO metadata.
@@ -858,7 +878,6 @@ func GetDataLink(tType reflect.Type, r *templater_dto.RequestData) reflect.Value
 // Called by generated code to access hybrid collection data.
 // Returns the current blob and whether background revalidation should be triggered.
 //
-// Takes ctx (context.Context) which controls cancellation and tracing.
 // Takes providerName (string) which identifies the provider that owns this collection.
 // Takes collectionName (string) which specifies the collection identifier.
 //
@@ -898,7 +917,6 @@ func DecodeCollectionBlob[T any](blob []byte) ([]T, error) {
 // Called from generated init() functions to register the embedded FlatBuffer blob and its
 // ETag for hybrid mode operation.
 //
-// Takes ctx (context.Context) which controls cancellation and tracing.
 // Takes providerName (string) which identifies the provider that generated this snapshot.
 // Takes collectionName (string) which identifies the collection this snapshot belongs to.
 // Takes blob ([]byte) which contains the FlatBuffer-serialised content.
@@ -1169,7 +1187,6 @@ func GetSections(r *templater_dto.RequestData) []Section {
 //
 // Used by generated BuildAST code to populate r.CollectionData for collection pages.
 //
-// Takes ctx (context.Context) which controls cancellation and tracing.
 // Takes collectionName (string) which is the name of the collection (e.g., "docs",
 // "blog").
 // Takes route (string) which is the URL route to look up (e.g., "/docs/actions").
@@ -1215,7 +1232,6 @@ func GetAllCollectionItems(collectionName string) ([]map[string]any, error) {
 // This combines GetAllCollectionItems and BuildNavigationFromMetadata into a single call
 // that avoids per-request tree construction.
 //
-// Takes ctx (context.Context) which carries request-scoped values.
 // Takes collectionName (string) which identifies the static collection.
 // Takes navigationConfig (NavigationConfig) which controls how navigation is built.
 //
@@ -1537,7 +1553,6 @@ func WithAdvancedMinScore(score float64) AdvancedSearchOption {
 //   - BM25 probabilistic ranking
 //   - Optional stemming and phonetic matching (Smart mode)
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes collectionName (string) which identifies the collection to search (e.g., "docs").
 // Takes query (string) which is the search query text.
 // Takes opts (...AdvancedSearchOption) which provides optional configuration (mode,

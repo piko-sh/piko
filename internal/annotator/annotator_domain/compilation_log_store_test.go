@@ -71,8 +71,9 @@ func TestNewCompilationLogStore_InvalidDirectory(t *testing.T) {
 
 	store, err := NewCompilationLogStore(context.Background(), true, "/nonexistent/path/logs", slog.LevelInfo)
 
-	assert.Error(t, err)
-	assert.Nil(t, store)
+	require.NoError(t, err, "an uncreatable default log directory must degrade, not fail: the file log is a debug convenience and a read-only filesystem is the normal state of an embedded container")
+	require.NotNil(t, store, "the store must still be usable in memory-only mode")
+	assert.False(t, store.enabled, "file logging must be disabled when the directory is unavailable")
 }
 
 func TestStartSession_MemoryOnlyMode(t *testing.T) {

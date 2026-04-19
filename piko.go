@@ -34,6 +34,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"piko.sh/piko/components"
 	"piko.sh/piko/internal/bootstrap"
+	"piko.sh/piko/internal/bootstrap/embedregistry"
 	"piko.sh/piko/internal/component/component_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/config/config_domain"
@@ -369,10 +370,51 @@ func (s *SSRServer) Generate(ctx context.Context, runMode string) error {
 		return nil
 	}
 
-	return bootstrap.BuildProject(ctx, runMode, container)
+	if err := bootstrap.BuildProject(ctx, runMode, container); err != nil {
+		return err
+	}
+
+	if err := container.FlushPersistenceSnapshot(ctx); err != nil {
+		return fmt.Errorf("flushing persistence snapshot after generation: %w", err)
+	}
+
+	if runMode == GenerateModeAll {
+		if err := container.EmitEmbeddedRuntime(ctx); err != nil {
+			return fmt.Errorf("emitting embedded runtime payload: %w", err)
+		}
+	}
+
+	return nil
 }
 
-// Run is the high-level API for starting the Piko server.
+// withEmbeddedDefaults prepends the embedded-runtime options when applicable.
+//
+// The defaults are prepended when a piko_embed-tagged build registered a payload and the
+// run mode is production. Prepending means explicit user options still win (options apply
+// in order, last writer wins), mirroring how the log-level default is applied.
+// Development modes never pick the payload up, so a tagged binary run as dev keeps
+// serving from files.
+//
+// Takes runMode (string) which is the requested run mode.
+// Takes options ([]bootstrap.Option) which are the user's options.
+//
+// Returns []bootstrap.Option with the embedded defaults prepended when applicable.
+func withEmbeddedDefaults(runMode string, options []bootstrap.Option) []bootstrap.Option {
+	if runMode != RunModeProd {
+		return options
+	}
+	fsys, manifest, ok := embedregistry.Payload()
+	if !ok {
+		return options
+	}
+	return append([]bootstrap.Option{
+		bootstrap.WithEmbeddedPikoFolder(fsys),
+		bootstrap.WithEmbeddedManifest(manifest),
+	}, options...)
+}
+
+// Run is the high-level API for starting the Piko server. It spawns a goroutine that
+// listens for shutdown signals and runs until a shutdown signal is received.
 //
 // Takes runMode (string) which specifies the execution mode (prod, dev, or
 // dev-interpreted).
@@ -380,9 +422,6 @@ func (s *SSRServer) Generate(ctx context.Context, runMode string) error {
 // Returns error when configuration bootstrap fails, global setup fails, lifecycle
 // components fail to start, daemon bootstrap fails, or the daemon exits with an
 // unexpected error.
-//
-// Spawns a goroutine to listen for shutdown signals. The goroutine runs until a shutdown
-// signal is received.
 func (s *SSRServer) Run(runMode string) error {
 	ctx := context.Background()
 	ctx, l := logger_domain.From(ctx, log)
@@ -393,7 +432,7 @@ func (s *SSRServer) Run(runMode string) error {
 		return err
 	}
 
-	container, err := bootstrap.ConfigAndContainer(ctx, deps, s.options...)
+	container, err := bootstrap.ConfigAndContainer(ctx, deps, withEmbeddedDefaults(runMode, s.options)...)
 	if err != nil {
 		return fmt.Errorf("failed during configuration bootstrap: %w", err)
 	}
@@ -481,6 +520,31 @@ func (s *SSRServer) GetHandler() http.Handler {
 		return nil
 	}
 	return s.daemon.GetHandler()
+}
+
+// RetireRelease garbage-collects a retired release from the registry backend.
+//
+// It removes that release's build variants while preserving runtime data (uploads,
+// on-demand variants) and every other release's variants, deleting any artefact left
+// empty. Call it from deploy tooling once a release has been scaled to zero (the deploy
+// controller, not Piko, knows which releases are still live). On a shared Postgres
+// backend the operation is serialised by an advisory lock so it is safe to run while
+// other instances are serving.
+//
+// Takes release which is the BuildRelease to retire (the same identifier passed to
+// WithReleaseID at build time, or the VCS revision when none was set).
+//
+// Returns error when the container cannot be initialised or the retire fails.
+func (s *SSRServer) RetireRelease(ctx context.Context, release string) error {
+	deps, err := s.buildDependencies(RunModeProd)
+	if err != nil {
+		return fmt.Errorf("building dependencies to retire release %q: %w", release, err)
+	}
+	container, err := s.ensureContainer(ctx, deps, RunModeProd)
+	if err != nil {
+		return fmt.Errorf("initialising container to retire release %q: %w", release, err)
+	}
+	return container.RetireRegistryRelease(ctx, release)
 }
 
 // prepareInterpretedDeps configures interpreter-specific dependencies for dev-i mode.
@@ -1069,8 +1133,11 @@ func performGlobalSetup(ctx context.Context, container *bootstrap.Container, dev
 	if serverConfig.Paths.BaseDir != nil {
 		baseDir = *serverConfig.Paths.BaseDir
 	}
-	if err := ensurePikoInternalDir(baseDir, config.PikoInternalPath); err != nil {
-		return fmt.Errorf("ensuring piko internal directory: %w", err)
+
+	if container == nil || !container.IsEmbeddedMode() {
+		if err := ensurePikoInternalDir(baseDir, config.PikoInternalPath); err != nil {
+			return fmt.Errorf("ensuring piko internal directory: %w", err)
+		}
 	}
 
 	if err := daemon_frontend.InitAssetStore(ctx); err != nil {

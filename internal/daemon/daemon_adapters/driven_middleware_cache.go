@@ -229,6 +229,9 @@ type CacheMiddlewareConfig struct {
 	// CacheWriteConcurrency limits the number of cache writes that can run at once; defaults
 	// to defaultCacheWriteConcurrency if <= 0.
 	CacheWriteConcurrency int
+
+	// PersistenceDisabled turns off background persistence of rendered pages.
+	PersistenceDisabled bool
 }
 
 // jitResult holds the output of a just-in-time response generation.
@@ -593,9 +596,13 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 		return nil, errEmptyBody
 	}
 
-	l.Trace("Scheduling background persistence of artefact", logger_domain.Int("size", rawHTMLBuffer.Len()))
-	bufferHandedOff = true
-	go m.persistArtefactInBackground(ctx, artefactID, r.URL.String(), rawHTMLBuffer)
+	if m.config.PersistenceDisabled {
+		l.Trace("Registry is read-only; serving just-in-time without persisting the rendered page")
+	} else {
+		l.Trace("Scheduling background persistence of artefact", logger_domain.Int("size", rawHTMLBuffer.Len()))
+		bufferHandedOff = true
+		go m.persistArtefactInBackground(ctx, artefactID, r.URL.String(), rawHTMLBuffer)
+	}
 
 	return &jitResult{
 		Content: contentForUser, Encoding: encodingForUser,
@@ -1090,8 +1097,6 @@ func releaseCompressedResponseWriter(crw *compressedResponseWriter) {
 // setupBrotliCompressor gets a brotli writer from the pool and sets the response headers
 // for brotli compression.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes w (http.ResponseWriter) which receives the compression headers.
 //
 // Returns io.WriteCloser which wraps the response in brotli compression, or nil when a
@@ -1111,8 +1116,6 @@ func setupBrotliCompressor(ctx context.Context, w http.ResponseWriter) io.WriteC
 // setupGzipCompressor gets a gzip writer from a pool and sets the response headers for
 // gzip encoding.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes w (http.ResponseWriter) which receives the compression headers.
 //
 // Returns io.WriteCloser which wraps the response in gzip compression, or nil when a pool

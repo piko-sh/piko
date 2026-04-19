@@ -68,6 +68,14 @@ func (*indexedStrategy) ExecResultImport(tracker *ImportTracker) {
 	tracker.AddImport("database/sql")
 }
 
+func (*indexedStrategy) NoRowsSentinel() ast.Expr {
+	return goastutil.SelectorExpr("sql", "ErrNoRows")
+}
+
+func (*indexedStrategy) NoRowsImport(tracker *ImportTracker) {
+	tracker.AddImport("database/sql")
+}
+
 func (strategy *indexedStrategy) BuildExecRowsBody(queryArgs []ast.Expr, field string) []ast.Stmt {
 	return []ast.Stmt{
 		goastutil.DefineStmtMulti(
@@ -390,4 +398,31 @@ func TestEmitQueryFileAnonymousPlaceholderEngineCollapsesIndices(t *testing.T) {
 
 	assert.Contains(t, source, "WHERE email = ? OR backup = ?")
 	assert.Contains(t, source, "queries.reader.QueryRowContext(ctx, getbyemail, email, email)")
+}
+
+func TestEmitQueryFileOptionalOneEmitsNoRowsSentinel(t *testing.T) {
+	strategy := &indexedStrategy{preservesIndices: true}
+	query := &querier_dto.AnalysedQuery{
+		Name:          "GetUser",
+		Filename:      "users.sql",
+		SQL:           "SELECT id, name FROM users WHERE id = ?1",
+		Command:       querier_dto.QueryCommandOne,
+		Optional:      true,
+		ReadOnly:      true,
+		Parameters:    []querier_dto.QueryParameter{textParam("id", 1)},
+		OutputColumns: []querier_dto.OutputColumn{textColumn("id", false), textColumn("name", false)},
+	}
+
+	file, err := EmitQueryFile("mypkg", query.Filename, []*querier_dto.AnalysedQuery{query}, textMappings(), strategy, nil)
+	require.NoError(t, err)
+
+	source := string(file.Content)
+	requireValidGo(t, file.Content)
+
+	assert.Contains(t, source, "sql.ErrNoRows",
+		"database/sql optional one query must test the database/sql no-rows sentinel")
+	assert.Contains(t, source, "errors.Is",
+		"optional one query must distinguish no rows from a real error via errors.Is")
+	assert.Contains(t, source, "(GetUserRow, bool, error)",
+		"optional one query must widen the return signature to (row, bool, error)")
 }

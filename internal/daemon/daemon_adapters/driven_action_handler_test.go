@@ -1057,7 +1057,7 @@ func TestActionHandler_HandleHTTP_CSRF(t *testing.T) {
 			Method: http.MethodPost,
 			Create: func() any { return &struct{}{} },
 			Invoke: func(_ context.Context, action any, arguments map[string]any) (any, error) {
-				t.Fatal("Invoke should not be called when CSRF fails")
+				require.FailNow(t, "Invoke should not be called when CSRF fails")
 				return nil, nil
 			},
 		})

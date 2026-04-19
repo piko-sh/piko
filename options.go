@@ -19,6 +19,7 @@
 package piko
 
 import (
+	"io/fs"
 	"time"
 
 	"piko.sh/piko/internal/bootstrap"
@@ -101,6 +102,14 @@ const (
 
 	// SpamSignalBlocklist tags a field for blocklist matching.
 	SpamSignalBlocklist = spamdetect_dto.SignalBlocklist
+
+	// EmbedAll embeds the whole runtime payload: source and derived blobs, storage, and the
+	// registry snapshot. It is the default EmbedScope (see WithEmbedScope).
+	EmbedAll = bootstrap.EmbedAll
+
+	// EmbedSourceOnly is reserved for embedding only source blobs. It is not yet
+	// implemented; generation fails loudly when it is selected.
+	EmbedSourceOnly = bootstrap.EmbedSourceOnly
 )
 
 // CSSResetOption is a functional option for configuring the CSS reset feature. It is used
@@ -2938,6 +2947,82 @@ func IsAuthenticated(r *RequestData) bool {
 // Returns Option which registers the collectors.
 func WithBackendAnalytics(collectors ...AnalyticsCollector) Option {
 	return bootstrap.WithBackendAnalytics(collectors...)
+}
+
+// WithEmbeddedPikoFolder configures Piko to serve all runtime data from an embedded
+// filesystem, enabling single-binary deployments for static sites.
+//
+// Takes fsys (fs.FS) which contains the .piko directory contents.
+//
+// Returns Option which configures the container for embedded operation.
+func WithEmbeddedPikoFolder(fsys fs.FS) Option {
+	return bootstrap.WithEmbeddedPikoFolder(fsys)
+}
+
+// WithEmbeddedManifest configures Piko to load the compiled manifest from in-memory bytes
+// (typically an //go:embed of dist/manifest.bin) instead of reading it from disk. Pair it
+// with WithEmbeddedPikoFolder for a single- binary deployment, since the manifest lives
+// in dist/, outside .piko.
+//
+// //go:embed dist/manifest.bin var manifestBytes []byte app :=
+// piko.New(piko.WithEmbeddedPikoFolder(subFS), piko.WithEmbeddedManifest(manifestBytes))
+//
+// Takes data ([]byte) which is the raw FlatBuffers manifest content.
+//
+// Returns Option which configures the embedded manifest.
+func WithEmbeddedManifest(data []byte) Option {
+	return bootstrap.WithEmbeddedManifest(data)
+}
+
+// EmbedScope selects how much of the runtime payload generation copies into the embed
+// package a piko_embed-tagged build carries.
+type EmbedScope = bootstrap.EmbedScope
+
+// WithEmbedScope selects how much of the runtime payload generation copies into the embed
+// package that `piko build` compiles into the binary.
+//
+// Takes scope (EmbedScope) which is the payload scope.
+//
+// Returns Option which sets the scope for generation.
+func WithEmbedScope(scope EmbedScope) Option {
+	return bootstrap.WithEmbedScope(scope)
+}
+
+// WithoutEmbeddedRuntime disables the automatic embedded-runtime pickup for a binary
+// built with the piko_embed tag, so a production run serves from dist/ and .piko/ on disk
+// even though the payload is compiled in.
+//
+// Returns Option which clears any embedded runtime the build registered.
+func WithoutEmbeddedRuntime() Option {
+	return bootstrap.WithoutEmbeddedRuntime()
+}
+
+// WithModuleName sets the Go module name explicitly.
+//
+// The name is used as a fallback for "@/" alias resolution (e.g. favicon Src paths) when
+// no go.mod is readable at runtime, the case for single-binary and distroless
+// deployments. When a go.mod is present (normal dev/prod), the resolver-derived name
+// takes precedence and this is ignored.
+//
+// Takes name (string) which is the Go module path (e.g. "github.com/me/app").
+//
+// Returns Option which sets the fallback module name.
+func WithModuleName(name string) Option {
+	return bootstrap.WithModuleName(name)
+}
+
+// WithReleaseID sets the release identifier stamped on build-origin registry variants
+// during generation.
+//
+// When unset the release defaults to the build's VCS revision. Set it to tag releases
+// independently of the commit (e.g. a canary or A/B rollout) so coexisting releases on a
+// shared backend remain distinguishable and a retired release can be garbage-collected.
+//
+// Takes id (string) which is the release identifier.
+//
+// Returns Option which sets the release identifier.
+func WithReleaseID(id string) Option {
+	return bootstrap.WithReleaseID(id)
 }
 
 // CaptchaOptions groups the captcha provider's per-deployment settings. The provider

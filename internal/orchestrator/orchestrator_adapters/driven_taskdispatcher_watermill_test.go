@@ -640,8 +640,8 @@ func Test_watermillTaskDispatcher_WithClock(t *testing.T) {
 }
 
 type recordingSlogHandler struct {
-	mu      sync.Mutex
 	records []slog.Record
+	mu      sync.Mutex
 }
 
 func (*recordingSlogHandler) Enabled(_ context.Context, _ slog.Level) bool {
@@ -737,6 +737,6 @@ func Test_watermillTaskDispatcher_runRecoveryLoop_LogsWarningOnFailure(t *testin
 	select {
 	case <-loopDone:
 	case <-time.After(2 * time.Second):
-		t.Fatal("recovery loop did not exit after context cancellation")
+		require.FailNow(t, "recovery loop did not exit after context cancellation")
 	}
 }

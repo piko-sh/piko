@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # BUILD STAGE
-FROM golang:1.26.0 as build
+FROM golang:1.26.0 AS build
 
 ARG APP_VERSION=dev
 ARG GIT_COMMIT=unknown
@@ -26,26 +26,34 @@ RUN go mod download
 
 COPY . .
 
-RUN go mod edit -replace "piko.sh/piko=../piko"
-
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 RUN go build -o "bin/generator" cmd/generator/main.go
 RUN bin/generator all
 
-RUN go build \
+RUN CGO_ENABLED=0 go build -tags piko_embed \
     -ldflags="-s -w -X 'main.Version=${APP_VERSION}' -X 'main.Commit=${GIT_COMMIT}'" \
-    -o "bin/my-app" \
-    cmd/main/main.go
-
+    -o bin/my-app \
+    ./cmd/main
 
 # RUNTIME STAGE
-FROM golang:1.26.0 as runtime
+# If using C CGO libs, use: gcr.io/distroless/base:nonroot
+# If using C++ CGO libs (DuckDB), use: gcr.io/distroless/cc:nonroot
+# If unsure and scared, use: golang:1.26.0
+FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /app
 
-COPY --from=build /app/bin/my-app /app
-COPY --from=build /app/.piko /app/.piko
-COPY --from=build /app/.out /app/.out
+COPY --from=build /app/bin/my-app /app/my-app
+
+# If your app serves raw static files (favicons, images) from a top-level
+# assets/ directory, copy it too:
+# COPY --from=build --chown=nonroot:nonroot /app/assets /app/assets
+
+# If you plan to use piko without the single-binary bundle for all the
+# assets, then uncomment the following lines:
+# RUN go build -ldflags="-s -w" -o bin/my-app ./cmd/main
+# COPY --from=build --chown=nonroot:nonroot /app/dist /app/dist
+# COPY --from=build --chown=nonroot:nonroot /app/.piko /app/.piko
 
 CMD ["/app/my-app", "prod"]

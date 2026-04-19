@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -47,9 +48,7 @@ func TestNewOnDemandVariantGenerator_UsesRealClock_WhenNil(t *testing.T) {
 	require.NotNil(t, generator, "NewOnDemandVariantGenerator returned nil")
 
 	impl := mustAsGeneratorImpl(t, generator)
-	if impl.clock == nil {
-		t.Error("Expected clock to be set to RealClock when nil provided")
-	}
+	assert.NotNil(t, impl.clock, "Expected clock to be set to RealClock when nil provided")
 }
 
 func TestNewOnDemandVariantGenerator_UsesProvidedClock(t *testing.T) {
@@ -65,9 +64,7 @@ func TestNewOnDemandVariantGenerator_UsesProvidedClock(t *testing.T) {
 	generator := NewOnDemandVariantGenerator(mockRegistry, mockCapability, config)
 	impl := mustAsGeneratorImpl(t, generator)
 
-	if impl.clock != mockClock {
-		t.Error("Expected generator to use provided mock clock")
-	}
+	assert.Same(t, mockClock, impl.clock, "Expected generator to use provided mock clock")
 }
 
 func TestDefaultOnDemandGeneratorConfig_ReturnsValidDefaults(t *testing.T) {
@@ -75,24 +72,13 @@ func TestDefaultOnDemandGeneratorConfig_ReturnsValidDefaults(t *testing.T) {
 
 	config := DefaultOnDemandGeneratorConfig()
 
-	if config.Clock != nil {
-		t.Error("Expected Clock to be nil by default")
-	}
-	if config.StorageBackendID != "local_disk_cache" {
-		t.Errorf("Expected StorageBackendID = 'local_disk_cache', got %q", config.StorageBackendID)
-	}
-	if config.MaxWidth != 4096 {
-		t.Errorf("Expected MaxWidth = 4096, got %d", config.MaxWidth)
-	}
-	if config.MinWidth != 1 {
-		t.Errorf("Expected MinWidth = 1, got %d", config.MinWidth)
-	}
-	if config.DefaultQuality != 80 {
-		t.Errorf("Expected DefaultQuality = 80, got %d", config.DefaultQuality)
-	}
-	if len(config.AllowedFormats) == 0 {
-		t.Error("Expected AllowedFormats to contain at least one format")
-	}
+	assert.Nil(t, config.Clock, "Expected Clock to be nil by default")
+	assert.Equal(t, "local_disk_cache", config.StorageBackendID,
+		"Expected StorageBackendID = 'local_disk_cache'")
+	assert.Equal(t, 4096, config.MaxWidth, "Expected MaxWidth = 4096")
+	assert.Equal(t, 1, config.MinWidth, "Expected MinWidth = 1")
+	assert.Equal(t, 80, config.DefaultQuality, "Expected DefaultQuality = 80")
+	assert.NotEmpty(t, config.AllowedFormats, "Expected AllowedFormats to contain at least one format")
 }
 
 func TestParseProfileName(t *testing.T) {
@@ -211,23 +197,15 @@ func TestParseProfileName(t *testing.T) {
 			result := generator.ParseProfileName(tc.profileName)
 
 			if tc.expectedNil {
-				if result != nil {
-					t.Errorf("Expected nil for profileName %q, got %+v", tc.profileName, result)
-				}
+				assert.Nilf(t, result, "Expected nil for profileName %q", tc.profileName)
 				return
 			}
 
-			require.NotNil(t, result, "Expected non-nil result for profileName %q", tc.profileName)
+			require.NotNilf(t, result, "Expected non-nil result for profileName %q", tc.profileName)
 
-			if result.Width != tc.expectedWidth {
-				t.Errorf("Width = %d, want %d", result.Width, tc.expectedWidth)
-			}
-			if result.Format != tc.expectedFmt {
-				t.Errorf("Format = %q, want %q", result.Format, tc.expectedFmt)
-			}
-			if result.Quality != 80 {
-				t.Errorf("Quality = %d, want 80 (default)", result.Quality)
-			}
+			assert.Equal(t, tc.expectedWidth, result.Width, "Width")
+			assert.Equal(t, tc.expectedFmt, result.Format, "Format")
+			assert.Equal(t, 80, result.Quality, "Quality want 80 (default)")
 		})
 	}
 }
@@ -243,12 +221,9 @@ func TestGenerateVariant_ReturnsError_ForInvalidProfile(t *testing.T) {
 
 	_, err := generator.GenerateVariant(context.Background(), artefact, "invalid_profile_name")
 
-	if err == nil {
-		t.Fatal("Expected error for invalid profile name")
-	}
-	if !strings.Contains(err.Error(), "invalid or disallowed profile name") {
-		t.Errorf("Expected error message about invalid profile, got: %v", err)
-	}
+	require.Error(t, err, "Expected error for invalid profile name")
+	assert.ErrorContains(t, err, "invalid or disallowed profile name",
+		"Expected error message about invalid profile")
 }
 
 func TestGenerateVariant_ReturnsExisting_WhenAlreadyGenerated(t *testing.T) {
@@ -283,13 +258,9 @@ func TestGenerateVariant_ReturnsExisting_WhenAlreadyGenerated(t *testing.T) {
 
 	result, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	require.NotNil(t, result, "Expected non-nil result")
-	if result.VariantID != existingVariant.VariantID {
-		t.Errorf("Expected to return existing variant, got %+v", result)
-	}
+	assert.Equal(t, existingVariant.VariantID, result.VariantID, "Expected to return existing variant")
 }
 
 func TestGenerateVariant_ReturnsError_WhenSourceVariantMissing(t *testing.T) {
@@ -313,12 +284,8 @@ func TestGenerateVariant_ReturnsError_WhenSourceVariantMissing(t *testing.T) {
 
 	_, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err == nil {
-		t.Fatal("Expected error when source variant is missing")
-	}
-	if !strings.Contains(err.Error(), "source variant not found") {
-		t.Errorf("Expected error about missing source variant, got: %v", err)
-	}
+	require.Error(t, err, "Expected error when source variant is missing")
+	assert.ErrorContains(t, err, "source variant not found", "Expected error about missing source variant")
 }
 
 func TestGenerateVariant_ReturnsError_WhenTransformFails(t *testing.T) {
@@ -357,12 +324,8 @@ func TestGenerateVariant_ReturnsError_WhenTransformFails(t *testing.T) {
 
 	_, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err == nil {
-		t.Fatal("Expected error when transform fails")
-	}
-	if !strings.Contains(err.Error(), "image transform failed") {
-		t.Errorf("Expected error about transform failure, got: %v", err)
-	}
+	require.Error(t, err, "Expected error when transform fails")
+	assert.ErrorContains(t, err, "image transform failed", "Expected error about transform failure")
 }
 
 func TestGenerateVariant_GeneratesNewVariant_Successfully(t *testing.T) {
@@ -410,25 +373,17 @@ func TestGenerateVariant_GeneratesNewVariant_Successfully(t *testing.T) {
 		ID:         "test-artefact",
 		SourcePath: "images/test.png",
 		ActualVariants: []registry_dto.Variant{
-			{VariantID: "source", StorageKey: "source.png"},
+			{VariantID: "source", StorageKey: "source.png", ContentHash: "0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 	}
 
 	result, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	require.NotNil(t, result, "Expected non-nil result")
-	if result.VariantID != "image_w240_webp" {
-		t.Errorf("VariantID = %q, want %q", result.VariantID, "image_w240_webp")
-	}
-	if result.MimeType != "image/webp" {
-		t.Errorf("MimeType = %q, want %q", result.MimeType, "image/webp")
-	}
-	if result.SizeBytes == 0 {
-		t.Error("Expected SizeBytes > 0")
-	}
+	assert.Equal(t, "image_w240_webp", result.VariantID, "VariantID")
+	assert.Equal(t, "image/webp", result.MimeType, "MimeType")
+	assert.NotZero(t, result.SizeBytes, "Expected SizeBytes > 0")
 }
 
 type closeTrackingReadCloser struct {
@@ -489,7 +444,7 @@ func TestGenerateVariant_KeepsSourceOpenUntilOutputDrained(t *testing.T) {
 		ID:         "test-artefact",
 		SourcePath: "images/test.png",
 		ActualVariants: []registry_dto.Variant{
-			{VariantID: "source", StorageKey: "source.png"},
+			{VariantID: "source", StorageKey: "source.png", ContentHash: "0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 	}
 
@@ -540,12 +495,8 @@ func TestGenerateVariant_ReturnsError_WhenBlobStoreFails(t *testing.T) {
 
 	_, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err == nil {
-		t.Fatal("Expected error when blob store fails")
-	}
-	if !strings.Contains(err.Error(), "failed to get blob store") {
-		t.Errorf("Expected error about blob store failure, got: %v", err)
-	}
+	require.Error(t, err, "Expected error when blob store fails")
+	assert.ErrorContains(t, err, "failed to get blob store", "Expected error about blob store failure")
 }
 
 func TestIsAllowedFormat(t *testing.T) {
@@ -574,9 +525,7 @@ func TestIsAllowedFormat(t *testing.T) {
 		t.Run(tc.format, func(t *testing.T) {
 			t.Parallel()
 			result := generator.isAllowedFormat(tc.format)
-			if result != tc.expected {
-				t.Errorf("isAllowedFormat(%q) = %v, want %v", tc.format, result, tc.expected)
-			}
+			assert.Equalf(t, tc.expected, result, "isAllowedFormat(%q)", tc.format)
 		})
 	}
 }
@@ -597,9 +546,7 @@ func TestFindSourceVariant_ReturnsSourceVariant(t *testing.T) {
 	result := generator.findSourceVariant(artefact)
 
 	require.NotNil(t, result, "Expected to find source variant")
-	if result.VariantID != "source" {
-		t.Errorf("VariantID = %q, want %q", result.VariantID, "source")
-	}
+	assert.Equal(t, "source", result.VariantID, "VariantID")
 }
 
 func TestFindSourceVariant_ReturnsNil_WhenNoSource(t *testing.T) {
@@ -616,9 +563,7 @@ func TestFindSourceVariant_ReturnsNil_WhenNoSource(t *testing.T) {
 
 	result := generator.findSourceVariant(artefact)
 
-	if result != nil {
-		t.Errorf("Expected nil when no source variant, got %+v", result)
-	}
+	assert.Nil(t, result, "Expected nil when no source variant")
 }
 
 func TestGetExtensionForFormat(t *testing.T) {
@@ -644,9 +589,7 @@ func TestGetExtensionForFormat(t *testing.T) {
 		t.Run(tc.format, func(t *testing.T) {
 			t.Parallel()
 			result := generator.getExtensionForFormat(tc.format)
-			if result != tc.expected {
-				t.Errorf("getExtensionForFormat(%q) = %q, want %q", tc.format, result, tc.expected)
-			}
+			assert.Equalf(t, tc.expected, result, "getExtensionForFormat(%q)", tc.format)
 		})
 	}
 }
@@ -674,9 +617,7 @@ func TestGetMimeTypeForFormat(t *testing.T) {
 		t.Run(tc.format, func(t *testing.T) {
 			t.Parallel()
 			result := generator.getMimeTypeForFormat(tc.format)
-			if result != tc.expected {
-				t.Errorf("getMimeTypeForFormat(%q) = %q, want %q", tc.format, result, tc.expected)
-			}
+			assert.Equalf(t, tc.expected, result, "getMimeTypeForFormat(%q)", tc.format)
 		})
 	}
 }
@@ -695,15 +636,9 @@ func TestGenerateTempKey_IncludesTimestamp(t *testing.T) {
 
 	key := generator.generateTempKey("artefact-id", "image_w240_webp")
 
-	if !strings.HasPrefix(key, "tmp/") {
-		t.Errorf("Expected temp key to start with 'tmp/', got %q", key)
-	}
-	if !strings.Contains(key, "artefact-id") {
-		t.Errorf("Expected temp key to contain artefact ID, got %q", key)
-	}
-	if !strings.Contains(key, "image_w240_webp") {
-		t.Errorf("Expected temp key to contain profile name, got %q", key)
-	}
+	assert.True(t, strings.HasPrefix(key, "tmp/"), "Expected temp key to start with 'tmp/'")
+	assert.Contains(t, key, "artefact-id", "Expected temp key to contain artefact ID")
+	assert.Contains(t, key, "image_w240_webp", "Expected temp key to contain profile name")
 }
 
 func TestGenerateFinalStorageKey_IncludesHash(t *testing.T) {
@@ -714,15 +649,9 @@ func TestGenerateFinalStorageKey_IncludesHash(t *testing.T) {
 
 	key := generator.generateFinalStorageKey("images/photo.png", hash, "webp")
 
-	if !strings.HasPrefix(key, "generated/") {
-		t.Errorf("Expected final key to start with 'generated/', got %q", key)
-	}
-	if !strings.Contains(key, "123456789abcdef0") {
-		t.Errorf("Expected final key to contain hash, got %q", key)
-	}
-	if !strings.HasSuffix(key, ".webp") {
-		t.Errorf("Expected final key to end with .webp, got %q", key)
-	}
+	assert.True(t, strings.HasPrefix(key, "generated/"), "Expected final key to start with 'generated/'")
+	assert.Contains(t, key, "123456789abcdef0", "Expected final key to contain hash")
+	assert.True(t, strings.HasSuffix(key, ".webp"), "Expected final key to end with .webp")
 }
 
 func TestGetOrCreateVariantMutex_CreatesNew(t *testing.T) {
@@ -732,9 +661,7 @@ func TestGetOrCreateVariantMutex_CreatesNew(t *testing.T) {
 
 	mu := generator.getOrCreateVariantMutex("new-key")
 
-	if mu == nil {
-		t.Error("Expected non-nil mutex")
-	}
+	assert.NotNil(t, mu, "Expected non-nil mutex")
 }
 
 func TestGetOrCreateVariantMutex_ReturnsExisting(t *testing.T) {
@@ -745,9 +672,7 @@ func TestGetOrCreateVariantMutex_ReturnsExisting(t *testing.T) {
 	mu1 := generator.getOrCreateVariantMutex("same-key")
 	mu2 := generator.getOrCreateVariantMutex("same-key")
 
-	if mu1 != mu2 {
-		t.Error("Expected same mutex for same key")
-	}
+	assert.Same(t, mu1, mu2, "Expected same mutex for same key")
 }
 
 func TestCleanupVariantMutex_RemovesMutex(t *testing.T) {
@@ -763,9 +688,7 @@ func TestCleanupVariantMutex_RemovesMutex(t *testing.T) {
 	_, exists := generator.inProgress["test-key"]
 	generator.inProgressMutex.Unlock()
 
-	if exists {
-		t.Error("Expected mutex to be removed after cleanup")
-	}
+	assert.False(t, exists, "Expected mutex to be removed after cleanup")
 }
 
 func TestCountingHashReader_CountsBytes(t *testing.T) {
@@ -784,15 +707,11 @@ func TestCountingHashReader_CountsBytes(t *testing.T) {
 	buffer := make([]byte, 100)
 	n, err := chr.Read(buffer)
 
-	if err != nil && !errors.Is(err, io.EOF) {
-		t.Fatalf("Unexpected error: %v", err)
+	if err != nil {
+		require.ErrorIs(t, err, io.EOF, "Unexpected error")
 	}
-	if n != len(data) {
-		t.Errorf("Read %d bytes, want %d", n, len(data))
-	}
-	if byteCount != int64(len(data)) {
-		t.Errorf("byteCount = %d, want %d", byteCount, len(data))
-	}
+	assert.Equal(t, len(data), n, "Read bytes count")
+	assert.Equal(t, int64(len(data)), byteCount, "byteCount")
 }
 
 func TestCountingHashReader_PropagatesEOF(t *testing.T) {
@@ -810,9 +729,7 @@ func TestCountingHashReader_PropagatesEOF(t *testing.T) {
 	buffer := make([]byte, 100)
 	_, err := chr.Read(buffer)
 
-	if !errors.Is(err, io.EOF) {
-		t.Errorf("Expected io.EOF, got %v", err)
-	}
+	assert.ErrorIs(t, err, io.EOF, "Expected io.EOF")
 }
 
 func createTestGenerator(t *testing.T) OnDemandVariantGenerator {
@@ -849,9 +766,7 @@ func mustAsGeneratorImpl(t *testing.T, generator OnDemandVariantGenerator) *onDe
 	t.Helper()
 
 	impl, ok := generator.(*onDemandVariantGeneratorImpl)
-	if !ok {
-		t.Fatalf("expected *onDemandVariantGeneratorImpl, got %T", generator)
-	}
+	require.Truef(t, ok, "expected *onDemandVariantGeneratorImpl, got %T", generator)
 	return impl
 }
 
@@ -899,12 +814,8 @@ func TestGenerateVariant_ReturnsError_WhenWriteToBlobStoreFails(t *testing.T) {
 
 	_, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err == nil {
-		t.Fatal("Expected error when write to blob store fails")
-	}
-	if !strings.Contains(err.Error(), "failed to write blob") {
-		t.Errorf("Expected error about write failure, got: %v", err)
-	}
+	require.Error(t, err, "Expected error when write to blob store fails")
+	assert.ErrorContains(t, err, "failed to write blob", "Expected error about write failure")
 }
 
 func TestGenerateVariant_ReturnsError_WhenOutputIsZeroBytes(t *testing.T) {
@@ -947,12 +858,8 @@ func TestGenerateVariant_ReturnsError_WhenOutputIsZeroBytes(t *testing.T) {
 
 	_, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err == nil {
-		t.Fatal("Expected error when output is zero bytes")
-	}
-	if !strings.Contains(err.Error(), "zero bytes") {
-		t.Errorf("Expected error about zero bytes, got: %v", err)
-	}
+	require.Error(t, err, "Expected error when output is zero bytes")
+	assert.ErrorContains(t, err, "zero bytes", "Expected error about zero bytes")
 }
 
 func TestGenerateVariant_ReturnsError_WhenRenameBlobFails(t *testing.T) {
@@ -1003,12 +910,8 @@ func TestGenerateVariant_ReturnsError_WhenRenameBlobFails(t *testing.T) {
 
 	_, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err == nil {
-		t.Fatal("Expected error when rename blob fails")
-	}
-	if !strings.Contains(err.Error(), "failed to rename blob") {
-		t.Errorf("Expected error about rename failure, got: %v", err)
-	}
+	require.Error(t, err, "Expected error when rename blob fails")
+	assert.ErrorContains(t, err, "failed to rename blob", "Expected error about rename failure")
 }
 
 func TestGenerateVariant_ReturnsError_WhenAddVariantFails(t *testing.T) {
@@ -1053,18 +956,14 @@ func TestGenerateVariant_ReturnsError_WhenAddVariantFails(t *testing.T) {
 		ID:         "test-artefact",
 		SourcePath: "images/test.png",
 		ActualVariants: []registry_dto.Variant{
-			{VariantID: "source", StorageKey: "source.png"},
+			{VariantID: "source", StorageKey: "source.png", ContentHash: "0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 	}
 
 	_, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err == nil {
-		t.Fatal("Expected error when add variant fails")
-	}
-	if !strings.Contains(err.Error(), "failed to add variant") {
-		t.Errorf("Expected error about add variant failure, got: %v", err)
-	}
+	require.Error(t, err, "Expected error when add variant fails")
+	assert.ErrorContains(t, err, "failed to add variant", "Expected error about add variant failure")
 }
 
 func TestBuildVariantRecord_SetsCorrectFields(t *testing.T) {
@@ -1085,26 +984,21 @@ func TestBuildVariantRecord_SetsCorrectFields(t *testing.T) {
 	}
 
 	hash := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
-	variant := generator.buildVariantRecord("image_w240_webp", "generated/test_01020304.webp", profile, hash, 1024)
+	variant, err := generator.buildVariantRecord("image_w240_webp", "generated/test_01020304.webp", profile, hash, 1024, "source-content-hash")
+	require.NoError(t, err, "buildVariantRecord must fingerprint a variant with a source content hash")
 
-	if variant.VariantID != "image_w240_webp" {
-		t.Errorf("VariantID = %q, want %q", variant.VariantID, "image_w240_webp")
-	}
-	if variant.StorageKey != "generated/test_01020304.webp" {
-		t.Errorf("StorageKey = %q, want %q", variant.StorageKey, "generated/test_01020304.webp")
-	}
-	if variant.MimeType != "image/webp" {
-		t.Errorf("MimeType = %q, want %q", variant.MimeType, "image/webp")
-	}
-	if variant.SizeBytes != 1024 {
-		t.Errorf("SizeBytes = %d, want %d", variant.SizeBytes, 1024)
-	}
-	if variant.StorageBackendID != "test-backend" {
-		t.Errorf("StorageBackendID = %q, want %q", variant.StorageBackendID, "test-backend")
-	}
-	if variant.Status != registry_dto.VariantStatusReady {
-		t.Errorf("Status = %v, want %v", variant.Status, registry_dto.VariantStatusReady)
-	}
+	assert.Equal(t, "image_w240_webp", variant.VariantID, "VariantID")
+	assert.Equal(t, "generated/test_01020304.webp", variant.StorageKey, "StorageKey")
+	assert.Equal(t, "image/webp", variant.MimeType, "MimeType")
+	assert.Equal(t, int64(1024), variant.SizeBytes, "SizeBytes")
+	assert.Equal(t, "test-backend", variant.StorageBackendID, "StorageBackendID")
+	assert.Equal(t, registry_dto.VariantStatusReady, variant.Status, "Status")
+	assert.Equal(t, registry_dto.ProducerRuntime, variant.Producer, "Producer want ProducerRuntime")
+	assert.Equal(t, registry_dto.KindDerived, variant.Kind, "Kind want KindDerived")
+	assert.Equal(t, "source-content-hash", variant.Transform.ParentContentHash, "Transform.ParentContentHash")
+	assert.Equal(t, "image-transform", variant.Transform.CapabilityName, "Transform.CapabilityName")
+	assert.NotEmpty(t, variant.InputFingerprint,
+		"InputFingerprint must be set for a derived variant with a known source hash")
 }
 
 func TestGenerateVariant_ReturnsError_WhenGetVariantDataFails(t *testing.T) {
@@ -1139,10 +1033,6 @@ func TestGenerateVariant_ReturnsError_WhenGetVariantDataFails(t *testing.T) {
 
 	_, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
 
-	if err == nil {
-		t.Fatal("Expected error when GetVariantData fails")
-	}
-	if !strings.Contains(err.Error(), "failed to get source data") {
-		t.Errorf("Expected error about source data failure, got: %v", err)
-	}
+	require.Error(t, err, "Expected error when GetVariantData fails")
+	assert.ErrorContains(t, err, "failed to get source data", "Expected error about source data failure")
 }

@@ -67,31 +67,44 @@ func newFakeDB(t *testing.T) *sql.DB {
 
 type stubDriver struct {
 	getArtefactDataFunc                  func(ctx context.Context, artefactID string) ([]byte, error)
+	getArtefactDataForUpdateFunc         func(ctx context.Context, artefactID string) ([]byte, error)
+	getArtefactLayersFunc                func(ctx context.Context, artefactID string) ([]ArtefactLayerData, error)
 	getMultipleArtefactsDataFunc         func(ctx context.Context, artefactIDs []string) ([][]byte, error)
+	reclaimArtefactLayersForReleaseFunc  func(ctx context.Context, releaseID string) ([]ArtefactLayerData, error)
 	listAllArtefactsDataFunc             func(ctx context.Context) ([][]byte, error)
 	listRecentArtefactsDataFunc          func(ctx context.Context, limit int) ([][]byte, error)
 	listAllArtefactIDsFunc               func(ctx context.Context) ([]string, error)
 	findArtefactIDsByTagFunc             func(ctx context.Context, tagKey, tagValue string) ([]string, error)
 	findArtefactIDsByTagValuesFunc       func(ctx context.Context, tagKey string, tagValues []string) ([]string, error)
-	findArtefactIDByVariantStorageKeyFn  func(ctx context.Context, storageKey string) (string, error)
+	findArtefactIDByVariantStorageKeyFn  func(ctx context.Context, storageKey string) (string, bool, error)
 	listVariantStatusCountsFunc          func(ctx context.Context) ([]VariantStatusCount, error)
 	incrementBlobRefCountFunc            func(ctx context.Context, params IncrementBlobRefCountParams) (int, error)
-	decrementBlobRefCountFunc            func(ctx context.Context, storageKey string, lastReferencedAt int64) (int, error)
+	decrementBlobRefCountFunc            func(ctx context.Context, storageKey string, lastReferencedAt int64) (int, bool, error)
 	deleteBlobReferenceIfZeroFunc        func(ctx context.Context, storageKey string) error
-	getBlobRefCountFunc                  func(ctx context.Context, storageKey string) (int, error)
+	getBlobRefCountFunc                  func(ctx context.Context, storageKey string) (int, bool, error)
 	popGCHintsFunc                       func(ctx context.Context, limit int) ([]GCHintRow, error)
 	deleteGCHintsFunc                    func(ctx context.Context, ids []int64) error
 	addGCHintFunc                        func(ctx context.Context, backendID, storageKey string, createdAt int64) error
 	upsertArtefactFunc                   func(ctx context.Context, params UpsertArtefactParams) error
+	insertArtefactLayerIfAbsentFunc      func(ctx context.Context, params UpsertArtefactParams) (bool, error)
 	deleteArtefactFunc                   func(ctx context.Context, artefactID string) error
-	deleteVariantTagsForArtefactFunc     func(ctx context.Context, artefactID string) error
-	deleteChunksForVariantFunc           func(ctx context.Context, artefactID, variantID string) error
-	deleteVariantsForArtefactFunc        func(ctx context.Context, artefactID string) error
-	deleteDesiredProfilesForArtefactFunc func(ctx context.Context, artefactID string) error
+	deleteArtefactLayerFunc              func(ctx context.Context, artefactID, releaseID string) error
+	deleteArtefactLayersForReleaseFunc   func(ctx context.Context, releaseID string) error
+	deleteVariantTagsForArtefactFunc     func(ctx context.Context, artefactID, releaseID string) error
+	deleteChunksForArtefactFunc          func(ctx context.Context, artefactID, releaseID string) error
+	deleteVariantsForArtefactFunc        func(ctx context.Context, artefactID, releaseID string) error
+	deleteDesiredProfilesForArtefactFunc func(ctx context.Context, artefactID, releaseID string) error
 	insertVariantFunc                    func(ctx context.Context, params InsertVariantParams) error
-	insertVariantTagFunc                 func(ctx context.Context, artefactID, variantID, tagKey, tagValue string) error
+	insertVariantTagFunc                 func(ctx context.Context, artefactID, releaseID, variantID, tagKey, tagValue string) error
 	insertVariantChunkFunc               func(ctx context.Context, params InsertVariantChunkParams) error
 	insertDesiredProfileFunc             func(ctx context.Context, params InsertDesiredProfileParams) error
+	claimReleaseFunc                     func(ctx context.Context, params ClaimReleaseParams) (bool, error)
+	getReleaseFunc                       func(ctx context.Context, releaseID string) (ReleaseLease, bool, error)
+	markReleasePublishedFunc             func(ctx context.Context, releaseID string, publishedAt, heartbeatAt int64) error
+	heartbeatReleaseFunc                 func(ctx context.Context, releaseID string, heartbeatAt int64) error
+	deleteStalePublishingLeaseFunc       func(ctx context.Context, releaseID string, staleBefore int64) error
+	listExpiredReleasesFunc              func(ctx context.Context, cutoff int64, ownRelease string) ([]string, error)
+	deleteReleaseLeaseFunc               func(ctx context.Context, releaseID string) error
 	calls                                *[]string
 	popGCHintLimit                       *int
 	deletedGCHints                       *[]int64
@@ -105,16 +118,60 @@ func (s *stubDriver) record(name string) {
 
 func (s *stubDriver) WithTx(_ *sql.Tx) Driver { return s }
 
-func (s *stubDriver) GetArtefactData(ctx context.Context, artefactID string) ([]byte, error) {
-	if s.getArtefactDataFunc != nil {
-		return s.getArtefactDataFunc(ctx, artefactID)
+func (s *stubDriver) GetArtefactLayers(ctx context.Context, artefactID string) ([]ArtefactLayerData, error) {
+	if s.getArtefactLayersFunc != nil {
+		return s.getArtefactLayersFunc(ctx, artefactID)
 	}
-	return nil, nil
+	return singleLayerFromData(s.getArtefactDataFunc, ctx, artefactID)
 }
 
-func (s *stubDriver) GetMultipleArtefactsData(ctx context.Context, artefactIDs []string) ([][]byte, error) {
-	if s.getMultipleArtefactsDataFunc != nil {
-		return s.getMultipleArtefactsDataFunc(ctx, artefactIDs)
+func (s *stubDriver) GetArtefactLayersForUpdate(ctx context.Context, artefactID string) ([]ArtefactLayerData, error) {
+	if s.getArtefactLayersFunc != nil {
+		return s.getArtefactLayersFunc(ctx, artefactID)
+	}
+	return singleLayerFromData(s.getArtefactDataForUpdateFunc, ctx, artefactID)
+}
+
+func singleLayerFromData(fn func(ctx context.Context, artefactID string) ([]byte, error), ctx context.Context, artefactID string) ([]ArtefactLayerData, error) {
+	if fn == nil {
+		return nil, nil
+	}
+	data, err := fn(ctx, artefactID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return nil, nil
+	}
+	return []ArtefactLayerData{{ID: artefactID, ReleaseID: "", Data: data}}, nil
+}
+
+func (s *stubDriver) GetMultipleArtefactLayers(ctx context.Context, artefactIDs []string) ([]ArtefactLayerData, error) {
+	if s.getMultipleArtefactsDataFunc == nil {
+		return nil, nil
+	}
+	blobs, err := s.getMultipleArtefactsDataFunc(ctx, artefactIDs)
+	if err != nil {
+		return nil, err
+	}
+	layers := make([]ArtefactLayerData, 0, len(blobs))
+	for _, blob := range blobs {
+		id := ""
+		if parsed := registry_schema.ParseArtefactMeta(blob); parsed != nil {
+			id = parsed.ID
+		}
+		layers = append(layers, ArtefactLayerData{ID: id, ReleaseID: "", Data: blob})
+	}
+	return layers, nil
+}
+
+func (s *stubDriver) ReclaimArtefactLayersForRelease(ctx context.Context, releaseID string) ([]ArtefactLayerData, error) {
+	s.record("ReclaimArtefactLayersForRelease")
+	if s.reclaimArtefactLayersForReleaseFunc != nil {
+		return s.reclaimArtefactLayersForReleaseFunc(ctx, releaseID)
 	}
 	return nil, nil
 }
@@ -154,11 +211,11 @@ func (s *stubDriver) FindArtefactIDsByTagValues(ctx context.Context, tagKey stri
 	return nil, nil
 }
 
-func (s *stubDriver) FindArtefactIDByVariantStorageKey(ctx context.Context, storageKey string) (string, error) {
+func (s *stubDriver) FindArtefactIDByVariantStorageKey(ctx context.Context, storageKey string) (string, bool, error) {
 	if s.findArtefactIDByVariantStorageKeyFn != nil {
 		return s.findArtefactIDByVariantStorageKeyFn(ctx, storageKey)
 	}
-	return "", nil
+	return "", true, nil
 }
 
 func (s *stubDriver) ListVariantStatusCounts(ctx context.Context) ([]VariantStatusCount, error) {
@@ -175,11 +232,11 @@ func (s *stubDriver) IncrementBlobRefCount(ctx context.Context, params Increment
 	return 0, nil
 }
 
-func (s *stubDriver) DecrementBlobRefCount(ctx context.Context, storageKey string, lastReferencedAt int64) (int, error) {
+func (s *stubDriver) DecrementBlobRefCount(ctx context.Context, storageKey string, lastReferencedAt int64) (int, bool, error) {
 	if s.decrementBlobRefCountFunc != nil {
 		return s.decrementBlobRefCountFunc(ctx, storageKey, lastReferencedAt)
 	}
-	return 0, nil
+	return 0, true, nil
 }
 
 func (s *stubDriver) DeleteBlobReferenceIfZero(ctx context.Context, storageKey string) error {
@@ -190,11 +247,11 @@ func (s *stubDriver) DeleteBlobReferenceIfZero(ctx context.Context, storageKey s
 	return nil
 }
 
-func (s *stubDriver) GetBlobRefCount(ctx context.Context, storageKey string) (int, error) {
+func (s *stubDriver) GetBlobRefCount(ctx context.Context, storageKey string) (int, bool, error) {
 	if s.getBlobRefCountFunc != nil {
 		return s.getBlobRefCountFunc(ctx, storageKey)
 	}
-	return 0, nil
+	return 0, true, nil
 }
 
 func (s *stubDriver) PopGCHints(ctx context.Context, limit int) ([]GCHintRow, error) {
@@ -242,34 +299,34 @@ func (s *stubDriver) DeleteArtefact(ctx context.Context, artefactID string) erro
 	return nil
 }
 
-func (s *stubDriver) DeleteVariantTagsForArtefact(ctx context.Context, artefactID string) error {
+func (s *stubDriver) DeleteVariantTagsForArtefact(ctx context.Context, artefactID, releaseID string) error {
 	s.record("DeleteVariantTagsForArtefact")
 	if s.deleteVariantTagsForArtefactFunc != nil {
-		return s.deleteVariantTagsForArtefactFunc(ctx, artefactID)
+		return s.deleteVariantTagsForArtefactFunc(ctx, artefactID, releaseID)
 	}
 	return nil
 }
 
-func (s *stubDriver) DeleteChunksForVariant(ctx context.Context, artefactID, variantID string) error {
-	s.record("DeleteChunksForVariant")
-	if s.deleteChunksForVariantFunc != nil {
-		return s.deleteChunksForVariantFunc(ctx, artefactID, variantID)
+func (s *stubDriver) DeleteChunksForArtefact(ctx context.Context, artefactID, releaseID string) error {
+	s.record("DeleteChunksForArtefact")
+	if s.deleteChunksForArtefactFunc != nil {
+		return s.deleteChunksForArtefactFunc(ctx, artefactID, releaseID)
 	}
 	return nil
 }
 
-func (s *stubDriver) DeleteVariantsForArtefact(ctx context.Context, artefactID string) error {
+func (s *stubDriver) DeleteVariantsForArtefact(ctx context.Context, artefactID, releaseID string) error {
 	s.record("DeleteVariantsForArtefact")
 	if s.deleteVariantsForArtefactFunc != nil {
-		return s.deleteVariantsForArtefactFunc(ctx, artefactID)
+		return s.deleteVariantsForArtefactFunc(ctx, artefactID, releaseID)
 	}
 	return nil
 }
 
-func (s *stubDriver) DeleteDesiredProfilesForArtefact(ctx context.Context, artefactID string) error {
+func (s *stubDriver) DeleteDesiredProfilesForArtefact(ctx context.Context, artefactID, releaseID string) error {
 	s.record("DeleteDesiredProfilesForArtefact")
 	if s.deleteDesiredProfilesForArtefactFunc != nil {
-		return s.deleteDesiredProfilesForArtefactFunc(ctx, artefactID)
+		return s.deleteDesiredProfilesForArtefactFunc(ctx, artefactID, releaseID)
 	}
 	return nil
 }
@@ -282,10 +339,10 @@ func (s *stubDriver) InsertVariant(ctx context.Context, params InsertVariantPara
 	return nil
 }
 
-func (s *stubDriver) InsertVariantTag(ctx context.Context, artefactID, variantID, tagKey, tagValue string) error {
+func (s *stubDriver) InsertVariantTag(ctx context.Context, artefactID, releaseID, variantID, tagKey, tagValue string) error {
 	s.record("InsertVariantTag")
 	if s.insertVariantTagFunc != nil {
-		return s.insertVariantTagFunc(ctx, artefactID, variantID, tagKey, tagValue)
+		return s.insertVariantTagFunc(ctx, artefactID, releaseID, variantID, tagKey, tagValue)
 	}
 	return nil
 }
@@ -302,6 +359,86 @@ func (s *stubDriver) InsertDesiredProfile(ctx context.Context, params InsertDesi
 	s.record("InsertDesiredProfile")
 	if s.insertDesiredProfileFunc != nil {
 		return s.insertDesiredProfileFunc(ctx, params)
+	}
+	return nil
+}
+
+func (s *stubDriver) InsertArtefactLayerIfAbsent(ctx context.Context, params UpsertArtefactParams) (bool, error) {
+	s.record("InsertArtefactLayerIfAbsent")
+	if s.insertArtefactLayerIfAbsentFunc != nil {
+		return s.insertArtefactLayerIfAbsentFunc(ctx, params)
+	}
+	return true, nil
+}
+
+func (s *stubDriver) DeleteArtefactLayer(ctx context.Context, artefactID, releaseID string) error {
+	s.record("DeleteArtefactLayer")
+	if s.deleteArtefactLayerFunc != nil {
+		return s.deleteArtefactLayerFunc(ctx, artefactID, releaseID)
+	}
+	return nil
+}
+
+func (s *stubDriver) DeleteArtefactLayersForRelease(ctx context.Context, releaseID string) error {
+	s.record("DeleteArtefactLayersForRelease")
+	if s.deleteArtefactLayersForReleaseFunc != nil {
+		return s.deleteArtefactLayersForReleaseFunc(ctx, releaseID)
+	}
+	return nil
+}
+
+func (s *stubDriver) ClaimRelease(ctx context.Context, params ClaimReleaseParams) (bool, error) {
+	s.record("ClaimRelease")
+	if s.claimReleaseFunc != nil {
+		return s.claimReleaseFunc(ctx, params)
+	}
+	return true, nil
+}
+
+func (s *stubDriver) GetRelease(ctx context.Context, releaseID string) (ReleaseLease, bool, error) {
+	s.record("GetRelease")
+	if s.getReleaseFunc != nil {
+		return s.getReleaseFunc(ctx, releaseID)
+	}
+	return ReleaseLease{}, false, nil
+}
+
+func (s *stubDriver) MarkReleasePublished(ctx context.Context, releaseID string, publishedAt, heartbeatAt int64) error {
+	s.record("MarkReleasePublished")
+	if s.markReleasePublishedFunc != nil {
+		return s.markReleasePublishedFunc(ctx, releaseID, publishedAt, heartbeatAt)
+	}
+	return nil
+}
+
+func (s *stubDriver) HeartbeatRelease(ctx context.Context, releaseID string, heartbeatAt int64) error {
+	s.record("HeartbeatRelease")
+	if s.heartbeatReleaseFunc != nil {
+		return s.heartbeatReleaseFunc(ctx, releaseID, heartbeatAt)
+	}
+	return nil
+}
+
+func (s *stubDriver) DeleteStalePublishingLease(ctx context.Context, releaseID string, staleBefore int64) error {
+	s.record("DeleteStalePublishingLease")
+	if s.deleteStalePublishingLeaseFunc != nil {
+		return s.deleteStalePublishingLeaseFunc(ctx, releaseID, staleBefore)
+	}
+	return nil
+}
+
+func (s *stubDriver) ListExpiredReleases(ctx context.Context, cutoff int64, ownRelease string) ([]string, error) {
+	s.record("ListExpiredReleases")
+	if s.listExpiredReleasesFunc != nil {
+		return s.listExpiredReleasesFunc(ctx, cutoff, ownRelease)
+	}
+	return nil, nil
+}
+
+func (s *stubDriver) DeleteReleaseLease(ctx context.Context, releaseID string) error {
+	s.record("DeleteReleaseLease")
+	if s.deleteReleaseLeaseFunc != nil {
+		return s.deleteReleaseLeaseFunc(ctx, releaseID)
 	}
 	return nil
 }
@@ -414,6 +551,7 @@ func TestProcessAtomicAction(t *testing.T) {
 			expectCalls: []string{
 				"UpsertArtefact",
 				"DeleteVariantTagsForArtefact",
+				"DeleteChunksForArtefact",
 				"DeleteVariantsForArtefact",
 				"DeleteDesiredProfilesForArtefact",
 			},
@@ -591,8 +729,8 @@ func TestFindArtefactByVariantStorageKey(t *testing.T) {
 		t.Parallel()
 		blob := buildArtefactBlob(t, "art-key")
 		stub := &stubDriver{
-			findArtefactIDByVariantStorageKeyFn: func(_ context.Context, _ string) (string, error) {
-				return "art-key", nil
+			findArtefactIDByVariantStorageKeyFn: func(_ context.Context, _ string) (string, bool, error) {
+				return "art-key", true, nil
 			},
 			getArtefactDataFunc: func(_ context.Context, _ string) ([]byte, error) {
 				return blob, nil
@@ -609,8 +747,8 @@ func TestFindArtefactByVariantStorageKey(t *testing.T) {
 	t.Run("no rows maps to ErrArtefactNotFound", func(t *testing.T) {
 		t.Parallel()
 		stub := &stubDriver{
-			findArtefactIDByVariantStorageKeyFn: func(_ context.Context, _ string) (string, error) {
-				return "", sql.ErrNoRows
+			findArtefactIDByVariantStorageKeyFn: func(_ context.Context, _ string) (string, bool, error) {
+				return "", false, nil
 			},
 		}
 		core := newStubCore(nil, stub)
@@ -921,8 +1059,8 @@ func TestDecrementBlobRefCount(t *testing.T) {
 		var calls []string
 		stub := &stubDriver{
 			calls: &calls,
-			decrementBlobRefCountFunc: func(_ context.Context, _ string, _ int64) (int, error) {
-				return 0, nil
+			decrementBlobRefCountFunc: func(_ context.Context, _ string, _ int64) (int, bool, error) {
+				return 0, true, nil
 			},
 		}
 		core := newStubCore(nil, stub)
@@ -940,8 +1078,8 @@ func TestDecrementBlobRefCount(t *testing.T) {
 		var calls []string
 		stub := &stubDriver{
 			calls: &calls,
-			decrementBlobRefCountFunc: func(_ context.Context, _ string, _ int64) (int, error) {
-				return 2, nil
+			decrementBlobRefCountFunc: func(_ context.Context, _ string, _ int64) (int, bool, error) {
+				return 2, true, nil
 			},
 		}
 		core := newStubCore(nil, stub)
@@ -957,8 +1095,8 @@ func TestDecrementBlobRefCount(t *testing.T) {
 	t.Run("no rows maps to ErrBlobReferenceNotFound", func(t *testing.T) {
 		t.Parallel()
 		stub := &stubDriver{
-			decrementBlobRefCountFunc: func(_ context.Context, _ string, _ int64) (int, error) {
-				return 0, sql.ErrNoRows
+			decrementBlobRefCountFunc: func(_ context.Context, _ string, _ int64) (int, bool, error) {
+				return 0, false, nil
 			},
 		}
 		core := newStubCore(nil, stub)
@@ -971,8 +1109,8 @@ func TestDecrementBlobRefCount(t *testing.T) {
 	t.Run("driver error is wrapped", func(t *testing.T) {
 		t.Parallel()
 		stub := &stubDriver{
-			decrementBlobRefCountFunc: func(_ context.Context, _ string, _ int64) (int, error) {
-				return 0, errors.New("db error")
+			decrementBlobRefCountFunc: func(_ context.Context, _ string, _ int64) (int, bool, error) {
+				return 0, false, errors.New("db error")
 			},
 		}
 		core := newStubCore(nil, stub)
@@ -989,8 +1127,8 @@ func TestGetBlobRefCount(t *testing.T) {
 	t.Run("returns the count", func(t *testing.T) {
 		t.Parallel()
 		stub := &stubDriver{
-			getBlobRefCountFunc: func(_ context.Context, _ string) (int, error) {
-				return 7, nil
+			getBlobRefCountFunc: func(_ context.Context, _ string) (int, bool, error) {
+				return 7, true, nil
 			},
 		}
 		core := newStubCore(nil, stub)
@@ -1004,8 +1142,8 @@ func TestGetBlobRefCount(t *testing.T) {
 	t.Run("no rows returns zero without error", func(t *testing.T) {
 		t.Parallel()
 		stub := &stubDriver{
-			getBlobRefCountFunc: func(_ context.Context, _ string) (int, error) {
-				return 0, sql.ErrNoRows
+			getBlobRefCountFunc: func(_ context.Context, _ string) (int, bool, error) {
+				return 0, false, nil
 			},
 		}
 		core := newStubCore(nil, stub)
@@ -1019,8 +1157,8 @@ func TestGetBlobRefCount(t *testing.T) {
 	t.Run("driver error is wrapped", func(t *testing.T) {
 		t.Parallel()
 		stub := &stubDriver{
-			getBlobRefCountFunc: func(_ context.Context, _ string) (int, error) {
-				return 0, errors.New("db error")
+			getBlobRefCountFunc: func(_ context.Context, _ string) (int, bool, error) {
+				return 0, false, errors.New("db error")
 			},
 		}
 		core := newStubCore(nil, stub)
@@ -1215,7 +1353,7 @@ func TestUpsertArtefactFanOut(t *testing.T) {
 	assert.Equal(t, []string{
 		"UpsertArtefact",
 		"DeleteVariantTagsForArtefact",
-		"DeleteChunksForVariant",
+		"DeleteChunksForArtefact",
 		"DeleteVariantsForArtefact",
 		"DeleteDesiredProfilesForArtefact",
 		"InsertVariant",

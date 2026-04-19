@@ -176,7 +176,7 @@ func TestKeywordArgumentNames_ReturnsAcceptedKeysInDisplayOrder(t *testing.T) {
 	spec, found := LookupDirective("piko.query")
 	require.True(t, found)
 
-	assert.Equal(t, []string{"dynamic", "readonly", "nullable", "group_by"}, KeywordArgumentNames(spec))
+	assert.Equal(t, []string{"dynamic", "readonly", "nullable", "optional", "group_by"}, KeywordArgumentNames(spec))
 }
 
 func TestKeywordArgumentNames_ReturnsNilForNilSpec(t *testing.T) {

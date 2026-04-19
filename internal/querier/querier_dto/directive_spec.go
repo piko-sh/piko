@@ -189,6 +189,7 @@ var (
 				{Name: "dynamic", Kind: KeywordArgumentIdent, AllowedValues: dynamicEnumValues, Description: "Emit a fluent runtime query builder instead of a static method."},
 				{Name: "readonly", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "Override automatic read-only detection."},
 				{Name: "nullable", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "Override automatic nullability propagation across the output columns."},
+				{Name: "optional", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "For command:one, return (row, false, nil) instead of the no-rows sentinel."},
 				{Name: "group_by", Kind: KeywordArgumentQualifiedIdent, Description: "Declare the grouping column for one-to-many embed joins."},
 			},
 		},

@@ -4,10 +4,15 @@ package db
 
 import "context"
 
-const deletedesiredprofilesforartefact = `DELETE FROM desired_profile WHERE artefact_id = ?;`
+const deletedesiredprofilesforartefact = `DELETE FROM desired_profile WHERE artefact_id = ? AND release_id = ?;`
 
-func (queries *Queries) DeleteDesiredProfilesForArtefact(ctx context.Context, artefactID string) error {
-	_, err := queries.writer.ExecContext(ctx, deletedesiredprofilesforartefact, artefactID)
+type DeleteDesiredProfilesForArtefactParams struct {
+	ArtefactID string
+	ReleaseID  string
+}
+
+func (queries *Queries) DeleteDesiredProfilesForArtefact(ctx context.Context, params DeleteDesiredProfilesForArtefactParams) error {
+	_, err := queries.writer.ExecContext(ctx, deletedesiredprofilesforartefact, params.ArtefactID, params.ReleaseID)
 	return err
 }
 
@@ -89,11 +94,12 @@ func (queries *Queries) GetDesiredProfilesForArtefactIDs(ctx context.Context, pa
 	return results, nil
 }
 
-const insertdesiredprofile = `INSERT INTO desired_profile (artefact_id, name, capability_name, priority, params_json, tags_json, depends_on_json)
-VALUES (?, ?, ?, ?, ?, ?, ?);`
+const insertdesiredprofile = `INSERT INTO desired_profile (artefact_id, release_id, name, capability_name, priority, params_json, tags_json, depends_on_json)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
 
 type InsertDesiredProfileParams struct {
 	ArtefactID     string
+	ReleaseID      string
 	Name           string
 	CapabilityName string
 	Priority       string
@@ -103,6 +109,6 @@ type InsertDesiredProfileParams struct {
 }
 
 func (queries *Queries) InsertDesiredProfile(ctx context.Context, params InsertDesiredProfileParams) error {
-	_, err := queries.writer.ExecContext(ctx, insertdesiredprofile, params.ArtefactID, params.Name, params.CapabilityName, params.Priority, params.ParamsJSON, params.TagsJSON, params.DependsOnJSON)
+	_, err := queries.writer.ExecContext(ctx, insertdesiredprofile, params.ArtefactID, params.ReleaseID, params.Name, params.CapabilityName, params.Priority, params.ParamsJSON, params.TagsJSON, params.DependsOnJSON)
 	return err
 }

@@ -430,7 +430,7 @@ func (tx *otterTransactionDAL) DecrementBlobRefCount(_ context.Context, storageK
 	tx.snapshotBlobRef(storageKey)
 
 	ref, exists := tx.parent.blobRefs[storageKey]
-	if !exists {
+	if !exists || ref.refCount <= 0 {
 		return 0, false, registry_domain.ErrBlobReferenceNotFound
 	}
 
@@ -647,7 +647,7 @@ func (d *DAL) GetArtefact(ctx context.Context, artefactID string) (*registry_dto
 	if !found {
 		return nil, registry_domain.ErrArtefactNotFound
 	}
-	return artefact, nil
+	return artefact.Clone(), nil
 }
 
 // GetMultipleArtefacts fetches several artefacts by their IDs.
@@ -663,7 +663,7 @@ func (d *DAL) GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([
 		if !found {
 			continue
 		}
-		results = append(results, artefact)
+		results = append(results, artefact.Clone())
 	}
 	return results, nil
 }
@@ -805,36 +805,11 @@ func (d *DAL) PopGCHints(_ context.Context, limit int) ([]registry_dto.GCHint, e
 //
 // Takes actions ([]registry_dto.AtomicAction) which lists the operations.
 //
-// Returns error when any action fails.
-//
-// Safe for concurrent use; holds a mutex for the entire batch.
+// Returns error when any action fails, after rolling the whole batch back.
 func (d *DAL) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	for _, action := range actions {
-		switch action.Type {
-		case registry_dto.ActionTypeUpsertArtefact:
-			if action.Artefact == nil {
-				return errors.New("upsert action missing artefact")
-			}
-			d.upsertArtefactLocked(ctx, action.Artefact)
-
-		case registry_dto.ActionTypeDeleteArtefact:
-			if action.ArtefactID == "" {
-				return errors.New("delete action missing artefact ID")
-			}
-			d.deleteArtefactLocked(ctx, action.ArtefactID)
-
-		case registry_dto.ActionTypeAddGCHints:
-			d.gcHints = append(d.gcHints, action.GCHints...)
-
-		default:
-			return fmt.Errorf("unknown action type: %s", action.Type)
-		}
-	}
-
-	return nil
+	return d.RunAtomic(ctx, func(ctx context.Context, transactionStore registry_domain.MetadataStore) error {
+		return transactionStore.AtomicUpdate(ctx, actions)
+	})
 }
 
 // IncrementBlobRefCount atomically increments the reference count for a blob.
@@ -1101,19 +1076,6 @@ func (d *DAL) upsertArtefactLocked(ctx context.Context, artefact *registry_dto.A
 	_ = d.artefacts.Set(ctx, artefact.ID, artefact)
 
 	d.addArtefactIndexesLocked(artefact)
-}
-
-// deleteArtefactLocked removes an artefact. Caller must hold mu.
-//
-// Takes artefactID (string) which identifies the artefact to remove.
-func (d *DAL) deleteArtefactLocked(ctx context.Context, artefactID string) {
-	artefact, found, _ := d.artefacts.GetIfPresent(ctx, artefactID)
-	if !found {
-		return
-	}
-
-	d.removeArtefactIndexesLocked(artefact)
-	_ = d.artefacts.Invalidate(ctx, artefactID)
 }
 
 // addArtefactIndexesLocked updates indexes for an artefact. Caller must hold mu.

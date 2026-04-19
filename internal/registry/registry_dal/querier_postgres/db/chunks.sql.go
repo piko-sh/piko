@@ -24,16 +24,16 @@ func (queries *Queries) CountChunksForVariant(ctx context.Context, params CountC
 	return row, nil
 }
 
-const deletechunksforvariant = `DELETE FROM registry_variant_chunk
-WHERE artefact_id = $1 AND variant_id = $2;`
+const deletechunksforartefact = `DELETE FROM registry_variant_chunk
+WHERE artefact_id = $1 AND release_id = $2;`
 
-type DeleteChunksForVariantParams struct {
+type DeleteChunksForArtefactParams struct {
 	ArtefactID string
-	VariantID  string
+	ReleaseID  string
 }
 
-func (queries *Queries) DeleteChunksForVariant(ctx context.Context, params DeleteChunksForVariantParams) error {
-	_, err := queries.writer.ExecContext(ctx, deletechunksforvariant, params.ArtefactID, params.VariantID)
+func (queries *Queries) DeleteChunksForArtefact(ctx context.Context, params DeleteChunksForArtefactParams) error {
+	_, err := queries.writer.ExecContext(ctx, deletechunksforartefact, params.ArtefactID, params.ReleaseID)
 	return err
 }
 
@@ -168,6 +168,7 @@ func (queries *Queries) GetChunksForVariants(ctx context.Context, params GetChun
 
 const insertvariantchunk = `INSERT INTO registry_variant_chunk (
   artefact_id,
+  release_id,
   variant_id,
   chunk_id,
   storage_key,
@@ -178,10 +179,11 @@ const insertvariantchunk = `INSERT INTO registry_variant_chunk (
   mime_type,
   created_at,
   duration_seconds
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);`
 
 type InsertVariantChunkParams struct {
 	ArtefactID       string
+	ReleaseID        string
 	VariantID        string
 	ChunkID          string
 	StorageKey       string
@@ -195,6 +197,6 @@ type InsertVariantChunkParams struct {
 }
 
 func (queries *Queries) InsertVariantChunk(ctx context.Context, params InsertVariantChunkParams) error {
-	_, err := queries.writer.ExecContext(ctx, insertvariantchunk, params.ArtefactID, params.VariantID, params.ChunkID, params.StorageKey, params.StorageBackendID, params.SizeBytes, params.ContentHash, params.SequenceNumber, params.MimeType, params.CreatedAt, params.DurationSeconds)
+	_, err := queries.writer.ExecContext(ctx, insertvariantchunk, params.ArtefactID, params.ReleaseID, params.VariantID, params.ChunkID, params.StorageKey, params.StorageBackendID, params.SizeBytes, params.ContentHash, params.SequenceNumber, params.MimeType, params.CreatedAt, params.DurationSeconds)
 	return err
 }

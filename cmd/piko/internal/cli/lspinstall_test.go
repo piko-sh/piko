@@ -29,8 +29,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAssetName(t *testing.T) {
@@ -39,9 +41,7 @@ func TestAssetName(t *testing.T) {
 	plat := platform{os: "linux", arch: "amd64", archiveExt: "tar.gz", binaryFile: "pikopls"}
 	got := assetName("0.0.0-alpha.26", plat)
 	want := "pikopls-0.0.0-alpha.26-linux-amd64.tar.gz"
-	if got != want {
-		t.Errorf("assetName() = %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got, "assetName() = %q, want %q", got, want)
 }
 
 func TestCurrentPlatform(t *testing.T) {
@@ -51,9 +51,7 @@ func TestCurrentPlatform(t *testing.T) {
 	if err != nil {
 		t.Skipf("host platform unsupported: %v", err)
 	}
-	if plat.os == "" || plat.arch == "" || plat.binaryFile == "" || plat.archiveExt == "" {
-		t.Errorf("incomplete platform: %+v", plat)
-	}
+	assert.False(t, plat.os == "" || plat.arch == "" || plat.binaryFile == "" || plat.archiveExt == "", "incomplete platform: %+v", plat)
 }
 
 func TestExtractFromTarGz(t *testing.T) {
@@ -63,21 +61,16 @@ func TestExtractFromTarGz(t *testing.T) {
 	archive := makeTarGz(t, "pikopls", content)
 
 	got, err := extractFromTarGz(archive, "pikopls")
-	if err != nil {
-		t.Fatalf("extractFromTarGz() = %v", err)
-	}
-	if !bytes.Equal(got, content) {
-		t.Error("extracted content does not match")
-	}
+	require.NoError(t, err, "extractFromTarGz() = %v", err)
+	assert.True(t, bytes.Equal(got, content), "extracted content does not match")
 }
 
 func TestExtractFromTarGz_MissingBinary(t *testing.T) {
 	t.Parallel()
 
 	archive := makeTarGz(t, "something-else", []byte("x"))
-	if _, err := extractFromTarGz(archive, "pikopls"); err == nil {
-		t.Error("expected an error when the binary is absent")
-	}
+	_, err := extractFromTarGz(archive, "pikopls")
+	assert.Error(t, err, "expected an error when the binary is absent")
 }
 
 func TestEnsureInstalled_AlreadyOnPath(t *testing.T) {
@@ -86,9 +79,7 @@ func TestEnsureInstalled_AlreadyOnPath(t *testing.T) {
 	lookPath = func(string) (string, error) { return "/usr/local/bin/pikopls", nil }
 
 	status := EnsureInstalled(context.Background(), "1.2.3")
-	if !strings.Contains(status, "already on PATH") {
-		t.Errorf("status = %q, want it to report the binary is already on PATH", status)
-	}
+	assert.Contains(t, status, "already on PATH", "status = %q, want it to report the binary is already on PATH", status)
 }
 
 func TestEnsureInstalled_DownloadsAndInstalls(t *testing.T) {
@@ -130,15 +121,9 @@ func TestEnsureInstalled_DownloadsAndInstalls(t *testing.T) {
 
 	installed := filepath.Join(home, ".local", "bin", plat.binaryFile)
 	got, err := os.ReadFile(installed)
-	if err != nil {
-		t.Fatalf("binary not installed (status %q): %v", status, err)
-	}
-	if !bytes.Equal(got, content) {
-		t.Error("installed binary content does not match the archived binary")
-	}
-	if !strings.Contains(status, "installed pikopls "+version) {
-		t.Errorf("status = %q, want it to confirm install of %s", status, version)
-	}
+	require.NoError(t, err, "binary not installed (status %q): %v", status, err)
+	assert.True(t, bytes.Equal(got, content), "installed binary content does not match the archived binary")
+	assert.Contains(t, status, "installed pikopls "+version, "status = %q, want it to confirm install of %s", status, version)
 }
 
 func makeTarGz(t *testing.T, name string, content []byte) []byte {
@@ -149,18 +134,14 @@ func makeTarGz(t *testing.T, name string, content []byte) []byte {
 	tw := tar.NewWriter(gzw)
 
 	header := &tar.Header{Name: name, Mode: 0o755, Size: int64(len(content)), Typeflag: tar.TypeReg}
-	if err := tw.WriteHeader(header); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := tw.Write(content); err != nil {
-		t.Fatal(err)
-	}
-	if err := tw.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if err := gzw.Close(); err != nil {
-		t.Fatal(err)
-	}
+	err := tw.WriteHeader(header)
+	require.NoError(t, err)
+	_, err = tw.Write(content)
+	require.NoError(t, err)
+	err = tw.Close()
+	require.NoError(t, err)
+	err = gzw.Close()
+	require.NoError(t, err)
 	return buffer.Bytes()
 }
 
@@ -170,14 +151,10 @@ func makeZip(t *testing.T, name string, content []byte) []byte {
 	var buffer bytes.Buffer
 	zw := zip.NewWriter(&buffer)
 	writer, err := zw.Create(name)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := writer.Write(content); err != nil {
-		t.Fatal(err)
-	}
-	if err := zw.Close(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+	_, err = writer.Write(content)
+	require.NoError(t, err)
+	err = zw.Close()
+	require.NoError(t, err)
 	return buffer.Bytes()
 }

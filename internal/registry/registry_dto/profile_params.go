@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"iter"
 	"maps"
+	"slices"
 
 	"piko.sh/piko/internal/json"
 )
@@ -217,8 +218,8 @@ func (p *ProfileParams) All() iter.Seq2[string, string] {
 				}
 			}
 		}
-		for k, v := range p.Custom {
-			if !yield(k, v) {
+		for _, k := range slices.Sorted(maps.Keys(p.Custom)) {
+			if !yield(k, p.Custom[k]) {
 				return
 			}
 		}

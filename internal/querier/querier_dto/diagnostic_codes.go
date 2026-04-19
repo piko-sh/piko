@@ -261,8 +261,18 @@ const (
 	// NOTHING with a RETURNING clause.
 	//
 	// When a conflict occurs the insert is skipped and RETURNING yields no row, so the
-	// generated QueryRow scan returns sql.ErrNoRows on the conflict path. The query is
-	// valid; the warning steers the author towards command:exec / execrows or explicit
-	// sql.ErrNoRows handling.
+	// generated QueryRow scan returns the driver no-rows sentinel (sql.ErrNoRows, or
+	// pgx.ErrNoRows for native pgx) on the conflict path. The query is valid; the warning
+	// steers the author towards optional: true (which returns (row, false, nil)),
+	// command:exec / execrows, or explicit errors.Is handling.
 	CodeConflictDoNothingReturning = "Q046"
+
+	// CodeOptionalNonOneCommand indicates optional: true was set on a query where it does
+	// not apply.
+	//
+	// The optional flag only makes sense on a static command:one, where it turns a zero-row
+	// result into (row, false, nil) rather than the driver no-rows sentinel. On any other
+	// command, or combined with dynamic runtime builders or optional predicate params, it
+	// has no meaning, so it is rejected rather than silently ignored.
+	CodeOptionalNonOneCommand = "Q047"
 )

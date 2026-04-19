@@ -17,18 +17,38 @@
 -- strip others of their rights and dignity.
 
 CREATE TABLE IF NOT EXISTS registry_artefact (
-  id TEXT PRIMARY KEY NOT NULL,
+  id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   source_path TEXT NOT NULL,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL,
-  data_fbs BYTEA NOT NULL
+  data_fbs BYTEA NOT NULL,
+
+  PRIMARY KEY (id, release_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_registry_artefact_id ON registry_artefact (id);
+CREATE INDEX IF NOT EXISTS idx_registry_artefact_release ON registry_artefact (release_id);
 CREATE INDEX IF NOT EXISTS idx_registry_artefact_source_path ON registry_artefact (source_path);
+
+CREATE TABLE IF NOT EXISTS registry_release_lease (
+  release_id TEXT PRIMARY KEY NOT NULL,
+  publish_digest TEXT NOT NULL,
+  state TEXT NOT NULL,
+  first_seen_at BIGINT NOT NULL,
+  published_at BIGINT NOT NULL DEFAULT 0,
+  heartbeat_at BIGINT NOT NULL,
+  retired_at BIGINT NOT NULL DEFAULT 0,
+
+  CHECK (state IN ('publishing', 'published'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_registry_release_lease_heartbeat ON registry_release_lease (state, heartbeat_at);
 
 CREATE TABLE IF NOT EXISTS registry_desired_profile (
   id BIGSERIAL PRIMARY KEY,
   artefact_id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   name TEXT NOT NULL,
   capability_name TEXT NOT NULL,
   priority TEXT NOT NULL,
@@ -37,8 +57,8 @@ CREATE TABLE IF NOT EXISTS registry_desired_profile (
   depends_on_json TEXT NOT NULL DEFAULT '[]',
 
   CONSTRAINT fk_registry_desired_profile_artefact
-    FOREIGN KEY (artefact_id) REFERENCES registry_artefact(id) ON DELETE CASCADE,
-  UNIQUE(artefact_id, name)
+    FOREIGN KEY (artefact_id, release_id) REFERENCES registry_artefact(id, release_id) ON DELETE CASCADE,
+  UNIQUE(artefact_id, release_id, name)
 );
 
 CREATE INDEX IF NOT EXISTS idx_registry_desired_profile_artefact_id ON registry_desired_profile (artefact_id);
@@ -46,6 +66,7 @@ CREATE INDEX IF NOT EXISTS idx_registry_desired_profile_artefact_id ON registry_
 CREATE TABLE IF NOT EXISTS registry_variant (
   id BIGSERIAL PRIMARY KEY,
   artefact_id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   variant_id TEXT NOT NULL,
   storage_key TEXT NOT NULL,
   storage_backend_id TEXT NOT NULL,
@@ -55,12 +76,13 @@ CREATE TABLE IF NOT EXISTS registry_variant (
   created_at BIGINT NOT NULL,
 
   CONSTRAINT fk_registry_variant_artefact
-    FOREIGN KEY (artefact_id) REFERENCES registry_artefact(id) ON DELETE CASCADE,
-  UNIQUE(artefact_id, variant_id)
+    FOREIGN KEY (artefact_id, release_id) REFERENCES registry_artefact(id, release_id) ON DELETE CASCADE,
+  UNIQUE(artefact_id, release_id, variant_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_registry_variant_artefact_id ON registry_variant (artefact_id);
 CREATE INDEX IF NOT EXISTS idx_registry_variant_storage_key ON registry_variant (storage_key);
+CREATE INDEX IF NOT EXISTS idx_registry_variant_release ON registry_variant (release_id);
 
 CREATE TABLE IF NOT EXISTS registry_blob_reference (
   storage_key TEXT PRIMARY KEY NOT NULL,
@@ -70,7 +92,9 @@ CREATE TABLE IF NOT EXISTS registry_blob_reference (
   size_bytes BIGINT NOT NULL,
   mime_type TEXT NOT NULL DEFAULT 'application/octet-stream',
   created_at BIGINT NOT NULL,
-  last_referenced_at BIGINT NOT NULL
+  last_referenced_at BIGINT NOT NULL,
+
+  CHECK (ref_count >= 0)
 );
 
 CREATE INDEX IF NOT EXISTS idx_registry_blob_ref_backend ON registry_blob_reference (storage_backend_id);
@@ -80,12 +104,13 @@ CREATE INDEX IF NOT EXISTS idx_registry_blob_ref_count ON registry_blob_referenc
 CREATE TABLE IF NOT EXISTS registry_variant_tag (
   id BIGSERIAL PRIMARY KEY,
   artefact_id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   variant_id TEXT NOT NULL,
   tag_key TEXT NOT NULL,
   tag_value TEXT NOT NULL,
 
   CONSTRAINT fk_registry_variant_tag_artefact
-    FOREIGN KEY (artefact_id) REFERENCES registry_artefact(id) ON DELETE CASCADE
+    FOREIGN KEY (artefact_id, release_id) REFERENCES registry_artefact(id, release_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_registry_variant_tag_key_value ON registry_variant_tag (tag_key, tag_value);
@@ -101,6 +126,7 @@ CREATE TABLE IF NOT EXISTS registry_gc_hint (
 CREATE TABLE IF NOT EXISTS registry_variant_chunk (
   id BIGSERIAL PRIMARY KEY,
   artefact_id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   variant_id TEXT NOT NULL,
   chunk_id TEXT NOT NULL,
   storage_key TEXT NOT NULL,
@@ -114,10 +140,10 @@ CREATE TABLE IF NOT EXISTS registry_variant_chunk (
   duration_seconds DOUBLE PRECISION,
 
   CONSTRAINT fk_registry_variant_chunk_artefact
-    FOREIGN KEY (artefact_id) REFERENCES registry_artefact(id) ON DELETE CASCADE,
+    FOREIGN KEY (artefact_id, release_id) REFERENCES registry_artefact(id, release_id) ON DELETE CASCADE,
 
-  UNIQUE(artefact_id, variant_id, chunk_id),
-  UNIQUE(artefact_id, variant_id, sequence_number),
+  UNIQUE(artefact_id, release_id, variant_id, chunk_id),
+  UNIQUE(artefact_id, release_id, variant_id, sequence_number),
 
   CHECK(size_bytes > 0),
   CHECK(sequence_number >= 0)

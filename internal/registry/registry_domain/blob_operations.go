@@ -254,6 +254,18 @@ func (s *registryService) PopGCHints(ctx context.Context, limit int) ([]registry
 	return hints, nil
 }
 
+// GetBlobRefCount returns the current reference count for a blob by delegating to the
+// metadata store. Garbage collection calls it to confirm a hinted blob is still
+// unreferenced immediately before deleting it.
+//
+// Takes storageKey (string) which identifies the blob.
+//
+// Returns int which is the blob's current reference count.
+// Returns error when the metadata store lookup fails.
+func (s *registryService) GetBlobRefCount(ctx context.Context, storageKey string) (int, error) {
+	return s.metaStore.GetBlobRefCount(ctx, storageKey)
+}
+
 // ListBlobStoreIDs returns the identifiers of all registered blob storage backends,
 // sorted alphabetically.
 //

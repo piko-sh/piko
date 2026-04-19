@@ -27,6 +27,9 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRunInspect_MissingArgs(t *testing.T) {
@@ -45,12 +48,8 @@ func TestRunInspect_MissingArgs(t *testing.T) {
 			t.Parallel()
 			var stdout, stderr bytes.Buffer
 			code := RunInspectWithIO(tc.arguments, &stdout, &stderr)
-			if code != 1 {
-				t.Errorf("exit code = %d, want 1", code)
-			}
-			if !strings.Contains(stderr.String(), "piko inspect") {
-				t.Errorf("stderr should contain usage text, got: %s", stderr.String())
-			}
+			assert.Equal(t, 1, code, "exit code = %d, want 1", code)
+			assert.Contains(t, stderr.String(), "piko inspect", "stderr should contain usage text, got: %s", stderr.String())
 		})
 	}
 }
@@ -60,15 +59,9 @@ func TestRunInspect_UnknownType(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	code := RunInspectWithIO([]string{"nonexistent", "file.bin"}, &stdout, &stderr)
-	if code != 1 {
-		t.Errorf("exit code = %d, want 1", code)
-	}
-	if !strings.Contains(stderr.String(), "Unknown type") {
-		t.Errorf("stderr should mention unknown type, got: %s", stderr.String())
-	}
-	if !strings.Contains(stderr.String(), "nonexistent") {
-		t.Errorf("stderr should include the type name, got: %s", stderr.String())
-	}
+	assert.Equal(t, 1, code, "exit code = %d, want 1", code)
+	assert.Contains(t, stderr.String(), "Unknown type", "stderr should mention unknown type, got: %s", stderr.String())
+	assert.Contains(t, stderr.String(), "nonexistent", "stderr should include the type name, got: %s", stderr.String())
 }
 
 func TestRunInspect_UnknownFlag(t *testing.T) {
@@ -76,12 +69,8 @@ func TestRunInspect_UnknownFlag(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	code := RunInspectWithIO([]string{"wal", "file.wal", "--bogus"}, &stdout, &stderr)
-	if code != 1 {
-		t.Errorf("exit code = %d, want 1", code)
-	}
-	if !strings.Contains(stderr.String(), "--bogus") {
-		t.Errorf("stderr should mention the unknown flag, got: %s", stderr.String())
-	}
+	assert.Equal(t, 1, code, "exit code = %d, want 1", code)
+	assert.Contains(t, stderr.String(), "--bogus", "stderr should mention the unknown flag, got: %s", stderr.String())
 }
 
 func TestRunInspect_EffectiveOnNonWAL(t *testing.T) {
@@ -89,12 +78,8 @@ func TestRunInspect_EffectiveOnNonWAL(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	code := RunInspectWithIO([]string{"manifest", "file.bin", "--effective"}, &stdout, &stderr)
-	if code != 1 {
-		t.Errorf("exit code = %d, want 1", code)
-	}
-	if !strings.Contains(stderr.String(), "--effective") {
-		t.Errorf("stderr should mention --effective, got: %s", stderr.String())
-	}
+	assert.Equal(t, 1, code, "exit code = %d, want 1", code)
+	assert.Contains(t, stderr.String(), "--effective", "stderr should mention --effective, got: %s", stderr.String())
 }
 
 func TestRunInspect_FileNotFound(t *testing.T) {
@@ -102,12 +87,8 @@ func TestRunInspect_FileNotFound(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	code := RunInspectWithIO([]string{"manifest", "/nonexistent/path/file.bin"}, &stdout, &stderr)
-	if code != 1 {
-		t.Errorf("exit code = %d, want 1", code)
-	}
-	if !strings.Contains(stderr.String(), "Error") {
-		t.Errorf("stderr should contain error, got: %s", stderr.String())
-	}
+	assert.Equal(t, 1, code, "exit code = %d, want 1", code)
+	assert.Contains(t, stderr.String(), "Error", "stderr should contain error, got: %s", stderr.String())
 }
 
 func TestRunInspect_Usage(t *testing.T) {
@@ -119,20 +100,12 @@ func TestRunInspect_Usage(t *testing.T) {
 
 	types := []string{"manifest", "i18n", "collection", "search", "wal"}
 	for _, typ := range types {
-		if !strings.Contains(output, typ) {
-			t.Errorf("usage text should contain type %q", typ)
-		}
+		assert.Contains(t, output, typ, "usage text should contain type %q", typ)
 	}
 
-	if !strings.Contains(output, "--compact") {
-		t.Error("usage text should mention --compact flag")
-	}
-	if !strings.Contains(output, "--effective") {
-		t.Error("usage text should mention --effective flag")
-	}
-	if !strings.Contains(output, "--parse-values") {
-		t.Error("usage text should mention --parse-values flag")
-	}
+	assert.Contains(t, output, "--compact", "usage text should mention --compact flag")
+	assert.Contains(t, output, "--effective", "usage text should mention --effective flag")
+	assert.Contains(t, output, "--parse-values", "usage text should mention --parse-values flag")
 }
 
 func TestInspectHandlers_AllRegistered(t *testing.T) {
@@ -140,9 +113,8 @@ func TestInspectHandlers_AllRegistered(t *testing.T) {
 
 	expectedTypes := []string{"manifest", "i18n", "collection", "search", "wal"}
 	for _, typ := range expectedTypes {
-		if _, ok := inspectHandlers[typ]; !ok {
-			t.Errorf("inspectHandlers missing type %q", typ)
-		}
+		_, ok := inspectHandlers[typ]
+		assert.True(t, ok, "inspectHandlers missing type %q", typ)
 	}
 }
 
@@ -152,48 +124,32 @@ func TestRunInspect_WAL(t *testing.T) {
 	data := buildTestWALEntry("my-key", "my-value", 1, 1700000000000000000, 0, nil)
 
 	directory := t.TempDir()
-	if err := os.WriteFile(filepath.Join(directory, "test.wal"), data, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(directory, "test.wal"), data, 0o600)
+	require.NoError(t, err)
 
 	var stdout, stderr bytes.Buffer
 	code := RunInspectWithIO([]string{"wal", filepath.Join(directory, "test.wal")}, &stdout, &stderr)
-	if code != 0 {
-		t.Fatalf("exit code = %d, stderr: %s", code, stderr.String())
-	}
+	require.Equal(t, 0, code, "exit code = %d, stderr: %s", code, stderr.String())
 
 	output := stdout.String()
-	if !strings.Contains(output, "my-key") {
-		t.Errorf("output should contain key, got: %s", output)
-	}
-	if !strings.Contains(output, "my-value") {
-		t.Errorf("output should contain value, got: %s", output)
-	}
-	if !strings.Contains(output, "SET") {
-		t.Errorf("output should contain operation, got: %s", output)
-	}
-	if !strings.Contains(output, `"entryCount": 1`) {
-		t.Errorf("output should contain entryCount, got: %s", output)
-	}
+	assert.Contains(t, output, "my-key", "output should contain key, got: %s", output)
+	assert.Contains(t, output, "my-value", "output should contain value, got: %s", output)
+	assert.Contains(t, output, "SET", "output should contain operation, got: %s", output)
+	assert.Contains(t, output, `"entryCount": 1`, "output should contain entryCount, got: %s", output)
 }
 
 func TestRunInspect_WAL_Empty(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
-	if err := os.WriteFile(filepath.Join(directory, "empty.wal"), nil, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(directory, "empty.wal"), nil, 0o600)
+	require.NoError(t, err)
 
 	var stdout, stderr bytes.Buffer
 	code := RunInspectWithIO([]string{"wal", filepath.Join(directory, "empty.wal")}, &stdout, &stderr)
-	if code != 0 {
-		t.Fatalf("exit code = %d, stderr: %s", code, stderr.String())
-	}
+	require.Equal(t, 0, code, "exit code = %d, stderr: %s", code, stderr.String())
 
-	if !strings.Contains(stdout.String(), `"entryCount": 0`) {
-		t.Errorf("output should contain entryCount 0, got: %s", stdout.String())
-	}
+	assert.Contains(t, stdout.String(), `"entryCount": 0`, "output should contain entryCount 0, got: %s", stdout.String())
 }
 
 func TestRunInspect_WAL_Effective(t *testing.T) {
@@ -206,42 +162,27 @@ func TestRunInspect_WAL_Effective(t *testing.T) {
 	)
 
 	directory := t.TempDir()
-	if err := os.WriteFile(filepath.Join(directory, "test.wal"), data, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(directory, "test.wal"), data, 0o600)
+	require.NoError(t, err)
 
 	walFile := filepath.Join(directory, "test.wal")
 
 	var stdout, stderr bytes.Buffer
 	code := RunInspectWithIO([]string{"wal", walFile, "--effective"}, &stdout, &stderr)
-	if code != 0 {
-		t.Fatalf("exit code = %d, stderr: %s", code, stderr.String())
-	}
+	require.Equal(t, 0, code, "exit code = %d, stderr: %s", code, stderr.String())
 
 	output := stdout.String()
-	if !strings.Contains(output, `"entryCount": 2`) {
-		t.Errorf("effective should have 2 entries, got: %s", output)
-	}
-	if !strings.Contains(output, `"originalEntryCount": 3`) {
-		t.Errorf("should report original count of 3, got: %s", output)
-	}
+	assert.Contains(t, output, `"entryCount": 2`, "effective should have 2 entries, got: %s", output)
+	assert.Contains(t, output, `"originalEntryCount": 3`, "should report original count of 3, got: %s", output)
 
-	if strings.Contains(output, `"v1"`) {
-		t.Errorf("effective should not contain superseded value v1, got: %s", output)
-	}
-	if !strings.Contains(output, `"v2"`) {
-		t.Errorf("effective should contain latest value v2, got: %s", output)
-	}
+	assert.NotContains(t, output, `"v1"`, "effective should not contain superseded value v1, got: %s", output)
+	assert.Contains(t, output, `"v2"`, "effective should contain latest value v2, got: %s", output)
 
 	stdout.Reset()
 	stderr.Reset()
 	code = RunInspectWithIO([]string{"--effective", "wal", walFile}, &stdout, &stderr)
-	if code != 0 {
-		t.Fatalf("flag-first: exit code = %d, stderr: %s", code, stderr.String())
-	}
-	if !strings.Contains(stdout.String(), `"entryCount": 2`) {
-		t.Errorf("flag-first: effective should have 2 entries, got: %s", stdout.String())
-	}
+	require.Equal(t, 0, code, "flag-first: exit code = %d, stderr: %s", code, stderr.String())
+	assert.Contains(t, stdout.String(), `"entryCount": 2`, "flag-first: effective should have 2 entries, got: %s", stdout.String())
 }
 
 func TestRunInspect_WAL_ParseValues(t *testing.T) {
@@ -252,34 +193,23 @@ func TestRunInspect_WAL_ParseValues(t *testing.T) {
 
 	directory := t.TempDir()
 	walFile := filepath.Join(directory, "test.wal")
-	if err := os.WriteFile(walFile, data, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(walFile, data, 0o600)
+	require.NoError(t, err)
 
 	var stdout, stderr bytes.Buffer
 	code := RunInspectWithIO([]string{"wal", walFile}, &stdout, &stderr)
-	if code != 0 {
-		t.Fatalf("exit code = %d, stderr: %s", code, stderr.String())
-	}
+	require.Equal(t, 0, code, "exit code = %d, stderr: %s", code, stderr.String())
 
-	if !strings.Contains(stdout.String(), `"value": "{\"name\":\"widget\"`) {
-		t.Errorf("without --parse-values, value should be a string, got: %s", stdout.String())
-	}
+	assert.Contains(t, stdout.String(), `"value": "{\"name\":\"widget\"`, "without --parse-values, value should be a string, got: %s", stdout.String())
 
 	stdout.Reset()
 	stderr.Reset()
 	code = RunInspectWithIO([]string{"wal", walFile, "--parse-values"}, &stdout, &stderr)
-	if code != 0 {
-		t.Fatalf("exit code = %d, stderr: %s", code, stderr.String())
-	}
+	require.Equal(t, 0, code, "exit code = %d, stderr: %s", code, stderr.String())
 	output := stdout.String()
 
-	if !strings.Contains(output, `"name": "widget"`) {
-		t.Errorf("with --parse-values, value should be parsed JSON, got: %s", output)
-	}
-	if !strings.Contains(output, `"count": 3`) {
-		t.Errorf("with --parse-values, parsed value should have count, got: %s", output)
-	}
+	assert.Contains(t, output, `"name": "widget"`, "with --parse-values, value should be parsed JSON, got: %s", output)
+	assert.Contains(t, output, `"count": 3`, "with --parse-values, parsed value should have count, got: %s", output)
 }
 
 func TestRunInspect_WAL_ParseValues_NonJSON(t *testing.T) {
@@ -289,18 +219,13 @@ func TestRunInspect_WAL_ParseValues_NonJSON(t *testing.T) {
 
 	directory := t.TempDir()
 	walFile := filepath.Join(directory, "test.wal")
-	if err := os.WriteFile(walFile, data, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(walFile, data, 0o600)
+	require.NoError(t, err)
 
 	var stdout, stderr bytes.Buffer
 	code := RunInspectWithIO([]string{"wal", walFile, "--parse-values"}, &stdout, &stderr)
-	if code != 0 {
-		t.Fatalf("exit code = %d, stderr: %s", code, stderr.String())
-	}
-	if !strings.Contains(stdout.String(), `"just-a-string"`) {
-		t.Errorf("non-JSON value should remain a string, got: %s", stdout.String())
-	}
+	require.Equal(t, 0, code, "exit code = %d, stderr: %s", code, stderr.String())
+	assert.Contains(t, stdout.String(), `"just-a-string"`, "non-JSON value should remain a string, got: %s", stdout.String())
 }
 
 func TestParseWALValues(t *testing.T) {
@@ -316,17 +241,14 @@ func TestParseWALValues(t *testing.T) {
 		},
 	})
 
-	if _, ok := result.Entries[0].Value.(map[string]any); !ok {
-		t.Errorf("entry 0 value should be map, got %T", result.Entries[0].Value)
-	}
+	_, ok := result.Entries[0].Value.(map[string]any)
+	assert.True(t, ok, "entry 0 value should be map, got %T", result.Entries[0].Value)
 
-	if _, ok := result.Entries[1].Value.([]any); !ok {
-		t.Errorf("entry 1 value should be slice, got %T", result.Entries[1].Value)
-	}
+	_, ok = result.Entries[1].Value.([]any)
+	assert.True(t, ok, "entry 1 value should be slice, got %T", result.Entries[1].Value)
 
-	if v, ok := result.Entries[2].Value.(string); !ok || v != "hello" {
-		t.Errorf("entry 2 value should be string 'hello', got %v (%T)", result.Entries[2].Value, result.Entries[2].Value)
-	}
+	v, ok := result.Entries[2].Value.(string)
+	assert.False(t, !ok || v != "hello", "entry 2 value should be string 'hello', got %v (%T)", result.Entries[2].Value, result.Entries[2].Value)
 }
 
 func TestParseWALValues_ScalarsUnchanged(t *testing.T) {
@@ -341,12 +263,10 @@ func TestParseWALValues_ScalarsUnchanged(t *testing.T) {
 		},
 	})
 
-	if v, ok := result.Entries[0].Value.(string); !ok || v != "42" {
-		t.Errorf("numeric string should stay as string, got %v (%T)", result.Entries[0].Value, result.Entries[0].Value)
-	}
-	if v, ok := result.Entries[1].Value.(string); !ok || v != "true" {
-		t.Errorf("boolean string should stay as string, got %v (%T)", result.Entries[1].Value, result.Entries[1].Value)
-	}
+	v, ok := result.Entries[0].Value.(string)
+	assert.False(t, !ok || v != "42", "numeric string should stay as string, got %v (%T)", result.Entries[0].Value, result.Entries[0].Value)
+	v, ok = result.Entries[1].Value.(string)
+	assert.False(t, !ok || v != "true", "boolean string should stay as string, got %v (%T)", result.Entries[1].Value, result.Entries[1].Value)
 }
 
 func TestEffectiveWALResult_DeduplicatesKeys(t *testing.T) {
@@ -365,15 +285,9 @@ func TestEffectiveWALResult_DeduplicatesKeys(t *testing.T) {
 
 	result := effectiveWALResult(full)
 
-	if result.EntryCount != 3 {
-		t.Errorf("entryCount = %d, want 3", result.EntryCount)
-	}
-	if result.OriginalEntryCount != 4 {
-		t.Errorf("originalEntryCount = %d, want 4", result.OriginalEntryCount)
-	}
-	if result.FileSize != 1000 {
-		t.Errorf("fileSize = %d, want 1000", result.FileSize)
-	}
+	assert.Equal(t, 3, result.EntryCount, "entryCount = %d, want 3", result.EntryCount)
+	assert.Equal(t, 4, result.OriginalEntryCount, "originalEntryCount = %d, want 4", result.OriginalEntryCount)
+	assert.Equal(t, 1000, result.FileSize, "fileSize = %d, want 1000", result.FileSize)
 
 	keys := make([]string, len(result.Entries))
 	for i, e := range result.Entries {
@@ -381,9 +295,7 @@ func TestEffectiveWALResult_DeduplicatesKeys(t *testing.T) {
 	}
 	want := "b=b1,a=a2,c=c1"
 	got := strings.Join(keys, ",")
-	if got != want {
-		t.Errorf("effective entries = %s, want %s", got, want)
-	}
+	assert.Equal(t, want, got, "effective entries = %s, want %s", got, want)
 }
 
 func TestEffectiveWALResult_RespectsDelete(t *testing.T) {
@@ -401,13 +313,9 @@ func TestEffectiveWALResult_RespectsDelete(t *testing.T) {
 
 	result := effectiveWALResult(full)
 
-	if result.EntryCount != 2 {
-		t.Errorf("entryCount = %d, want 2", result.EntryCount)
-	}
+	assert.Equal(t, 2, result.EntryCount, "entryCount = %d, want 2", result.EntryCount)
 
-	if result.Entries[1].Operation != "DELETE" {
-		t.Errorf("entry for 'a' op = %s, want DELETE", result.Entries[1].Operation)
-	}
+	assert.Equal(t, "DELETE", result.Entries[1].Operation, "entry for 'a' op = %s, want DELETE", result.Entries[1].Operation)
 }
 
 func TestEffectiveWALResult_DiscardBeforeClear(t *testing.T) {
@@ -426,13 +334,9 @@ func TestEffectiveWALResult_DiscardBeforeClear(t *testing.T) {
 
 	result := effectiveWALResult(full)
 
-	if result.EntryCount != 2 {
-		t.Errorf("entryCount = %d, want 2", result.EntryCount)
-	}
+	assert.Equal(t, 2, result.EntryCount, "entryCount = %d, want 2", result.EntryCount)
 	for _, e := range result.Entries {
-		if e.Key == "old" {
-			t.Error("entry before CLEAR should be discarded")
-		}
+		assert.NotEqual(t, "old", e.Key, "entry before CLEAR should be discarded")
 	}
 }
 
@@ -440,9 +344,7 @@ func TestEffectiveWALResult_Empty(t *testing.T) {
 	t.Parallel()
 
 	result := effectiveWALResult(walInspectResult{FileSize: 0})
-	if result.EntryCount != 0 {
-		t.Errorf("entryCount = %d, want 0", result.EntryCount)
-	}
+	assert.Equal(t, 0, result.EntryCount, "entryCount = %d, want 0", result.EntryCount)
 }
 
 func TestDisplayBytes(t *testing.T) {
@@ -462,9 +364,7 @@ func TestDisplayBytes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := displayBytes(tc.in)
-			if got != tc.want {
-				t.Errorf("displayBytes(%v) = %q, want %q", tc.in, got, tc.want)
-			}
+			assert.Equal(t, tc.want, got, "displayBytes(%v) = %q, want %q", tc.in, got, tc.want)
 		})
 	}
 }

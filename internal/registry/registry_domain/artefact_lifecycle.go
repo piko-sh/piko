@@ -103,7 +103,7 @@ var (
 		".woff":        "font/woff",
 		".woff2":       "font/woff2",
 	}
-	
+
 	// errArtefactIDEmpty is returned when an artefact operation is attempted with an empty
 	// artefact ID.
 	errArtefactIDEmpty = errors.New("artefactID cannot be empty")
@@ -528,7 +528,8 @@ func (s *registryService) processBlobUpdate(
 		return nil, fmt.Errorf("decrementing old blob ref count: %w", err)
 	}
 
-	newSourceVariant := buildSourceVariant(upload, storageBackendID)
+	newSourceVariant := buildSourceVariant(upload, storageBackendID, s.defaultVariantOrigin)
+	s.stampBuildProvenance(&newSourceVariant)
 	if isNewArtefact {
 		return []registry_dto.Variant{newSourceVariant}, nil
 	}
@@ -557,7 +558,7 @@ type variantReplacementInfo struct {
 //
 // Returns error when variant fields are missing or invalid, or when any reference count
 // update fails.
-func (s *registryService) incrementVariantRefCounts(
+func incrementVariantRefCounts(
 	ctx context.Context,
 	store MetadataStore,
 	variant *registry_dto.Variant,
@@ -598,7 +599,7 @@ func (s *registryService) incrementVariantRefCounts(
 		logger_domain.Int(logKeyNewRefCount, newRefCount))
 	registryServiceBlobRefCountIncrementCount.Add(ctx, 1)
 
-	return s.incrementChunkRefCounts(ctx, store, variant.Chunks)
+	return incrementChunkRefCounts(ctx, store, variant.Chunks)
 }
 
 // incrementChunkRefCounts increases the reference count for all chunk blobs. It stops on
@@ -608,7 +609,7 @@ func (s *registryService) incrementVariantRefCounts(
 //
 // Returns error when a chunk has missing or invalid fields, or when the reference count
 // update fails.
-func (*registryService) incrementChunkRefCounts(
+func incrementChunkRefCounts(
 	ctx context.Context,
 	store MetadataStore,
 	chunks []registry_dto.VariantChunk,
@@ -681,7 +682,7 @@ func (s *registryService) decrementOldVariantRefCounts(
 		return nil, err
 	}
 
-	chunkHints, err := s.decrementOldChunkRefCounts(ctx, store, info.oldChunks)
+	chunkHints, err := decrementOldChunkRefCounts(ctx, store, info.oldChunks)
 	if err != nil {
 		return mainHints, err
 	}
@@ -742,7 +743,7 @@ func (*registryService) decrementMainBlobRefCount(
 // Returns []registry_dto.GCHint which contains hints for blobs that are no longer used
 // and may be deleted.
 // Returns error when a chunk reference count cannot be decremented.
-func (*registryService) decrementOldChunkRefCounts(
+func decrementOldChunkRefCounts(
 	ctx context.Context,
 	store MetadataStore,
 	oldChunks []registry_dto.VariantChunk,
@@ -850,34 +851,18 @@ func (s *registryService) AddVariant(
 		registryServiceAddVariantDuration.Record(ctx, float64(time.Since(startTime).Milliseconds()))
 	}()
 
+	s.stampBuildProvenance(newVariant)
+
 	var artefact *registry_dto.ArtefactMeta
-	var finalVariants []registry_dto.Variant
-
+	var variantCount int
 	err := s.metaStore.RunAtomic(ctx, func(ctx context.Context, transactionStore MetadataStore) error {
-		original, getErr := transactionStore.GetArtefact(ctx, artefactID)
-		if getErr != nil {
-			return fmt.Errorf("getting artefact %q for variant addition: %w", artefactID, getErr)
+		updated, count, applyErr := s.applyVariantAddition(ctx, transactionStore, artefactID, newVariant)
+		if applyErr != nil {
+			return applyErr
 		}
-
-		artefact = new(registry_dto.ArtefactMeta)
-		*artefact = *original
-
-		var replacementInfo variantReplacementInfo
-		finalVariants, replacementInfo = prepareVariantList(ctx, artefact.ActualVariants, newVariant)
-
-		if incrementErr := s.incrementVariantRefCounts(ctx, transactionStore, newVariant); incrementErr != nil {
-			return fmt.Errorf("failed to register variant blobs in ref count table: %w", incrementErr)
-		}
-
-		gcHints, decrementErr := s.decrementOldVariantRefCounts(ctx, transactionStore, replacementInfo, newVariant.StorageKey)
-		if decrementErr != nil {
-			return fmt.Errorf("decrementing old variant ref counts: %w", decrementErr)
-		}
-
-		artefact.ActualVariants = finalVariants
-		artefact.UpdatedAt = time.Now().UTC()
-
-		return s.persistVariantUpdate(ctx, transactionStore, artefact, gcHints)
+		artefact = updated
+		variantCount = count
+		return nil
 	})
 	if err != nil {
 		l.ReportError(span, err, "Failed to add variant")
@@ -885,9 +870,57 @@ func (s *registryService) AddVariant(
 		return nil, fmt.Errorf("adding variant to %q: %w", artefactID, err)
 	}
 
-	l.Trace("Variant added successfully", logger_domain.Int("totalVariants", len(finalVariants)))
+	l.Trace("Variant added successfully", logger_domain.Int("totalVariants", variantCount))
 	s.publishEvent(ctx, EventArtefactUpdated, artefact.ID)
 	return artefact, nil
+}
+
+// applyVariantAddition performs the AddVariant read-modify-write inside an already open
+// transaction: it row-locks and reads the artefact, derives the variant's input
+// fingerprint when the caller left it unset, merges the variant, adjusts the blob
+// reference counts, and persists the result.
+//
+// Takes transactionStore (MetadataStore) which is the store bound to the open
+// transaction.
+// Takes artefactID (string) which identifies the artefact to modify.
+// Takes newVariant (*registry_dto.Variant) which is the variant to add or replace.
+//
+// Returns the updated artefact, the final variant count, and an error on failure.
+func (s *registryService) applyVariantAddition(
+	ctx context.Context,
+	transactionStore MetadataStore,
+	artefactID string,
+	newVariant *registry_dto.Variant,
+) (*registry_dto.ArtefactMeta, int, error) {
+	original, getErr := ReadArtefactForLockedUpdate(ctx, transactionStore, artefactID)
+	if getErr != nil {
+		return nil, 0, fmt.Errorf("getting artefact %q for variant addition: %w", artefactID, getErr)
+	}
+
+	artefact := new(*original)
+
+	if newVariant.InputFingerprint == "" {
+		newVariant.InputFingerprint = variantInputFingerprint(artefact, newVariant)
+	}
+
+	finalVariants, replacementInfo := prepareVariantList(ctx, artefact.ActualVariants, newVariant)
+
+	if incrementErr := incrementVariantRefCounts(ctx, transactionStore, newVariant); incrementErr != nil {
+		return nil, 0, fmt.Errorf("failed to register variant blobs in ref count table: %w", incrementErr)
+	}
+
+	gcHints, decrementErr := s.decrementOldVariantRefCounts(ctx, transactionStore, replacementInfo, newVariant.StorageKey)
+	if decrementErr != nil {
+		return nil, 0, fmt.Errorf("decrementing old variant ref counts: %w", decrementErr)
+	}
+
+	artefact.ActualVariants = finalVariants
+	artefact.UpdatedAt = time.Now().UTC()
+
+	if persistErr := s.persistVariantUpdate(ctx, transactionStore, artefact, gcHints); persistErr != nil {
+		return nil, 0, persistErr
+	}
+	return artefact, len(finalVariants), nil
 }
 
 // collectVariantGCHints lowers the reference counts for all variants and gathers garbage
@@ -897,7 +930,7 @@ func (s *registryService) AddVariant(
 //
 // Returns []registry_dto.GCHint which contains hints for blobs that should be removed.
 // Returns error when a variant reference count cannot be decremented.
-func (s *registryService) collectVariantGCHints(
+func collectVariantGCHints(
 	ctx context.Context,
 	store MetadataStore,
 	variants []registry_dto.Variant,
@@ -930,7 +963,7 @@ func (s *registryService) collectVariantGCHints(
 			hints = append(hints, registry_dto.GCHint{BackendID: v.StorageBackendID, StorageKey: v.StorageKey})
 		}
 
-		chunkHints, chunkErr := s.decrementOldChunkRefCounts(ctx, store, v.Chunks)
+		chunkHints, chunkErr := decrementOldChunkRefCounts(ctx, store, v.Chunks)
 		if chunkErr != nil {
 			return hints, chunkErr
 		}
@@ -1008,7 +1041,7 @@ func (s *registryService) DeleteArtefact(ctx context.Context, artefactID string)
 	}
 
 	err = s.metaStore.RunAtomic(ctx, func(ctx context.Context, transactionStore MetadataStore) error {
-		gcHints, gcErr := s.collectVariantGCHints(ctx, transactionStore, artefact.ActualVariants)
+		gcHints, gcErr := collectVariantGCHints(ctx, transactionStore, artefact.ActualVariants)
 		if gcErr != nil {
 			return fmt.Errorf("collecting GC hints for %q: %w", artefactID, gcErr)
 		}
@@ -1235,13 +1268,73 @@ func finaliseBlobStorage(
 	return nil
 }
 
+// stampBuildProvenance fills a new variant's origin and, for build-origin variants, the
+// producing release identity when the caller left them unset.
+//
+// An explicit origin (e.g. the on-demand generator's runtime mark) is preserved.
+//
+// Takes variant (*registry_dto.Variant) which is the variant to stamp in place.
+func (s *registryService) stampBuildProvenance(variant *registry_dto.Variant) {
+	if variant.Origin == "" {
+		variant.Origin = s.defaultVariantOrigin
+	}
+	if variant.Producer == registry_dto.ProducerUnknown {
+		if variant.Origin == registry_dto.VariantOriginBuild {
+			variant.Producer = registry_dto.ProducerBuild
+		} else {
+			variant.Producer = registry_dto.ProducerRuntime
+		}
+	}
+	if variant.Origin == registry_dto.VariantOriginBuild {
+		if variant.BuildRelease == "" {
+			variant.BuildRelease = s.defaultBuildRelease
+		}
+		if variant.BuildHash == "" {
+			variant.BuildHash = s.defaultBuildHash
+		}
+	}
+}
+
+// variantInputFingerprint derives a variant's input fingerprint from the artefact's
+// source content hash and the matching transform profile.
+//
+// The source variant fingerprints to its own content.
+//
+// Takes artefact (*registry_dto.ArtefactMeta) which supplies the source content hash and
+// transform profiles.
+// Takes variant (*registry_dto.Variant) which is the variant to fingerprint.
+//
+// Returns the input fingerprint, or an empty string when the inputs are not resolvable
+// (no matching profile or no source), leaving the fingerprint unset.
+func variantInputFingerprint(artefact *registry_dto.ArtefactMeta, variant *registry_dto.Variant) string {
+	if variant.VariantID == logKeySource {
+		return variant.ContentHash
+	}
+	profile, ok := artefact.GetProfile(variant.VariantID)
+	if !ok {
+		return ""
+	}
+	var sourceContentHash string
+	for i := range artefact.ActualVariants {
+		if artefact.ActualVariants[i].VariantID == logKeySource {
+			sourceContentHash = artefact.ActualVariants[i].ContentHash
+			break
+		}
+	}
+	return registry_dto.ComputeVariantFingerprint(sourceContentHash, &profile)
+}
+
 // buildSourceVariant creates a source variant from blob upload results.
 //
 // Takes upload (*blobUploadResult) which holds the blob upload details.
 // Takes storageBackendID (string) which names the storage backend.
+// Takes origin (registry_dto.VariantOrigin) which records whether this variant was
+// produced at build time or uploaded at runtime; runtime uploads live in the writable
+// overlay of the union store and shadow the base on selection, so the origin keeps their
+// provenance distinguishable from build output.
 //
 // Returns registry_dto.Variant which is the new source variant ready for use.
-func buildSourceVariant(upload *blobUploadResult, storageBackendID string) registry_dto.Variant {
+func buildSourceVariant(upload *blobUploadResult, storageBackendID string, origin registry_dto.VariantOrigin) registry_dto.Variant {
 	var tags registry_dto.Tags
 	tags.Set(registry_dto.TagType, logKeySource)
 	tags.Set(registry_dto.TagHash, upload.hash)
@@ -1261,6 +1354,9 @@ func buildSourceVariant(upload *blobUploadResult, storageBackendID string) regis
 		ContentHash:      upload.hash,
 		SRIHash:          upload.sriHash,
 		Chunks:           []registry_dto.VariantChunk{},
+		Origin:           origin,
+		Kind:             registry_dto.KindSource,
+		InputFingerprint: registry_dto.SourceFingerprint(upload.hash),
 	}
 }
 

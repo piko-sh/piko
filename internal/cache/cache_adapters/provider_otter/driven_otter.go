@@ -327,8 +327,6 @@ func (a *OtterAdapter[K, V]) Get(ctx context.Context, key K, loader cache_dto.Lo
 
 // Set stores a value in the cache with optional tags.
 //
-// Takes ctx (context.Context) which is accepted for interface conformance but not
-// checked, as in-memory operations are non-blocking.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which are optional labels for grouping entries.
@@ -414,8 +412,6 @@ func (a *OtterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl
 
 // Invalidate removes a key from the cache.
 //
-// Takes ctx (context.Context) which is accepted for interface conformance but not
-// checked, as in-memory operations are non-blocking.
 // Takes key (K) which identifies the cache entry to invalidate.
 //
 // Returns error which is always nil for the in-memory adapter.
@@ -590,8 +586,6 @@ func (a *OtterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ..
 
 // InvalidateByTags removes all entries with matching tags from the cache.
 //
-// Takes ctx (context.Context) which is accepted for interface conformance but not
-// checked, as in-memory operations are non-blocking.
 // Takes tags (...string) which specifies the tags to match for invalidation.
 //
 // Returns int which is the number of keys that were invalidated.
@@ -618,9 +612,6 @@ func (a *OtterAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...strin
 }
 
 // InvalidateAll clears all entries from the cache.
-//
-// Takes ctx (context.Context) which is accepted for interface conformance but not
-// checked, as in-memory operations are non-blocking.
 //
 // Returns error which is always nil for the in-memory adapter.
 //
@@ -789,15 +780,36 @@ func (a *OtterAdapter[K, V]) maybeCheckpoint() {
 		return
 	}
 
-	a.performCheckpointLocked()
+	_ = a.performCheckpointLocked()
+}
+
+// Checkpoint unconditionally writes a snapshot of the current cache state and truncates
+// the WAL without closing the adapter.
+//
+// Returns error when the snapshot save or WAL truncate fails, so an explicit flush
+// (unlike the best-effort threshold checkpoint) can fail loudly. Returns nil when
+// persistence is disabled (nothing to flush).
+//
+// Concurrency: safe for concurrent use. Acquires checkpointMu so the snapshot captures
+// all WAL entries before truncation.
+func (a *OtterAdapter[K, V]) Checkpoint(_ context.Context) error {
+	if !a.walEnabled || a.wal == nil || a.snapshot == nil {
+		return nil
+	}
+	a.checkpointMu.Lock()
+	defer a.checkpointMu.Unlock()
+	return a.performCheckpointLocked()
 }
 
 // performCheckpointLocked creates a snapshot of the current cache state and truncates the
 // WAL.
 //
-// Called when the WAL entry count exceeds the snapshot threshold. Caller must hold
-// checkpointMu write lock.
-func (a *OtterAdapter[K, V]) performCheckpointLocked() {
+// Called when the WAL entry count exceeds the snapshot threshold, on close, and on an
+// explicit Checkpoint. Caller must hold checkpointMu write lock.
+//
+// Returns error when the snapshot save or WAL truncate fails. The error is also logged so
+// best-effort callers (threshold checkpoint, close) can ignore it.
+func (a *OtterAdapter[K, V]) performCheckpointLocked() error {
 	ctx := context.Background()
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -805,16 +817,17 @@ func (a *OtterAdapter[K, V]) performCheckpointLocked() {
 
 	if err := a.snapshot.Save(ctx, entries); err != nil {
 		l.Warn("Failed to save snapshot during checkpoint", logger_domain.Error(err))
-		return
+		return err
 	}
 
 	if err := a.wal.Truncate(ctx); err != nil {
 		l.Warn("Failed to truncate WAL after checkpoint", logger_domain.Error(err))
-		return
+		return err
 	}
 
 	l.Internal("Checkpoint completed",
 		logger_domain.Int("entries_snapshot", len(entries)))
+	return nil
 }
 
 // collectSnapshotEntries collects all current cache entries for snapshotting.
@@ -849,9 +862,6 @@ func (a *OtterAdapter[K, V]) collectSnapshotEntries() []wal_domain.Entry[K, V] {
 // exactly once; subsequent invocations return the captured error without re-running the
 // close path.
 //
-// Takes ctx (context.Context) which is accepted for interface conformance but not
-// checked, as in-memory operations are non-blocking.
-//
 // Returns error which contains any joined errors from closing the WAL and snapshot store;
 // nil when the cache is purely in-memory.
 func (a *OtterAdapter[K, V]) Close(ctx context.Context) error {
@@ -880,7 +890,7 @@ func (a *OtterAdapter[K, V]) Close(ctx context.Context) error {
 func (a *OtterAdapter[K, V]) closePersistenceLocked(l logger_domain.Logger) error {
 	a.checkpointMu.Lock()
 	if a.wal != nil && a.snapshot != nil && a.wal.EntryCount() > 0 {
-		a.performCheckpointLocked()
+		_ = a.performCheckpointLocked()
 	}
 	a.checkpointMu.Unlock()
 

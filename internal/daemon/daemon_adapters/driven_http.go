@@ -57,15 +57,18 @@ type HTTPRouterBuilder struct {
 	// BuildRouter is called; used by serveArtefact to create the metadataCache wrapper.
 	artefactCache cache_domain.Cache[string, *registry_dto.ArtefactMeta]
 
-	// metadataCache holds the artefact metadata cache created during route setup. Stored
-	// here so Close() can release its resources.
-	metadataCache *artefactMetadataCache
-
 	// variantGenerationGroup deduplicates concurrent background variant generation for the
 	// same artefact. Without this, N concurrent requests for a pending artefact would each
 	// spawn a goroutine that loops over missing profiles - only the first does real work
 	// while the rest short-circuit, but the goroutine burst is unnecessary.
 	variantGenerationGroup singleflight.Group
+
+	// metadataCache holds the artefact metadata cache created during route setup. Stored
+	// here so Close() can release its resources.
+	metadataCache *artefactMetadataCache
+
+	// instanceRelease is this running binary's release identifier.
+	instanceRelease string
 }
 
 // BuildRouter constructs the final HTTP handler with all middleware and routes
@@ -516,7 +519,6 @@ func (builder *HTTPRouterBuilder) serveArtefact(
 // resolveVariant finds which variant to serve based on the artefact state and request
 // settings.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes vrc (variantResolutionContext) which provides the request context.
 // Takes lookup (artefactLookupResult) which holds the artefact lookup data.
 // Takes artefactID (string) which is the artefact or storage key.
@@ -555,7 +557,6 @@ func (builder *HTTPRouterBuilder) resolveVariant(
 // resolveVariantForPendingArtefact creates a variant for an artefact that is still
 // pending.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes vrc (variantResolutionContext) which provides the request context and
 // dependencies.
 // Takes artefact (*registry_dto.ArtefactMeta) which specifies the pending artefact to
@@ -604,7 +605,6 @@ func (builder *HTTPRouterBuilder) resolveVariantForPendingArtefact(
 // resolveVariantByArtefactID finds a variant using the artefact ID and an optional
 // variant parameter.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes vrc (variantResolutionContext) which provides the resolution context including
 // the HTTP writer and span.
 // Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact metadata with
@@ -627,7 +627,7 @@ func (builder *HTTPRouterBuilder) resolveVariantByArtefactID(
 		baseVariantID = variantParam
 	}
 
-	variant := findVariantByID(artefact.ActualVariants, baseVariantID)
+	variant := builder.selectVariant(artefact, baseVariantID)
 
 	if variant == nil && variantParam != "" {
 		variant = builder.tryGenerateVariantOnDemand(ctx, vrc.variantGenerator, artefact, variantParam)
@@ -638,7 +638,7 @@ func (builder *HTTPRouterBuilder) resolveVariantByArtefactID(
 			l.Trace("Variant not found or generation failed, falling back to source",
 				logger_domain.String("requestedVariant", variantParam))
 		}
-		variant = findVariantByID(artefact.ActualVariants, variantSource)
+		variant = builder.selectVariant(artefact, variantSource)
 		if variant == nil {
 			l.Internal("Variant not found",
 				logger_domain.String(logFieldVariantID, baseVariantID),
@@ -654,7 +654,6 @@ func (builder *HTTPRouterBuilder) resolveVariantByArtefactID(
 
 // tryGenerateVariantOnDemand tries to create an image variant on demand.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes generator (daemon_domain.OnDemandVariantGenerator) which creates the variant.
 // Takes artefact (*registry_dto.ArtefactMeta) which identifies the source image.
 // Takes profileName (string) which specifies which variant profile to create.
@@ -709,7 +708,6 @@ func (*HTTPRouterBuilder) tryGenerateVariantOnDemand(
 // request generates one variant, then the remaining variants are generated in the
 // background.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes registryService (registry_domain.RegistryService) which fetches fresh artefact
 // state.
 // Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates the image
@@ -927,9 +925,10 @@ func (*HTTPRouterBuilder) serveVideoChunk(
 // metadata caching. May be nil to disable caching.
 //
 // Returns daemon_domain.RouterBuilder which is the configured builder ready for use.
-func NewHTTPRouterBuilder(artefactCache cache_domain.Cache[string, *registry_dto.ArtefactMeta]) daemon_domain.RouterBuilder {
+func NewHTTPRouterBuilder(artefactCache cache_domain.Cache[string, *registry_dto.ArtefactMeta], instanceRelease string) daemon_domain.RouterBuilder {
 	return &HTTPRouterBuilder{
-		artefactCache: artefactCache,
+		artefactCache:   artefactCache,
+		instanceRelease: instanceRelease,
 	}
 }
 
@@ -959,7 +958,6 @@ func buildAllowedOrigins(routerConfig *daemon_domain.RouterConfig) []string {
 
 // fetchStaticArtefact gets an artefact from the registry and handles not-found errors.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes registryService (registry_domain.RegistryService) which provides access to the
 // artefact registry.
 // Takes artefactID (string) which is the unique identifier of the artefact.
@@ -1020,7 +1018,6 @@ func selectStaticVariant(
 
 // writeStaticVariantResponse writes a variant to the response with the correct headers.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the response data and headers.
 // Takes registryService (registry_domain.RegistryService) which provides access to
 // variant data.
@@ -1128,7 +1125,6 @@ func serveStaticArtefactHandler(
 // storage. If the artefact is not found by ID, it tries to find it using the storage key
 // as a fallback.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes span (trace.Span) which provides tracing context for error reports.
 // Takes cache (*artefactMetadataCache) which holds cached artefact metadata.
 // Takes registryService (registry_domain.RegistryService) which provides access to the
@@ -1169,7 +1165,6 @@ func lookupArtefact(
 // lookupArtefactByStorageKey attempts to find an artefact by its storage key as a
 // fallback.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes span (trace.Span) which records the operation status.
 // Takes registryService (registry_domain.RegistryService) which provides artefact lookup.
 // Takes artefactID (string) which is the storage key to search for.
@@ -1206,7 +1201,6 @@ func lookupArtefactByStorageKey(
 // 304 Not Modified when possible, and streams the variant data to the client with proper
 // cache headers.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes vrc (variantResolutionContext) which holds the response writer and registry
 // service.
 // Takes artefact (*registry_dto.ArtefactMeta) which holds the artefact details.
@@ -1352,74 +1346,8 @@ func serveEmbeddedFrontend(watchMode bool, disableHTTPCache bool) http.HandlerFu
 	}
 }
 
-// findVariantByID finds a variant with the given ID in a slice.
-//
-// Takes variants ([]registry_dto.Variant) which is the slice to search.
-// Takes id (string) which is the ID to find.
-//
-// Returns *registry_dto.Variant which is the matching variant, or nil if not found.
-func findVariantByID(variants []registry_dto.Variant, id string) *registry_dto.Variant {
-	for i := range variants {
-		if variants[i].VariantID == id {
-			return &variants[i]
-		}
-	}
-	return nil
-}
-
-// findVariantByStorageKey searches for a variant with the given storage key.
-//
-// Takes variants ([]registry_dto.Variant) which is the slice to search.
-// Takes storageKey (string) which is the key to match against.
-//
-// Returns *registry_dto.Variant which is the matching variant, or nil if not found.
-func findVariantByStorageKey(variants []registry_dto.Variant, storageKey string) *registry_dto.Variant {
-	for i := range variants {
-		if variants[i].StorageKey == storageKey {
-			return &variants[i]
-		}
-	}
-	return nil
-}
-
-// collectMissingVariantProfiles returns variant profile names that have not been
-// generated yet.
-//
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the desired profiles to
-// check.
-// Takes alreadyGenerated (string) which specifies a profile name to skip.
-//
-// Returns []string which contains profile names that require generation.
-func collectMissingVariantProfiles(artefact *registry_dto.ArtefactMeta, alreadyGenerated string) []string {
-	profiles := make([]string, 0, len(artefact.DesiredProfiles))
-	for i := range artefact.DesiredProfiles {
-		profileName := artefact.DesiredProfiles[i].Name
-		if profileName != alreadyGenerated && profileName != variantSource {
-			profiles = append(profiles, profileName)
-		}
-	}
-	return profiles
-}
-
-// variantExistsInArtefact checks whether a variant with the given ID exists in the
-// artefact.
-//
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
-// Takes variantID (string) which is the ID to look for.
-//
-// Returns bool which is true if the variant exists, false otherwise.
-func variantExistsInArtefact(artefact *registry_dto.ArtefactMeta, variantID string) bool {
-	for i := range artefact.ActualVariants {
-		if artefact.ActualVariants[i].VariantID == variantID {
-			return true
-		}
-	}
-	return false
-}
-
 // generateBackgroundVariant creates a single variant and logs the result.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates the
 // variant.
 // Takes artefact (*registry_dto.ArtefactMeta) which identifies the source artefact.
@@ -1524,7 +1452,6 @@ func buildVariantPlaylist(variant *registry_dto.Variant) string {
 
 // lookupArtefactChunk finds the variant and chunk for a video artefact.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes registryService (registry_domain.RegistryService) which provides access to stored
 // artefacts.
 // Takes artefactID (string) which identifies the video artefact.
@@ -1565,7 +1492,6 @@ func lookupArtefactChunk(
 
 // streamChunkToResponse writes chunk data to an HTTP response.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes w (http.ResponseWriter) which receives the streamed data.
 // Takes chunkData (io.ReadCloser) which provides the content to stream.
 // Takes chunk (*registry_dto.VariantChunk) which provides metadata for headers.

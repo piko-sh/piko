@@ -20,8 +20,10 @@ package orchestrator_adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -67,6 +69,23 @@ const (
 	// no reschedule interval is specified in the payload.
 	gcDefaultRescheduleSeconds = 30
 
+	// gcMinRescheduleSeconds is the smallest reschedule delay honoured, so a payload with a
+	// zero or negative reschedule_seconds cannot make the executor busy-reschedule itself.
+	gcMinRescheduleSeconds = 1
+
+	// gcMaxBatchSize caps the batch size a payload may request, so a large or malformed
+	// value cannot make one GC run unbounded.
+	gcMaxBatchSize = 10_000
+
+	// gcMaxHintsPerRun mirrors the DAL's PopGCHints page cap: a single hint pop returns at
+	// most this many hints regardless of the requested batch size.
+	gcMaxHintsPerRun = 999
+
+	// orphanMinimumAge is how old an orphan candidate must be before the repair sweep may
+	// delete it, sparing blobs whose bytes landed before their metadata commit (a concurrent
+	// upload or publish).
+	orphanMinimumAge = time.Hour
+
 	// logKeyBackendID is the logging field for blob store backend identifiers.
 	logKeyBackendID = "backend_id"
 
@@ -85,6 +104,13 @@ type gcExecutor struct {
 
 	// orchestratorService is used to self-reschedule the next GC run.
 	orchestratorService orchestrator_domain.OrchestratorService
+
+	// orphanFirstSeen records when a key was first seen orphaned, keyed backend|key, for the
+	// two-scan grace applied when a store exposes no modification times.
+	orphanFirstSeen map[string]time.Time
+
+	// orphanFirstSeenMu guards orphanFirstSeen.
+	orphanFirstSeenMu sync.Mutex
 }
 
 // NewGCExecutor creates a new garbage collection executor.
@@ -117,8 +143,8 @@ func (e *gcExecutor) Execute(ctx context.Context, payload map[string]any) (map[s
 	ctx, l := logger_domain.From(ctx, log)
 
 	mode := gcPayloadString(payload, gcPayloadKeyMode, gcModeHints)
-	batchSize := gcPayloadInt(payload, gcPayloadKeyBatchSize, gcDefaultBatchSize)
-	rescheduleSeconds := gcPayloadInt(payload, gcPayloadKeyRescheduleSeconds, gcDefaultRescheduleSeconds)
+	batchSize := min(max(gcPayloadInt(payload, gcPayloadKeyBatchSize, gcDefaultBatchSize), 1), gcMaxBatchSize)
+	rescheduleSeconds := max(gcPayloadInt(payload, gcPayloadKeyRescheduleSeconds, gcDefaultRescheduleSeconds), gcMinRescheduleSeconds)
 
 	l.Trace("Starting GC task",
 		logger_domain.String(logKeyMode, mode),
@@ -185,6 +211,10 @@ func (e *gcExecutor) processHints(
 			continue
 		}
 
+		if e.blobStillReferenced(ctx, hint.StorageKey) {
+			continue
+		}
+
 		if deleteErr := store.Delete(ctx, hint.StorageKey); deleteErr != nil {
 			l.Warn("Failed to delete blob for GC hint, skipping",
 				logger_domain.String(logKeyBackendID, hint.BackendID),
@@ -200,13 +230,36 @@ func (e *gcExecutor) processHints(
 	}
 
 	delay := time.Duration(rescheduleSeconds) * time.Second
-	if len(hints) >= batchSize {
+	if len(hints) >= min(batchSize, gcMaxHintsPerRun) {
 		delay = 0
 	}
 
 	e.reschedule(ctx, payload, delay)
 
 	return deletedCount, nil
+}
+
+// blobStillReferenced re-checks a hinted blob's reference count just before deletion.
+//
+// Takes storageKey (string) which identifies the blob about to be deleted.
+//
+// Returns bool reporting whether the blob is still referenced and must not be deleted.
+func (e *gcExecutor) blobStillReferenced(ctx context.Context, storageKey string) bool {
+	ctx, l := logger_domain.From(ctx, log)
+	refCount, err := e.registryService.GetBlobRefCount(ctx, storageKey)
+	if err != nil {
+		l.Warn("Could not confirm blob reference count before GC delete, keeping the blob",
+			logger_domain.String(logKeyStorageKey, storageKey),
+			logger_domain.Error(err))
+		return true
+	}
+	if refCount > 0 {
+		l.Trace("Blob referenced again since its GC hint, skipping delete",
+			logger_domain.String(logKeyStorageKey, storageKey),
+			logger_domain.Int("ref_count", refCount))
+		return true
+	}
+	return false
 }
 
 // processOrphans scans all blob stores for keys not referenced by any artefact and
@@ -269,17 +322,28 @@ func (e *gcExecutor) scanBlobStore(
 
 	keys, listErr := store.ListKeys(ctx)
 	if listErr != nil {
-		l.Trace("Blob store does not support key listing, skipping orphan scan",
-			logger_domain.String(logKeyBackendID, backendID))
+		if errors.Is(listErr, registry_domain.ErrKeyListingUnsupported) {
+			l.Trace("Blob store does not support key listing, skipping orphan scan",
+				logger_domain.String(logKeyBackendID, backendID))
+			return 0
+		}
+		l.Warn("Listing blob keys for orphan scan failed, skipping this backend",
+			logger_domain.String(logKeyBackendID, backendID),
+			logger_domain.Error(listErr))
 		return 0
 	}
 
 	deletedCount := 0
+	observedOrphans := make(map[string]struct{})
 	for _, key := range keys {
 		if strings.HasPrefix(key, "tmp/") {
 			continue
 		}
 		if _, referenced := referencedKeys[key]; referenced {
+			continue
+		}
+		observedOrphans[backendID+"|"+key] = struct{}{}
+		if e.orphanTooYoungToDelete(ctx, store, backendID, key) {
 			continue
 		}
 
@@ -292,11 +356,105 @@ func (e *gcExecutor) scanBlobStore(
 		}
 
 		deletedCount++
+		e.forgetOrphan(backendID, key)
 		l.Trace("Deleted orphaned blob",
 			logger_domain.String(logKeyBackendID, backendID),
 			logger_domain.String(logKeyStorageKey, key))
 	}
+	e.pruneOrphanTracker(backendID, observedOrphans)
 	return deletedCount
+}
+
+// pruneOrphanTracker drops two-scan-grace entries for a backend whose key is no longer an
+// orphan candidate, so a key that became referenced again or was removed by another node
+// does not leak a tracker entry forever.
+//
+// Takes backendID (string) which scopes the entries considered for pruning.
+// Takes observedOrphans (map[string]struct{}) which holds the backend|key entries still
+// orphaned after this scan.
+//
+// Concurrency: acquires orphanFirstSeenMu while pruning stale tracker entries.
+func (e *gcExecutor) pruneOrphanTracker(backendID string, observedOrphans map[string]struct{}) {
+	e.orphanFirstSeenMu.Lock()
+	defer e.orphanFirstSeenMu.Unlock()
+	prefix := backendID + "|"
+	for seenKey := range e.orphanFirstSeen {
+		if !strings.HasPrefix(seenKey, prefix) {
+			continue
+		}
+		if _, stillOrphan := observedOrphans[seenKey]; !stillOrphan {
+			delete(e.orphanFirstSeen, seenKey)
+		}
+	}
+}
+
+// blobAger is an optional BlobStore capability exposing a blob's last modification time,
+// so the orphan sweep can spare blobs written moments ago.
+type blobAger interface {
+	// StatKey returns when the blob at the given key was last modified.
+	StatKey(ctx context.Context, key string) (time.Time, error)
+}
+
+// orphanTooYoungToDelete reports whether an orphan candidate must be spared because it
+// may be a blob whose registry row has not been written: bytes land in storage before the
+// registry row that references them, so a scan racing an upload or a publish would
+// otherwise delete live bytes.
+//
+// Takes store (registry_domain.BlobStore) which holds the candidate.
+// Takes backendID (string) and key (string) which identify the candidate.
+//
+// Returns bool which is true when the candidate must be spared this scan.
+//
+// Concurrency: acquires orphanFirstSeenMu when the store lacks modification times, while
+// consulting the two-scan grace tracker.
+func (e *gcExecutor) orphanTooYoungToDelete(
+	ctx context.Context,
+	store registry_domain.BlobStore,
+	backendID, key string,
+) bool {
+	ctx, l := logger_domain.From(ctx, log)
+	if ager, ok := store.(blobAger); ok {
+		modifiedAt, err := ager.StatKey(ctx, key)
+		if err != nil {
+			l.Warn("Could not stat orphan candidate, sparing it",
+				logger_domain.String(logKeyBackendID, backendID),
+				logger_domain.String(logKeyStorageKey, key),
+				logger_domain.Error(err))
+			return true
+		}
+		if time.Since(modifiedAt) < orphanMinimumAge {
+			l.Trace("Sparing young orphan candidate",
+				logger_domain.String(logKeyBackendID, backendID),
+				logger_domain.String(logKeyStorageKey, key))
+			return true
+		}
+		return false
+	}
+
+	e.orphanFirstSeenMu.Lock()
+	defer e.orphanFirstSeenMu.Unlock()
+	if e.orphanFirstSeen == nil {
+		e.orphanFirstSeen = make(map[string]time.Time)
+	}
+	seenKey := backendID + "|" + key
+	firstSeen, seen := e.orphanFirstSeen[seenKey]
+	if !seen {
+		e.orphanFirstSeen[seenKey] = time.Now()
+		return true
+	}
+	return time.Since(firstSeen) < orphanMinimumAge
+}
+
+// forgetOrphan clears a deleted key from the two-scan grace tracker so the map does not
+// grow with keys that no longer exist.
+//
+// Takes backendID (string) and key (string) which identify the deleted blob.
+//
+// Concurrency: acquires orphanFirstSeenMu while removing the deleted key.
+func (e *gcExecutor) forgetOrphan(backendID, key string) {
+	e.orphanFirstSeenMu.Lock()
+	defer e.orphanFirstSeenMu.Unlock()
+	delete(e.orphanFirstSeen, backendID+"|"+key)
 }
 
 // collectReferencedKeys builds a set of all storage keys that are currently referenced by

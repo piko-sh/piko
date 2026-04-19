@@ -299,6 +299,20 @@ func (*sqlStrategy) ExecResultImport(tracker *emitter_shared.ImportTracker) {
 	tracker.AddImport("database/sql")
 }
 
+// NoRowsSentinel returns sql.ErrNoRows, the no-rows sentinel database/sql scans return.
+//
+// Returns ast.Expr which is the sql.ErrNoRows expression.
+func (*sqlStrategy) NoRowsSentinel() ast.Expr {
+	return goastutil.SelectorExpr("sql", "ErrNoRows")
+}
+
+// NoRowsImport adds "database/sql" to the import tracker.
+//
+// Takes tracker (*emitter_shared.ImportTracker) which accumulates imports.
+func (*sqlStrategy) NoRowsImport(tracker *emitter_shared.ImportTracker) {
+	tracker.AddImport("database/sql")
+}
+
 // BuildExecRowsBody constructs the :execrows body for database/sql where
 // sql.Result.RowsAffected() returns (int64, error).
 //

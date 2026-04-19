@@ -23,13 +23,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"strings"
 	"testing"
 
 	"charm.land/lipgloss/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/cmd/piko/internal/inspector"
 	"piko.sh/piko/internal/json"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
@@ -51,9 +52,7 @@ func TestFormatTimestamp(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := formatTimestamp(tc.ts)
-			if !strings.Contains(got, tc.expected) {
-				t.Errorf("formatTimestamp(%d) = %q, want it to contain %q", tc.ts, got, tc.expected)
-			}
+			assert.Contains(t, got, tc.expected, "formatTimestamp(%d) = %q, want it to contain %q", tc.ts, got, tc.expected)
 		})
 	}
 }
@@ -76,9 +75,7 @@ func TestFormatDuration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := formatDuration(tc.ms)
-			if got != tc.expected {
-				t.Errorf("formatDuration(%d) = %q, want %q", tc.ms, got, tc.expected)
-			}
+			assert.Equal(t, tc.expected, got, "formatDuration(%d) = %q, want %q", tc.ms, got, tc.expected)
 		})
 	}
 }
@@ -101,9 +98,7 @@ func TestFormatBytes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := formatBytes(tc.bytes)
-			if got != tc.expected {
-				t.Errorf("formatBytes(%d) = %q, want %q", tc.bytes, got, tc.expected)
-			}
+			assert.Equal(t, tc.expected, got, "formatBytes(%d) = %q, want %q", tc.bytes, got, tc.expected)
 		})
 	}
 }
@@ -126,9 +121,7 @@ func TestFormatNanos(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := formatNanos(tc.ns)
-			if got != tc.expected {
-				t.Errorf("formatNanos(%d) = %q, want %q", tc.ns, got, tc.expected)
-			}
+			assert.Equal(t, tc.expected, got, "formatNanos(%d) = %q, want %q", tc.ns, got, tc.expected)
 		})
 	}
 }
@@ -151,9 +144,7 @@ func TestTruncate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := truncate(tc.input, tc.maxLen)
-			if got != tc.expected {
-				t.Errorf("truncate(%q, %d) = %q, want %q", tc.input, tc.maxLen, got, tc.expected)
-			}
+			assert.Equal(t, tc.expected, got, "truncate(%q, %d) = %q, want %q", tc.input, tc.maxLen, got, tc.expected)
 		})
 	}
 }
@@ -190,9 +181,7 @@ func TestFilterErrorSpans(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := filterErrorSpans(tc.spans)
-			if len(got) != tc.wantLen {
-				t.Errorf("filterErrorSpans() returned %d spans, want %d", len(got), tc.wantLen)
-			}
+			assert.Len(t, got, tc.wantLen, "filterErrorSpans() returned %d spans, want %d", len(got), tc.wantLen)
 		})
 	}
 }
@@ -214,9 +203,8 @@ func TestPrinter_IsJSON(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			p := NewPrinter(&bytes.Buffer{}, tc.format, false, false)
-			if got := p.IsJSON(); got != tc.expected {
-				t.Errorf("IsJSON() = %v, want %v", got, tc.expected)
-			}
+			got := p.IsJSON()
+			assert.Equal(t, tc.expected, got, "IsJSON() = %v, want %v", got, tc.expected)
 		})
 	}
 }
@@ -228,17 +216,13 @@ func TestPrinter_PrintJSON(t *testing.T) {
 	p := NewPrinter(&buffer, "json", false, false)
 
 	data := map[string]string{"key": "value"}
-	if err := p.PrintJSON(data); err != nil {
-		t.Fatalf("PrintJSON() error: %v", err)
-	}
+	err := p.PrintJSON(data)
+	require.NoError(t, err, "PrintJSON() error: %v", err)
 
 	var result map[string]string
-	if err := json.Unmarshal(buffer.Bytes(), &result); err != nil {
-		t.Fatalf("output is not valid JSON: %v", err)
-	}
-	if result["key"] != "value" {
-		t.Errorf("expected key=value, got key=%s", result["key"])
-	}
+	err = json.Unmarshal(buffer.Bytes(), &result)
+	require.NoError(t, err, "output is not valid JSON: %v", err)
+	assert.Equal(t, "value", result["key"], "expected key=value, got key=%s", result["key"])
 }
 
 func TestPrinter_PrintTable(t *testing.T) {
@@ -256,22 +240,12 @@ func TestPrinter_PrintTable(t *testing.T) {
 	)
 
 	output := buffer.String()
-	if !strings.Contains(output, "NAME") {
-		t.Error("expected output to contain header NAME")
-	}
-	if !strings.Contains(output, "STATUS") {
-		t.Error("expected output to contain header STATUS")
-	}
-	if !strings.Contains(output, "alpha") {
-		t.Error("expected output to contain row value alpha")
-	}
-	if !strings.Contains(output, "beta") {
-		t.Error("expected output to contain row value beta")
-	}
+	assert.Contains(t, output, "NAME", "expected output to contain header NAME")
+	assert.Contains(t, output, "STATUS", "expected output to contain header STATUS")
+	assert.Contains(t, output, "alpha", "expected output to contain row value alpha")
+	assert.Contains(t, output, "beta", "expected output to contain row value beta")
 
-	if !strings.Contains(output, "----") {
-		t.Error("expected output to contain separator dashes")
-	}
+	assert.Contains(t, output, "----", "expected output to contain separator dashes")
 }
 
 func TestPrinter_ColourisedStatus_NoColour(t *testing.T) {
@@ -292,9 +266,7 @@ func TestPrinter_ColourisedStatus_NoColour(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := p.ColourisedStatus(tc.status)
-			if got != tc.status {
-				t.Errorf("ColourisedStatus(%q) with noColour=true = %q, want %q", tc.status, got, tc.status)
-			}
+			assert.Equal(t, tc.status, got, "ColourisedStatus(%q) with noColour=true = %q, want %q", tc.status, got, tc.status)
 		})
 	}
 }
@@ -316,9 +288,8 @@ func TestPrinter_IsWide(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			p := NewPrinter(&bytes.Buffer{}, tc.format, false, false)
-			if got := p.IsWide(); got != tc.expected {
-				t.Errorf("IsWide() = %v, want %v", got, tc.expected)
-			}
+			got := p.IsWide()
+			assert.Equal(t, tc.expected, got, "IsWide() = %v, want %v", got, tc.expected)
 		})
 	}
 }
@@ -342,18 +313,10 @@ func TestPrinter_PrintResource_Standard(t *testing.T) {
 	p.PrintResource(columns, rows)
 
 	output := buffer.String()
-	if !strings.Contains(output, "NAME") {
-		t.Error("expected NAME header")
-	}
-	if !strings.Contains(output, "STATUS") {
-		t.Error("expected STATUS header")
-	}
-	if strings.Contains(output, "EXTRA") {
-		t.Error("wide-only column EXTRA should not appear in standard mode")
-	}
-	if strings.Contains(output, "detail-a") {
-		t.Error("wide-only data should not appear in standard mode")
-	}
+	assert.Contains(t, output, "NAME", "expected NAME header")
+	assert.Contains(t, output, "STATUS", "expected STATUS header")
+	assert.NotContains(t, output, "EXTRA", "wide-only column EXTRA should not appear in standard mode")
+	assert.NotContains(t, output, "detail-a", "wide-only data should not appear in standard mode")
 }
 
 func TestPrinter_PrintResource_Wide(t *testing.T) {
@@ -374,12 +337,8 @@ func TestPrinter_PrintResource_Wide(t *testing.T) {
 	p.PrintResource(columns, rows)
 
 	output := buffer.String()
-	if !strings.Contains(output, "EXTRA") {
-		t.Error("wide-only column EXTRA should appear in wide mode")
-	}
-	if !strings.Contains(output, "detail-a") {
-		t.Error("wide-only data should appear in wide mode")
-	}
+	assert.Contains(t, output, "EXTRA", "wide-only column EXTRA should appear in wide mode")
+	assert.Contains(t, output, "detail-a", "wide-only data should appear in wide mode")
 }
 
 func TestPrinter_PrintResource_NoHeaders(t *testing.T) {
@@ -399,12 +358,8 @@ func TestPrinter_PrintResource_NoHeaders(t *testing.T) {
 	p.PrintResource(columns, rows)
 
 	output := buffer.String()
-	if strings.Contains(output, "NAME") {
-		t.Error("headers should not appear when noHeaders is true")
-	}
-	if !strings.Contains(output, "alpha") {
-		t.Error("row data should still appear")
-	}
+	assert.NotContains(t, output, "NAME", "headers should not appear when noHeaders is true")
+	assert.Contains(t, output, "alpha", "row data should still appear")
 }
 
 func TestPrinter_PrintDetail(t *testing.T) {
@@ -434,18 +389,10 @@ func TestPrinter_PrintDetail(t *testing.T) {
 	p.PrintDetail(sections)
 
 	output := buffer.String()
-	if !strings.Contains(output, "Component:") {
-		t.Error("expected section title")
-	}
-	if !strings.Contains(output, "State:") {
-		t.Error("expected field key")
-	}
-	if !strings.Contains(output, "HEALTHY") {
-		t.Error("expected field value")
-	}
-	if !strings.Contains(output, "Database:") {
-		t.Error("expected sub-section title")
-	}
+	assert.Contains(t, output, "Component:", "expected section title")
+	assert.Contains(t, output, "State:", "expected field key")
+	assert.Contains(t, output, "HEALTHY", "expected field value")
+	assert.Contains(t, output, "Database:", "expected sub-section title")
 }
 
 func TestVisibleColumnIndices(t *testing.T) {
@@ -458,14 +405,10 @@ func TestVisibleColumnIndices(t *testing.T) {
 	}
 
 	standard := visibleColumnIndices(columns, false)
-	if len(standard) != 2 || standard[0] != 0 || standard[1] != 2 {
-		t.Errorf("standard indices = %v, want [0, 2]", standard)
-	}
+	assert.False(t, len(standard) != 2 || standard[0] != 0 || standard[1] != 2, "standard indices = %v, want [0, 2]", standard)
 
 	wide := visibleColumnIndices(columns, true)
-	if len(wide) != 3 {
-		t.Errorf("wide indices = %v, want [0, 1, 2]", wide)
-	}
+	assert.Len(t, wide, 3, "wide indices = %v, want [0, 1, 2]", wide)
 }
 
 func TestMatchesFilter(t *testing.T) {
@@ -488,9 +431,7 @@ func TestMatchesFilter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := matchesFilter(tc.value, tc.filter)
-			if got != tc.expected {
-				t.Errorf("matchesFilter(%q, %q) = %v, want %v", tc.value, tc.filter, got, tc.expected)
-			}
+			assert.Equal(t, tc.expected, got, "matchesFilter(%q, %q) = %v, want %v", tc.value, tc.filter, got, tc.expected)
 		})
 	}
 }
@@ -513,9 +454,7 @@ func TestExtractFilter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := extractFilter(tc.arguments)
-			if got != tc.expected {
-				t.Errorf("extractFilter(%v) = %q, want %q", tc.arguments, got, tc.expected)
-			}
+			assert.Equal(t, tc.expected, got, "extractFilter(%v) = %q, want %q", tc.arguments, got, tc.expected)
 		})
 	}
 }
@@ -528,15 +467,9 @@ func TestParseInterspersed(t *testing.T) {
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		limit := fs.Int("limit", 20, "max items")
 		positional, err := parseInterspersed(fs, []string{"--limit", "5", "Liveness"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if *limit != 5 {
-			t.Errorf("limit = %d, want 5", *limit)
-		}
-		if len(positional) != 1 || positional[0] != "Liveness" {
-			t.Errorf("positional = %v, want [Liveness]", positional)
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 5, *limit, "limit = %d, want 5", *limit)
+		assert.False(t, len(positional) != 1 || positional[0] != "Liveness", "positional = %v, want [Liveness]", positional)
 	})
 
 	t.Run("flags after positional", func(t *testing.T) {
@@ -544,15 +477,9 @@ func TestParseInterspersed(t *testing.T) {
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		limit := fs.Int("limit", 20, "max items")
 		positional, err := parseInterspersed(fs, []string{"Liveness", "--limit", "10"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if *limit != 10 {
-			t.Errorf("limit = %d, want 10", *limit)
-		}
-		if len(positional) != 1 || positional[0] != "Liveness" {
-			t.Errorf("positional = %v, want [Liveness]", positional)
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 10, *limit, "limit = %d, want 10", *limit)
+		assert.False(t, len(positional) != 1 || positional[0] != "Liveness", "positional = %v, want [Liveness]", positional)
 	})
 
 	t.Run("help flag returns ErrHelp", func(t *testing.T) {
@@ -560,21 +487,15 @@ func TestParseInterspersed(t *testing.T) {
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		fs.SetOutput(&bytes.Buffer{})
 		_, err := parseInterspersed(fs, []string{"Liveness", "--help"})
-		if !errors.Is(err, flag.ErrHelp) {
-			t.Errorf("err = %v, want flag.ErrHelp", err)
-		}
+		assert.True(t, errors.Is(err, flag.ErrHelp), "err = %v, want flag.ErrHelp", err)
 	})
 
 	t.Run("no arguments", func(t *testing.T) {
 		t.Parallel()
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		positional, err := parseInterspersed(fs, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(positional) != 0 {
-			t.Errorf("positional = %v, want empty", positional)
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Empty(t, positional, "positional = %v, want empty", positional)
 	})
 
 	t.Run("bool flag interspersed", func(t *testing.T) {
@@ -582,15 +503,9 @@ func TestParseInterspersed(t *testing.T) {
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		showErrors := fs.Bool("errors", false, "show errors only")
 		positional, err := parseInterspersed(fs, []string{"Liveness", "--errors"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !*showErrors {
-			t.Error("errors flag should be true")
-		}
-		if len(positional) != 1 || positional[0] != "Liveness" {
-			t.Errorf("positional = %v, want [Liveness]", positional)
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.True(t, *showErrors, "errors flag should be true")
+		assert.False(t, len(positional) != 1 || positional[0] != "Liveness", "positional = %v, want [Liveness]", positional)
 	})
 
 	t.Run("equals syntax", func(t *testing.T) {
@@ -598,15 +513,9 @@ func TestParseInterspersed(t *testing.T) {
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		limit := fs.Int("limit", 20, "max items")
 		positional, err := parseInterspersed(fs, []string{"Liveness", "--limit=5"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if *limit != 5 {
-			t.Errorf("limit = %d, want 5", *limit)
-		}
-		if len(positional) != 1 || positional[0] != "Liveness" {
-			t.Errorf("positional = %v, want [Liveness]", positional)
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 5, *limit, "limit = %d, want 5", *limit)
+		assert.False(t, len(positional) != 1 || positional[0] != "Liveness", "positional = %v, want [Liveness]", positional)
 	})
 }
 
@@ -617,33 +526,23 @@ func TestGrpcError(t *testing.T) {
 		t.Parallel()
 		err := status.Error(codes.Unimplemented, "unknown service foo.bar.BazService")
 		got := grpcError("fetching dispatcher summary", err)
-		if !strings.Contains(got.Error(), "service not available") {
-			t.Errorf("expected friendly message, got: %s", got)
-		}
-		if !strings.Contains(got.Error(), "fetching dispatcher summary") {
-			t.Errorf("expected context in message, got: %s", got)
-		}
+		assert.Contains(t, got.Error(), "service not available", "expected friendly message, got: %s", got)
+		assert.Contains(t, got.Error(), "fetching dispatcher summary", "expected context in message, got: %s", got)
 	})
 
 	t.Run("other errors pass through", func(t *testing.T) {
 		t.Parallel()
 		err := status.Error(codes.Unavailable, "connection refused")
 		got := grpcError("fetching health", err)
-		if strings.Contains(got.Error(), "service not available") {
-			t.Errorf("non-Unimplemented error should not say 'service not available', got: %s", got)
-		}
-		if !strings.Contains(got.Error(), "connection refused") {
-			t.Errorf("expected original error message, got: %s", got)
-		}
+		assert.NotContains(t, got.Error(), "service not available", "non-Unimplemented error should not say 'service not available', got: %s", got)
+		assert.Contains(t, got.Error(), "connection refused", "expected original error message, got: %s", got)
 	})
 
 	t.Run("non-grpc errors pass through", func(t *testing.T) {
 		t.Parallel()
 		err := fmt.Errorf("some random error")
 		got := grpcError("fetching tasks", err)
-		if !strings.Contains(got.Error(), "some random error") {
-			t.Errorf("expected original error, got: %s", got)
-		}
+		assert.Contains(t, got.Error(), "some random error", "expected original error, got: %s", got)
 	})
 }
 
@@ -668,9 +567,7 @@ func TestPrinter_GetLimit(t *testing.T) {
 			p := NewPrinter(&bytes.Buffer{}, "table", false, false)
 			p.SetLimit(tc.globalLimit)
 			got := p.GetLimit(tc.handlerDefault)
-			if got != tc.expected {
-				t.Errorf("GetLimit(%d) with global=%d = %d, want %d", tc.handlerDefault, tc.globalLimit, got, tc.expected)
-			}
+			assert.Equal(t, tc.expected, got, "GetLimit(%d) with global=%d = %d, want %d", tc.handlerDefault, tc.globalLimit, got, tc.expected)
 		})
 	}
 }
@@ -700,12 +597,8 @@ func TestValidateOutputFormat(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			err := validateOutputFormat(tc.format, tc.command, tc.allowed)
-			if tc.wantErr && err == nil {
-				t.Errorf("validateOutputFormat(%q, %q, %v) = nil, want error", tc.format, tc.command, tc.allowed)
-			}
-			if !tc.wantErr && err != nil {
-				t.Errorf("validateOutputFormat(%q, %q, %v) = %v, want nil", tc.format, tc.command, tc.allowed, err)
-			}
+			assert.False(t, tc.wantErr && err == nil, "validateOutputFormat(%q, %q, %v) = nil, want error", tc.format, tc.command, tc.allowed)
+			assert.False(t, !tc.wantErr && err != nil, "validateOutputFormat(%q, %q, %v) = %v, want nil", tc.format, tc.command, tc.allowed, err)
 		})
 	}
 }
@@ -714,20 +607,12 @@ func TestValidateOutputFormat_ErrorMessage(t *testing.T) {
 	t.Parallel()
 
 	err := validateOutputFormat("text", "get", []string{"table", "wide", "json"})
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
+	require.Error(t, err, "expected error, got nil")
 
 	message := err.Error()
-	if !strings.Contains(message, "text") {
-		t.Errorf("error should mention the invalid format, got: %s", message)
-	}
-	if !strings.Contains(message, "get") {
-		t.Errorf("error should mention the command name, got: %s", message)
-	}
-	if !strings.Contains(message, "table, wide, json") {
-		t.Errorf("error should list supported formats, got: %s", message)
-	}
+	assert.Contains(t, message, "text", "error should mention the invalid format, got: %s", message)
+	assert.Contains(t, message, "get", "error should mention the command name, got: %s", message)
+	assert.Contains(t, message, "table, wide, json", "error should list supported formats, got: %s", message)
 }
 
 func TestArgsAfterFilter(t *testing.T) {
@@ -748,9 +633,7 @@ func TestArgsAfterFilter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := argsAfterFilter(tc.arguments, tc.filter)
-			if len(got) != tc.wantLen {
-				t.Errorf("argsAfterFilter(%v, %q) has %d elements, want %d", tc.arguments, tc.filter, len(got), tc.wantLen)
-			}
+			assert.Len(t, got, tc.wantLen, "argsAfterFilter(%v, %q) has %d elements, want %d", tc.arguments, tc.filter, len(got), tc.wantLen)
 		})
 	}
 }
@@ -805,9 +688,7 @@ func TestPrintHealthTree(t *testing.T) {
 			printHealthTree(&buffer, p, tc.status, tc.depth)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -821,9 +702,7 @@ func TestStatusStyle(t *testing.T) {
 		p := NewPrinter(&bytes.Buffer{}, "table", true, false)
 		style := p.statusStyle("HEALTHY")
 		rendered := style.Render("HEALTHY")
-		if rendered != "HEALTHY" {
-			t.Errorf("noColour style rendered %q, want %q", rendered, "HEALTHY")
-		}
+		assert.Equal(t, "HEALTHY", rendered, "noColour style rendered %q, want %q", rendered, "HEALTHY")
 	})
 
 	t.Run("known status gets colour style", func(t *testing.T) {
@@ -833,9 +712,7 @@ func TestStatusStyle(t *testing.T) {
 
 		var noColour lipgloss.NoColor
 		fg := style.GetForeground()
-		if fg == noColour {
-			t.Error("expected foreground colour for HEALTHY status")
-		}
+		assert.NotEqual(t, noColour, fg, "expected foreground colour for HEALTHY status")
 	})
 
 	t.Run("unknown status gets default colour style", func(t *testing.T) {
@@ -844,8 +721,6 @@ func TestStatusStyle(t *testing.T) {
 		style := p.statusStyle("UNKNOWN_STATUS")
 		var noColour lipgloss.NoColor
 		fg := style.GetForeground()
-		if fg == noColour {
-			t.Error("expected default foreground colour for unknown status")
-		}
+		assert.NotEqual(t, noColour, fg, "expected default foreground colour for unknown status")
 	})
 }

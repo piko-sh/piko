@@ -29,6 +29,7 @@ import (
 	"golang.org/x/sync/singleflight"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/registry/registry_dto"
 )
 
 const (
@@ -67,9 +68,6 @@ type registryService struct {
 	// metaStore stores artefact metadata.
 	metaStore MetadataStore
 
-	// blobStores maps storage backend IDs to their blob store instances.
-	blobStores map[string]BlobStore
-
 	// eventBus publishes lifecycle events when artefacts change.
 	eventBus orchestrator_domain.EventBus
 
@@ -79,10 +77,56 @@ type registryService struct {
 	// loader deduplicates concurrent artefact load requests.
 	loader singleflight.Group
 
+	// blobStores maps storage backend IDs to their blob store instances.
+	blobStores map[string]BlobStore
+
+	// defaultVariantOrigin is stamped on created variants whose Origin is otherwise unset.
+	defaultVariantOrigin registry_dto.VariantOrigin
+
+	// defaultBuildRelease identifies the release that produced build-origin variants.
+	defaultBuildRelease string
+
+	// defaultBuildHash is the full build-identity hash for build-origin variants, supplied
+	// alongside defaultBuildRelease.
+	//
+	// Empty for runtime services.
+	defaultBuildHash string
+
 	// artefactEventsPublished tracks the number of artefact events published. Used for
 	// pipeline flush detection: the daemon waits until the bridge has handled all published
 	// events before checking if idle.
 	artefactEventsPublished atomic.Int64
+}
+
+// RegistryServiceOption configures optional registryService behaviour.
+type RegistryServiceOption func(*registryService)
+
+// WithDefaultVariantOrigin sets the Origin stamped on variants the service creates when
+// the variant does not already carry one. Build-time services pass VariantOriginBuild so
+// the seed's variants carry build provenance (Producer, BuildRelease, BuildHash); runtime
+// services pass VariantOriginRuntime so uploads and on-demand variants stay classified as
+// runtime data in the layered store.
+//
+// Takes origin (registry_dto.VariantOrigin) which is the default to stamp.
+//
+// Returns RegistryServiceOption which applies the default.
+func WithDefaultVariantOrigin(origin registry_dto.VariantOrigin) RegistryServiceOption {
+	return func(s *registryService) { s.defaultVariantOrigin = origin }
+}
+
+// WithDefaultBuildIdentity sets the release identifier and full build hash stamped on
+// build-origin variants the service creates when they do not already carry one. The
+// container supplies these during generation so the seed's variants are owned-by-release.
+//
+// Takes release which identifies the producing release.
+// Takes hash which is the full build-identity hash.
+//
+// Returns RegistryServiceOption which applies the defaults.
+func WithDefaultBuildIdentity(release, hash string) RegistryServiceOption {
+	return func(s *registryService) {
+		s.defaultBuildRelease = release
+		s.defaultBuildHash = hash
+	}
 }
 
 // All service methods are implemented in separate files for better organisation:
@@ -284,8 +328,9 @@ func NewRegistryService(
 	blobStores map[string]BlobStore,
 	eventBus orchestrator_domain.EventBus,
 	cache MetadataCache,
+	opts ...RegistryServiceOption,
 ) RegistryService {
-	return &registryService{
+	s := &registryService{
 		metaStore:               metaStore,
 		blobStores:              blobStores,
 		eventBus:                eventBus,
@@ -293,6 +338,10 @@ func NewRegistryService(
 		loader:                  singleflight.Group{},
 		artefactEventsPublished: atomic.Int64{},
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 // aggregateState combines health states, preferring the worst state.

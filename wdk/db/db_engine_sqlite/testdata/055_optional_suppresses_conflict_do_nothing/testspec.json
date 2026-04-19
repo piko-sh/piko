@@ -1,0 +1,3 @@
+{
+  "description": "command:one INSERT ... ON CONFLICT DO NOTHING RETURNING with optional: true. The optional flag turns a skipped insert into (row, false, nil), so the Q046 no-rows warning is suppressed and no diagnostic is emitted; queries.json still shows the query with Optional true."
+}

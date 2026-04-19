@@ -66,7 +66,7 @@ type TestHarness struct {
 
 func NewTestRouterBuilder(t *testing.T) daemon_domain.RouterBuilder {
 	t.Helper()
-	builder := daemon_adapters.NewHTTPRouterBuilder(nil)
+	builder := daemon_adapters.NewHTTPRouterBuilder(nil, "")
 	t.Cleanup(builder.Close)
 	return builder
 }

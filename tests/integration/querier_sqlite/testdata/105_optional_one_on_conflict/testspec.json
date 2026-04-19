@@ -1,0 +1,1 @@
+{"description": "optional:true command:one INSERT ON CONFLICT DO NOTHING RETURNING returns (row, false, nil) on conflict"}

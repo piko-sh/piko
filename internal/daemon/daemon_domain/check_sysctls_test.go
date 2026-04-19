@@ -24,6 +24,9 @@ import (
 	"context"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckHostConfiguration_DevelopmentEnvironment(t *testing.T) {
@@ -64,9 +67,7 @@ func TestRecommendedSysctlInts_ContainsExpectedKeys(t *testing.T) {
 	}
 
 	for _, key := range expectedKeys {
-		if _, ok := recommendedSysctlInts[key]; !ok {
-			t.Errorf("recommendedSysctlInts missing key: %s", key)
-		}
+		assert.Containsf(t, recommendedSysctlInts, key, "recommendedSysctlInts missing key: %s", key)
 	}
 }
 
@@ -74,39 +75,28 @@ func TestRecommendedSysctlInts_SomaxconnValue(t *testing.T) {
 	t.Parallel()
 
 	expected := 65535
-	if recommendedSysctlInts["net.core.somaxconn"] != expected {
-		t.Errorf("net.core.somaxconn = %d, want %d",
-			recommendedSysctlInts["net.core.somaxconn"], expected)
-	}
+	assert.Equal(t, expected, recommendedSysctlInts["net.core.somaxconn"], "net.core.somaxconn")
 }
 
 func TestRecommendedSysctlInts_TcpTwReuseValue(t *testing.T) {
 	t.Parallel()
 
 	expected := 1
-	if recommendedSysctlInts["net.ipv4.tcp_tw_reuse"] != expected {
-		t.Errorf("net.ipv4.tcp_tw_reuse = %d, want %d",
-			recommendedSysctlInts["net.ipv4.tcp_tw_reuse"], expected)
-	}
+	assert.Equal(t, expected, recommendedSysctlInts["net.ipv4.tcp_tw_reuse"], "net.ipv4.tcp_tw_reuse")
 }
 
 func TestRecommendedSysctlInts_TcpFinTimeoutValue(t *testing.T) {
 	t.Parallel()
 
 	expected := 30
-	if recommendedSysctlInts["net.ipv4.tcp_fin_timeout"] != expected {
-		t.Errorf("net.ipv4.tcp_fin_timeout = %d, want %d",
-			recommendedSysctlInts["net.ipv4.tcp_fin_timeout"], expected)
-	}
+	assert.Equal(t, expected, recommendedSysctlInts["net.ipv4.tcp_fin_timeout"], "net.ipv4.tcp_fin_timeout")
 }
 
 func TestRecommendedSysctlRanges_ContainsPortRange(t *testing.T) {
 	t.Parallel()
 
 	key := "net.ipv4.ip_local_port_range"
-	if _, ok := recommendedSysctlRanges[key]; !ok {
-		t.Errorf("recommendedSysctlRanges missing key: %s", key)
-	}
+	assert.Containsf(t, recommendedSysctlRanges, key, "recommendedSysctlRanges missing key: %s", key)
 }
 
 func TestRecommendedSysctlRanges_PortRangeValues(t *testing.T) {
@@ -116,32 +106,22 @@ func TestRecommendedSysctlRanges_PortRangeValues(t *testing.T) {
 	expected := [2]int{32768, 65535}
 
 	actual, ok := recommendedSysctlRanges[key]
-	if !ok {
-		t.Fatalf("recommendedSysctlRanges missing key: %s", key)
-	}
+	require.Truef(t, ok, "recommendedSysctlRanges missing key: %s", key)
 
-	if actual[0] != expected[0] || actual[1] != expected[1] {
-		t.Errorf("%s = [%d, %d], want [%d, %d]",
-			key, actual[0], actual[1], expected[0], expected[1])
-	}
+	assert.Equalf(t, expected, actual, "%s port range values", key)
 }
 
 func TestRecommendedRlimits_ContainsUlimitN(t *testing.T) {
 	t.Parallel()
 
-	if _, ok := recommendedRlimits["ulimit-n"]; !ok {
-		t.Error("recommendedRlimits missing key: ulimit-n")
-	}
+	assert.Contains(t, recommendedRlimits, "ulimit-n", "recommendedRlimits missing key: ulimit-n")
 }
 
 func TestRecommendedRlimits_UlimitNValue(t *testing.T) {
 	t.Parallel()
 
 	expected := uint64(65536)
-	if recommendedRlimits["ulimit-n"] != expected {
-		t.Errorf("ulimit-n = %d, want %d",
-			recommendedRlimits["ulimit-n"], expected)
-	}
+	assert.Equal(t, expected, recommendedRlimits["ulimit-n"], "ulimit-n")
 }
 
 func TestCheckAllSysctls_LinuxOnly(t *testing.T) {
@@ -183,18 +163,11 @@ func TestCheckHostConfiguration_LinuxProduction(t *testing.T) {
 func TestKeyConstants(t *testing.T) {
 	t.Parallel()
 
-	if keySysctl != "sysctl" {
-		t.Errorf("keySysctl = %q, want %q", keySysctl, "sysctl")
-	}
+	assert.Equal(t, "sysctl", keySysctl, "keySysctl")
 
-	if keyKey != "key" {
-		t.Errorf("keyKey = %q, want %q", keyKey, "key")
-	}
+	assert.Equal(t, "key", keyKey, "keyKey")
 
-	if msgCouldNotReadSysctl != "Could not read sysctl value." {
-		t.Errorf("msgCouldNotReadSysctl = %q, want %q",
-			msgCouldNotReadSysctl, "Could not read sysctl value.")
-	}
+	assert.Equal(t, "Could not read sysctl value.", msgCouldNotReadSysctl, "msgCouldNotReadSysctl")
 }
 
 func TestCheckHostConfiguration_WithTestEnvironment(t *testing.T) {

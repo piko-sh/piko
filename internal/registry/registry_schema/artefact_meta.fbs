@@ -23,6 +23,26 @@ table KeyValueFB {
     value: string;
 }
 
+enum VariantProducerFB : byte {
+    Unknown = 0,
+    Build = 1,
+    Runtime = 2,
+}
+
+enum VariantKindFB : byte {
+    Unknown = 0,
+    Source = 1,
+    Derived = 2,
+}
+
+table VariantTransformFB {
+    parent_variant_id: string;
+    parent_content_hash: string;
+    capability_name: string;
+    capability_version: uint32;
+    params: [KeyValueFB];
+}
+
 table VariantChunkFB {
     chunk_id: string;
     storage_key: string;
@@ -46,6 +66,14 @@ table VariantFB {
     created_at: int64;
     metadata_tags: [KeyValueFB];
     chunks: [VariantChunkFB];
+    origin: string;
+    build_release: string;
+    build_hash: string;
+    input_fingerprint: string;
+    sri_hash: string;
+    producer: VariantProducerFB;
+    kind: VariantKindFB;
+    transform: VariantTransformFB;
 }
 
 table DesiredProfileFB {

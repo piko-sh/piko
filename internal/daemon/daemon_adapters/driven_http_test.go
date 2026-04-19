@@ -1163,14 +1163,14 @@ func TestLookupArtefactByStorageKey_OtherError(t *testing.T) {
 func TestNewHTTPRouterBuilder_ReturnsNonNil(t *testing.T) {
 	t.Parallel()
 
-	builder := NewHTTPRouterBuilder(nil)
+	builder := NewHTTPRouterBuilder(nil, "")
 	require.NotNil(t, builder)
 }
 
 func TestNewHTTPRouterBuilder_ImplementsInterface(t *testing.T) {
 	t.Parallel()
 
-	builder := NewHTTPRouterBuilder(nil)
+	builder := NewHTTPRouterBuilder(nil, "")
 	_, ok := builder.(*HTTPRouterBuilder)
 	assert.True(t, ok)
 }

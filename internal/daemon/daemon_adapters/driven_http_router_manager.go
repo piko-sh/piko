@@ -230,8 +230,6 @@ func (rm *RouterManager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // ReloadRoutes performs hot-reloading by building a new router in the background and
 // atomically swapping it into place.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes store (ManifestStoreView) which provides the new manifest data for route
 // configuration.
 //
@@ -245,7 +243,7 @@ func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domai
 
 	newAppRouter, notFoundHandler := rm.buildReloadedAppRouter(ctx, store)
 
-	builder := NewHTTPRouterBuilder(rm.artefactCache)
+	builder := NewHTTPRouterBuilder(rm.artefactCache, "")
 	finalRouter, err := builder.BuildRouter(
 		rm.routerConfig,
 		daemon_domain.RouterDependencies{
@@ -297,7 +295,6 @@ func (rm *RouterManager) Close() {
 // mounts the manifest routes and external route providers, then builds the matching
 // not-found handler bound to the new store.
 //
-// Takes ctx (context.Context) which carries logging and request context.
 // Takes store (templater_domain.ManifestStoreView) which provides the new manifest data.
 //
 // Returns chi.Router which is the populated application router.

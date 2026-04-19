@@ -107,18 +107,23 @@ type VariantChunk struct {
 // Variant represents a processed version of an artefact, such as a resized image or
 // minified JavaScript file.
 type Variant struct {
+	// CreatedAt is when the variant was created.
+	CreatedAt time.Time `json:"createdAt"`
+
 	// MetadataTags holds key-value metadata about the variant, such as MIME type, ETag, and
 	// content encoding.
 	MetadataTags Tags `json:"metadataTags"`
 
-	// CreatedAt is when the variant was created.
-	CreatedAt time.Time `json:"createdAt"`
+	// SRIHash is the SHA-384 Subresource Integrity hash of the uncompressed variant content,
+	// in the format "sha384-<base64>". Populated at registration time for variants whose
+	// content may be referenced in HTML script or link tags.
+	SRIHash string `json:"sriHash,omitempty"`
 
-	// VariantID identifies this variant; "source" means the original file.
-	VariantID string `json:"variantId"`
-
-	// StorageBackendID identifies which storage backend holds this variant's data.
-	StorageBackendID string `json:"storageBackendId"`
+	// Origin records whether this variant was produced at build time or created at runtime.
+	//
+	// A runtime variant may be an on-demand resolution variant or an upload. Empty is
+	// treated as runtime so a seed re-sync never deletes unmarked data.
+	Origin VariantOrigin `json:"origin,omitempty"`
 
 	// StorageKey is the unique key used to find this variant in storage.
 	StorageKey string `json:"storageKey"`
@@ -126,23 +131,73 @@ type Variant struct {
 	// MimeType is the MIME type of the variant content; must not be empty.
 	MimeType string `json:"mimeType"`
 
-	// Status indicates the current lifecycle state of this variant.
-	Status VariantStatus `json:"status"`
+	// VariantID identifies this variant; "source" means the original file.
+	VariantID string `json:"variantId"`
 
 	// ContentHash is the SHA256 hash of the blob content.
 	ContentHash string `json:"contentHash,omitempty"`
 
-	// SRIHash is the SHA-384 Subresource Integrity hash of the uncompressed variant content,
-	// in the format "sha384-<base64>". Populated at registration time for variants whose
-	// content may be referenced in HTML script or link tags.
-	SRIHash string `json:"sriHash,omitempty"`
+	// Status indicates the current lifecycle state of this variant.
+	Status VariantStatus `json:"status"`
+
+	// StorageBackendID identifies which storage backend holds this variant's data.
+	StorageBackendID string `json:"storageBackendId"`
+
+	// BuildRelease identifies the release that produced a build-origin variant.
+	//
+	// The value is typically the VCS revision, or an explicit release identifier. It lets
+	// multiple releases coexist in one shared backend during a canary or A/B rollout, and
+	// lets a retired release be garbage-collected without touching other releases. Empty for
+	// runtime variants.
+	BuildRelease string `json:"buildRelease,omitempty"`
+
+	// BuildHash is the full build-identity hash of the producing build (vcs.revision plus a
+	// dirty-tree marker). It disambiguates two builds that share a release identifier.
+	BuildHash string `json:"buildHash,omitempty"`
+
+	// InputFingerprint hashes the inputs that determine this variant's validity.
+	//
+	// The inputs are the source content hash plus the transform capability and its
+	// parameters (which include quality). It is one half of the layered record identity
+	// (variantID, inputFingerprint): the layer merge deduplicates records on it, so two
+	// releases whose transforms produced identical inputs share one record while differing
+	// fingerprints coexist, and validity checking compares it against the current source to
+	// stop a stale derived variant from being served.
+	InputFingerprint string `json:"inputFingerprint,omitempty"`
+
+	// Transform is the derivation recipe: the parent, the capability and version, and the
+	// parameters actually applied. It is the preimage of InputFingerprint for a derived
+	// variant, and zero for a source variant.
+	Transform VariantTransform `json:"transform,omitzero"`
 
 	// Chunks holds the blob chunks that form this variant.
 	Chunks []VariantChunk `json:"chunks,omitempty"`
 
 	// SizeBytes is the size of the variant in bytes; must be positive.
 	SizeBytes int64 `json:"sizeBytes"`
+
+	// Producer records who produced this variant's bytes: the build, or the running server.
+	//
+	// It is one of the two orthogonal provenance axes (the other is Kind). It supersedes
+	// Origin, which is retained during the transition until every reader is migrated.
+	Producer VariantProducer `json:"producer,omitempty"`
+
+	// Kind records whether this variant has a parent, and so whether it is regenerable cache
+	// (derived) or irreplaceable data (source). It is the second provenance axis.
+	Kind VariantKind `json:"kind,omitempty"`
 }
+
+// VariantOrigin records whether a variant was produced at build time or created at
+// runtime.
+type VariantOrigin string
+
+const (
+	// VariantOriginBuild marks a variant produced by the build/generation step.
+	VariantOriginBuild VariantOrigin = "build"
+
+	// VariantOriginRuntime marks a variant created at runtime.
+	VariantOriginRuntime VariantOrigin = "runtime"
+)
 
 // ArtefactMeta holds the metadata for a registered artefact in the registry. It tracks
 // the artefact's variants, desired profiles, and storage details.
@@ -155,6 +210,14 @@ type ArtefactMeta struct {
 
 	// ID is the unique identifier for this artefact.
 	ID string `json:"id"`
+
+	// ReleaseID is the layer this record belongs to.
+	//
+	// The value is a release identifier for a published build layer, the reserved runtime
+	// marker for the mutable runtime layer, or empty for a single-layer store. It is the
+	// second half of a layer row's identity and is set by the store on read and by the
+	// writer on write. Merging layers reads it to know which layer a record came from.
+	ReleaseID string `json:"releaseId,omitempty"`
 
 	// SourcePath is the original file path of the source asset.
 	SourcePath string `json:"sourcePath,omitempty"`
@@ -232,4 +295,38 @@ func (a *ArtefactMeta) ComputeStatus() VariantStatus {
 		}
 	}
 	return VariantStatusStale
+}
+
+// Clone returns a deep copy that shares no mutable state with the original.
+//
+// Returns *ArtefactMeta which is an independent copy, or nil when the receiver is nil.
+func (a *ArtefactMeta) Clone() *ArtefactMeta {
+	if a == nil {
+		return nil
+	}
+
+	clone := *a
+
+	clone.ActualVariants = make([]Variant, len(a.ActualVariants))
+	for i := range a.ActualVariants {
+		variant := a.ActualVariants[i]
+		variant.MetadataTags = a.ActualVariants[i].MetadataTags.Clone()
+		variant.Transform.Params = a.ActualVariants[i].Transform.Params.Clone()
+		if a.ActualVariants[i].Chunks != nil {
+			variant.Chunks = make([]VariantChunk, len(a.ActualVariants[i].Chunks))
+			copy(variant.Chunks, a.ActualVariants[i].Chunks)
+		}
+		clone.ActualVariants[i] = variant
+	}
+
+	clone.DesiredProfiles = make([]NamedProfile, len(a.DesiredProfiles))
+	for i := range a.DesiredProfiles {
+		profile := a.DesiredProfiles[i]
+		profile.Profile.Params = a.DesiredProfiles[i].Profile.Params.Clone()
+		profile.Profile.ResultingTags = a.DesiredProfiles[i].Profile.ResultingTags.Clone()
+		profile.Profile.DependsOn = a.DesiredProfiles[i].Profile.DependsOn.Clone()
+		clone.DesiredProfiles[i] = profile
+	}
+
+	return &clone
 }

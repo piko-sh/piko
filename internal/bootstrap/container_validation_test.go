@@ -19,8 +19,10 @@
 package bootstrap
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	email_mock "piko.sh/piko/internal/email/email_adapters/provider_mock"
 	storage_mock "piko.sh/piko/internal/storage/storage_adapters/provider_mock"
@@ -31,9 +33,7 @@ func TestValidateProviderConfiguration_NoProvidersNoDefaults(t *testing.T) {
 	c := NewContainer()
 
 	err := c.ValidateProviderConfiguration()
-	if err != nil {
-		t.Errorf("expected no error with empty configuration, got: %v", err)
-	}
+	assert.NoError(t, err, "expected no error with empty configuration")
 }
 
 func TestValidateProviderConfiguration_EmailDefaultWithoutProvider(t *testing.T) {
@@ -42,15 +42,9 @@ func TestValidateProviderConfiguration_EmailDefaultWithoutProvider(t *testing.T)
 	c.SetEmailDefaultProvider("missing-provider")
 
 	err := c.ValidateProviderConfiguration()
-	if err == nil {
-		t.Fatal("expected error when default provider is not registered")
-	}
-	if !strings.Contains(err.Error(), "email default provider") {
-		t.Errorf("error should mention email provider, got: %v", err)
-	}
-	if !strings.Contains(err.Error(), "missing-provider") {
-		t.Errorf("error should mention the missing provider name, got: %v", err)
-	}
+	require.Error(t, err, "expected error when default provider is not registered")
+	assert.Contains(t, err.Error(), "email default provider", "error should mention email provider")
+	assert.Contains(t, err.Error(), "missing-provider", "error should mention the missing provider name")
 }
 
 func TestValidateProviderConfiguration_EmailDefaultWithProvider(t *testing.T) {
@@ -60,9 +54,7 @@ func TestValidateProviderConfiguration_EmailDefaultWithProvider(t *testing.T) {
 	c.SetEmailDefaultProvider("my-email")
 
 	err := c.ValidateProviderConfiguration()
-	if err != nil {
-		t.Errorf("expected no error when default matches registered provider, got: %v", err)
-	}
+	assert.NoError(t, err, "expected no error when default matches registered provider")
 }
 
 func TestValidateProviderConfiguration_StorageDefaultWithoutProvider(t *testing.T) {
@@ -71,12 +63,8 @@ func TestValidateProviderConfiguration_StorageDefaultWithoutProvider(t *testing.
 	c.SetStorageDefaultProvider("missing-storage")
 
 	err := c.ValidateProviderConfiguration()
-	if err == nil {
-		t.Fatal("expected error when default provider is not registered")
-	}
-	if !strings.Contains(err.Error(), "storage default provider") {
-		t.Errorf("error should mention storage provider, got: %v", err)
-	}
+	require.Error(t, err, "expected error when default provider is not registered")
+	assert.Contains(t, err.Error(), "storage default provider", "error should mention storage provider")
 }
 
 func TestValidateProviderConfiguration_StorageDefaultWithProvider(t *testing.T) {
@@ -86,9 +74,7 @@ func TestValidateProviderConfiguration_StorageDefaultWithProvider(t *testing.T) 
 	c.SetStorageDefaultProvider("my-storage")
 
 	err := c.ValidateProviderConfiguration()
-	if err != nil {
-		t.Errorf("expected no error when default matches registered provider, got: %v", err)
-	}
+	assert.NoError(t, err, "expected no error when default matches registered provider")
 }
 
 func TestValidateProviderConfiguration_CacheDefaultWithoutProvider(t *testing.T) {
@@ -97,12 +83,8 @@ func TestValidateProviderConfiguration_CacheDefaultWithoutProvider(t *testing.T)
 	c.SetCacheDefaultProvider("missing-cache")
 
 	err := c.ValidateProviderConfiguration()
-	if err == nil {
-		t.Fatal("expected error when default provider is not registered")
-	}
-	if !strings.Contains(err.Error(), "cache default provider") {
-		t.Errorf("error should mention cache provider, got: %v", err)
-	}
+	require.Error(t, err, "expected error when default provider is not registered")
+	assert.Contains(t, err.Error(), "cache default provider", "error should mention cache provider")
 }
 
 func TestValidateProviderConfiguration_CryptoDefaultWithoutProvider(t *testing.T) {
@@ -111,12 +93,8 @@ func TestValidateProviderConfiguration_CryptoDefaultWithoutProvider(t *testing.T
 	c.SetCryptoDefaultProvider("missing-crypto")
 
 	err := c.ValidateProviderConfiguration()
-	if err == nil {
-		t.Fatal("expected error when default provider is not registered")
-	}
-	if !strings.Contains(err.Error(), "crypto default provider") {
-		t.Errorf("error should mention crypto provider, got: %v", err)
-	}
+	require.Error(t, err, "expected error when default provider is not registered")
+	assert.Contains(t, err.Error(), "crypto default provider", "error should mention crypto provider")
 }
 
 func TestValidateProviderConfiguration_NotificationDefaultWithoutProvider(t *testing.T) {
@@ -125,12 +103,8 @@ func TestValidateProviderConfiguration_NotificationDefaultWithoutProvider(t *tes
 	c.SetNotificationDefaultProvider("missing-notification")
 
 	err := c.ValidateProviderConfiguration()
-	if err == nil {
-		t.Fatal("expected error when default provider is not registered")
-	}
-	if !strings.Contains(err.Error(), "notification default provider") {
-		t.Errorf("error should mention notification provider, got: %v", err)
-	}
+	require.Error(t, err, "expected error when default provider is not registered")
+	assert.Contains(t, err.Error(), "notification default provider", "error should mention notification provider")
 }
 
 func TestValidateProviderConfiguration_MultipleErrors(t *testing.T) {
@@ -140,15 +114,9 @@ func TestValidateProviderConfiguration_MultipleErrors(t *testing.T) {
 	c.SetStorageDefaultProvider("missing-storage")
 
 	err := c.ValidateProviderConfiguration()
-	if err == nil {
-		t.Fatal("expected error when multiple defaults are missing")
-	}
-	if !strings.Contains(err.Error(), "email default provider") {
-		t.Errorf("error should mention email provider, got: %v", err)
-	}
-	if !strings.Contains(err.Error(), "storage default provider") {
-		t.Errorf("error should mention storage provider, got: %v", err)
-	}
+	require.Error(t, err, "expected error when multiple defaults are missing")
+	assert.Contains(t, err.Error(), "email default provider", "error should mention email provider")
+	assert.Contains(t, err.Error(), "storage default provider", "error should mention storage provider")
 }
 
 func TestValidateProviderConfiguration_DefaultPointsToWrongProvider(t *testing.T) {
@@ -158,13 +126,7 @@ func TestValidateProviderConfiguration_DefaultPointsToWrongProvider(t *testing.T
 	c.SetEmailDefaultProvider("provider-b")
 
 	err := c.ValidateProviderConfiguration()
-	if err == nil {
-		t.Fatal("expected error when default points to unregistered provider")
-	}
-	if !strings.Contains(err.Error(), "provider-b") {
-		t.Errorf("error should mention the missing provider name, got: %v", err)
-	}
-	if !strings.Contains(err.Error(), "provider-a") {
-		t.Errorf("error should list available providers, got: %v", err)
-	}
+	require.Error(t, err, "expected error when default points to unregistered provider")
+	assert.Contains(t, err.Error(), "provider-b", "error should mention the missing provider name")
+	assert.Contains(t, err.Error(), "provider-a", "error should list available providers")
 }

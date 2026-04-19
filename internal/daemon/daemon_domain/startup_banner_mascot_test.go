@@ -22,18 +22,17 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMascotPixelData(t *testing.T) {
 	t.Run("Dimensions", func(t *testing.T) {
 		t.Parallel()
 
-		if got := len(mascotPixels); got != 37 {
-			t.Errorf("expected 37 rows, got %d", got)
-		}
-		if got := len(mascotPixels[0]); got != 50 {
-			t.Errorf("expected 50 columns, got %d", got)
-		}
+		assert.Len(t, mascotPixels, 37, "expected 37 rows")
+		assert.Len(t, mascotPixels[0], 50, "expected 50 columns")
 	})
 
 	t.Run("AlphaValuesAreOnlyZeroOrFull", func(t *testing.T) {
@@ -42,9 +41,8 @@ func TestMascotPixelData(t *testing.T) {
 		for y := range mascotPixels {
 			for x := range mascotPixels[y] {
 				a := mascotPixels[y][x][3]
-				if a != 0 && a != 255 {
-					t.Errorf("pixel (%d,%d) has unexpected alpha %d; expected 0 or 255", x, y, a)
-				}
+				assert.Truef(t, a == 0 || a == 255,
+					"pixel (%d,%d) has unexpected alpha %d; expected 0 or 255", x, y, a)
 			}
 		}
 	})
@@ -55,9 +53,7 @@ func TestMascotSmallLines(t *testing.T) {
 		t.Parallel()
 
 		lines := mascotSmallLines()
-		if len(lines) != 6 {
-			t.Errorf("expected 6 lines, got %d", len(lines))
-		}
+		assert.Len(t, lines, 6, "expected 6 lines")
 	})
 
 	t.Run("ContainsMascotArt", func(t *testing.T) {
@@ -68,9 +64,7 @@ func TestMascotSmallLines(t *testing.T) {
 		stripped := stripANSI(joined)
 
 		for _, want := range []string{"▄██▄▄██▄", "(●)(●)", "╰────────╯"} {
-			if !strings.Contains(stripped, want) {
-				t.Errorf("expected %q in small mascot output", want)
-			}
+			assert.Containsf(t, stripped, want, "expected %q in small mascot output", want)
 		}
 	})
 }
@@ -81,9 +75,7 @@ func TestMascotLargeLines(t *testing.T) {
 
 		lines := mascotLargeLines()
 
-		if len(lines) != 19 {
-			t.Errorf("expected 19 lines (ceil(37/2)), got %d", len(lines))
-		}
+		assert.Len(t, lines, 19, "expected 19 lines (ceil(37/2))")
 	})
 
 	t.Run("ContainsHalfBlockCharacters", func(t *testing.T) {
@@ -92,9 +84,8 @@ func TestMascotLargeLines(t *testing.T) {
 		lines := mascotLargeLines()
 		joined := strings.Join(lines, "")
 
-		if !strings.Contains(joined, "▀") && !strings.Contains(joined, "▄") {
-			t.Error("expected half-block characters in large mascot output")
-		}
+		assert.True(t, strings.Contains(joined, "▀") || strings.Contains(joined, "▄"),
+			"expected half-block characters in large mascot output")
 	})
 
 	t.Run("ContainsANSIEscapes", func(t *testing.T) {
@@ -103,9 +94,8 @@ func TestMascotLargeLines(t *testing.T) {
 		lines := mascotLargeLines()
 		joined := strings.Join(lines, "")
 
-		if !strings.Contains(joined, "\033[38;2;") {
-			t.Error("expected ANSI 24-bit colour escapes in large mascot output")
-		}
+		assert.Contains(t, joined, "\033[38;2;",
+			"expected ANSI 24-bit colour escapes in large mascot output")
 	})
 
 	t.Run("ConsistentDisplayWidth", func(t *testing.T) {
@@ -114,9 +104,8 @@ func TestMascotLargeLines(t *testing.T) {
 		lines := mascotLargeLines()
 		for i, line := range lines {
 			width := utf8.RuneCountInString(stripANSI(line))
-			if width != mascotPixelWidth {
-				t.Errorf("line %d has display width %d, expected %d", i, width, mascotPixelWidth)
-			}
+			assert.Equalf(t, mascotPixelWidth, width,
+				"line %d has display width %d, expected %d", i, width, mascotPixelWidth)
 		}
 	})
 }
@@ -130,15 +119,9 @@ func TestCombineSideBySide(t *testing.T) {
 
 		result := combineSideBySide(left, right, 2)
 
-		if len(result) != 2 {
-			t.Fatalf("expected 2 lines, got %d", len(result))
-		}
-		if result[0] != "AA  XX" {
-			t.Errorf("line 0: got %q, want %q", result[0], "AA  XX")
-		}
-		if result[1] != "BB  YY" {
-			t.Errorf("line 1: got %q, want %q", result[1], "BB  YY")
-		}
+		require.Len(t, result, 2, "expected 2 lines")
+		assert.Equal(t, "AA  XX", result[0], "line 0")
+		assert.Equal(t, "BB  YY", result[1], "line 1")
 	})
 
 	t.Run("LeftTallerCentresRight", func(t *testing.T) {
@@ -149,17 +132,13 @@ func TestCombineSideBySide(t *testing.T) {
 
 		result := combineSideBySide(left, right, 1)
 
-		if len(result) != 5 {
-			t.Fatalf("expected 5 lines, got %d", len(result))
-		}
+		require.Len(t, result, 5, "expected 5 lines")
 
-		if !strings.Contains(result[2], "X") {
-			t.Errorf("expected right content on line 2, got %q", result[2])
-		}
+		assert.Contains(t, result[2], "X", "expected right content on line 2")
 
 		for i, line := range result {
-			if i != 2 && strings.Contains(line, "X") {
-				t.Errorf("unexpected right content on line %d: %q", i, line)
+			if i != 2 {
+				assert.NotContainsf(t, line, "X", "unexpected right content on line %d", i)
 			}
 		}
 	})
@@ -172,15 +151,9 @@ func TestCombineSideBySide(t *testing.T) {
 
 		result := combineSideBySide(left, right, 1)
 
-		if len(result) != 3 {
-			t.Fatalf("expected 3 lines, got %d", len(result))
-		}
-		if !strings.Contains(result[0], "X") {
-			t.Errorf("line 0 should contain X, got %q", result[0])
-		}
-		if !strings.Contains(result[2], "Z") {
-			t.Errorf("line 2 should contain Z, got %q", result[2])
-		}
+		require.Len(t, result, 3, "expected 3 lines")
+		assert.Contains(t, result[0], "X", "line 0 should contain X")
+		assert.Contains(t, result[2], "Z", "line 2 should contain Z")
 	})
 
 	t.Run("PadsUnevenLeftWidths", func(t *testing.T) {
@@ -191,33 +164,23 @@ func TestCombineSideBySide(t *testing.T) {
 
 		result := combineSideBySide(left, right, 1)
 
-		if result[0] != "A    X" {
-			t.Errorf("line 0: got %q, want %q", result[0], "A    X")
-		}
-		if result[1] != "BBBB Y" {
-			t.Errorf("line 1: got %q, want %q", result[1], "BBBB Y")
-		}
+		assert.Equal(t, "A    X", result[0], "line 0")
+		assert.Equal(t, "BBBB Y", result[1], "line 1")
 	})
 
 	t.Run("EmptyInputs", func(t *testing.T) {
 		t.Parallel()
 
 		result := combineSideBySide(nil, nil, 1)
-		if len(result) != 0 {
-			t.Errorf("expected 0 lines, got %d", len(result))
-		}
+		assert.Empty(t, result, "expected 0 lines")
 	})
 
 	t.Run("EmptyLeftNonEmptyRight", func(t *testing.T) {
 		t.Parallel()
 
 		result := combineSideBySide(nil, []string{"X", "Y"}, 1)
-		if len(result) != 2 {
-			t.Fatalf("expected 2 lines, got %d", len(result))
-		}
-		if !strings.Contains(result[0], "X") {
-			t.Errorf("line 0 should contain X, got %q", result[0])
-		}
+		require.Len(t, result, 2, "expected 2 lines")
+		assert.Contains(t, result[0], "X", "line 0 should contain X")
 	})
 
 	t.Run("ANSILeftDoesNotAffectAlignment", func(t *testing.T) {
@@ -233,9 +196,7 @@ func TestCombineSideBySide(t *testing.T) {
 
 		idx0 := strings.Index(stripped0, "X")
 		idx1 := strings.Index(stripped1, "Y")
-		if idx0 != idx1 {
-			t.Errorf("right column mismatch: X at %d, Y at %d", idx0, idx1)
-		}
+		assert.Equalf(t, idx0, idx1, "right column mismatch: X at %d, Y at %d", idx0, idx1)
 	})
 
 	t.Run("GapSize", func(t *testing.T) {
@@ -247,9 +208,7 @@ func TestCombineSideBySide(t *testing.T) {
 		for _, gap := range []int{0, 1, 5} {
 			result := combineSideBySide(left, right, gap)
 			want := "A" + strings.Repeat(" ", gap) + "X"
-			if result[0] != want {
-				t.Errorf("gap %d: got %q, want %q", gap, result[0], want)
-			}
+			assert.Equalf(t, want, result[0], "gap %d", gap)
 		}
 	})
 }

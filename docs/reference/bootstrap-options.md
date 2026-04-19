@@ -420,6 +420,17 @@ Passed inside `WithGeneratorProfiling(...)`:
 |---|---|
 | `WithI18nDefaultLocale(locale string)` | Override the default locale (also settable via `WithWebsiteConfig`). |
 
+## Single-binary deployment
+
+| Option | Purpose |
+|---|---|
+| `WithEmbeddedPikoFolder(fsys fs.FS)` | Serve runtime data (registry snapshot, blobs, storage) from an embedded filesystem. Scaffolded projects get this automatically from a `piko build` binary in prod mode; the option remains for hand-rolled embeds. |
+| `WithEmbeddedManifest(data []byte)` | Serve the compiled manifest from embedded bytes. Registered automatically alongside the embedded folder. |
+| `WithEmbedScope(scope EmbedScope)` | Select how much generation copies into the embed payload. `EmbedAll` (default) embeds everything; `EmbedSourceOnly` is reserved and currently fails generation loudly. |
+| `WithoutEmbeddedRuntime()` | Run a `piko_embed`-tagged binary against `dist/` and `.piko/` on disk, ignoring the embedded payload. |
+| `WithReleaseID(id string)` | Tag this build's release identity for canary and rolling deploys on a shared backend; defaults to the VCS revision. |
+| `WithModuleName(name string)` | Fallback Go module name for `@/` alias resolution when no `go.mod` is readable at runtime, the case for single-binary and distroless deployments. |
+
 ## Miscellaneous
 
 | Option | Purpose |
@@ -437,6 +448,7 @@ The following are methods on `*SSRServer` returned by `piko.New(...)`, not `piko
 | `(*SSRServer).WithSymbols(symbols templater_domain.SymbolExports)` | Register custom Go symbols for interpreted mode. See [runtime symbols reference](runtime-symbols.md#register-custom-symbols). |
 | `(*SSRServer).WithInterpreterProvider(provider)` | Override the interpreter for `dev-i` mode. See [runtime symbols reference](runtime-symbols.md#register-custom-symbols). |
 | `(*SSRServer).RegisterLifecycle(component LifecycleComponent)` | Register a component for managed startup and shutdown. See [lifecycle API reference](lifecycle-api.md). |
+| `(*SSRServer).RetireRelease(ctx context.Context, release string) error` | Remove a retired release's records, references, and lease from the shared registry. Call from deploy tooling once the release has scaled to zero. See [how to canary and rolling deploys](../how-to/deployment/canary-and-rolling-deploys.md). |
 
 ## See also
 

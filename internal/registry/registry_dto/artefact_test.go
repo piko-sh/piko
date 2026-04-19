@@ -20,6 +20,9 @@ package registry_dto
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestArtefactMeta_GetProfile(t *testing.T) {
@@ -31,26 +34,20 @@ func TestArtefactMeta_GetProfile(t *testing.T) {
 	}
 
 	p, ok := meta.GetProfile("thumb")
-	if !ok || p.CapabilityName != "resize" {
-		t.Errorf("GetProfile(thumb) = %v, %v; want resize, true", p, ok)
-	}
+	assert.True(t, ok)
+	assert.Equal(t, "resize", p.CapabilityName)
 
 	_, ok = meta.GetProfile("nonexistent")
-	if ok {
-		t.Error("GetProfile(nonexistent) should return false")
-	}
+	assert.False(t, ok, "GetProfile(nonexistent) should return false")
 }
 
 func TestArtefactMeta_SetProfile_New(t *testing.T) {
 	meta := &ArtefactMeta{}
 	meta.SetProfile("thumb", &DesiredProfile{CapabilityName: "resize"})
 
-	if len(meta.DesiredProfiles) != 1 {
-		t.Fatalf("expected 1 profile, got %d", len(meta.DesiredProfiles))
-	}
-	if meta.DesiredProfiles[0].Profile.CapabilityName != "resize" {
-		t.Error("profile not stored correctly")
-	}
+	require.Len(t, meta.DesiredProfiles, 1)
+	assert.Equal(t, "resize", meta.DesiredProfiles[0].Profile.CapabilityName,
+		"profile not stored correctly")
 }
 
 func TestArtefactMeta_SetProfile_Update(t *testing.T) {
@@ -61,12 +58,9 @@ func TestArtefactMeta_SetProfile_Update(t *testing.T) {
 	}
 	meta.SetProfile("thumb", &DesiredProfile{CapabilityName: "updated"})
 
-	if len(meta.DesiredProfiles) != 1 {
-		t.Fatalf("expected 1 profile after update, got %d", len(meta.DesiredProfiles))
-	}
-	if meta.DesiredProfiles[0].Profile.CapabilityName != "updated" {
-		t.Error("profile not updated")
-	}
+	require.Len(t, meta.DesiredProfiles, 1)
+	assert.Equal(t, "updated", meta.DesiredProfiles[0].Profile.CapabilityName,
+		"profile not updated")
 }
 
 func TestArtefactMeta_HasProfile(t *testing.T) {
@@ -75,12 +69,8 @@ func TestArtefactMeta_HasProfile(t *testing.T) {
 			{Name: "thumb"},
 		},
 	}
-	if !meta.HasProfile("thumb") {
-		t.Error("HasProfile(thumb) should be true")
-	}
-	if meta.HasProfile("missing") {
-		t.Error("HasProfile(missing) should be false")
-	}
+	assert.True(t, meta.HasProfile("thumb"), "HasProfile(thumb) should be true")
+	assert.False(t, meta.HasProfile("missing"), "HasProfile(missing) should be false")
 }
 
 func TestArtefactMeta_ComputeStatus(t *testing.T) {
@@ -104,9 +94,7 @@ func TestArtefactMeta_ComputeStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			meta := &ArtefactMeta{ActualVariants: tt.variants}
-			if got := meta.ComputeStatus(); got != tt.want {
-				t.Errorf("ComputeStatus() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, meta.ComputeStatus())
 		})
 	}
 }

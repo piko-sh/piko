@@ -1135,9 +1135,7 @@ func TestPageDefPool_ReturnsToPool(t *testing.T) {
 	t.Parallel()
 
 	definition, ok := pageDefPool.Get().(*templater_dto.PageDefinition)
-	if !ok {
-		t.Fatal("expected *templater_dto.PageDefinition")
-	}
+	require.True(t, ok, "expected *templater_dto.PageDefinition")
 	require.NotNil(t, definition)
 
 	pageDefPool.Put(definition)

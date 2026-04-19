@@ -44,7 +44,7 @@
   
   <rect x="20" y="340" width="180" height="50" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
   <path d="M28,340 H192 A8,8 0 0 1 200,348 V358 H20 V348 A8,8 0 0 1 28,340 Z" fill="#364049"/>
-  <text x="110" y="353" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">.piko/generated.go</text>
+  <text x="110" y="353" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">dist/ + .piko/ artefacts</text>
   <text x="110" y="378" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">typed Go source</text>
 
   

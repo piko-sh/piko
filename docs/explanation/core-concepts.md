@@ -14,7 +14,7 @@ A Piko developer carries a short mental model. Pages render on the server. Compo
 
 <p align="center">
   <img src="../diagrams/core-concepts-map.svg"
-       alt="Three lanes with wide gutters between them. Build time on the left chains content into the project's cmd/generator, expands collections, emits .piko/generated.go, and runs go build. Server runtime in the centre holds pages, actions, and services behind ports; the binary at the bottom is the one go build produced. Browser runtime on the right hosts served HTML, PKC components, and the typed action call. A horizontal HTML arrow runs from server pages to browser served HTML in the upper gutter; a horizontal action RPC arrow runs from browser call back to server actions in the middle gutter."
+       alt="Three lanes with wide gutters between them. Build time on the left chains content into the project's cmd/generator, expands collections, emits the dist/ and .piko/ artefacts, and runs go build. Server runtime in the centre holds pages, actions, and services behind ports; the binary at the bottom is the one go build produced. Browser runtime on the right hosts served HTML, PKC components, and the typed action call. A horizontal HTML arrow runs from server pages to browser served HTML in the upper gutter; a horizontal action RPC arrow runs from browser call back to server actions in the middle gutter."
        width="760"/>
 </p>
 
@@ -24,7 +24,7 @@ This page traces each of those ideas and how they interlock. Individual pieces h
 
 Piko is a website development kit for Go. The server is Go, the template logic is Go, the build is `go build`. A Piko project ships as a single binary that contains the HTTP server, the compiled templates, the actions, and the assets. There is no second process, no adjacent Node runtime, no serialised API boundary between the render and the backend.
 
-This is the load-bearing choice. Every other decision compounds on top of it. Types flow end-to-end because the types are Go types. Renaming a field is a compiler error because the template compiler has seen the struct. The cost is that everyone who touches the project writes Go, including the bits that feel like frontend work. The payoff is that the frontend bits are no longer separated from the domain types they display.
+This is the load-bearing choice. Every other decision compounds on top of it. Types flow end-to-end because the types are Go types. Renaming a field is a compiler error because the template compiler has seen the struct. The cost is that everyone who touches the project writes Go, including the bits that feel like frontend work. The payoff is that the frontend bits are no longer separated from the domain types they display. See [about single-binary deployment](about-single-binary-deployment.md) for how the shipped binary carries its assets and what that means in production.
 
 See [about PK files](about-pk-files.md) for the single-file rationale, and [about the hexagonal architecture](about-the-hexagonal-architecture.md) for how the binary stays testable.
 

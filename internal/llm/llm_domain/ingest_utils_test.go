@@ -21,6 +21,8 @@ package llm_domain
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -406,4 +408,25 @@ func TestComputeOverlap_EmojiOverlapValidUtf8(t *testing.T) {
 	got := s.computeOverlap(input)
 	assert.True(t, utf8.ValidString(got), "computeOverlap returned invalid UTF-8: %q", got)
 	assert.LessOrEqual(t, len(got), 9, "overlap exceeds byte budget")
+}
+
+func TestRecursiveFSLoader_MissingDir_ErrorNamesPath(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "does-not-exist")
+	loader := NewRecursiveFSLoader(os.DirFS(missing), "*.md")
+	loader.setSource(missing)
+
+	_, err := loader.Load(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), missing,
+		"error should name the configured source path, not the fs.FS-relative \".\"")
+}
+
+func TestFromDirectory_MissingDir_ErrorNamesPath(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "nope")
+	b := (&IngestBuilder{}).FromDirectory(missing, "**/*.md")
+
+	_, err := b.loader.Load(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), missing,
+		"FromDirectory should record the path so the error names it")
 }

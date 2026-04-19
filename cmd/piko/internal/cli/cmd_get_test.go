@@ -23,9 +23,10 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
@@ -91,9 +92,7 @@ func TestFormatReady(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := formatReady(tc.status)
-			if got != tc.expected {
-				t.Errorf("formatReady() = %q, want %q", got, tc.expected)
-			}
+			assert.Equal(t, tc.expected, got, "formatReady() = %q, want %q", got, tc.expected)
 		})
 	}
 }
@@ -141,11 +140,9 @@ func TestBuildHealthRows(t *testing.T) {
 			t.Parallel()
 			p := NewPrinter(&bytes.Buffer{}, "table", true, false)
 			rows := buildHealthRows(p, response, tc.filter)
-			if len(rows) != tc.wantLen {
-				t.Errorf("buildHealthRows() returned %d rows, want %d", len(rows), tc.wantLen)
-			}
-			if tc.wantProbe != "" && len(rows) > 0 && rows[0][0] != tc.wantProbe {
-				t.Errorf("first row probe = %q, want %q", rows[0][0], tc.wantProbe)
+			assert.Len(t, rows, tc.wantLen, "buildHealthRows() returned %d rows, want %d", len(rows), tc.wantLen)
+			if tc.wantProbe != "" && len(rows) > 0 {
+				assert.Equal(t, tc.wantProbe, rows[0][0], "first row probe = %q, want %q", rows[0][0], tc.wantProbe)
 			}
 		})
 	}
@@ -159,12 +156,8 @@ func TestHealthRow(t *testing.T) {
 	t.Run("nil status", func(t *testing.T) {
 		t.Parallel()
 		row := healthRow(p, "Liveness", nil)
-		if row[0] != "Liveness" {
-			t.Errorf("probe = %q, want Liveness", row[0])
-		}
-		if row[2] != "-" {
-			t.Errorf("ready = %q, want -", row[2])
-		}
+		assert.Equal(t, "Liveness", row[0], "probe = %q, want Liveness", row[0])
+		assert.Equal(t, "-", row[2], "ready = %q, want -", row[2])
 	})
 
 	t.Run("healthy with deps", func(t *testing.T) {
@@ -178,15 +171,9 @@ func TestHealthRow(t *testing.T) {
 			},
 		}
 		row := healthRow(p, "Liveness", status)
-		if row[0] != "Liveness" {
-			t.Errorf("probe = %q, want Liveness", row[0])
-		}
-		if row[2] != "2/2" {
-			t.Errorf("ready = %q, want 2/2", row[2])
-		}
-		if row[3] != "OK" {
-			t.Errorf("message = %q, want OK", row[3])
-		}
+		assert.Equal(t, "Liveness", row[0], "probe = %q, want Liveness", row[0])
+		assert.Equal(t, "2/2", row[2], "ready = %q, want 2/2", row[2])
+		assert.Equal(t, "OK", row[3], "message = %q, want OK", row[3])
 	})
 }
 
@@ -206,12 +193,8 @@ func TestHelpOrError(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := helpOrError(tc.err)
-			if tc.wantNil && got != nil {
-				t.Errorf("helpOrError() = %v, want nil", got)
-			}
-			if !tc.wantNil && got == nil {
-				t.Error("helpOrError() = nil, want non-nil error")
-			}
+			assert.False(t, tc.wantNil && got != nil, "helpOrError() = %v, want nil", got)
+			assert.False(t, !tc.wantNil && got == nil, "helpOrError() = nil, want non-nil error")
 		})
 	}
 }
@@ -223,14 +206,11 @@ func TestNewResourceFlagSet(t *testing.T) {
 	fs := newResourceFlagSet("test", "piko get test [flags]", "Test command.", getFormatHelp, "table", &buffer)
 	_ = fs.Int("limit", 10, "Maximum number of items")
 
-	if err := fs.Parse([]string{"--help"}); err == nil {
-		t.Error("expected ErrHelp from --help")
-	}
+	err := fs.Parse([]string{"--help"})
+	assert.Error(t, err, "expected ErrHelp from --help")
 
 	output := buffer.String()
-	if output == "" {
-		t.Error("expected help output, got empty string")
-	}
+	assert.NotEmpty(t, output, "expected help output, got empty string")
 }
 
 func testHealthConn() monitoringConnection {
@@ -281,14 +261,10 @@ func TestGetHealth(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.output, true, false)
 			err := getHealth(context.Background(), conn, p, tc.arguments)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -308,9 +284,7 @@ func TestGetHealthError(t *testing.T) {
 	var buffer bytes.Buffer
 	p := NewPrinter(&buffer, "table", true, false)
 	err := getHealth(context.Background(), conn, p, nil)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
+	require.Error(t, err, "expected error, got nil")
 }
 
 func TestGetTasks(t *testing.T) {
@@ -352,14 +326,10 @@ func TestGetTasks(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.output, true, false)
 			err := getTasks(context.Background(), conn, p, nil)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -403,14 +373,10 @@ func TestGetWorkflows(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.output, true, false)
 			err := getWorkflows(context.Background(), conn, p, nil)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -454,14 +420,10 @@ func TestGetArtefacts(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.output, true, false)
 			err := getArtefacts(context.Background(), conn, p, nil)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -486,14 +448,10 @@ func TestGetVariants(t *testing.T) {
 	var buffer bytes.Buffer
 	p := NewPrinter(&buffer, "table", true, false)
 	err := getVariants(context.Background(), conn, p, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err, "unexpected error: %v", err)
 	output := buffer.String()
 	for _, want := range []string{"ready", "10", "pending", "5"} {
-		if !strings.Contains(output, want) {
-			t.Errorf("output missing %q\nfull output:\n%s", want, output)
-		}
+		assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 	}
 }
 
@@ -535,14 +493,10 @@ func TestGetMetrics(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.output, true, false)
 			err := getMetrics(context.Background(), conn, p, nil)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -594,14 +548,10 @@ func TestGetTraces(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.output, true, false)
 			err := getTraces(context.Background(), conn, p, tc.arguments)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -647,14 +597,10 @@ func TestGetOpenResources(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.output, true, false)
 			err := getOpenResources(context.Background(), conn, p, nil)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -702,14 +648,10 @@ func TestGetRateLimiter(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.output, true, false)
 			err := getRateLimiter(context.Background(), conn, p, nil)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -733,14 +675,10 @@ func TestGetDLQSummary(t *testing.T) {
 	var buffer bytes.Buffer
 	p := NewPrinter(&buffer, "table", true, false)
 	err := getDLQSummary(context.Background(), conn, p, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err, "unexpected error: %v", err)
 	output := buffer.String()
 	for _, want := range []string{"email", "5", "2", "100"} {
-		if !strings.Contains(output, want) {
-			t.Errorf("output missing %q\nfull output:\n%s", want, output)
-		}
+		assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 	}
 }
 
@@ -762,14 +700,10 @@ func TestGetDLQEntries(t *testing.T) {
 	var buffer bytes.Buffer
 	p := NewPrinter(&buffer, "table", true, false)
 	err := getDLQEntries(context.Background(), conn, p, "email", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err, "unexpected error: %v", err)
 	output := buffer.String()
 	for _, want := range []string{"dlq-1", "email", "timeout", "3"} {
-		if !strings.Contains(output, want) {
-			t.Errorf("output missing %q\nfull output:\n%s", want, output)
-		}
+		assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 	}
 }
 
@@ -817,14 +751,10 @@ func TestGetProviderResourceTypes(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.output, true, false)
 			err := getProviderResourceTypes(context.Background(), conn, p)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -856,14 +786,10 @@ func TestGetProviderList(t *testing.T) {
 	var buffer bytes.Buffer
 	p := NewPrinter(&buffer, "table", true, false)
 	err := getProviderList(context.Background(), conn, p, []string{"cache"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err, "unexpected error: %v", err)
 	output := buffer.String()
 	for _, want := range []string{"otter", "redis", "in-memory", "distributed"} {
-		if !strings.Contains(output, want) {
-			t.Errorf("output missing %q\nfull output:\n%s", want, output)
-		}
+		assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 	}
 }
 
@@ -889,14 +815,10 @@ func TestGetProviderListSubResources(t *testing.T) {
 	var buffer bytes.Buffer
 	p := NewPrinter(&buffer, "table", true, false)
 	err := getProviderList(context.Background(), conn, p, []string{"cache", "otter"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err, "unexpected error: %v", err)
 	output := buffer.String()
 	for _, want := range []string{"NAMESPACE", "default", "42"} {
-		if !strings.Contains(output, want) {
-			t.Errorf("output missing %q\nfull output:\n%s", want, output)
-		}
+		assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 	}
 }
 
@@ -905,13 +827,9 @@ func TestRunGetMissingResource(t *testing.T) {
 
 	cc, _, stderr := newTestCC(nil)
 	err := runGet(context.Background(), cc, nil)
-	if err == nil {
-		t.Fatal("expected error for missing resource")
-	}
+	require.Error(t, err, "expected error for missing resource")
 	_ = stderr
-	if !strings.Contains(err.Error(), "missing resource type") {
-		t.Errorf("error = %q, want containing 'missing resource type'", err.Error())
-	}
+	assert.Contains(t, err.Error(), "missing resource type", "error = %q, want containing 'missing resource type'", err.Error())
 }
 
 func TestRunGetUnknownResource(t *testing.T) {
@@ -919,12 +837,8 @@ func TestRunGetUnknownResource(t *testing.T) {
 
 	cc, _, _ := newTestCC(nil)
 	err := runGet(context.Background(), cc, []string{"nonexistent"})
-	if err == nil {
-		t.Fatal("expected error for unknown resource")
-	}
-	if !strings.Contains(err.Error(), "unknown resource") {
-		t.Errorf("error = %q, want containing 'unknown resource'", err.Error())
-	}
+	require.Error(t, err, "expected error for unknown resource")
+	assert.Contains(t, err.Error(), "unknown resource", "error = %q, want containing 'unknown resource'", err.Error())
 }
 
 func TestBuildProviderRows(t *testing.T) {
@@ -959,12 +873,8 @@ func TestBuildProviderRows(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			columns, rows := buildProviderRows(p, response, tc.filter)
-			if len(columns) != tc.wantCols {
-				t.Errorf("columns = %d, want %d", len(columns), tc.wantCols)
-			}
-			if len(rows) != tc.wantRows {
-				t.Errorf("rows = %d, want %d", len(rows), tc.wantRows)
-			}
+			assert.Len(t, columns, tc.wantCols, "columns = %d, want %d", len(columns), tc.wantCols)
+			assert.Len(t, rows, tc.wantRows, "rows = %d, want %d", len(rows), tc.wantRows)
 		})
 	}
 }
@@ -984,15 +894,9 @@ func TestBuildSubResourceRows(t *testing.T) {
 	}
 
 	columns, rows := buildSubResourceRows(response)
-	if len(columns) != 2 {
-		t.Errorf("columns = %d, want 2", len(columns))
-	}
-	if len(rows) != 2 {
-		t.Errorf("rows = %d, want 2", len(rows))
-	}
-	if rows[0][0] != "default" {
-		t.Errorf("first row ns = %q, want 'default'", rows[0][0])
-	}
+	assert.Len(t, columns, 2, "columns = %d, want 2", len(columns))
+	assert.Len(t, rows, 2, "rows = %d, want 2", len(rows))
+	assert.Equal(t, "default", rows[0][0], "first row ns = %q, want 'default'", rows[0][0])
 }
 
 func TestGetDLQDispatcher(t *testing.T) {
@@ -1022,12 +926,8 @@ func TestGetDLQDispatcher(t *testing.T) {
 		var buffer bytes.Buffer
 		p := NewPrinter(&buffer, "table", true, false)
 		err := getDLQ(context.Background(), conn, p, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !strings.Contains(buffer.String(), "email") {
-			t.Errorf("expected summary output, got: %s", buffer.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Contains(t, buffer.String(), "email", "expected summary output, got: %s", buffer.String())
 	})
 
 	t.Run("with filter routes to entries", func(t *testing.T) {
@@ -1035,12 +935,8 @@ func TestGetDLQDispatcher(t *testing.T) {
 		var buffer bytes.Buffer
 		p := NewPrinter(&buffer, "table", true, false)
 		err := getDLQ(context.Background(), conn, p, []string{"email"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !strings.Contains(buffer.String(), "dlq-1") {
-			t.Errorf("expected entry output, got: %s", buffer.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Contains(t, buffer.String(), "dlq-1", "expected entry output, got: %s", buffer.String())
 	})
 }
 
@@ -1071,12 +967,8 @@ func TestGetProvidersDispatcher(t *testing.T) {
 		var buffer bytes.Buffer
 		p := NewPrinter(&buffer, "table", true, false)
 		err := getProviders(context.Background(), conn, p, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !strings.Contains(buffer.String(), "cache") {
-			t.Errorf("expected resource type output, got: %s", buffer.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Contains(t, buffer.String(), "cache", "expected resource type output, got: %s", buffer.String())
 	})
 
 	t.Run("with resource type routes to provider list", func(t *testing.T) {
@@ -1084,11 +976,7 @@ func TestGetProvidersDispatcher(t *testing.T) {
 		var buffer bytes.Buffer
 		p := NewPrinter(&buffer, "table", true, false)
 		err := getProviders(context.Background(), conn, p, []string{"cache"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !strings.Contains(buffer.String(), "otter") {
-			t.Errorf("expected provider list output, got: %s", buffer.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Contains(t, buffer.String(), "otter", "expected provider list output, got: %s", buffer.String())
 	})
 }

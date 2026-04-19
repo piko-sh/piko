@@ -4,6 +4,7 @@ package db
 
 type RegistryArtefact struct {
 	ID         string `json:"id"`
+	ReleaseID  string `json:"release_id"`
 	SourcePath string `json:"source_path"`
 	CreatedAt  int64  `json:"created_at"`
 	UpdatedAt  int64  `json:"updated_at"`
@@ -22,6 +23,7 @@ type RegistryBlobReference struct {
 type RegistryDesiredProfile struct {
 	ID             int64  `json:"id"`
 	ArtefactID     string `json:"artefact_id"`
+	ReleaseID      string `json:"release_id"`
 	Name           string `json:"name"`
 	CapabilityName string `json:"capability_name"`
 	Priority       string `json:"priority"`
@@ -35,9 +37,19 @@ type RegistryGcHint struct {
 	StorageKey string `json:"storage_key"`
 	CreatedAt  int64  `json:"created_at"`
 }
+type RegistryReleaseLease struct {
+	ReleaseID     string `json:"release_id"`
+	PublishDigest string `json:"publish_digest"`
+	State         string `json:"state"`
+	FirstSeenAt   int64  `json:"first_seen_at"`
+	PublishedAt   int64  `json:"published_at"`
+	HeartbeatAt   int64  `json:"heartbeat_at"`
+	RetiredAt     int64  `json:"retired_at"`
+}
 type RegistryVariant struct {
 	ID               int64  `json:"id"`
 	ArtefactID       string `json:"artefact_id"`
+	ReleaseID        string `json:"release_id"`
 	VariantID        string `json:"variant_id"`
 	StorageKey       string `json:"storage_key"`
 	StorageBackendID string `json:"storage_backend_id"`
@@ -49,6 +61,7 @@ type RegistryVariant struct {
 type RegistryVariantChunk struct {
 	ID               int64    `json:"id"`
 	ArtefactID       string   `json:"artefact_id"`
+	ReleaseID        string   `json:"release_id"`
 	VariantID        string   `json:"variant_id"`
 	ChunkID          string   `json:"chunk_id"`
 	StorageKey       string   `json:"storage_key"`
@@ -63,6 +76,7 @@ type RegistryVariantChunk struct {
 type RegistryVariantTag struct {
 	ID         int64  `json:"id"`
 	ArtefactID string `json:"artefact_id"`
+	ReleaseID  string `json:"release_id"`
 	VariantID  string `json:"variant_id"`
 	TagKey     string `json:"tag_key"`
 	TagValue   string `json:"tag_value"`

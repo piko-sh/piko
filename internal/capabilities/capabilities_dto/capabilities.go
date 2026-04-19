@@ -67,3 +67,58 @@ const (
 func (c Capability) String() string {
 	return string(c)
 }
+
+var (
+	// capabilityVersions records the output version of each transform capability.
+	//
+	// A version is bumped whenever a change makes a capability produce different bytes for
+	// identical input: an encoder setting, an algorithm change, or a dependency upgrade that
+	// alters output. Every derived variant produced by that capability then carries an older
+	// version than the current one and is treated as stale, so it is regenerated on next
+	// read.
+	capabilityVersions = map[Capability]uint32{
+		CapabilityCompressBrotli:      1,
+		CapabilityCompressGzip:        1,
+		CapabilityCompileComponent:    1,
+		CapabilityImageTransform:      1,
+		CapabilityMinifyCSS:           1,
+		CapabilityMinifyJS:            1,
+		CapabilityMinifySVG:           1,
+		CapabilityCopyJS:              1,
+		CapabilityVideoTranscode:      1,
+		CapabilityVideoThumbnail:      1,
+		CapabilityTranspileTypeScript: 1,
+	}
+)
+
+// AllCapabilities lists every declared transform capability, for tests and iteration.
+//
+// Returns []Capability which is every capability the package defines.
+func AllCapabilities() []Capability {
+	return []Capability{
+		CapabilityCompressBrotli,
+		CapabilityCompressGzip,
+		CapabilityCompileComponent,
+		CapabilityImageTransform,
+		CapabilityMinifyCSS,
+		CapabilityMinifyJS,
+		CapabilityMinifySVG,
+		CapabilityCopyJS,
+		CapabilityVideoTranscode,
+		CapabilityVideoThumbnail,
+		CapabilityTranspileTypeScript,
+	}
+}
+
+// Version returns the output version of a capability, or zero if it is unknown.
+//
+// A zero result means the capability has no registered version, which a variant
+// fingerprint must reject rather than silently accept, so an unversioned transform cannot
+// masquerade as a current one.
+//
+// Takes c (Capability) which is the capability to look up.
+//
+// Returns uint32 which is the capability's output version, or zero when unknown.
+func Version(c Capability) uint32 {
+	return capabilityVersions[c]
+}

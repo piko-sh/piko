@@ -135,6 +135,11 @@ type AnalysedQuery struct {
 	// window-function semantics. Used by the diagnostic pass to emit Q023 so the webdev
 	// understands the count is over outer rows.
 	CountSQLWrapped bool
+
+	// Optional reports that the query header set optional: true. For a command:one query it
+	// makes a zero-row result return (row, false, nil) instead of the driver no-rows
+	// sentinel; the emitter widens the method signature to (row, bool, error).
+	Optional bool
 }
 
 // AllowedColumn represents a column available for runtime query building.
@@ -271,6 +276,11 @@ type QueryDirectives struct {
 	// DynamicRuntime indicates a piko.dynamic: runtime directive was specified, causing
 	// generation of a fluent runtime query builder.
 	DynamicRuntime bool
+
+	// Optional indicates a piko.query optional: true directive, causing a command:one query
+	// to return (row, false, nil) when no row matches instead of the driver no-rows
+	// sentinel.
+	Optional bool
 }
 
 // ParamOverride is an explicit parameter type override from a piko.param directive.

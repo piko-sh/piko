@@ -26,6 +26,7 @@ import (
 
 var (
 	// schemaContent holds the embedded FlatBuffers schema from template_ast.fbs.
+	//go:embed template_ast.fbs
 	schemaContent []byte
 
 	// SchemaHash is the SHA-256 hash of template_ast.fbs, computed at init time. This hash

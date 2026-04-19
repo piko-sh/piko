@@ -142,6 +142,7 @@ func TestCommandOutputPassConflictDoNothingReturning(t *testing.T) {
 		command      querier_dto.QueryCommand
 		sql          string
 		hasReturning bool
+		optional     bool
 		wantWarning  bool
 	}{
 		{
@@ -150,6 +151,14 @@ func TestCommandOutputPassConflictDoNothingReturning(t *testing.T) {
 			sql:          "INSERT INTO t (id) VALUES ($1) ON CONFLICT (id) DO NOTHING RETURNING id",
 			hasReturning: true,
 			wantWarning:  true,
+		},
+		{
+			name:         "optional suppresses the warning for one with DO NOTHING and RETURNING",
+			command:      querier_dto.QueryCommandOne,
+			sql:          "INSERT INTO t (id) VALUES ($1) ON CONFLICT (id) DO NOTHING RETURNING id",
+			hasReturning: true,
+			optional:     true,
+			wantWarning:  false,
 		},
 		{
 			name:         "DO UPDATE does not warn",
@@ -199,6 +208,7 @@ func TestCommandOutputPassConflictDoNothingReturning(t *testing.T) {
 					Name:          "TestQuery",
 					Command:       tt.command,
 					SQL:           tt.sql,
+					Optional:      tt.optional,
 					OutputColumns: []querier_dto.OutputColumn{{Name: "id"}},
 					Line:          3,
 				},
@@ -214,6 +224,77 @@ func TestCommandOutputPassConflictDoNothingReturning(t *testing.T) {
 				}
 			}
 			assert.Equal(t, tt.wantWarning, found)
+		})
+	}
+}
+
+func TestCommandOutputPassOptionalMisuse(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		command        querier_dto.QueryCommand
+		optional       bool
+		isDynamic      bool
+		dynamicRuntime bool
+		wantError      bool
+	}{
+		{
+			name:      "optional on command:many is rejected",
+			command:   querier_dto.QueryCommandMany,
+			optional:  true,
+			wantError: true,
+		},
+		{
+			name:      "optional on a command:one with dynamic predicate parameters is rejected",
+			command:   querier_dto.QueryCommandOne,
+			optional:  true,
+			isDynamic: true,
+			wantError: true,
+		},
+		{
+			name:           "optional on a command:one with dynamic runtime builder is rejected",
+			command:        querier_dto.QueryCommandOne,
+			optional:       true,
+			dynamicRuntime: true,
+			wantError:      true,
+		},
+		{
+			name:      "optional on a static command:one is valid",
+			command:   querier_dto.QueryCommandOne,
+			optional:  true,
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			pass := &commandOutputPass{}
+			context := &diagnosticContext{
+				Filename: "test.sql",
+				Query: &querier_dto.AnalysedQuery{
+					Name:           "TestQuery",
+					Command:        tt.command,
+					Optional:       tt.optional,
+					IsDynamic:      tt.isDynamic,
+					DynamicRuntime: tt.dynamicRuntime,
+					OutputColumns:  []querier_dto.OutputColumn{{Name: "id"}},
+					Line:           3,
+				},
+				RawAnalysis: &querier_dto.RawQueryAnalysis{},
+			}
+
+			var found bool
+			for _, diagnostic := range pass.Analyse(context) {
+				if diagnostic.Code == querier_dto.CodeOptionalNonOneCommand {
+					found = true
+					assert.Equal(t, querier_dto.SeverityError, diagnostic.Severity)
+					assert.Contains(t, diagnostic.Message, `"TestQuery"`)
+				}
+			}
+			assert.Equal(t, tt.wantError, found)
 		})
 	}
 }

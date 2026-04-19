@@ -2172,6 +2172,9 @@ func (m *mockTrackingRegistryService) GetBlobStore(_ string) (registry_domain.Bl
 func (m *mockTrackingRegistryService) PopGCHints(_ context.Context, _ int) ([]registry_dto.GCHint, error) {
 	return nil, nil
 }
+func (m *mockTrackingRegistryService) GetBlobRefCount(_ context.Context, _ string) (int, error) {
+	return 0, nil
+}
 func (m *mockTrackingRegistryService) ListBlobStoreIDs() []string {
 	return nil
 }
@@ -2973,6 +2976,9 @@ func (m *mockCountingRegistryService) GetBlobStore(_ string) (registry_domain.Bl
 }
 func (m *mockCountingRegistryService) PopGCHints(_ context.Context, _ int) ([]registry_dto.GCHint, error) {
 	return nil, nil
+}
+func (m *mockCountingRegistryService) GetBlobRefCount(_ context.Context, _ string) (int, error) {
+	return 0, nil
 }
 func (m *mockCountingRegistryService) ListBlobStoreIDs() []string {
 	return nil

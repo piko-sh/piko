@@ -239,6 +239,31 @@ func (p *Provider) Close(ctx context.Context) error {
 	return nil
 }
 
+// Checkpoint flushes a durable snapshot of every persistent cache.
+//
+// Returns the joined error of every cache that failed to flush, so a failed generation
+// seed surfaces loudly instead of silently producing an empty binary.
+//
+// Concurrency: safe for concurrent use; holds the provider write lock while flushing.
+func (p *Provider) Checkpoint(ctx context.Context) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if !p.connected {
+		return nil
+	}
+
+	var errs []error
+	for _, cache := range p.persistentCaches {
+		if checkpointer, ok := cache.(interface{ Checkpoint(context.Context) error }); ok {
+			if err := checkpointer.Checkpoint(ctx); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
 // GetDatabaseType returns the type of database backend in use.
 //
 // Returns DatabaseType which is always DatabaseTypeOtter for this provider.
@@ -433,7 +458,6 @@ func valueOrDefault[T int | int64](v, fallback T) T {
 
 // rebuildIndexes calls RebuildIndexes on the given DAL if it implements the method.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes dal (any) which is checked for a RebuildIndexes method.
 func rebuildIndexes(ctx context.Context, dal any) {
 	if rebuilder, ok := dal.(interface{ RebuildIndexes(context.Context) }); ok {

@@ -26,6 +26,7 @@ import (
 	"maps"
 	"os"
 	"strings"
+	"time"
 
 	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -239,6 +240,29 @@ func (a *BlobStoreAdapter) Exists(ctx context.Context, key string) (bool, error)
 	return exists, nil
 }
 
+// StatKey returns when the blob at the given key was last modified. The orphan repair
+// sweep uses it to skip recently written blobs whose metadata commit may still be
+// outstanding.
+//
+// Takes key (string) which identifies the blob to inspect.
+//
+// Returns time.Time which is the blob's last modification time.
+// Returns error when the storage provider cannot stat the key.
+func (a *BlobStoreAdapter) StatKey(ctx context.Context, key string) (time.Time, error) {
+	params := storage_dto.GetParams{
+		Repository:      a.repository,
+		Key:             key,
+		ByteRange:       nil,
+		TransformConfig: nil,
+	}
+
+	info, err := a.provider.Stat(ctx, params)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("storage provider stat failed: %w", err)
+	}
+	return info.LastModified, nil
+}
+
 // keyLister is an optional interface that storage providers can implement to support key
 // enumeration for garbage collection.
 type keyLister interface {
@@ -254,7 +278,7 @@ type keyLister interface {
 func (a *BlobStoreAdapter) ListKeys(ctx context.Context) ([]string, error) {
 	lister, ok := a.provider.(keyLister)
 	if !ok {
-		return nil, errors.New("storage provider does not support key listing")
+		return nil, registry_domain.ErrKeyListingUnsupported
 	}
 	return lister.ListKeys(ctx, a.repository)
 }

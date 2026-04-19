@@ -44,6 +44,11 @@ var (
 	// since blob ref counts are ephemeral.
 	ErrBlobReferenceNotFound = errors.New("blob reference not found")
 
+	// ErrKeyListingUnsupported is returned by a BlobStore whose backing provider cannot
+	// enumerate keys, so a caller such as the orphan scan can treat it as an absent
+	// capability rather than a transient failure.
+	ErrKeyListingUnsupported = errors.New("blob store does not support key listing")
+
 	// ErrCacheMiss is returned when an artefact is not found in the cache.
 	ErrCacheMiss = errors.New("artefact not found in cache")
 
@@ -53,4 +58,8 @@ var (
 
 	// ErrRangeNotSatisfiable is returned when a requested byte range cannot be satisfied.
 	ErrRangeNotSatisfiable = errors.New("requested range is not satisfiable")
+
+	// ErrReadOnlyStore is returned when a mutating operation is attempted on a store that
+	// has no writable layer.
+	ErrReadOnlyStore = errors.New("registry store is read-only")
 )

@@ -19,6 +19,7 @@
 package bootstrap
 
 import (
+	"cmp"
 	"context"
 	"strings"
 
@@ -74,7 +75,7 @@ func resolveFaviconSources(container *Container) {
 		return
 	}
 
-	moduleName := resolver.GetModuleName()
+	moduleName := cmp.Or(resolver.GetModuleName(), container.moduleNameOverride)
 	resolveFaviconSrcPaths(container.GetAppContext(), favicons, moduleName)
 }
 
@@ -82,7 +83,6 @@ func resolveFaviconSources(container *Container) {
 // using the asset pipeline path format, including @/ module alias expansion, and clears
 // each Src field after resolution to prevent double-resolution.
 //
-// Takes ctx (context.Context) which carries the application context for logging.
 // Takes favicons ([]config.FaviconDefinition) which contains the favicon definitions to
 // process (modified in place via the slice).
 // Takes moduleName (string) which is the Go module name for @/ alias resolution.

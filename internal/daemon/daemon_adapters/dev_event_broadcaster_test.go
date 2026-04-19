@@ -107,7 +107,7 @@ func TestDevEventBroadcaster_SlowClientDrop(t *testing.T) {
 	case <-done:
 
 	case <-time.After(time.Second):
-		t.Fatal("Broadcast blocked on a slow client")
+		require.FailNow(t, "Broadcast blocked on a slow client")
 	}
 }
 

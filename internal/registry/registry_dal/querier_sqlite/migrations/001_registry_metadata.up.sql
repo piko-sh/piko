@@ -17,18 +17,38 @@
 -- strip others of their rights and dignity.
 
 CREATE TABLE IF NOT EXISTS artefact (
-  id TEXT PRIMARY KEY NOT NULL,
+  id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   source_path TEXT NOT NULL,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL,
-  data_fbs BLOB NOT NULL
+  data_fbs BLOB NOT NULL,
+
+  PRIMARY KEY (id, release_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_artefact_id ON artefact (id);
+CREATE INDEX IF NOT EXISTS idx_artefact_release ON artefact (release_id);
 CREATE INDEX IF NOT EXISTS idx_artefact_source_path ON artefact (source_path);
+
+CREATE TABLE IF NOT EXISTS release_lease (
+  release_id TEXT PRIMARY KEY NOT NULL,
+  publish_digest TEXT NOT NULL,
+  state TEXT NOT NULL,
+  first_seen_at BIGINT NOT NULL,
+  published_at BIGINT NOT NULL DEFAULT 0,
+  heartbeat_at BIGINT NOT NULL,
+  retired_at BIGINT NOT NULL DEFAULT 0,
+
+  CHECK (state IN ('publishing', 'published'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_release_lease_heartbeat ON release_lease (state, heartbeat_at);
 
 CREATE TABLE IF NOT EXISTS desired_profile (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   artefact_id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   name TEXT NOT NULL,
   capability_name TEXT NOT NULL,
   priority TEXT NOT NULL,
@@ -36,8 +56,8 @@ CREATE TABLE IF NOT EXISTS desired_profile (
   tags_json TEXT NOT NULL DEFAULT '{}',
   depends_on_json TEXT NOT NULL DEFAULT '[]',
 
-  FOREIGN KEY (artefact_id) REFERENCES artefact(id) ON DELETE CASCADE,
-  UNIQUE(artefact_id, name)
+  FOREIGN KEY (artefact_id, release_id) REFERENCES artefact(id, release_id) ON DELETE CASCADE,
+  UNIQUE(artefact_id, release_id, name)
 );
 
 CREATE INDEX IF NOT EXISTS idx_desired_profile_artefact_id ON desired_profile (artefact_id);
@@ -45,6 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_desired_profile_artefact_id ON desired_profile (a
 CREATE TABLE IF NOT EXISTS variant (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   artefact_id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   variant_id TEXT NOT NULL,
   storage_key TEXT NOT NULL,
   storage_backend_id TEXT NOT NULL,
@@ -53,12 +74,13 @@ CREATE TABLE IF NOT EXISTS variant (
   status TEXT NOT NULL,
   created_at BIGINT NOT NULL,
 
-  FOREIGN KEY (artefact_id) REFERENCES artefact(id) ON DELETE CASCADE,
-  UNIQUE(artefact_id, variant_id)
+  FOREIGN KEY (artefact_id, release_id) REFERENCES artefact(id, release_id) ON DELETE CASCADE,
+  UNIQUE(artefact_id, release_id, variant_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_variant_artefact_id ON variant (artefact_id);
 CREATE INDEX IF NOT EXISTS idx_variant_storage_key ON variant (storage_key);
+CREATE INDEX IF NOT EXISTS idx_variant_release ON variant (release_id);
 
 CREATE TABLE IF NOT EXISTS blob_reference (
   storage_key TEXT PRIMARY KEY NOT NULL,
@@ -68,7 +90,9 @@ CREATE TABLE IF NOT EXISTS blob_reference (
   size_bytes BIGINT NOT NULL,
   mime_type TEXT NOT NULL DEFAULT 'application/octet-stream',
   created_at BIGINT NOT NULL,
-  last_referenced_at BIGINT NOT NULL
+  last_referenced_at BIGINT NOT NULL,
+
+  CHECK (ref_count >= 0)
 );
 
 CREATE INDEX IF NOT EXISTS idx_blob_ref_backend ON blob_reference (storage_backend_id);
@@ -78,11 +102,12 @@ CREATE INDEX IF NOT EXISTS idx_blob_ref_count ON blob_reference (ref_count);
 CREATE TABLE IF NOT EXISTS variant_tag (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   artefact_id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   variant_id TEXT NOT NULL,
   tag_key TEXT NOT NULL,
   tag_value TEXT NOT NULL,
 
-  FOREIGN KEY (artefact_id) REFERENCES artefact(id) ON DELETE CASCADE
+  FOREIGN KEY (artefact_id, release_id) REFERENCES artefact(id, release_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_variant_tag_key_value ON variant_tag (tag_key, tag_value);
@@ -95,12 +120,10 @@ CREATE TABLE IF NOT EXISTS gc_hint (
   created_at BIGINT NOT NULL
 );
 
--- variant_chunk is a STRICT table: it permits only INT/INTEGER/REAL/TEXT/BLOB/ANY (BIGINT is
--- rejected), and its INTEGER is genuinely signed 64-bit, so every integer column below
--- (size_bytes, sequence_number, created_at) is generated as a Go int64, not int32.
 CREATE TABLE IF NOT EXISTS variant_chunk (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   artefact_id TEXT NOT NULL,
+  release_id TEXT NOT NULL DEFAULT '',
   variant_id TEXT NOT NULL,
   chunk_id TEXT NOT NULL,
   storage_key TEXT NOT NULL,
@@ -113,10 +136,10 @@ CREATE TABLE IF NOT EXISTS variant_chunk (
 
   duration_seconds REAL,
 
-  FOREIGN KEY (artefact_id) REFERENCES artefact(id) ON DELETE CASCADE,
+  FOREIGN KEY (artefact_id, release_id) REFERENCES artefact(id, release_id) ON DELETE CASCADE,
 
-  UNIQUE(artefact_id, variant_id, chunk_id),
-  UNIQUE(artefact_id, variant_id, sequence_number),
+  UNIQUE(artefact_id, release_id, variant_id, chunk_id),
+  UNIQUE(artefact_id, release_id, variant_id, sequence_number),
 
   CHECK(size_bytes > 0),
   CHECK(sequence_number >= 0)

@@ -103,13 +103,14 @@ open:
 | `dynamic` | `runtime` | Emit a fluent runtime builder instead of a static method. |
 | `readonly` | `true`/`false` | Override automatic read/write detection. |
 | `nullable` | `true`/`false` | Override automatic nullability propagation across the output columns. |
+| `optional` | `true`/`false` | For `command: one`, return `(row, false, nil)` on a zero-row result instead of the driver no-rows sentinel. Only valid on a static `command: one`. |
 | `group_by` | qualified column (for example `orders.id`) | Declare the grouping column that collapses repeated parent rows in an embed join. |
 
 ### Command kinds
 
 | Kind | Generated signature | Return shape |
 |---|---|---|
-| `one` | `(Queries).<Name>(ctx, params) (<Name>Row, error)` | Single row; `sql.ErrNoRows` on miss. |
+| `one` | `(Queries).<Name>(ctx, params) (<Name>Row, error)` | Single row; `sql.ErrNoRows` on miss. With `optional: true` the signature becomes `(<Name>Row, bool, error)` and a miss returns `(zero, false, nil)` rather than the sentinel. |
 | `many` | `(Queries).<Name>(ctx, params) ([]<Name>Row, error)` | Slice of rows. |
 | `exec` | `(Queries).<Name>(ctx, params) error` | No rows returned; used for INSERT/UPDATE/DELETE without `RETURNING`. |
 | `asyncexec` | `(Queries).<Name>(ctx, params) error` | Same wire signature as `exec`; the generated method carries a doc comment documenting that the call returns when the server accepts the queued mutation, not when it has finished applying. Used for engines whose mutation semantics are server-side asynchronous (ClickHouse `ALTER UPDATE` / `ALTER DELETE`). |

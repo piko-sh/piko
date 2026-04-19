@@ -18,7 +18,7 @@
 
 //go:build integration
 
-package registry_test_test
+package registry_test
 
 import (
 	"context"

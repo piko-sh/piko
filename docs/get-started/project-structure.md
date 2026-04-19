@@ -66,7 +66,7 @@ The wizard creates only the folders shown above (it does scaffold `internal/piko
 | `lib/icons/` | SVG icons referenced by the scaffolded layout. | (project-local) |
 | `e2e/` | End-to-end tests for the scaffolded site. | (project-local) |
 | `internal/piko.go` | Shared `With*` option set used by every binary. Exposes `NewServer(mode, extras...)` for the runtime server and `NewGenerator(extras...)` for build-time tools. | [bootstrap options reference](../reference/bootstrap-options.md) |
-| `cmd/generator/` | Build-time generator. Calls `internal.NewGenerator(...)` and `ssr.Generate(ctx, mode)`. Invoke with `go run ./cmd/generator/main.go all`. | [CLI reference](../reference/cli.md) |
+| `cmd/generator/` | Build-time generator. Calls `internal.NewGenerator(...)` and `ssr.Generate(ctx, mode)`. Invoke with `piko generate`, or `go run ./cmd/generator/main.go all` directly. | [CLI reference](../reference/cli.md) |
 | `cmd/main/` | Runtime server. Calls `internal.NewServer(command, ...)` and `ssr.Run(command)`. The mode comes from `os.Args[1]` (`dev`, `dev-i`, or `prod`). | [bootstrap options reference](../reference/bootstrap-options.md), [about the hexagonal architecture](../explanation/about-the-hexagonal-architecture.md) |
 
 ## Configuration
