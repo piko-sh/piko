@@ -50,6 +50,9 @@ const (
 	// LanguageHungarian is the language code for Hungarian.
 	LanguageHungarian = linguistics_domain.LanguageHungarian
 
+	// LanguageHebrew is the language code for Hebrew.
+	LanguageHebrew = linguistics_domain.LanguageHebrew
+
 	// AnalysisModeBasic is the basic analysis mode that performs simple checks.
 	AnalysisModeBasic = linguistics_domain.AnalysisModeBasic
 

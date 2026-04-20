@@ -90,7 +90,7 @@ func NewEnglishTextAnalyser() cache_dto.TextAnalyseFunc {
 //
 // Takes language (string) which is the language code (e.g.
 // "english", "french", "german", "spanish", "dutch", "russian",
-// "swedish", "norwegian", "hungarian").
+// "swedish", "norwegian", "hungarian", "hebrew").
 //
 // Returns cache_dto.TextAnalyseFunc which is safe for concurrent
 // use.

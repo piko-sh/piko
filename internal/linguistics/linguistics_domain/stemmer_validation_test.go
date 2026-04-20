@@ -56,12 +56,20 @@ func TestSupportedLanguages_ContainsExpected(t *testing.T) {
 		LanguageEnglish, LanguageSpanish, LanguageFrench,
 		LanguageGerman, LanguageDutch, LanguageRussian,
 		LanguageSwedish, LanguageNorwegian, LanguageHungarian,
+		LanguageHebrew,
 	}
 	for _, lang := range expected {
 		assert.Contains(t, langs, lang, "should contain %s", lang)
 	}
 }
 
-func TestSupportedLanguages_LengthIsNine(t *testing.T) {
-	assert.Len(t, SupportedLanguages(), 9)
+func TestSupportedLanguages_NoDuplicates(t *testing.T) {
+	languages := SupportedLanguages()
+	seen := make(map[string]struct{}, len(languages))
+	for _, language := range languages {
+		_, duplicate := seen[language]
+		assert.False(t, duplicate, "language %q appears more than once", language)
+		seen[language] = struct{}{}
+	}
+	assert.GreaterOrEqual(t, len(languages), 10)
 }

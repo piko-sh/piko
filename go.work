@@ -76,6 +76,7 @@ use (
 	./wdk/linguistics/linguistics_language_english
 	./wdk/linguistics/linguistics_language_french
 	./wdk/linguistics/linguistics_language_german
+	./wdk/linguistics/linguistics_language_hebrew
 	./wdk/linguistics/linguistics_language_hungarian
 	./wdk/linguistics/linguistics_language_mock
 	./wdk/linguistics/linguistics_language_norwegian
@@ -86,6 +87,7 @@ use (
 	./wdk/linguistics/linguistics_phonetic_english
 	./wdk/linguistics/linguistics_phonetic_french
 	./wdk/linguistics/linguistics_phonetic_german
+	./wdk/linguistics/linguistics_phonetic_hebrew
 	./wdk/linguistics/linguistics_phonetic_hungarian
 	./wdk/linguistics/linguistics_phonetic_mock
 	./wdk/linguistics/linguistics_phonetic_norwegian
@@ -96,6 +98,7 @@ use (
 	./wdk/linguistics/linguistics_stemmer_english
 	./wdk/linguistics/linguistics_stemmer_french
 	./wdk/linguistics/linguistics_stemmer_german
+	./wdk/linguistics/linguistics_stemmer_hebrew
 	./wdk/linguistics/linguistics_stemmer_hungarian
 	./wdk/linguistics/linguistics_stemmer_mock
 	./wdk/linguistics/linguistics_stemmer_norwegian
@@ -115,6 +118,7 @@ use (
 	./wdk/linguistics/linguistics_stopwords_english
 	./wdk/linguistics/linguistics_stopwords_french
 	./wdk/linguistics/linguistics_stopwords_german
+	./wdk/linguistics/linguistics_stopwords_hebrew
 	./wdk/linguistics/linguistics_stopwords_hungarian
 	./wdk/linguistics/linguistics_stopwords_mock
 	./wdk/linguistics/linguistics_stopwords_norwegian
@@ -224,6 +228,7 @@ replace (
 	piko.sh/piko/wdk/linguistics/linguistics_language_english v0.0.0 => ./wdk/linguistics/linguistics_language_english
 	piko.sh/piko/wdk/linguistics/linguistics_language_french v0.0.0 => ./wdk/linguistics/linguistics_language_french
 	piko.sh/piko/wdk/linguistics/linguistics_language_german v0.0.0 => ./wdk/linguistics/linguistics_language_german
+	piko.sh/piko/wdk/linguistics/linguistics_language_hebrew v0.0.0 => ./wdk/linguistics/linguistics_language_hebrew
 	piko.sh/piko/wdk/linguistics/linguistics_language_hungarian v0.0.0 => ./wdk/linguistics/linguistics_language_hungarian
 	piko.sh/piko/wdk/linguistics/linguistics_language_mock v0.0.0 => ./wdk/linguistics/linguistics_language_mock
 	piko.sh/piko/wdk/linguistics/linguistics_language_norwegian v0.0.0 => ./wdk/linguistics/linguistics_language_norwegian
@@ -234,6 +239,7 @@ replace (
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_english v0.0.0 => ./wdk/linguistics/linguistics_phonetic_english
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_french v0.0.0 => ./wdk/linguistics/linguistics_phonetic_french
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_german v0.0.0 => ./wdk/linguistics/linguistics_phonetic_german
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_hebrew v0.0.0 => ./wdk/linguistics/linguistics_phonetic_hebrew
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_hungarian v0.0.0 => ./wdk/linguistics/linguistics_phonetic_hungarian
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_mock v0.0.0 => ./wdk/linguistics/linguistics_phonetic_mock
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_norwegian v0.0.0 => ./wdk/linguistics/linguistics_phonetic_norwegian
@@ -244,6 +250,7 @@ replace (
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_english v0.0.0 => ./wdk/linguistics/linguistics_stemmer_english
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_french v0.0.0 => ./wdk/linguistics/linguistics_stemmer_french
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_german v0.0.0 => ./wdk/linguistics/linguistics_stemmer_german
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_hebrew v0.0.0 => ./wdk/linguistics/linguistics_stemmer_hebrew
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_hungarian v0.0.0 => ./wdk/linguistics/linguistics_stemmer_hungarian
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_mock v0.0.0 => ./wdk/linguistics/linguistics_stemmer_mock
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_norwegian v0.0.0 => ./wdk/linguistics/linguistics_stemmer_norwegian
@@ -263,6 +270,7 @@ replace (
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 => ./wdk/linguistics/linguistics_stopwords_english
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0 => ./wdk/linguistics/linguistics_stopwords_french
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_german v0.0.0 => ./wdk/linguistics/linguistics_stopwords_german
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_hebrew v0.0.0 => ./wdk/linguistics/linguistics_stopwords_hebrew
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_hungarian v0.0.0 => ./wdk/linguistics/linguistics_stopwords_hungarian
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_mock v0.0.0 => ./wdk/linguistics/linguistics_stopwords_mock
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_norwegian v0.0.0 => ./wdk/linguistics/linguistics_stopwords_norwegian

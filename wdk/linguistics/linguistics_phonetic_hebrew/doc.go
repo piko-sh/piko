@@ -1,0 +1,31 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+// Package linguistics_phonetic_hebrew provides a Hebrew phonetic
+// encoder for the linguistics package.
+//
+// The encoder converts Hebrew words (in Hebrew script) into phonetic
+// codes that enable sounds-like matching, handling Hebrew-specific
+// patterns such as begadkephat alternation, silent letters (alef,
+// ayin, medial he), the shin/sin distinction via dot marks, and
+// geresh loanword sequences. It self-registers via an init function
+// so that a blank import is sufficient to make it available through
+// the registry.
+//
+// [Encoder] is safe for concurrent use.
+package linguistics_phonetic_hebrew

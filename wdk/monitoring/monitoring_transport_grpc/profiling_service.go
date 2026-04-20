@@ -42,8 +42,10 @@ const (
 	// Larger profiles should use the pprof HTTP server directly.
 	maxCaptureBytes = 64 * 1024 * 1024
 
-	// maxTCPPort is the highest valid TCP port number. Used to validate
-	// caller-supplied profiling port values.
+	// minTCPPort is the first valid TCP port for user-facing services.
+	minTCPPort = 1
+
+	// maxTCPPort is the last valid TCP port in the 16-bit port space.
 	maxTCPPort = 65535
 )
 
@@ -144,8 +146,8 @@ func (s *ProfilingService) EnableProfiling(ctx context.Context, request *pb.Enab
 	}
 
 	port := request.GetPort()
-	if port != 0 && (port < 1 || port > maxTCPPort) {
-		return nil, status.Errorf(codes.InvalidArgument, "port must be between 1 and %d", maxTCPPort)
+	if port != 0 && (port < minTCPPort || port > maxTCPPort) {
+		return nil, status.Errorf(codes.InvalidArgument, "port must be between %d and %d", minTCPPort, maxTCPPort)
 	}
 
 	opts := monitoring_domain.ProfilingEnableOpts{

@@ -182,7 +182,8 @@ type IndexBuildConfig struct {
 
 	// Language specifies the language for stemming, defaulting
 	// to "english" with support for "spanish", "french",
-	// "russian", "swedish", "norwegian", and "hungarian".
+	// "russian", "swedish", "norwegian", "hungarian", and
+	// "hebrew".
 	Language string
 
 	// Format specifies the output encoding. Supported values are "flatbuffers"

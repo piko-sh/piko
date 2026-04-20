@@ -914,12 +914,12 @@ func (*IndexBuilder) encodeIndexToJSON(
 	return json.ConfigStd.MarshalIndent(jsonIndex, "", "  ")
 }
 
-// mapLanguageCode converts an ISO 639-1 language code to a Snowball stemmer
-// language name.
+// mapLanguageCode converts an ISO 639-1 language code to the internal
+// stemmer language name.
 //
 // Takes code (string) which is the two-letter language code to convert.
 //
-// Returns string which is the Snowball language name, or English if the code
+// Returns string which is the language name, or English if the code
 // is not supported.
 func mapLanguageCode(code string) string {
 	languageMap := map[string]string{
@@ -932,6 +932,8 @@ func mapLanguageCode(code string) string {
 		"nb": "norwegian",
 		"nn": "norwegian",
 		"hu": "hungarian",
+		"he": "hebrew",
+		"iw": "hebrew",
 	}
 
 	if lang, ok := languageMap[code]; ok {

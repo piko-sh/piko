@@ -171,6 +171,8 @@ func defaultStopWordsFallback(language string) map[string]bool {
 		return defaultNorwegianStopWords()
 	case "hungarian":
 		return defaultHungarianStopWords()
+	case "hebrew":
+		return defaultHebrewStopWords()
 	default:
 		return defaultEnglishStopWords()
 	}
@@ -385,5 +387,30 @@ func defaultHungarianStopWords() map[string]bool {
 		"igen", "sem", "minden", "más", "sok", "kevés", "nagy", "kicsi",
 		"új", "régi", "jó", "rossz", "így", "úgy", "olyan", "ilyen",
 		"majd", "most", "akkor", "tehát", "pedig", "hiszen", "persze",
+	})
+}
+
+// defaultHebrewStopWords returns hardcoded Hebrew stop words.
+//
+// Returns map[string]bool which contains common Hebrew stop words as keys.
+func defaultHebrewStopWords() map[string]bool {
+	return makeStopWordSet([]string{
+		"אני", "אתה", "את", "הוא", "היא", "אנחנו", "אתם", "אתן", "הם", "הן",
+		"זה", "זאת", "זו", "אלה", "אלו",
+		"עצמי", "עצמו", "עצמה", "עצמם", "עצמן", "עצמנו",
+		"מי", "מה", "איפה", "היכן", "מתי", "למה", "מדוע", "איך", "כמה",
+		"אשר", "ש",
+		"של", "על", "אל", "עם", "בין", "לפני", "אחרי", "תחת", "מול", "בלי",
+		"מן", "עד", "אצל", "נגד", "דרך", "מעל", "מתחת", "ליד",
+		"ו", "או", "אבל", "אם", "כי", "אלא", "גם", "רק", "עוד", "אך", "אולם",
+		"היה", "היתה", "יהיה", "תהיה", "להיות", "יש", "אין",
+		"יכול", "יכולה", "יכולים",
+		"כל", "כולם", "כולן", "כלל", "הרבה", "מעט", "איזה",
+		"מאוד", "כבר", "פה", "שם", "כאן", "עכשיו", "תמיד", "אף",
+		"כך", "ככה", "כן", "אז", "שוב", "יותר", "פחות", "הנה", "הרי",
+		"לא",
+		"כמו", "כפי", "כאשר", "לפיכך", "לכן", "למרות", "בגלל",
+		"באמצעות", "בשביל", "בתוך", "אולי", "כדי",
+		"שלי", "שלך", "שלו", "שלה", "שלנו", "שלכם", "שלכן", "שלהם", "שלהן",
 	})
 }

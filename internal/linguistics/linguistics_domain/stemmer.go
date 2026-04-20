@@ -47,6 +47,9 @@ const (
 
 	// LanguageHungarian is the language code for Hungarian.
 	LanguageHungarian = "hungarian"
+
+	// LanguageHebrew is the language code for Hebrew.
+	LanguageHebrew = "hebrew"
 )
 
 // ValidateLanguage normalises a language string by lowercasing and trimming
@@ -79,5 +82,6 @@ func SupportedLanguages() []string {
 		LanguageSwedish,
 		LanguageNorwegian,
 		LanguageHungarian,
+		LanguageHebrew,
 	}
 }

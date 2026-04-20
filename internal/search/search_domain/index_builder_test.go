@@ -169,6 +169,14 @@ func TestMapLanguageCode(t *testing.T) {
 			wantLanguage: "hungarian",
 		},
 		{
+			code:         "he",
+			wantLanguage: "hebrew",
+		},
+		{
+			code:         "iw",
+			wantLanguage: "hebrew",
+		},
+		{
 			code:         "xx",
 			wantLanguage: "english",
 		},
