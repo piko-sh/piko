@@ -527,12 +527,30 @@ func (r *SymbolRegistry) registerNamedTypes(
 	}
 
 	for _, p := range pending {
-		delete(converter.seen, p.elemRT)
-		underlying := converter.toGoType(p.elemRT)
-		converter.seen[p.elemRT] = p.named
+
+		underlying := converter.synthesiseNamedUnderlying(p.elemRT)
 		p.named.SetUnderlying(underlying)
 		converter.synthesiseMethods(p.ptrRT, p.named, pkg)
 	}
+}
+
+// synthesiseNamedUnderlying computes the underlying types.Type for a
+// registered named type by dispatching on its reflect.Kind without
+// consulting the seen cache at the top level. This is required during
+// two-pass named-type registration so the placeholder *types.Named
+// stays in the cache for recursive references from fields or methods,
+// while the underlying itself is built fresh.
+//
+// Takes reflectType (reflect.Type) which is the element reflect.Type
+// (the T in *T) of the registered named type.
+//
+// Returns the synthesised underlying types.Type (struct, interface,
+// signature, slice, etc.).
+func (c *reflectTypeConverter) synthesiseNamedUnderlying(reflectType reflect.Type) types.Type {
+	if basicKind, ok := reflectKindToBasicType[reflectType.Kind()]; ok {
+		return types.Typ[basicKind]
+	}
+	return c.convertCompositeType(reflectType)
 }
 
 // registerFunctionsAndVariables inserts exported functions and
@@ -791,8 +809,13 @@ func (c *reflectTypeConverter) convertCompositeType(reflectType reflect.Type) ty
 //
 // Returns the equivalent go/types interface.
 func (c *reflectTypeConverter) interfaceType(reflectType reflect.Type) types.Type {
-	placeholder := types.NewInterfaceType(nil, nil)
-	c.seen[reflectType] = placeholder
+
+	_, hasNamedPlaceholder := c.seen[reflectType].(*types.Named)
+	var placeholder types.Type
+	if !hasNamedPlaceholder {
+		placeholder = types.NewInterfaceType(nil, nil)
+		c.seen[reflectType] = placeholder
+	}
 
 	var methods []*types.Func
 	for m := range reflectType.Methods() {
@@ -802,10 +825,15 @@ func (c *reflectTypeConverter) interfaceType(reflectType reflect.Type) types.Typ
 	if len(methods) > 0 {
 		iface := types.NewInterfaceType(methods, nil)
 		iface.Complete()
-		c.seen[reflectType] = iface
+		if !hasNamedPlaceholder {
+			c.seen[reflectType] = iface
+		}
 		return iface
 	}
 
+	if hasNamedPlaceholder {
+		return types.NewInterfaceType(nil, nil)
+	}
 	return placeholder
 }
 
@@ -840,8 +868,12 @@ func (c *reflectTypeConverter) funcSignature(reflectType reflect.Type) *types.Si
 //
 // Returns the equivalent go/types struct type.
 func (c *reflectTypeConverter) structType(reflectType reflect.Type) types.Type {
-	placeholder := types.NewStruct(nil, nil)
-	c.seen[reflectType] = placeholder
+
+	_, hasNamedPlaceholder := c.seen[reflectType].(*types.Named)
+	if !hasNamedPlaceholder {
+		placeholder := types.NewStruct(nil, nil)
+		c.seen[reflectType] = placeholder
+	}
 
 	var fields []*types.Var
 	var tags []string
@@ -855,7 +887,9 @@ func (c *reflectTypeConverter) structType(reflectType reflect.Type) types.Type {
 	}
 
 	result := types.NewStruct(fields, tags)
-	c.seen[reflectType] = result
+	if !hasNamedPlaceholder {
+		c.seen[reflectType] = result
+	}
 	return result
 }
 
