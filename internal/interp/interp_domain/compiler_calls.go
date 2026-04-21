@@ -1003,9 +1003,46 @@ func (c *compiler) compileCompositeLit(ctx context.Context, lit *ast.CompositeLi
 		return c.compileMapLiteral(ctx, lit, reflectType)
 	case reflect.Struct:
 		return c.compileStructLiteral(ctx, lit, reflectType)
+	case reflect.Ptr:
+		return c.compilePointerCompositeLit(ctx, lit, reflectType)
 	default:
 		return varLocation{}, fmt.Errorf("unsupported composite literal type: %v (%v) at %s", reflectType.Kind(), reflectType, c.positionString(lit.Pos()))
 	}
+}
+
+// compilePointerCompositeLit compiles a composite literal whose type
+// is a pointer, as produced by elided forms such as
+// map[K]*T{"k": {...}} or []*T{{...}} where the inner literal is
+// sugar for &T{...}.
+//
+// Takes lit (*ast.CompositeLit) which is the AST composite literal node.
+// Takes reflectType (reflect.Type) which is the pointer reflect.Type
+// recorded for lit by the go/types checker.
+//
+// Returns varLocation holding the pointer value and any compilation error.
+func (c *compiler) compilePointerCompositeLit(ctx context.Context, lit *ast.CompositeLit, reflectType reflect.Type) (varLocation, error) {
+	elemType := reflectType.Elem()
+	var elemLocation varLocation
+	var err error
+	switch elemType.Kind() {
+	case reflect.Struct:
+		elemLocation, err = c.compileStructLiteral(ctx, lit, elemType)
+	case reflect.Array:
+		elemLocation, err = c.compileArrayLiteral(ctx, lit, elemType)
+	case reflect.Slice:
+		elemLocation, err = c.compileSliceLiteral(ctx, lit, elemType)
+	case reflect.Map:
+		elemLocation, err = c.compileMapLiteral(ctx, lit, elemType)
+	default:
+		return varLocation{}, fmt.Errorf("unsupported composite literal type: %v (%v) at %s", reflectType.Kind(), reflectType, c.positionString(lit.Pos()))
+	}
+	if err != nil {
+		return varLocation{}, err
+	}
+
+	dest := c.scopes.alloc.alloc(registerGeneral)
+	c.function.emit(opAddr, dest, elemLocation.register, 0)
+	return varLocation{register: dest, kind: registerGeneral}, nil
 }
 
 // compileArrayLiteral compiles an array literal like [5]int{2, 4, 6, 8, 10}.
