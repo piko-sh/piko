@@ -75,6 +75,58 @@ func TestEvalCompilationErrors(t *testing.T) {
 	}
 }
 
+func TestEvalUnregisteredPackageImport(t *testing.T) {
+	t.Parallel()
+
+	service := newTestServiceWithSymbols(t, SymbolExports{})
+
+	_, err := service.Eval(context.Background(), `import "example.com/missing/pkg"
+_ = 1`)
+	require.Error(t, err)
+	require.ErrorIs(t, err, errTypeCheck)
+	require.ErrorIs(t, err, errPackageNotInRegistry)
+	require.Contains(t, err.Error(), "piko extract discover")
+	require.Contains(t, err.Error(), "example.com/missing/pkg")
+}
+
+func TestExtractMissingPackagePath(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		msg  string
+		want string
+	}{
+		{
+			name: "standard go/types shape",
+			msg:  `could not import example.com/pkg (package "example.com/pkg" not registered with interpreter)`,
+			want: "example.com/pkg",
+		},
+		{
+			name: "missing prefix returns empty",
+			msg:  `something unexpected about example.com/pkg`,
+			want: "",
+		},
+		{
+			name: "empty after prefix returns empty",
+			msg:  "could not import ",
+			want: "",
+		},
+		{
+			name: "no space after path returns empty",
+			msg:  "could not import example.com/only",
+			want: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, extractMissingPackagePath(tt.msg))
+		})
+	}
+}
+
 func TestEvalIndexOutOfBounds(t *testing.T) {
 	t.Parallel()
 

@@ -142,6 +142,58 @@ func OutputFileName(importPath string) string {
 	return "gen_" + safe + ".go"
 }
 
+// GenerateRegisterFile produces the bootstrapping Go source that
+// declares the package-level Symbols map that every gen_*.go file's
+// init() populates. Without this file the per-package generated
+// files fail to compile with "undefined: Symbols".
+//
+// Takes outputPackage (string) which specifies the Go package name
+// for the generated file.
+//
+// Returns the formatted Go source bytes or an error if formatting
+// fails.
+func GenerateRegisterFile(outputPackage string) ([]byte, error) {
+	fset := token.NewFileSet()
+	file := &ast.File{
+		Name: goastutil.CachedIdent(outputPackage),
+		Decls: []ast.Decl{
+			&ast.GenDecl{
+				Tok: token.VAR,
+				Specs: []ast.Spec{
+					&ast.ValueSpec{
+						Names: []*ast.Ident{goastutil.CachedIdent("Symbols")},
+						Values: []ast.Expr{
+							&ast.CallExpr{
+								Fun: goastutil.CachedIdent("make"),
+								Args: []ast.Expr{
+									&ast.MapType{
+										Key: goastutil.CachedIdent("string"),
+										Value: &ast.MapType{
+											Key: goastutil.CachedIdent("string"),
+											Value: &ast.SelectorExpr{
+												X:   goastutil.CachedIdent(reflectPackage),
+												Sel: goastutil.CachedIdent("Value"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	goastutil.AddImport(fset, file, reflectPackage)
+
+	formatted, err := goastutil.FormatAST(fset, file)
+	if err != nil {
+		return nil, fmt.Errorf("formatting register file: %w", err)
+	}
+	return append([]byte(generatedFileHeader), formatted...), nil
+}
+
 // GenerateTypesLoaderFile produces the Go source for the types_loader
 // that uses go/importer.Default() to load *types.Package for generic
 // packages.

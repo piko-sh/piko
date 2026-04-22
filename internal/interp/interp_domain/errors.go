@@ -106,4 +106,10 @@ var (
 	// (slice, array, map) has more elements than the configured
 	// maximum set via WithMaxLiteralElements.
 	errLiteralElementLimit = errors.New("literal element count limit exceeded")
+
+	// errPackageNotInRegistry is returned when the go/types Importer
+	// cannot locate an interpreted package in the symbol registry.
+	// Typically means a transitive dependency is missing from
+	// piko-symbols.yaml.
+	errPackageNotInRegistry = errors.New("package not registered with interpreter")
 )

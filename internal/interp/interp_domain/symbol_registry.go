@@ -364,7 +364,7 @@ func (r *SymbolRegistry) Import(importPath string) (*types.Package, error) {
 
 	exports, ok := r.LookupPackage(importPath)
 	if !ok {
-		return nil, fmt.Errorf("package %q not found in symbol registry", importPath)
+		return nil, fmt.Errorf("%w: %q", errPackageNotInRegistry, importPath)
 	}
 
 	r.mu.Lock()
