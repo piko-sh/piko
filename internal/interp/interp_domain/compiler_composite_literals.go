@@ -35,7 +35,7 @@ import (
 // compilation error.
 func (c *compiler) compileCompositeLit(ctx context.Context, lit *ast.CompositeLit) (varLocation, error) {
 	tv := c.info.Types[lit]
-	reflectType := typeToReflect(ctx, tv.Type, c.symbols)
+	reflectType := c.typeToReflect(ctx, tv.Type)
 
 	switch reflectType.Kind() {
 	case reflect.Slice:

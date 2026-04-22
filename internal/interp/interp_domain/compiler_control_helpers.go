@@ -954,7 +954,7 @@ func (c *compiler) compileTypeAssertCommaOk(ctx context.Context, lhsList []ast.E
 	c.boxToGeneral(ctx, &srcLocation)
 
 	targetType := c.info.Types[assertExpr.Type].Type
-	reflectType := typeToReflect(ctx, targetType, c.symbols)
+	reflectType := c.typeToReflect(ctx, targetType)
 	typeIndex := c.function.addTypeRef(reflectType)
 	valKind := kindForType(targetType)
 

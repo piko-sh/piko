@@ -259,10 +259,14 @@ func (s *Service) Eval(ctx context.Context, code string) (any, error) {
 	file, parseErr := parser.ParseFile(s.fileSet, evalFileName, wrappedCode, 0)
 	if parseErr == nil {
 		result, evalErr := s.doEvalFile(ctx, file)
-		if evalErr != nil {
-			return nil, fmt.Errorf("evaluating expression: %w", evalErr)
+		if evalErr == nil {
+			return result, nil
 		}
-		return result, nil
+
+		if mixedResult, mixedErr := s.evalMixed(ctx, code); mixedErr == nil {
+			return mixedResult, nil
+		}
+		return nil, fmt.Errorf("evaluating expression: %w", evalErr)
 	}
 
 	result, evalErr := s.evalMixed(ctx, code)
@@ -304,10 +308,14 @@ func (s *Service) Compile(ctx context.Context, code string) (*CompiledFunction, 
 	file, parseErr := parser.ParseFile(s.fileSet, evalFileName, wrappedCode, 0)
 	if parseErr == nil {
 		result, compileErr := s.compileFile(ctx, file)
-		if compileErr != nil {
-			return nil, fmt.Errorf("compiling source: %w", compileErr)
+		if compileErr == nil {
+			return result, nil
 		}
-		return result, nil
+
+		if mixedResult, mixedErr := s.compileMixed(ctx, code); mixedErr == nil {
+			return mixedResult, nil
+		}
+		return nil, fmt.Errorf("compiling source: %w", compileErr)
 	}
 
 	result, compileErr := s.compileMixed(ctx, code)

@@ -33,6 +33,10 @@ var (
 	// is outside the valid range [0, len).
 	errIndexOutOfRange = errors.New("index out of range")
 
+	// errNilPointerIndex is returned when an index operation is applied
+	// to a nil pointer (e.g. indexing a nil *[N]T).
+	errNilPointerIndex = errors.New("index of nil pointer")
+
 	// errSliceOutOfRange is returned when slice bounds are outside the
 	// valid range or low exceeds high.
 	errSliceOutOfRange = errors.New("slice bounds out of range")

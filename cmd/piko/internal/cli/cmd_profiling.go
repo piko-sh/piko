@@ -74,6 +74,11 @@ var profilingSubcommandList = buildResourceList(profilingSubcommands)
 
 // runProfiling dispatches to the appropriate profiling subcommand based on
 // the first positional argument.
+//
+// Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
+// Takes arguments ([]string) which are the remaining command-line tokens.
+//
+// Returns error when the subcommand is missing, unknown, or itself fails.
 func runProfiling(ctx context.Context, cc *CommandContext, arguments []string) error {
 	if len(arguments) == 0 {
 		return fmt.Errorf("missing subcommand\n\nAvailable subcommands: %s", profilingSubcommandList)
@@ -91,6 +96,11 @@ func runProfiling(ctx context.Context, cc *CommandContext, arguments []string) e
 
 // profilingEnable parses flags and sends an EnableProfiling RPC to start
 // runtime profiling for the requested duration.
+//
+// Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
+// Takes arguments ([]string) which contain the duration positional and flags.
+//
+// Returns error when flag parsing, duration parsing, or the RPC fails.
 func profilingEnable(ctx context.Context, cc *CommandContext, arguments []string) error {
 	fs := flag.NewFlagSet("profiling enable", flag.ContinueOnError)
 	fs.SetOutput(cc.Stderr)
@@ -221,6 +231,10 @@ func printEnableResponse(cc *CommandContext, response *pb.EnableProfilingRespons
 
 // profilingDisable sends a DisableProfiling RPC and prints whether profiling
 // was active.
+//
+// Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
+//
+// Returns error when the RPC fails.
 func profilingDisable(ctx context.Context, cc *CommandContext, _ []string) error {
 	response, err := cc.Conn.ProfilingClient().DisableProfiling(ctx, &pb.DisableProfilingRequest{})
 	if err != nil {
@@ -238,6 +252,10 @@ func profilingDisable(ctx context.Context, cc *CommandContext, _ []string) error
 
 // profilingStatus queries and displays the current profiling state, including
 // expiry, rates, and available profile types.
+//
+// Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
+//
+// Returns error when the RPC or JSON printing fails.
 func profilingStatus(ctx context.Context, cc *CommandContext, _ []string) error {
 	response, err := cc.Conn.ProfilingClient().GetProfilingStatus(ctx, &pb.GetProfilingStatusRequest{})
 	if err != nil {
@@ -298,6 +316,11 @@ type captureResult struct {
 
 // profilingCapture captures a Go runtime profile via a streaming RPC and
 // writes the result to a local file.
+//
+// Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
+// Takes arguments ([]string) which contain the profile type, duration, and flags.
+//
+// Returns error when argument parsing, streaming, or file I/O fails.
 func profilingCapture(ctx context.Context, cc *CommandContext, arguments []string) error {
 	fs := flag.NewFlagSet("profiling capture", flag.ContinueOnError)
 	fs.SetOutput(cc.Stderr)
@@ -564,6 +587,10 @@ func displayCaptureResult(
 
 // formatMemProfileRate returns a human-readable string for the memory profile
 // sampling rate, using KiB or MiB units where appropriate.
+//
+// Takes rate (int) which is the sampling interval in bytes.
+//
+// Returns string describing the rate in the most suitable unit.
 func formatMemProfileRate(rate int) string {
 	if rate == 0 {
 		return "512 KiB (runtime default)"
@@ -579,6 +606,8 @@ func formatMemProfileRate(rate int) string {
 
 // maxCaptureDuration returns profilingMaxCaptureSecs as a time.Duration for
 // use in error messages.
+//
+// Returns time.Duration which is the hard upper bound on capture duration.
 func maxCaptureDuration() time.Duration {
 	return time.Duration(profilingMaxCaptureSecs) * time.Second
 }
@@ -591,6 +620,10 @@ var validProfileTypes = map[string]struct{}{
 
 // isValidProfileType reports whether profileType is a recognised Go runtime
 // profile name.
+//
+// Takes profileType (string) which is the caller-supplied profile name.
+//
+// Returns bool which is true when profileType is a supported runtime profile.
 func isValidProfileType(profileType string) bool {
 	_, ok := validProfileTypes[profileType]
 	return ok

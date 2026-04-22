@@ -226,6 +226,34 @@ func checkSliceBounds(vm *VM, collection reflect.Value, index int) bool {
 	return true
 }
 
+// resolveIndexCollection normalises a collection for index operations,
+// auto-dereferencing a pointer-to-array so that `(*[N]T)[i]` matches
+// Go's index semantics. Returns the original value unchanged for
+// slices, strings, and maps.
+//
+// Takes vm (*VM) which receives the error on nil-pointer dereference.
+// Takes collection (reflect.Value) which is the indexed value.
+//
+// Returns the normalised collection and true on success, or the
+// original collection and false when a nil pointer was encountered.
+func resolveIndexCollection(vm *VM, collection reflect.Value) (reflect.Value, bool) {
+	if !collection.IsValid() {
+		vm.evalError = errNilPointerIndex
+		return collection, false
+	}
+	if collection.Kind() != reflect.Pointer {
+		return collection, true
+	}
+	if collection.IsNil() {
+		vm.evalError = errNilPointerIndex
+		return collection, false
+	}
+	if elem := collection.Elem(); elem.Kind() == reflect.Array {
+		return elem, true
+	}
+	return collection, true
+}
+
 // handleIndex handles the opIndex instruction by reading a general
 // element from a slice or array at the given integer index.
 //
@@ -235,7 +263,10 @@ func checkSliceBounds(vm *VM, collection reflect.Value, index int) bool {
 //
 // Returns opResult indicating the next execution step.
 func handleIndex(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.b]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.b])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.c])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -257,7 +288,10 @@ func handleIndex(vm *VM, _ *callFrame, registers *Registers, instruction instruc
 //
 // Returns opResult indicating the next execution step.
 func handleIndexSet(vm *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.a]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.a])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.b])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -284,7 +318,10 @@ func handleIndexSet(vm *VM, frame *callFrame, registers *Registers, instruction 
 //
 // Returns opResult indicating the next execution step.
 func handleSliceGetInt(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.b]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.b])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.c])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -308,7 +345,10 @@ func handleSliceGetInt(vm *VM, _ *callFrame, registers *Registers, instruction i
 //
 // Returns opResult indicating the next execution step.
 func handleSliceSetInt(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.a]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.a])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.b])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -332,7 +372,10 @@ func handleSliceSetInt(vm *VM, _ *callFrame, registers *Registers, instruction i
 //
 // Returns opResult indicating the next execution step.
 func handleSliceGetFloat(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.b]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.b])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.c])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -350,7 +393,10 @@ func handleSliceGetFloat(vm *VM, _ *callFrame, registers *Registers, instruction
 //
 // Returns opResult indicating the next execution step.
 func handleSliceSetFloat(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.a]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.a])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.b])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -368,7 +414,10 @@ func handleSliceSetFloat(vm *VM, _ *callFrame, registers *Registers, instruction
 //
 // Returns opResult indicating the next execution step.
 func handleSliceGetString(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.b]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.b])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.c])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -386,7 +435,10 @@ func handleSliceGetString(vm *VM, _ *callFrame, registers *Registers, instructio
 //
 // Returns opResult indicating the next execution step.
 func handleSliceSetString(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.a]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.a])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.b])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -404,7 +456,10 @@ func handleSliceSetString(vm *VM, _ *callFrame, registers *Registers, instructio
 //
 // Returns opResult indicating the next execution step.
 func handleSliceGetBool(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.b]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.b])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.c])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -422,7 +477,10 @@ func handleSliceGetBool(vm *VM, _ *callFrame, registers *Registers, instruction 
 //
 // Returns opResult indicating the next execution step.
 func handleSliceSetBool(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.a]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.a])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.b])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -440,7 +498,10 @@ func handleSliceSetBool(vm *VM, _ *callFrame, registers *Registers, instruction 
 //
 // Returns opResult indicating the next execution step.
 func handleSliceGetUint(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.b]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.b])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.c])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -458,7 +519,10 @@ func handleSliceGetUint(vm *VM, _ *callFrame, registers *Registers, instruction 
 //
 // Returns opResult indicating the next execution step.
 func handleSliceSetUint(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	collection := registers.general[instruction.a]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.a])
+	if !ok {
+		return opPanicError
+	}
 	index := int(registers.ints[instruction.b])
 	if !checkSliceBounds(vm, collection, index) {
 		return opPanicError
@@ -573,13 +637,27 @@ func handleMapDelete(_ *VM, frame *callFrame, registers *Registers, instruction 
 //
 // Returns opResult indicating the next execution step.
 func handleLen(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	v := registers.general[instruction.b]
-	if !v.IsValid() {
-		registers.ints[instruction.a] = 0
-		return opContinue
-	}
-	registers.ints[instruction.a] = int64(v.Len())
+	registers.ints[instruction.a] = collectionLengthOrCap(registers.general[instruction.b], reflect.Value.Len)
 	return opContinue
+}
+
+// collectionLengthOrCap returns len(v) or cap(v) while honouring Go's
+// rule that len/cap on a *[N]T returns N even when the pointer is nil
+// or would otherwise panic under reflect.
+//
+// Takes v (reflect.Value) which is the collection value.
+// Takes measure (func(reflect.Value) int) which is either
+// reflect.Value.Len or reflect.Value.Cap.
+//
+// Returns the computed length as int64.
+func collectionLengthOrCap(v reflect.Value, measure func(reflect.Value) int) int64 {
+	if !v.IsValid() {
+		return 0
+	}
+	if v.Kind() == reflect.Pointer && v.Type().Elem().Kind() == reflect.Array {
+		return int64(v.Type().Elem().Len())
+	}
+	return int64(measure(v))
 }
 
 // appendFastPath attempts a type-assertion fast path for common concrete
@@ -659,11 +737,14 @@ func handleAppend(vm *VM, _ *callFrame, registers *Registers, instruction instru
 // Takes instruction (instruction) which encodes the destination register.
 //
 // Returns opResult indicating the next execution step.
-func handleSliceOp(_ *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
+func handleSliceOp(vm *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
 	ext1 := frame.function.body[frame.programCounter]
 	frame.programCounter++
 	flags := ext1.a
-	collection := registers.general[instruction.b]
+	collection, ok := resolveIndexCollection(vm, registers.general[instruction.b])
+	if !ok {
+		return opPanicError
+	}
 	low := 0
 	high := collection.Len()
 	if flags&sliceLowBoundFlag != 0 {
@@ -702,12 +783,7 @@ func handleCopy(_ *VM, _ *callFrame, registers *Registers, instruction instructi
 //
 // Returns opResult indicating the next execution step.
 func handleCap(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	v := registers.general[instruction.b]
-	if !v.IsValid() {
-		registers.ints[instruction.a] = 0
-		return opContinue
-	}
-	registers.ints[instruction.a] = int64(v.Cap())
+	registers.ints[instruction.a] = collectionLengthOrCap(registers.general[instruction.b], reflect.Value.Cap)
 	return opContinue
 }
 

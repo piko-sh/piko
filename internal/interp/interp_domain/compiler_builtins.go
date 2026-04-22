@@ -202,7 +202,7 @@ func (c *compiler) compileBuiltinAppend(ctx context.Context, expression *ast.Cal
 // compilation error.
 func (c *compiler) compileBuiltinMake(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
 	tv := c.info.Types[expression]
-	reflectType := typeToReflect(ctx, tv.Type, c.symbols)
+	reflectType := c.typeToReflect(ctx, tv.Type)
 	typeIndex := c.function.addTypeRef(reflectType)
 	dest := c.scopes.alloc.alloc(registerGeneral)
 

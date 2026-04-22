@@ -51,7 +51,7 @@ func (c *compiler) tryCompileStructIntoCollection(ctx context.Context, leftHandS
 	if !ok {
 		return varLocation{}, false, nil
 	}
-	reflectType := typeToReflect(ctx, literalTypeInfo.Type, c.symbols)
+	reflectType := c.typeToReflect(ctx, literalTypeInfo.Type)
 	if reflectType.Kind() != reflect.Struct {
 		return varLocation{}, false, nil
 	}

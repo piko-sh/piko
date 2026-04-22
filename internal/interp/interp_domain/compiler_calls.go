@@ -251,7 +251,7 @@ func (c *compiler) compileCallArgs(ctx context.Context, expression *ast.CallExpr
 		return nil, fmt.Errorf("expected *types.Signature, got %T", typeObject.Type())
 	}
 	lastParam := signature.Params().At(signature.Params().Len() - 1)
-	sliceType := typeToReflect(ctx, lastParam.Type(), c.symbols)
+	sliceType := c.typeToReflect(ctx, lastParam.Type())
 	typeIndex := c.function.addTypeRef(sliceType)
 
 	numVariadic := len(expression.Args) - numFixed

@@ -527,7 +527,6 @@ func (r *SymbolRegistry) registerNamedTypes(
 	}
 
 	for _, p := range pending {
-
 		underlying := converter.synthesiseNamedUnderlying(p.elemRT)
 		p.named.SetUnderlying(underlying)
 		converter.synthesiseMethods(p.ptrRT, p.named, pkg)
@@ -535,11 +534,9 @@ func (r *SymbolRegistry) registerNamedTypes(
 }
 
 // synthesiseNamedUnderlying computes the underlying types.Type for a
-// registered named type by dispatching on its reflect.Kind without
-// consulting the seen cache at the top level. This is required during
-// two-pass named-type registration so the placeholder *types.Named
-// stays in the cache for recursive references from fields or methods,
-// while the underlying itself is built fresh.
+// registered named type. It dispatches by reflect.Kind and skips the
+// seen-cache short-circuit so the placeholder *types.Named stays
+// available for recursive field and method references.
 //
 // Takes reflectType (reflect.Type) which is the element reflect.Type
 // (the T in *T) of the registered named type.
@@ -809,7 +806,6 @@ func (c *reflectTypeConverter) convertCompositeType(reflectType reflect.Type) ty
 //
 // Returns the equivalent go/types interface.
 func (c *reflectTypeConverter) interfaceType(reflectType reflect.Type) types.Type {
-
 	_, hasNamedPlaceholder := c.seen[reflectType].(*types.Named)
 	var placeholder types.Type
 	if !hasNamedPlaceholder {
@@ -868,7 +864,6 @@ func (c *reflectTypeConverter) funcSignature(reflectType reflect.Type) *types.Si
 //
 // Returns the equivalent go/types struct type.
 func (c *reflectTypeConverter) structType(reflectType reflect.Type) types.Type {
-
 	_, hasNamedPlaceholder := c.seen[reflectType].(*types.Named)
 	if !hasNamedPlaceholder {
 		placeholder := types.NewStruct(nil, nil)

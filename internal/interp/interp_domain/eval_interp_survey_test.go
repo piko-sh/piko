@@ -279,42 +279,190 @@ sum(map[string]*P{"a": {V: 3}, "b": {V: 4}, "c": {V: 5}})`,
 	}
 }
 
-func TestSurveyKnownGapPointerToArrayAutoDerefIndex(t *testing.T) {
+func TestSurveyPointerToArrayAutoDerefIndex(t *testing.T) {
 	t.Parallel()
 
-	code := `m := map[string]*[3]int{"row": {10, 20, 30}}
-m["row"][0] + m["row"][1] + m["row"][2]`
+	tests := []struct {
+		expect any
+		name   string
+		code   string
+	}{
+		{
+			name: "read through map of pointer to array",
+			code: `m := map[string]*[3]int{"row": {10, 20, 30}}
+m["row"][0] + m["row"][1] + m["row"][2]`,
+			expect: int64(60),
+		},
+		{
+			name: "read through direct pointer",
+			code: `a := [4]int{7, 11, 13, 17}
+p := &a
+p[0] + p[1] + p[2] + p[3]`,
+			expect: int64(48),
+		},
+		{
+			name: "write through direct pointer",
+			code: `a := [3]int{1, 2, 3}
+p := &a
+p[0] = 40
+p[1] = 50
+p[2] = 60
+a[0] + a[1] + a[2]`,
+			expect: int64(150),
+		},
+		{
+			name: "string elements via pointer",
+			code: `a := [2]string{"hello", "world"}
+p := &a
+p[0] + "-" + p[1]`,
+			expect: "hello-world",
+		},
+	}
 
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				t.Skipf("known gap: index on *[N]T panics in handleIndex: %v", r)
-			}
-		}()
-
-		service := NewService()
-		result, err := service.Eval(context.Background(), code)
-		if err != nil {
-			t.Skipf("known gap: index on *[N]T not yet supported by interp: %v", err)
-		}
-		require.Equal(t, int64(60), result)
-	}()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			service := NewService()
+			result, err := service.Eval(context.Background(), tt.code)
+			require.NoError(t, err)
+			require.Equal(t, tt.expect, result)
+		})
+	}
 }
 
-func TestSurveyKnownGapMutuallyRecursiveEvalTypes(t *testing.T) {
+func TestSurveyPointerToArrayNilPanic(t *testing.T) {
 	t.Parallel()
 
-	code := `type A struct { Tag string; B *B }
+	code := `var p *[3]int
+_ = p[0]`
+
+	service := NewService()
+	_, err := service.Eval(context.Background(), code)
+	require.Error(t, err, "indexing nil *[N]T must surface an error")
+}
+
+func TestSurveyPointerToArrayRangeLenSlice(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		expect any
+		name   string
+		code   string
+	}{
+		{
+			name: "range with index and value",
+			code: `a := [4]int{10, 20, 30, 40}
+p := &a
+total := 0
+for i, v := range p {
+	total += v * (i + 1)
+}
+total`,
+			expect: int64(300),
+		},
+		{
+			name: "range with value only",
+			code: `a := [3]string{"a", "b", "c"}
+p := &a
+joined := ""
+for _, v := range p {
+	joined += v
+}
+joined`,
+			expect: "abc",
+		},
+		{
+			name: "len on non-nil pointer",
+			code: `a := [5]int{1, 2, 3, 4, 5}
+p := &a
+len(p)`,
+			expect: int64(5),
+		},
+		{
+			name: "cap on non-nil pointer",
+			code: `a := [7]int{}
+p := &a
+cap(p)`,
+			expect: int64(7),
+		},
+		{
+			name: "len on nil pointer returns array length",
+			code: `var p *[4]int
+len(p)`,
+			expect: int64(4),
+		},
+		{
+			name: "slice expression on pointer to array",
+			code: `a := [5]int{10, 20, 30, 40, 50}
+p := &a
+s := p[1:4]
+s[0] + s[1] + s[2]`,
+			expect: int64(90),
+		},
+		{
+			name: "full slice expression on pointer to array",
+			code: `a := [6]int{1, 2, 3, 4, 5, 6}
+p := &a
+s := p[1:4:5]
+len(s) + cap(s)`,
+			expect: int64(7),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			service := NewService()
+			result, err := service.Eval(context.Background(), tt.code)
+			require.NoError(t, err)
+			require.Equal(t, tt.expect, result)
+		})
+	}
+}
+
+func TestSurveyMutuallyRecursiveEvalTypes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		expect any
+		name   string
+		code   string
+	}{
+		{
+			name: "simple mutual recursion via pointers",
+			code: `type A struct { Tag string; B *B }
 type B struct { Mark int; A *A }
 a := &A{Tag: "root"}
 b := &B{Mark: 7, A: a}
 a.B = b
-a.B.A.Tag`
+a.B.A.Tag`,
+			expect: "root",
+		},
+		{
+			name: "mutual types with a walking function",
+			code: `type Left struct { Name string; Right *Right }
+type Right struct { Value int; Left *Left }
+func label(l *Left) string {
+	if l == nil { return "" }
+	if l.Right == nil { return l.Name }
+	return l.Name + "/" + l.Right.Left.Name
+}
+l := &Left{Name: "a"}
+r := &Right{Value: 42, Left: l}
+l.Right = r
+label(l)`,
+			expect: "a/a",
+		},
+	}
 
-	service := NewService()
-	_, err := service.Eval(context.Background(), code)
-	if err != nil {
-		t.Skipf("known gap: service.Eval forward type refs: %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			service := NewService()
+			result, err := service.Eval(context.Background(), tt.code)
+			require.NoError(t, err)
+			require.Equal(t, tt.expect, result)
+		})
 	}
 }
 
