@@ -309,6 +309,10 @@ func (c *compiler) compileSelectorCallExpression(ctx context.Context, selectorEx
 		return location, err
 	}
 
+	if location, ok, err := c.tryCompileLinkedCall(ctx, selectorExpression, expression); ok || err != nil {
+		return location, err
+	}
+
 	return c.compileSelectorNativeCall(ctx, selectorExpression, expression)
 }
 

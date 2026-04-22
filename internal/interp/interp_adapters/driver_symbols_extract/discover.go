@@ -64,8 +64,10 @@ var errPKFileTooLarge = errors.New("pk file exceeds size limit")
 // DiscoverOptions configures a Discover run. Zero values provide
 // sensible defaults where possible.
 type DiscoverOptions struct {
-	// Root is the project root. Must be a valid Go module root (contain
-	// a go.mod file). Defaults to "." when empty.
+	// Root is the project root.
+	//
+	// Must be a valid Go module root (contain a go.mod file). Defaults
+	// to "." when empty.
 	Root string
 
 	// SourceDirs lists directories under Root to scan for .pk files.
@@ -112,7 +114,8 @@ type DiscoverResult struct {
 // Takes ctx (context.Context) which carries cancellation and logging.
 // Takes opts (DiscoverOptions) which configures the run.
 //
-// Returns DiscoverResult with the deduplicated, sorted lists.
+// Returns DiscoverResult which holds the deduplicated, sorted lists
+// of discovered imports.
 // Returns error when the project cannot be walked or loaded.
 func Discover(ctx context.Context, opts DiscoverOptions) (DiscoverResult, error) {
 	if err := ctx.Err(); err != nil {
@@ -312,8 +315,8 @@ func packageHasGoSource(pkg *packages.Package) bool {
 // Takes sourceDirs ([]string) which are directory names under root to
 // scan (relative, not absolute).
 //
-// Returns a set (map keyed by import path) of imports referenced by
-// .pk script blocks.
+// Returns map[string]struct{} which is a set keyed by import path,
+// holding every import referenced by .pk script blocks.
 // Returns error when file I/O or parsing fails.
 func collectPkImports(ctx context.Context, root string, sourceDirs []string) (map[string]struct{}, error) {
 	imports := make(map[string]struct{})
@@ -463,18 +466,18 @@ func readBoundedFile(path string, limit int64) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-// isAnnotatorSoftError reports whether an error from ParsePK should be
-// tolerated during discovery. Template and script syntax errors are
-// tolerated because we only care about the import statements; hard
-// I/O or SFC-structure errors stop the walk.
+// isAnnotatorSoftError reports whether an error from ParsePK should
+// be tolerated during discovery.
+//
+// Delegates to annotator_domain.IsParseSoftError so the classification
+// is driven by error-type matching rather than substring search on
+// English error messages.
 //
 // Takes err (error) which is the annotator error to classify.
 //
-// Returns bool which is true when the error is non-fatal for discovery.
+// Returns true when the error is a tolerable parse failure.
 func isAnnotatorSoftError(err error) bool {
-	msg := err.Error()
-	return strings.Contains(msg, "cannot parse <script>") ||
-		strings.Contains(msg, "template")
+	return annotator_domain.IsParseSoftError(err)
 }
 
 // buildIgnoreSet assembles the complete set of import paths that must

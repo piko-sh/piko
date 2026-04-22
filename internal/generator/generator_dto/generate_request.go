@@ -18,6 +18,10 @@
 
 package generator_dto
 
+import (
+	"piko.sh/piko/internal/annotator/annotator_dto"
+)
+
 // VirtualPageInstanceData represents a single virtual page instance with its
 // route and data. It is used when generating code for collection pages that
 // share a single compiled package.
@@ -27,6 +31,34 @@ type VirtualPageInstanceData struct {
 
 	// Route is the URL path for this page (e.g. "/blog/test-post").
 	Route string
+}
+
+// ConvertVirtualInstances translates annotator-side virtual page instances
+// into the emitter-side data type. The emitter gates the collection-loading
+// prelude (GetStaticCollectionItem + WithCollectionData) on
+// len(request.VirtualInstances) > 0; callers that skip this conversion will
+// silently produce BuildAST functions that never populate r's CollectionData,
+// leaving piko.GetData[T] to return zero values.
+//
+// Takes instances ([]annotator_dto.VirtualPageInstance) which are the
+// per-item bindings produced by the annotator's collection-directive
+// expansion.
+//
+// Returns []VirtualPageInstanceData of matching length, or nil when no
+// instances exist so the emitter's gate stays intact for non-collection
+// pages.
+func ConvertVirtualInstances(instances []annotator_dto.VirtualPageInstance) []VirtualPageInstanceData {
+	if len(instances) == 0 {
+		return nil
+	}
+	result := make([]VirtualPageInstanceData, len(instances))
+	for index, instance := range instances {
+		result[index] = VirtualPageInstanceData{
+			Route:        instance.Route,
+			InitialProps: instance.InitialProps,
+		}
+	}
+	return result
 }
 
 // GenerateRequest encapsulates all the necessary information to process and

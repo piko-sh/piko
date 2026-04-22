@@ -24,12 +24,34 @@ package annotator_domain
 // developers.
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 )
+
+// IsParseSoftError reports whether err originated from a tolerable
+// parse failure during .pk file processing. Script-block syntax
+// errors and template-diagnostic errors are considered soft so
+// discovery (which only cares about imports) can continue past them;
+// every other error is treated as fatal.
+//
+// Takes err (error) which is the error to classify.
+//
+// Returns true when err is (or wraps) a tolerable parse failure.
+func IsParseSoftError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var scriptErr *scriptBlockParseError
+	if errors.As(err, &scriptErr) {
+		return true
+	}
+	var diagErr *ParseDiagnosticError
+	return errors.As(err, &diagErr)
+}
 
 // ParseDiagnosticError represents an error that occurred during parsing of a
 // template.

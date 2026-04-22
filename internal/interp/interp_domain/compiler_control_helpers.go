@@ -23,11 +23,17 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
 
 	"piko.sh/piko/wdk/safeconv"
 )
+
+// incDecWrapMsg is the fmt.Errorf wrapper used when forwarding a
+// sub-compiler's increment/decrement error so every dispatch branch
+// returns a uniformly prefixed diagnostic.
+const incDecWrapMsg = "compiling increment/decrement: %w"
 
 // compileIncDec compiles an increment or decrement statement (x++ or
 // x--).
@@ -38,11 +44,11 @@ import (
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileIncDec(ctx context.Context, statement *ast.IncDecStmt) (varLocation, error) {
 	if selExpr, ok := statement.X.(*ast.SelectorExpr); ok {
-		result, err := c.compileIncDecSelector(ctx, statement, selExpr)
-		if err != nil {
-			return varLocation{}, fmt.Errorf("compiling increment/decrement: %w", err)
-		}
-		return result, nil
+		return wrapIncDecResult(c.compileIncDecSelector(ctx, statement, selExpr))
+	}
+
+	if indexExpr, ok := statement.X.(*ast.IndexExpr); ok {
+		return wrapIncDecResult(c.compileIncDecIndex(ctx, statement, indexExpr))
 	}
 
 	identifier, ok := statement.X.(*ast.Ident)
@@ -51,21 +57,44 @@ func (c *compiler) compileIncDec(ctx context.Context, statement *ast.IncDecStmt)
 	}
 
 	if ref, ok := c.upvalueMap[identifier.Name]; ok {
-		result, err := c.compileIncDecUpvalue(ctx, statement, ref)
-		if err != nil {
-			return varLocation{}, fmt.Errorf("compiling increment/decrement: %w", err)
-		}
-		return result, nil
+		return wrapIncDecResult(c.compileIncDecUpvalue(ctx, statement, ref))
 	}
 
 	if gv, ok := c.globalVars[identifier.Name]; ok {
-		result, err := c.compileIncDecGlobal(ctx, statement, gv)
-		if err != nil {
-			return varLocation{}, fmt.Errorf("compiling increment/decrement: %w", err)
-		}
-		return result, nil
+		return wrapIncDecResult(c.compileIncDecGlobal(ctx, statement, gv))
 	}
 
+	return c.compileIncDecLocal(ctx, statement, identifier)
+}
+
+// wrapIncDecResult forwards a sub-compiler's result pair, wrapping
+// any error with the shared incDecWrapMsg.
+//
+// Takes result (varLocation) which is the sub-compiler's location.
+// Takes err (error) which is the sub-compiler's error, possibly nil.
+//
+// Returns the result unchanged on success, or a zero location with
+// the wrapped error.
+func wrapIncDecResult(result varLocation, err error) (varLocation, error) {
+	if err != nil {
+		return varLocation{}, fmt.Errorf(incDecWrapMsg, err)
+	}
+	return result, nil
+}
+
+// compileIncDecLocal resolves the identifier against the current
+// scope and emits the appropriate inc/dec sequence for a stack-local
+// or spilled variable.
+//
+// Takes statement (*ast.IncDecStmt) which is the inc/dec statement.
+// Takes identifier (*ast.Ident) which names the target variable.
+//
+// Returns the resulting location and any compilation error.
+func (c *compiler) compileIncDecLocal(
+	ctx context.Context,
+	statement *ast.IncDecStmt,
+	identifier *ast.Ident,
+) (varLocation, error) {
 	location, found := c.scopes.lookupVar(identifier.Name)
 	if !found {
 		return varLocation{}, fmt.Errorf("undefined variable: %s at %s", identifier.Name, c.positionString(identifier.Pos()))
@@ -88,6 +117,61 @@ func (c *compiler) compileIncDec(ctx context.Context, statement *ast.IncDecStmt)
 	}
 	c.emitSyncCaptured(ctx, location)
 	return result, nil
+}
+
+// compileIncDecIndex compiles m[k]++ and s[i]++ (and their -- forms)
+// by desugaring to m[k] += 1 / m[k] -= 1 and dispatching through the
+// existing compound-assign-index path. This covers both map and
+// slice/array targets because the compound path already handles both.
+//
+// Takes statement (*ast.IncDecStmt) which holds the ++/-- token.
+// Takes indexExpr (*ast.IndexExpr) which is the target expression.
+//
+// Returns the compiled location (always zero value) and any error.
+func (c *compiler) compileIncDecIndex(ctx context.Context, statement *ast.IncDecStmt, indexExpr *ast.IndexExpr) (varLocation, error) {
+	one := &ast.BasicLit{
+		ValuePos: statement.Pos(),
+		Kind:     token.INT,
+		Value:    "1",
+	}
+	operatorToken := token.ADD
+	if statement.Tok == token.DEC {
+		operatorToken = token.SUB
+	}
+	c.populateIncDecLiteralType(indexExpr, one)
+	return c.compileCompoundAssignIndex(ctx, indexExpr, one, operatorToken)
+}
+
+// populateIncDecLiteralType records a TypeAndValue for the synthetic
+// "1" literal used to desugar inc/dec into compound assignment. Without
+// this the compound path reads an empty types.Type and mis-classifies
+// the register kind on nested expressions.
+//
+// Takes indexExpr (*ast.IndexExpr) which identifies the element type.
+// Takes literal (*ast.BasicLit) which is the synthetic "1" node.
+func (c *compiler) populateIncDecLiteralType(indexExpr *ast.IndexExpr, literal *ast.BasicLit) {
+	collectionType, ok := c.info.Types[indexExpr.X]
+	if !ok || collectionType.Type == nil {
+		return
+	}
+	var elementType types.Type
+	switch collection := collectionType.Type.Underlying().(type) {
+	case *types.Map:
+		elementType = collection.Elem()
+	case *types.Slice:
+		elementType = collection.Elem()
+	case *types.Array:
+		elementType = collection.Elem()
+	default:
+		return
+	}
+	if c.info.Types == nil {
+		c.info.Types = make(map[ast.Expr]types.TypeAndValue)
+	}
+	c.info.Types[literal] = types.TypeAndValue{
+		Type:  elementType,
+		Value: constant.MakeInt64(1),
+	}
 }
 
 // compileIncDecGlobal compiles an inc/dec on a global variable.
@@ -433,7 +517,8 @@ func (c *compiler) resolveMultiReturnAssignIdent(_ context.Context,
 //
 // Returns any error encountered during compilation.
 func (c *compiler) emitMultiReturnCall(ctx context.Context, callExpr *ast.CallExpr, returnLocs []varLocation) error {
-	switch fun := callExpr.Fun.(type) {
+	callFun := c.unwrapGenericInstantiation(ctx, callExpr.Fun)
+	switch fun := callFun.(type) {
 	case *ast.Ident:
 		if funcIndex, found := c.funcTable[fun.Name]; found {
 			callee := c.rootFunction.functions[funcIndex]
@@ -518,6 +603,10 @@ func (c *compiler) compileMultiReturnSelectorCall(ctx context.Context,
 
 	if c.isInterfaceMethodCall(ctx, selectorExpression) {
 		return c.emitDynamicMethodCallWithReturns(ctx, selectorExpression, callExpr, returnLocs)
+	}
+
+	if handled, err := c.emitLinkedCallWithReturns(ctx, selectorExpression, callExpr, returnLocs); handled || err != nil {
+		return err
 	}
 
 	return c.emitNativeSelectorCallWithReturns(ctx, selectorExpression, callExpr, returnLocs)

@@ -237,8 +237,8 @@ func emitPackageFiles(
 		return err
 	}
 
-	for _, pkg := range packages {
-		if err := emitSinglePackage(pkg, ec); err != nil {
+	for i := range packages {
+		if err := emitSinglePackage(&packages[i], ec); err != nil {
 			return err
 		}
 	}
@@ -301,11 +301,11 @@ func writeRegisterFile(manifest *driver_symbols_extract.Manifest, flags extractG
 //
 // Returns error when generation or writing fails.
 func emitSinglePackage(
-	pkg driver_symbols_extract.ExtractedPackage,
+	pkg *driver_symbols_extract.ExtractedPackage,
 	ec extractEmitContext,
 ) error {
 	generatorConfig := ec.genericConfigs[pkg.ImportPath]
-	source, err := driver_symbols_extract.GenerateFile(pkg, ec.manifest.Package, generatorConfig)
+	source, err := driver_symbols_extract.GenerateFile(*pkg, ec.manifest.Package, generatorConfig)
 	if err != nil {
 		_, _ = fmt.Fprintf(ec.stderr, "Error generating %s: %s\n", pkg.ImportPath, err)
 		return err
@@ -344,8 +344,8 @@ func emitSinglePackage(
 // Returns []string which lists all package import paths.
 func collectAllImportPaths(packages []driver_symbols_extract.ExtractedPackage) []string {
 	paths := make([]string, 0, len(packages))
-	for _, pkg := range packages {
-		paths = append(paths, pkg.ImportPath)
+	for i := range packages {
+		paths = append(paths, packages[i].ImportPath)
 	}
 	return paths
 }

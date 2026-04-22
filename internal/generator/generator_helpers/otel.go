@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package driven_piko_symbols
+package generator_helpers
 
-import "reflect"
+import "piko.sh/piko/internal/logger/logger_domain"
 
-// Symbols holds the vendored piko runtime symbol exports. Generated files
-// populate this map via init functions.
-var Symbols = make(map[string]map[string]reflect.Value)
+// log is the package-level logger for the generator_helpers package.
+var log = logger_domain.GetLogger("piko/internal/generator/generator_helpers")

@@ -1093,11 +1093,12 @@ func (o *InterpretedBuildOrchestrator) linkAllArtefacts(
 			shortPackageName = component.HashedName
 		}
 
-		entry := o.createPageEntry(ctx, manifest, component)
-		if err := o.linkFunctionsFromRegistry(ctx, entry, component, shortPackageName); err != nil {
+		linkFn := func(entry *templater_adapters.PageEntry, comp *annotator_dto.VirtualComponent) error {
+			return o.linkFunctionsFromRegistry(ctx, entry, comp, shortPackageName)
+		}
+		if err := o.populateProgCacheForComponent(ctx, manifest, component, relativePath, linkFn, progCache); err != nil {
 			return nil, fmt.Errorf("linking functions from registry for %q: %w", relativePath, err)
 		}
-		progCache[relativePath] = entry
 	}
 
 	return progCache, nil
@@ -1136,13 +1137,11 @@ func (o *InterpretedBuildOrchestrator) interpretArtefactsIncremental(
 
 	progCache := make(map[string]*templater_adapters.PageEntry)
 	for _, artefact := range sortedArtefacts {
-		entry, relPath, err := o.interpretSingleArtefact(ctx, freshInterpreter, artefact, manifest)
+		entries, relPath, err := o.interpretSingleArtefact(ctx, freshInterpreter, artefact, manifest)
 		if err != nil {
 			return nil, fmt.Errorf("interpreting artefact %q: %w", relPath, err)
 		}
-		if entry != nil {
-			progCache[relPath] = entry
-		}
+		maps.Copy(progCache, entries)
 	}
 
 	return progCache, nil
@@ -1182,8 +1181,10 @@ func (o *InterpretedBuildOrchestrator) returnInterpreterToPool(ctx context.Conte
 // generated content to interpret.
 // Takes manifest (*generator_dto.Manifest) which provides build metadata.
 //
-// Returns *templater_adapters.PageEntry which is the interpreted page entry,
-// or nil if no main component exists.
+// Returns map[string]*templater_adapters.PageEntry which contains one
+// entry per virtual instance for collection-backed pages (keyed by
+// instance.ManifestKey) and a single entry keyed by the relative path
+// otherwise. Nil when no main component exists.
 // Returns string which is the relative path to the artefact.
 // Returns error when interpretation or linking fails.
 func (o *InterpretedBuildOrchestrator) interpretSingleArtefact(
@@ -1191,7 +1192,7 @@ func (o *InterpretedBuildOrchestrator) interpretSingleArtefact(
 	interpreter templater_domain.InterpreterPort,
 	artefact *generator_dto.GeneratedArtefact,
 	manifest *generator_dto.Manifest,
-) (*templater_adapters.PageEntry, string, error) {
+) (map[string]*templater_adapters.PageEntry, string, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	component, _ := generator_domain.GetMainComponent(artefact.Result)
 	if component == nil {
@@ -1214,7 +1215,7 @@ func (o *InterpretedBuildOrchestrator) interpretSingleArtefact(
 		logger_domain.String("piko_path", pikoPath),
 		logger_domain.String(fieldPackagePath, component.CanonicalGoPackagePath))
 
-	entry, err := o.interpretAndLink(ctx, interpreter, string(artefact.Content), manifest, component)
+	entries, err := o.interpretAndLink(ctx, interpreter, string(artefact.Content), manifest, component, relativePath)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to interpret and link %s: %w", pikoPath, err)
 	}
@@ -1222,9 +1223,10 @@ func (o *InterpretedBuildOrchestrator) interpretSingleArtefact(
 	l.Trace("[JIT-BUILD] Successfully cached entry",
 		logger_domain.String("cache_key", relativePath),
 		logger_domain.String("piko_path", pikoPath),
-		logger_domain.String("fs_path", component.Source.SourcePath))
+		logger_domain.String("fs_path", component.Source.SourcePath),
+		logger_domain.Int("entry_count", len(entries)))
 
-	return entry, relativePath, nil
+	return entries, relativePath, nil
 }
 
 // buildReverseDependencyMap creates a map from import paths to the components

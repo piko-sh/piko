@@ -40,11 +40,11 @@ import (
 const undefinedPrefix = "undefined: "
 
 // couldNotImportPrefix is the prefix that go/types uses when the
-// Importer returns an error for a requested import (e.g.
-// "could not import github.com/example/pkg"). It is a stable part of
-// the go/types public error format; a change in upstream Go would
-// cause us to silently stop enriching these messages until adjusted
-// here.
+// Importer returns an error for a requested import.
+//
+// It is a stable part of the go/types public error format; a change
+// in upstream Go would cause us to silently stop enriching these
+// messages until adjusted here.
 const couldNotImportPrefix = "could not import "
 
 // notRegisteredMarker is the surface text of errPackageNotInRegistry

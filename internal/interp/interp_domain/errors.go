@@ -112,4 +112,20 @@ var (
 	// Typically means a transitive dependency is missing from
 	// piko-symbols.yaml.
 	errPackageNotInRegistry = errors.New("package not registered with interpreter")
+
+	// errLinkedSiblingPanic wraps any panic recovered while invoking
+	// a //piko:link-routed sibling. The usual cause is a stale
+	// generated symbol file whose descriptors no longer match the
+	// sibling's real signature.
+	errLinkedSiblingPanic = errors.New("linked sibling invocation panicked")
+
+	// errLinkedSiblingShapeMismatch is returned when argument arity
+	// or kind checks on a //piko:link sibling fail before the call
+	// is attempted, so the VM reports a structured error instead of
+	// delegating to reflect.Call's panic.
+	errLinkedSiblingShapeMismatch = errors.New("linked sibling signature does not match call site")
+
+	// errNativeCallPanic wraps any panic recovered while invoking a
+	// registered native function via reflect.Call.
+	errNativeCallPanic = errors.New("native call panicked")
 )

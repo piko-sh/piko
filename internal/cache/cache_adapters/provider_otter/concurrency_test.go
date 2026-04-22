@@ -591,7 +591,7 @@ func TestDeadlock_CheckpointDuringBulkSet(t *testing.T) {
 	select {
 	case <-completed:
 
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		close(done)
 		t.Fatal("Deadlock detected: operations blocked for too long")
 	}

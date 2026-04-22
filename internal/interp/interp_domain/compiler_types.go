@@ -120,11 +120,37 @@ func convertNamedStruct(ctx context.Context, state *typeConverterState, named *t
 	defer delete(state.processing, named)
 
 	fields := buildStructFields(ctx, state, st)
-	fields = append(fields, sentinelField(named, st))
+	if !isLinkedGenericNamed(state, named) {
+		fields = append(fields, sentinelField(named, st))
+	}
 
 	result := reflect.StructOf(fields)
 	storeReflectType(state, named, result)
 	return result
+}
+
+// isLinkedGenericNamed reports whether the named type is backed by a
+// linked generic registration.
+//
+// The converter skips the sentinel field that otherwise distinguishes
+// structurally identical user types. Linked generics rely on reflect's
+// structural type identity so sibling functions building instances
+// through reflect.StructOf converge on the same reflect.Type as the
+// interpreter's own conversion.
+//
+// Takes state (*typeConverterState) which carries the symbol registry.
+// Takes named (*types.Named) which is the type under conversion.
+//
+// Returns true when the named type has a linked generic registration.
+func isLinkedGenericNamed(state *typeConverterState, named *types.Named) bool {
+	if state.symbols == nil {
+		return false
+	}
+	obj := named.Obj()
+	if obj == nil || obj.Pkg() == nil {
+		return false
+	}
+	return state.symbols.IsLinkedGenericType(obj.Pkg().Path(), obj.Name())
 }
 
 // logTypeCycle logs a warning when a cycle is detected during type

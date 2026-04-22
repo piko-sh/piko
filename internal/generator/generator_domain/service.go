@@ -1601,8 +1601,9 @@ func ensureDistPackageExists(ctx context.Context, baseDir string, sandbox safedi
 	return nil
 }
 
-// convertVirtualInstances converts annotator page instances to generator page
-// instances.
+// convertVirtualInstances delegates to generator_dto.ConvertVirtualInstances
+// so the annotator->generator translation lives in one place and cannot drift
+// between the generator service and the coordinator's artefact path.
 //
 // Takes instances ([]annotator_dto.VirtualPageInstance) which contains the
 // page instances to convert.
@@ -1610,16 +1611,5 @@ func ensureDistPackageExists(ctx context.Context, baseDir string, sandbox safedi
 // Returns []generator_dto.VirtualPageInstanceData which contains the converted
 // page instances, or nil if the input is empty.
 func convertVirtualInstances(instances []annotator_dto.VirtualPageInstance) []generator_dto.VirtualPageInstanceData {
-	if len(instances) == 0 {
-		return nil
-	}
-
-	result := make([]generator_dto.VirtualPageInstanceData, len(instances))
-	for i, inst := range instances {
-		result[i] = generator_dto.VirtualPageInstanceData{
-			Route:        inst.Route,
-			InitialProps: inst.InitialProps,
-		}
-	}
-	return result
+	return generator_dto.ConvertVirtualInstances(instances)
 }

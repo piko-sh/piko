@@ -20,7 +20,9 @@ package piko
 
 import (
 	"context"
+	"reflect"
 
+	"piko.sh/piko/internal/generator/generator_helpers"
 	"piko.sh/piko/wdk/runtime"
 )
 
@@ -150,8 +152,30 @@ type (
 //
 // Returns T which is the page data converted to the requested type, or the zero
 // value if conversion fails.
+//
+//piko:link GetDataLink
 func GetData[T any](r *RequestData) T {
 	return runtime.GetData[T](r)
+}
+
+// GetDataLink is the //piko:link sibling for GetData.
+//
+// The interpreter dispatches to this function when compiling
+// piko.GetData[T](r) in a .pk file whose T is a user-defined struct.
+// The first argument is the instantiated T supplied by the
+// interpreter; the remaining signature mirrors GetData's non-generic
+// parameters.
+//
+// Takes tType (reflect.Type) which is the instantiated type the user
+// wrote inside the brackets (e.g. Post from piko.GetData[Post](r)).
+// Takes r (*RequestData) which contains the CollectionData to extract
+// from.
+//
+// Returns a reflect.Value of concrete type tType carrying the page
+// data, or a zero value of tType if conversion fails.
+func GetDataLink(tType reflect.Type, r *RequestData) reflect.Value {
+	value, _ := generator_helpers.GetDataReflect(r, tType)
+	return value
 }
 
 // GetSections extracts the table of contents sections from collection data.
@@ -319,8 +343,30 @@ func BuildNavigationFromMetadata(ctx context.Context, items []map[string]any, co
 //	    )
 //	    return Response{Results: results, Query: query}, piko.Metadata{}, nil
 //	}
+//
+//piko:link SearchCollectionLink
 func SearchCollection[T any](r *RequestData, collectionName string, query string, opts ...SearchOption) ([]SearchResult[T], error) {
 	return runtime.SearchCollection[T](r, collectionName, query, opts...)
+}
+
+// SearchCollectionLink is the //piko:link sibling for SearchCollection.
+// The interpreter dispatches here when a .pk file calls
+// piko.SearchCollection[T](r, ...) with a user-defined T.
+//
+// Takes tType (reflect.Type) which is the instantiated T.
+// Remaining parameters mirror SearchCollection's non-type-parameter
+// signature.
+//
+// Returns a reflect.Value wrapping []SearchResult[T] plus any search
+// error.
+func SearchCollectionLink(
+	tType reflect.Type,
+	r *RequestData,
+	collectionName string,
+	query string,
+	opts ...SearchOption,
+) (reflect.Value, error) {
+	return runtime.SearchCollectionLink(tType, r, collectionName, query, opts...)
 }
 
 // QuickSearch performs a simple fuzzy search and returns just the matched items
@@ -346,8 +392,26 @@ func SearchCollection[T any](r *RequestData, collectionName string, query string
 //
 // Returns []T which contains the matched items.
 // Returns error when the search fails.
+//
+//piko:link QuickSearchLink
 func QuickSearch[T any](r *RequestData, collectionName string, query string) ([]T, error) {
 	return runtime.QuickSearch[T](r, collectionName, query)
+}
+
+// QuickSearchLink is the //piko:link sibling for QuickSearch.
+//
+// Takes tType (reflect.Type) which is the instantiated T.
+// Remaining parameters mirror QuickSearch's non-type-parameter
+// signature.
+//
+// Returns a reflect.Value wrapping []T plus any search error.
+func QuickSearchLink(
+	tType reflect.Type,
+	r *RequestData,
+	collectionName string,
+	query string,
+) (reflect.Value, error) {
+	return runtime.QuickSearchLink(tType, r, collectionName, query)
 }
 
 // NewFilter creates a single filter condition.

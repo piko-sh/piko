@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -311,15 +312,15 @@ func (o *InterpretedBuildOrchestrator) linkBatchArtefacts(
 			shortPackageName = component.HashedName
 		}
 
-		entry := o.createPageEntry(ctx, o.cachedManifest, component)
-		if linkErr := o.linkFunctionsFromRegistry(ctx, entry, component, shortPackageName); linkErr != nil {
+		linkFn := func(entry *templater_adapters.PageEntry, comp *annotator_dto.VirtualComponent) error {
+			return o.linkFunctionsFromRegistry(ctx, entry, comp, shortPackageName)
+		}
+		if err := o.populateProgCacheForComponent(ctx, o.cachedManifest, component, componentRelativePath, linkFn, o.progCache); err != nil {
 			l.Error("[JIT-COMPILE] Failed to link functions after batch compilation",
 				logger_domain.String(fieldPath, componentRelativePath),
-				logger_domain.Error(linkErr))
-			return fmt.Errorf("failed to link %s: %w", componentRelativePath, linkErr)
+				logger_domain.Error(err))
+			return fmt.Errorf("failed to link %s: %w", componentRelativePath, err)
 		}
-
-		o.progCache[componentRelativePath] = entry
 	}
 	return nil
 }
@@ -358,8 +359,9 @@ func (o *InterpretedBuildOrchestrator) reevaluateSingleComponent(
 
 	code, isDirty := o.getComponentCode(ctx, artefact, componentRelativePath, component)
 
+	manifestSnapshot := o.cachedManifest
 	o.stateLock.Unlock()
-	entry, err := o.interpretAndLink(ctx, interpreter, code, o.cachedManifest, component)
+	entries, err := o.interpretAndLink(ctx, interpreter, code, manifestSnapshot, component, componentRelativePath)
 	o.stateLock.Lock()
 
 	if err != nil {
@@ -369,7 +371,7 @@ func (o *InterpretedBuildOrchestrator) reevaluateSingleComponent(
 		return fmt.Errorf("failed to interpret %s: %w", componentRelativePath, err)
 	}
 
-	o.progCache[componentRelativePath] = entry
+	maps.Copy(o.progCache, entries)
 
 	if isDirty {
 		delete(o.dirtyCodeCache, componentRelativePath)
@@ -436,7 +438,9 @@ func (o *InterpretedBuildOrchestrator) getComponentCode(
 // Takes component (*annotator_dto.VirtualComponent) which describes the
 // component.
 //
-// Returns *templater_adapters.PageEntry which contains the linked functions.
+// Returns map[string]*templater_adapters.PageEntry which is keyed by
+// manifest route, each entry carrying the linked render / build
+// functions for one virtual page instance.
 // Returns error when code evaluation or function linking fails.
 //
 // Not safe for concurrent use. Uses a semaphore and mutex to control
@@ -447,7 +451,8 @@ func (o *InterpretedBuildOrchestrator) interpretAndLink(
 	code string,
 	manifest *generator_dto.Manifest,
 	component *annotator_dto.VirtualComponent,
-) (*templater_adapters.PageEntry, error) {
+	componentRelativePath string,
+) (map[string]*templater_adapters.PageEntry, error) {
 	templater_adapters.InterpretedManifestRunnerCompilationCount.Add(ctx, 1)
 	startTime := time.Now()
 	defer func() {
@@ -476,13 +481,14 @@ func (o *InterpretedBuildOrchestrator) interpretAndLink(
 		return nil, fmt.Errorf("evaluating code in interpreter for %q: %w", component.CanonicalGoPackagePath, err)
 	}
 
-	entry := o.createPageEntry(ctx, manifest, component)
-
-	if err := o.linkFunctionsFromRegistry(ctx, entry, component, shortPackageName); err != nil {
+	entries := make(map[string]*templater_adapters.PageEntry)
+	linkFn := func(entry *templater_adapters.PageEntry, comp *annotator_dto.VirtualComponent) error {
+		return o.linkFunctionsFromRegistry(ctx, entry, comp, shortPackageName)
+	}
+	if err := o.populateProgCacheForComponent(ctx, manifest, component, componentRelativePath, linkFn, entries); err != nil {
 		return nil, fmt.Errorf("linking functions from registry for %q: %w", component.CanonicalGoPackagePath, err)
 	}
-
-	return entry, nil
+	return entries, nil
 }
 
 // evaluateCodeInInterpreter evaluates the Go code in the interpreter.
@@ -707,6 +713,100 @@ func extractPackageName(code string) (string, error) {
 		return packageName, nil
 	}
 	return "", errors.New("invalid generated code: missing package declaration")
+}
+
+// populateProgCacheForComponent writes one or more PageEntry records
+// into target for a component that has just been interpreted.
+//
+// For collection-backed components the .pk file itself has no route;
+// the manifest holds a separate entry per virtual instance (for
+// example one per markdown post), each with its own concrete route.
+// Without this expansion the dev-i runner only registers a single
+// entry keyed by the .pk file's relative path, loses the per-instance
+// routes, and leaves /blog/post-slug unreachable in interpreted
+// mode.
+//
+// Takes ctx (context.Context) which carries the logger.
+// Takes manifest (*generator_dto.Manifest) which holds the per-instance
+// manifest entries.
+// Takes component (*annotator_dto.VirtualComponent) whose instances
+// drive the expansion.
+// Takes componentRelativePath (string) which is the .pk file's path
+// relative to the project root, used when the component has no
+// instances.
+// Takes linkFn which performs the function-pointer wiring. Called
+// once per emitted entry so that instance-specific caches (like the
+// registered AST function) end up attached to each entry.
+// Takes target (map[string]*templater_adapters.PageEntry) which
+// receives the produced entries.
+//
+// Returns error when any instance's link step fails.
+func (o *InterpretedBuildOrchestrator) populateProgCacheForComponent(
+	ctx context.Context,
+	manifest *generator_dto.Manifest,
+	component *annotator_dto.VirtualComponent,
+	componentRelativePath string,
+	linkFn func(entry *templater_adapters.PageEntry, component *annotator_dto.VirtualComponent) error,
+	target map[string]*templater_adapters.PageEntry,
+) error {
+	if len(component.VirtualInstances) == 0 {
+		entry := o.createPageEntry(ctx, manifest, component)
+		if err := linkFn(entry, component); err != nil {
+			return err
+		}
+		target[componentRelativePath] = entry
+		return nil
+	}
+
+	staged := make(map[string]*templater_adapters.PageEntry, len(component.VirtualInstances))
+	for _, instance := range component.VirtualInstances {
+		manifestKey := instance.ManifestKey
+		if manifestKey == "" {
+			continue
+		}
+		entry := o.createInstancePageEntry(manifest, component, instance)
+		if err := linkFn(entry, component); err != nil {
+			return err
+		}
+		staged[manifestKey] = entry
+	}
+	maps.Copy(target, staged)
+	return nil
+}
+
+// createInstancePageEntry builds a per-instance PageEntry using the
+// manifest's pre-computed entry for the instance's ManifestKey, which
+// carries the concrete RoutePatterns. Falls back to a minimal entry
+// when the manifest lookup misses so a broken early-JIT state still
+// produces a usable progCache.
+//
+// Takes manifest (*generator_dto.Manifest) which supplies the per-
+// instance page data.
+// Takes component (*annotator_dto.VirtualComponent) the instance
+// belongs to; provides the fallback PackagePath.
+// Takes instance (annotator_dto.VirtualPageInstance) providing the
+// manifest key used for lookup.
+//
+// Returns the prepared entry before function-pointer linking.
+func (o *InterpretedBuildOrchestrator) createInstancePageEntry(
+	manifest *generator_dto.Manifest,
+	component *annotator_dto.VirtualComponent,
+	instance annotator_dto.VirtualPageInstance,
+) *templater_adapters.PageEntry {
+	entry := createPageEntryFromManifest(manifest, instance.ManifestKey)
+	if entry == nil {
+		//nolint:exhaustruct // partial init for missing manifest data
+		entry = &templater_adapters.PageEntry{
+			ManifestPageEntry: generator_dto.ManifestPageEntry{
+				PackagePath:        component.CanonicalGoPackagePath,
+				OriginalSourcePath: instance.ManifestKey,
+			},
+		}
+	}
+	entry.SetBaseDir(o.projectRoot)
+	entry.SetJSArtefactToPartialNameMap(buildJSArtefactToPartialNameMap(manifest))
+	entry.InitialiseLocalStore()
+	return entry
 }
 
 // createPageEntryFromManifest builds a PageEntry from manifest data by looking
