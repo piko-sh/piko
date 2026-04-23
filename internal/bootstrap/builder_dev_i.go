@@ -1027,12 +1027,27 @@ func (*interpretedDaemonBuilder) processSourceFile(
 	}
 	relPath = filepath.ToSlash(relPath)
 
+	errResult := isErrorPage(d.Name())
+	if !errResult.isErrorPage && strings.HasPrefix(d.Name(), "!") {
+		return fmt.Errorf(
+			"invalid error page filename %q: files starting with '!' must follow the error page convention. "+
+				"Valid formats: !NNN.pk (e.g., !404.pk), !NNN-NNN.pk (e.g., !400-499.pk), or !error.pk (catch-all). "+
+				"Only error pages may start with '!'",
+			d.Name(),
+		)
+	}
+
 	pikoPath := filepath.ToSlash(filepath.Join(sfCtx.moduleName, relPath))
 	sfCtx.entryPointMap[pikoPath] = annotator_dto.EntryPoint{
-		Path:     pikoPath,
-		IsPage:   sfCtx.isPage,
-		IsEmail:  sfCtx.isEmail,
-		IsPublic: sfCtx.isPage,
+		Path:               pikoPath,
+		IsPage:             sfCtx.isPage && !errResult.isErrorPage,
+		IsEmail:            sfCtx.isEmail,
+		IsPublic:           sfCtx.isPage,
+		IsErrorPage:        errResult.isErrorPage,
+		ErrorStatusCode:    errResult.statusCode,
+		ErrorStatusCodeMin: errResult.rangeMin,
+		ErrorStatusCodeMax: errResult.rangeMax,
+		IsCatchAllError:    errResult.isCatchAll,
 	}
 	return nil
 }

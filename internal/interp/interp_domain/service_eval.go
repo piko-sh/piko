@@ -211,7 +211,7 @@ func (s *Service) evalExpr(ctx context.Context, code string) (any, error) {
 
 	_, err = conf.Check(mainPackageName, s.fileSet, []*ast.File{file}, info)
 	if err != nil {
-		return nil, fmt.Errorf(errChainFmt, errTypeCheck, err)
+		return nil, fmt.Errorf(errChainFmt, errTypeCheck, s.enrichTypeCheckError(err, []*ast.File{file}, nil))
 	}
 
 	declaration, ok := file.Decls[0].(*ast.GenDecl)
@@ -249,7 +249,7 @@ func (s *Service) doEvalFile(ctx context.Context, file *ast.File) (any, error) {
 	conf := s.newTypesConfig()
 
 	if _, err := conf.Check(mainPackageName, s.fileSet, []*ast.File{file}, info); err != nil {
-		return nil, fmt.Errorf(errChainFmt, errTypeCheck, err)
+		return nil, fmt.Errorf(errChainFmt, errTypeCheck, s.enrichTypeCheckError(err, []*ast.File{file}, nil))
 	}
 
 	evalFunction := &CompiledFunction{name: "<eval>"}
@@ -498,7 +498,7 @@ func (s *Service) compileExpression(ctx context.Context, code string) (*Compiled
 
 	_, err = conf.Check(mainPackageName, s.fileSet, []*ast.File{file}, info)
 	if err != nil {
-		return nil, fmt.Errorf(errChainFmt, errTypeCheck, err)
+		return nil, fmt.Errorf(errChainFmt, errTypeCheck, s.enrichTypeCheckError(err, []*ast.File{file}, nil))
 	}
 
 	declaration, ok := file.Decls[0].(*ast.GenDecl)
@@ -531,7 +531,7 @@ func (s *Service) compileFile(ctx context.Context, file *ast.File) (*CompiledFun
 	conf := s.newTypesConfig()
 
 	if _, err := conf.Check(mainPackageName, s.fileSet, []*ast.File{file}, info); err != nil {
-		return nil, fmt.Errorf(errChainFmt, errTypeCheck, err)
+		return nil, fmt.Errorf(errChainFmt, errTypeCheck, s.enrichTypeCheckError(err, []*ast.File{file}, nil))
 	}
 
 	evalFunction := &CompiledFunction{name: "<eval>"}

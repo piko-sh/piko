@@ -134,12 +134,43 @@ type rangeErrorPageEntry struct {
 	statusCodeMax int
 }
 
+// ErrorPageDispatch holds the routing metadata for an error page entry.
+// It is set on PageEntry when the entry originates from an error page
+// (!NNN.pk, !NNN-NNN.pk, or !error.pk) so the interpreted store can
+// look the entry up by status code and scope without a parallel
+// indexing structure.
+type ErrorPageDispatch struct {
+	// ScopePath is the URL path prefix this error page covers, derived
+	// from the directory the error page lives in relative to pages/.
+	ScopePath string
+
+	// StatusCode is the exact HTTP status code the page handles
+	// (non-zero only for exact !NNN.pk entries).
+	StatusCode int
+
+	// StatusCodeMin is the lower bound of a range error page
+	// (non-zero only for !NNN-NNN.pk entries).
+	StatusCodeMin int
+
+	// StatusCodeMax is the upper bound of a range error page
+	// (non-zero only for !NNN-NNN.pk entries).
+	StatusCodeMax int
+
+	// IsCatchAll is true for !error.pk pages that handle every status.
+	IsCatchAll bool
+}
+
 // PageEntry is the concrete, in-memory implementation of the PageEntryView
 // interface. It holds both the static data loaded from the manifest file and
 // the dynamic function pointers retrieved from the runtime registry.
 type PageEntry struct {
 	// ModTime is when the page was last modified.
 	ModTime time.Time
+
+	// ErrorDispatch carries error page routing metadata when the entry
+	// originates from a !NNN.pk/!NNN-NNN.pk/!error.pk file; nil for
+	// regular pages and partials.
+	ErrorDispatch *ErrorPageDispatch
 
 	// registry is the function registry used to look up compiled functions.
 	// It is injected from the ManifestStore; nil uses the default registry.

@@ -228,7 +228,7 @@ func (c *compiler) compileAddressOfIdent(ctx context.Context, expression *ast.Un
 	}
 
 	tv := c.info.Types[expression.X]
-	reflectType := typeToReflect(ctx, tv.Type, c.symbols)
+	reflectType := c.typeToReflect(ctx, tv.Type)
 	typeIndex := c.function.addTypeRef(reflectType)
 	ptrReg := c.scopes.alloc.alloc(registerGeneral)
 	c.function.emit(opAllocIndirect, ptrReg, srcLocation.register, uint8(srcLocation.kind))
@@ -321,7 +321,7 @@ func (c *compiler) tryAddressOfKnownSelector(ctx context.Context, selectorExpres
 // Returns the promoted variable location with indirect storage.
 func (c *compiler) promoteToIndirect(ctx context.Context, xExpr ast.Expr, name string, recvLocation varLocation) varLocation {
 	tv := c.info.Types[xExpr]
-	reflectType := typeToReflect(ctx, tv.Type, c.symbols)
+	reflectType := c.typeToReflect(ctx, tv.Type)
 	typeIndex := c.function.addTypeRef(reflectType)
 	c.function.emit(opAllocIndirect, recvLocation.register, recvLocation.register, uint8(registerGeneral))
 	c.function.emitExtension(typeIndex, 0)
@@ -865,7 +865,7 @@ func (c *compiler) compileByteStringConversion(_ context.Context, argLocation va
 func (c *compiler) compileReflectConversion(ctx context.Context, argLocation varLocation, dstType types.Type, dstKind registerKind) (varLocation, error) {
 	c.boxToGeneral(ctx, &argLocation)
 
-	reflectType := typeToReflect(ctx, dstType, c.symbols)
+	reflectType := c.typeToReflect(ctx, dstType)
 	typeIndex := c.function.addTypeRef(reflectType)
 	dest := c.scopes.alloc.alloc(registerGeneral)
 	c.function.emit(opConvert, dest, argLocation.register, 0)
@@ -1284,7 +1284,7 @@ func (c *compiler) compileBuiltinNew(ctx context.Context, expression *ast.CallEx
 	if !ok {
 		return varLocation{}, fmt.Errorf("expected *types.Pointer, got %T", tv.Type)
 	}
-	reflectType := typeToReflect(ctx, ptrType.Elem(), c.symbols)
+	reflectType := c.typeToReflect(ctx, ptrType.Elem())
 	typeIndex := c.function.addTypeRef(reflectType)
 
 	argTV := c.info.Types[expression.Args[0]]
@@ -1403,6 +1403,7 @@ func (c *compiler) compileStructField(ctx context.Context, dest uint8, positiona
 	if err != nil {
 		return err
 	}
+	valLocation = c.coerceEvalBoolResult(ctx, c.info, valExpr, valLocation)
 
 	c.emitStructFieldSet(ctx, dest, safeconv.MustIntToUint8(fieldIndex), valLocation)
 	return nil
@@ -1446,7 +1447,7 @@ func (c *compiler) compileTypeAssertExpression(ctx context.Context, expression *
 	c.boxToGeneral(ctx, &srcLocation)
 
 	targetType := c.info.Types[expression.Type].Type
-	reflectType := typeToReflect(ctx, targetType, c.symbols)
+	reflectType := c.typeToReflect(ctx, targetType)
 	typeIndex := c.function.addTypeRef(reflectType)
 
 	dest := c.scopes.alloc.alloc(registerGeneral)

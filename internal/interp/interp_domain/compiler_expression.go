@@ -664,13 +664,19 @@ func (c *compiler) ensureIntRegister(_ context.Context, location *varLocation) {
 	}
 }
 
-// ensureIntForBranch converts a variable location to an int register for use
-// in branch instructions, performing a bool-to-int conversion if needed.
+// ensureIntForBranch converts a location to an int register for branching.
 //
-// Takes location (varLocation) which is the variable location to convert.
+// Bool registers are converted via opBoolToInt; general (interface)
+// registers are first unpacked to a bool register via
+// opUnpackInterface and then converted to int. The general path is
+// required because type-assert results (e.g. v.(bool)) land in the
+// general bank but opJumpIfFalse reads from int.
 //
-// Returns the location converted to an int register, or the original location
-// if no conversion is needed.
+// Takes location (varLocation) which is the variable location to
+// convert.
+//
+// Returns the location converted to an int register, or the original
+// location if no conversion is needed.
 func (c *compiler) ensureIntForBranch(_ context.Context, location varLocation) varLocation {
 	if location.kind == registerInt {
 		return location
@@ -678,6 +684,13 @@ func (c *compiler) ensureIntForBranch(_ context.Context, location varLocation) v
 	if location.kind == registerBool {
 		dest := c.scopes.alloc.alloc(registerInt)
 		c.function.emit(opBoolToInt, dest, location.register, 0)
+		return varLocation{register: dest, kind: registerInt}
+	}
+	if location.kind == registerGeneral {
+		boolReg := c.scopes.alloc.alloc(registerBool)
+		c.function.emit(opUnpackInterface, boolReg, location.register, uint8(registerBool))
+		dest := c.scopes.alloc.alloc(registerInt)
+		c.function.emit(opBoolToInt, dest, boolReg, 0)
 		return varLocation{register: dest, kind: registerInt}
 	}
 	return location

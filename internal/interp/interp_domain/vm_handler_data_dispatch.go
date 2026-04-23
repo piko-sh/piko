@@ -575,6 +575,12 @@ func handleSliceString(vm *VM, frame *callFrame, registers *Registers, instructi
 // Returns opResult indicating the next execution step.
 func handleRangeInit(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
 	collection := registers.general[instruction.b]
+
+	if collection.Kind() == reflect.Pointer && collection.IsValid() && !collection.IsNil() {
+		if elem := collection.Elem(); elem.Kind() == reflect.Array {
+			collection = elem
+		}
+	}
 	iterator := &rangeIterator{collection: collection}
 	switch collection.Kind() {
 	case reflect.Map:
@@ -583,7 +589,6 @@ func handleRangeInit(_ *VM, _ *callFrame, registers *Registers, instruction inst
 	case reflect.Chan:
 		iterator.isChan = true
 	case reflect.Slice, reflect.Array:
-
 		if collection.CanInterface() {
 			assignRangeSliceFastPath(iterator, collection)
 		}

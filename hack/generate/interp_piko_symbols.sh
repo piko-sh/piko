@@ -35,9 +35,9 @@ source "$(dirname "$0")/../lib/init.sh"
 generate_interp_piko_symbols() {
     cd "$PIKO_ROOT" || piko::log::fatal "Failed to cd to $PIKO_ROOT"
 
-    go run ./cmd/piko extract \
-        -manifest "${PIKO_ROOT}/piko-symbols-runtime.yaml" \
-        -output "${PIKO_ROOT}/internal/interp/interp_adapters/driven_piko_symbols"
+    go run ./cmd/piko extract generate \
+        --manifest "${PIKO_ROOT}/piko-symbols-runtime.yaml" \
+        --output "${PIKO_ROOT}/internal/interp/interp_adapters/driven_piko_symbols"
 }
 
 # main generates piko runtime symbol tables.

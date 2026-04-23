@@ -41,6 +41,10 @@ const (
 	// maxCaptureBytes is the maximum total profile size delivered via gRPC.
 	// Larger profiles should use the pprof HTTP server directly.
 	maxCaptureBytes = 64 * 1024 * 1024
+
+	// maxTCPPort is the highest valid TCP port number. Used to validate
+	// caller-supplied profiling port values.
+	maxTCPPort = 65535
 )
 
 // errCaptureLimitExceeded is returned when a profile capture exceeds
@@ -140,8 +144,8 @@ func (s *ProfilingService) EnableProfiling(ctx context.Context, request *pb.Enab
 	}
 
 	port := request.GetPort()
-	if port != 0 && (port < 1 || port > 65535) {
-		return nil, status.Errorf(codes.InvalidArgument, "port must be between 1 and 65535")
+	if port != 0 && (port < 1 || port > maxTCPPort) {
+		return nil, status.Errorf(codes.InvalidArgument, "port must be between 1 and %d", maxTCPPort)
 	}
 
 	opts := monitoring_domain.ProfilingEnableOpts{
@@ -169,7 +173,8 @@ func (s *ProfilingService) EnableProfiling(ctx context.Context, request *pb.Enab
 
 // DisableProfiling stops the pprof server and resets runtime profiling rates.
 //
-// Returns *pb.DisableProfilingResponse indicating whether profiling was active.
+// Returns *pb.DisableProfilingResponse which carries the prior enabled
+// state of the profiling session.
 // Returns error when the controller fails to disable profiling.
 func (s *ProfilingService) DisableProfiling(ctx context.Context, _ *pb.DisableProfilingRequest) (*pb.DisableProfilingResponse, error) {
 	wasEnabled, err := s.controller.Disable(ctx)

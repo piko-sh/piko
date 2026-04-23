@@ -24,7 +24,10 @@ import (
 	"maps"
 	"path"
 	"reflect"
+	"strconv"
 	"sync"
+
+	"piko.sh/piko/wdk/interp/interp_link"
 )
 
 // SymbolExports maps package paths to symbol names and their reflected
@@ -364,7 +367,7 @@ func (r *SymbolRegistry) Import(importPath string) (*types.Package, error) {
 
 	exports, ok := r.LookupPackage(importPath)
 	if !ok {
-		return nil, fmt.Errorf("package %q not found in symbol registry", importPath)
+		return nil, fmt.Errorf("%w: %q", errPackageNotInRegistry, importPath)
 	}
 
 	r.mu.Lock()
@@ -387,11 +390,16 @@ func (r *SymbolRegistry) Import(importPath string) (*types.Package, error) {
 	r.synthesising[importPath] = true
 	r.mu.Unlock()
 
+	defer func() {
+		r.mu.Lock()
+		r.synthesisDepth--
+		delete(r.synthesising, importPath)
+		r.mu.Unlock()
+	}()
+
 	pkg := r.synthesisePackage(importPath, exports)
 
 	r.mu.Lock()
-	r.synthesisDepth--
-	delete(r.synthesising, importPath)
 	r.synthesised[importPath] = pkg
 	r.mu.Unlock()
 
@@ -461,6 +469,7 @@ func (r *SymbolRegistry) synthesisePackage(importPath string, exports map[string
 	}
 
 	r.registerNamedTypes(pkg, exports, converter)
+	r.registerLinkedGenericTypes(pkg, exports)
 	r.registerFunctionsAndVariables(pkg, exports, converter)
 
 	pkg.MarkComplete()
@@ -527,12 +536,27 @@ func (r *SymbolRegistry) registerNamedTypes(
 	}
 
 	for _, p := range pending {
-		delete(converter.seen, p.elemRT)
-		underlying := converter.toGoType(p.elemRT)
-		converter.seen[p.elemRT] = p.named
+		underlying := converter.synthesiseNamedUnderlying(p.elemRT)
 		p.named.SetUnderlying(underlying)
 		converter.synthesiseMethods(p.ptrRT, p.named, pkg)
 	}
+}
+
+// synthesiseNamedUnderlying computes the underlying types.Type for a
+// registered named type. It dispatches by reflect.Kind and skips the
+// seen-cache short-circuit so the placeholder *types.Named stays
+// available for recursive field and method references.
+//
+// Takes reflectType (reflect.Type) which is the element reflect.Type
+// (the T in *T) of the registered named type.
+//
+// Returns the synthesised underlying types.Type (struct, interface,
+// signature, slice, etc.).
+func (c *reflectTypeConverter) synthesiseNamedUnderlying(reflectType reflect.Type) types.Type {
+	if basicKind, ok := reflectKindToBasicType[reflectType.Kind()]; ok {
+		return types.Typ[basicKind]
+	}
+	return c.convertCompositeType(reflectType)
 }
 
 // registerFunctionsAndVariables inserts exported functions and
@@ -557,6 +581,14 @@ func (*SymbolRegistry) registerFunctionsAndVariables(
 		switch {
 		case reflectType.Kind() == reflect.Pointer && value.IsNil():
 			continue
+
+		case reflectType == linkedGenericTypeReflectType:
+
+			continue
+
+		case reflectType == linkedFunctionReflectType:
+			typeObject := converter.linkedGenericFunc(pkg, name, value)
+			scope.Insert(typeObject)
 
 		case reflectType.Kind() == reflect.Func:
 			signature := converter.funcSignature(reflectType)
@@ -791,8 +823,12 @@ func (c *reflectTypeConverter) convertCompositeType(reflectType reflect.Type) ty
 //
 // Returns the equivalent go/types interface.
 func (c *reflectTypeConverter) interfaceType(reflectType reflect.Type) types.Type {
-	placeholder := types.NewInterfaceType(nil, nil)
-	c.seen[reflectType] = placeholder
+	_, hasNamedPlaceholder := c.seen[reflectType].(*types.Named)
+	var placeholder types.Type
+	if !hasNamedPlaceholder {
+		placeholder = types.NewInterfaceType(nil, nil)
+		c.seen[reflectType] = placeholder
+	}
 
 	var methods []*types.Func
 	for m := range reflectType.Methods() {
@@ -802,11 +838,505 @@ func (c *reflectTypeConverter) interfaceType(reflectType reflect.Type) types.Typ
 	if len(methods) > 0 {
 		iface := types.NewInterfaceType(methods, nil)
 		iface.Complete()
-		c.seen[reflectType] = iface
+		if !hasNamedPlaceholder {
+			c.seen[reflectType] = iface
+		}
 		return iface
 	}
 
+	if hasNamedPlaceholder {
+		return types.NewInterfaceType(nil, nil)
+	}
 	return placeholder
+}
+
+// linkedGenericFunc synthesises a generic *types.Func for a symbol
+// registered as an interp_link.LinkedFunction.
+//
+// The sibling's reflect signature drives the reconstruction: the
+// first TypeArgCount parameters are the prepended reflect.Type values
+// (dropped here because they are implicit in the generic's Go-level
+// signature), and any remaining reflect.Value occurrences in params
+// or results are replaced by the first type parameter.
+//
+// Takes pkg (*types.Package) which is the owning package.
+// Takes name (string) which is the generic's exported name.
+// Takes value (reflect.Value) which wraps the LinkedFunction.
+//
+// Returns a *types.Func carrying the reconstructed generic signature.
+func (c *reflectTypeConverter) linkedGenericFunc(pkg *types.Package, name string, value reflect.Value) *types.Func {
+	linked, ok := value.Interface().(interp_link.LinkedFunction)
+	if !ok || !linked.Target.IsValid() || linked.TypeArgCount <= 0 {
+		return types.NewFunc(0, pkg, name, c.fallbackGenericSignature(1))
+	}
+
+	siblingType := linked.Target.Type()
+	if siblingType.Kind() != reflect.Func {
+		return types.NewFunc(0, pkg, name, c.fallbackGenericSignature(linked.TypeArgCount))
+	}
+
+	typeParams := makeLinkedTypeParams(pkg, linked.TypeArgCount)
+
+	parameters := c.linkedFuncParameterTypes(pkg, siblingType, linked, typeParams)
+	results := c.linkedFuncResultTypes(pkg, siblingType, linked, typeParams)
+	signature := types.NewSignatureType(
+		nil,
+		nil,
+		typeParams,
+		types.NewTuple(parameters...),
+		types.NewTuple(results...),
+		c.linkedFuncVariadic(siblingType, linked),
+	)
+	return types.NewFunc(0, pkg, name, signature)
+}
+
+// linkedFuncParameterTypes picks the parameter list for a linked
+// generic, preferring descriptors when available.
+//
+// Takes pkg (*types.Package) which owns the synthesised symbols.
+// Takes siblingType (reflect.Type) which is the sibling's reflect
+// signature (used as a fallback when no descriptors were emitted).
+// Takes linked (interp_link.LinkedFunction) which holds the sentinel.
+// Takes typeParams ([]*types.TypeParam) which are the generic's
+// declared parameters.
+//
+// Returns the []*types.Var representing the generic's parameter list.
+func (c *reflectTypeConverter) linkedFuncParameterTypes(
+	pkg *types.Package,
+	siblingType reflect.Type,
+	linked interp_link.LinkedFunction,
+	typeParams []*types.TypeParam,
+) []*types.Var {
+	if len(linked.Params) > 0 {
+		parameters := make([]*types.Var, len(linked.Params))
+		for position, descriptor := range linked.Params {
+			parameters[position] = types.NewParam(0, nil, "", c.resolveLinkedDescriptor(pkg, descriptor, typeParams, 0))
+		}
+		return parameters
+	}
+	if linked.TypeArgCount > 0 && len(typeParams) > 0 {
+		return c.linkedFuncParameters(siblingType, linked.TypeArgCount, typeParams[0])
+	}
+	return nil
+}
+
+// linkedFuncResultTypes picks the result list for a linked generic,
+// preferring descriptors when available.
+//
+// Takes pkg (*types.Package) which owns the synthesised symbols.
+// Takes siblingType (reflect.Type) which is the sibling's reflect
+// signature used as a fallback.
+// Takes linked (interp_link.LinkedFunction) which holds the sentinel.
+// Takes typeParams ([]*types.TypeParam) which are the generic's
+// declared parameters.
+//
+// Returns the []*types.Var representing the generic's result list.
+func (c *reflectTypeConverter) linkedFuncResultTypes(
+	pkg *types.Package,
+	siblingType reflect.Type,
+	linked interp_link.LinkedFunction,
+	typeParams []*types.TypeParam,
+) []*types.Var {
+	if len(linked.Results) > 0 {
+		results := make([]*types.Var, len(linked.Results))
+		for position, descriptor := range linked.Results {
+			results[position] = types.NewParam(0, nil, "", c.resolveLinkedDescriptor(pkg, descriptor, typeParams, 0))
+		}
+		return results
+	}
+	if linked.TypeArgCount > 0 && len(typeParams) > 0 {
+		return c.linkedFuncResults(siblingType, typeParams[0])
+	}
+	return nil
+}
+
+// linkedFuncVariadic prefers the generic's own Variadic flag and only
+// falls back to the sibling's reflect signature when descriptors are
+// unavailable.
+//
+// Takes siblingType (reflect.Type) which is the sibling's signature.
+// Takes linked (interp_link.LinkedFunction) which holds the sentinel.
+//
+// Returns true when the synthesised signature should be variadic.
+func (*reflectTypeConverter) linkedFuncVariadic(siblingType reflect.Type, linked interp_link.LinkedFunction) bool {
+	if len(linked.Params) > 0 || len(linked.Results) > 0 {
+		return linked.Variadic
+	}
+	return siblingType.IsVariadic()
+}
+
+// resolveLinkedDescriptor converts a GenericFieldType descriptor into
+// a go/types.Type.
+//
+// Falls back to the empty interface when a descriptor cannot be
+// resolved, so a slightly broken registration still produces a usable
+// package. Recursion is bounded by maxLinkedDescriptorDepth.
+//
+// Takes pkg (*types.Package) which owns the synthesised symbols.
+// Takes descriptor (interp_link.GenericFieldType) which is the node.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter
+// references.
+// Takes depth (int) which tracks the current recursion depth.
+//
+// Returns the resolved go/types.Type, or the empty interface on any
+// failure path.
+func (c *reflectTypeConverter) resolveLinkedDescriptor(
+	pkg *types.Package,
+	descriptor interp_link.GenericFieldType,
+	typeParams []*types.TypeParam,
+	depth int,
+) types.Type {
+	if depth >= maxLinkedDescriptorDepth {
+		return types.NewInterfaceType(nil, nil)
+	}
+	if resolved, handled := c.resolveLinkedLeafKind(pkg, descriptor, typeParams, depth); handled {
+		return resolved
+	}
+	if resolved, handled := c.resolveLinkedCompositeKind(pkg, descriptor, typeParams, depth); handled {
+		return resolved
+	}
+	if resolved := linkedFieldToType(c.registry, descriptor, typeParams, depth); resolved != nil {
+		return resolved
+	}
+	return types.NewInterfaceType(nil, nil)
+}
+
+// resolveLinkedLeafKind handles descriptor kinds that terminate the
+// recursion: Error, NamedGeneric, and Named.
+//
+// Takes pkg (*types.Package) which owns the synthesised symbols.
+// Takes descriptor (interp_link.GenericFieldType) which is the node.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter
+// references.
+// Takes depth (int) which tracks the current recursion depth.
+//
+// Returns the resolved type and true when the kind matched; the zero
+// value and false otherwise so the caller can try a composite kind.
+func (c *reflectTypeConverter) resolveLinkedLeafKind(
+	pkg *types.Package,
+	descriptor interp_link.GenericFieldType,
+	typeParams []*types.TypeParam,
+	depth int,
+) (types.Type, bool) {
+	switch descriptor.Kind {
+	case interp_link.FieldKindError:
+		return types.Universe.Lookup("error").Type(), true
+	case interp_link.FieldKindNamedGeneric:
+		return c.resolveLinkedNamedGeneric(pkg, descriptor, typeParams, depth+1), true
+	case interp_link.FieldKindNamed:
+		if resolved := c.resolveLinkedNamed(pkg, descriptor); resolved != nil {
+			return resolved, true
+		}
+		return types.NewInterfaceType(nil, nil), true
+	}
+	return nil, false
+}
+
+// resolveLinkedCompositeKind handles descriptor kinds that carry an
+// Element (and optionally a Key).
+//
+// Takes pkg (*types.Package) which owns the synthesised symbols.
+// Takes descriptor (interp_link.GenericFieldType) which is the node.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter
+// references.
+// Takes depth (int) which tracks the current recursion depth.
+//
+// Returns the resolved type and true when the kind matched; the zero
+// value and false otherwise so the caller can try a fallback.
+func (c *reflectTypeConverter) resolveLinkedCompositeKind(
+	pkg *types.Package,
+	descriptor interp_link.GenericFieldType,
+	typeParams []*types.TypeParam,
+	depth int,
+) (types.Type, bool) {
+	switch descriptor.Kind {
+	case interp_link.FieldKindSlice:
+		return c.resolveLinkedElementOnly(pkg, descriptor, typeParams, depth,
+			func(element types.Type) types.Type { return types.NewSlice(element) }), true
+	case interp_link.FieldKindPointer:
+		return c.resolveLinkedElementOnly(pkg, descriptor, typeParams, depth,
+			func(element types.Type) types.Type { return types.NewPointer(element) }), true
+	case interp_link.FieldKindChan:
+		return c.resolveLinkedChan(pkg, descriptor, typeParams, depth), true
+	case interp_link.FieldKindArray:
+		return c.resolveLinkedArray(pkg, descriptor, typeParams, depth), true
+	case interp_link.FieldKindMap:
+		return c.resolveLinkedMap(pkg, descriptor, typeParams, depth), true
+	}
+	return nil, false
+}
+
+// resolveLinkedElementOnly handles the shared Element-only pattern
+// for Slice and Pointer kinds via a constructor callback.
+//
+// Takes pkg (*types.Package) which owns the synthesised symbols.
+// Takes descriptor (interp_link.GenericFieldType) which is the node.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter
+// references.
+// Takes depth (int) which tracks the current recursion depth.
+// Takes constructor (func(types.Type) types.Type) which wraps the
+// resolved element in the composite type.
+//
+// Returns the composite type, or the empty interface when the element
+// is missing.
+func (c *reflectTypeConverter) resolveLinkedElementOnly(
+	pkg *types.Package,
+	descriptor interp_link.GenericFieldType,
+	typeParams []*types.TypeParam,
+	depth int,
+	constructor func(types.Type) types.Type,
+) types.Type {
+	if descriptor.Element == nil {
+		return types.NewInterfaceType(nil, nil)
+	}
+	return constructor(c.resolveLinkedDescriptor(pkg, *descriptor.Element, typeParams, depth+1))
+}
+
+// resolveLinkedChan resolves a channel descriptor, kept separate from
+// resolveLinkedElementOnly because types.NewChan takes a direction.
+//
+// Takes pkg (*types.Package) which owns the synthesised symbols.
+// Takes descriptor (interp_link.GenericFieldType) which is the node.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter
+// references.
+// Takes depth (int) which tracks the current recursion depth.
+//
+// Returns the channel type, or the empty interface when Element is
+// nil.
+func (c *reflectTypeConverter) resolveLinkedChan(
+	pkg *types.Package,
+	descriptor interp_link.GenericFieldType,
+	typeParams []*types.TypeParam,
+	depth int,
+) types.Type {
+	if descriptor.Element == nil {
+		return types.NewInterfaceType(nil, nil)
+	}
+	return types.NewChan(types.SendRecv, c.resolveLinkedDescriptor(pkg, *descriptor.Element, typeParams, depth+1))
+}
+
+// resolveLinkedArray resolves a fixed-length array descriptor.
+//
+// Takes pkg (*types.Package) which owns the synthesised symbols.
+// Takes descriptor (interp_link.GenericFieldType) which is the node.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter
+// references.
+// Takes depth (int) which tracks the current recursion depth.
+//
+// Returns the array type, or the empty interface when Element is nil.
+func (c *reflectTypeConverter) resolveLinkedArray(
+	pkg *types.Package,
+	descriptor interp_link.GenericFieldType,
+	typeParams []*types.TypeParam,
+	depth int,
+) types.Type {
+	if descriptor.Element == nil {
+		return types.NewInterfaceType(nil, nil)
+	}
+	return types.NewArray(
+		c.resolveLinkedDescriptor(pkg, *descriptor.Element, typeParams, depth+1),
+		int64(descriptor.ArrayLength),
+	)
+}
+
+// resolveLinkedMap resolves a map descriptor, returning the empty
+// interface when either Key or Element is missing.
+//
+// Takes pkg (*types.Package) which owns the synthesised symbols.
+// Takes descriptor (interp_link.GenericFieldType) which is the node.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter
+// references.
+// Takes depth (int) which tracks the current recursion depth.
+//
+// Returns the map type, or the empty interface when Key or Element
+// is missing.
+func (c *reflectTypeConverter) resolveLinkedMap(
+	pkg *types.Package,
+	descriptor interp_link.GenericFieldType,
+	typeParams []*types.TypeParam,
+	depth int,
+) types.Type {
+	if descriptor.Key == nil || descriptor.Element == nil {
+		return types.NewInterfaceType(nil, nil)
+	}
+	return types.NewMap(
+		c.resolveLinkedDescriptor(pkg, *descriptor.Key, typeParams, depth+1),
+		c.resolveLinkedDescriptor(pkg, *descriptor.Element, typeParams, depth+1),
+	)
+}
+
+// resolveLinkedNamed resolves a FieldKindNamed reference, preferring
+// the in-progress package's scope before falling back to other
+// synthesised packages.
+//
+// Takes pkg (*types.Package) which is the currently synthesising
+// package.
+// Takes descriptor (interp_link.GenericFieldType) which carries
+// NamedPackage and NamedName.
+//
+// Returns the resolved type, or nil when the descriptor is empty or
+// the symbol is unknown.
+func (c *reflectTypeConverter) resolveLinkedNamed(
+	pkg *types.Package,
+	descriptor interp_link.GenericFieldType,
+) types.Type {
+	if descriptor.NamedPackage == "" || descriptor.NamedName == "" {
+		return nil
+	}
+	if pkg != nil && descriptor.NamedPackage == pkg.Path() {
+		if obj := pkg.Scope().Lookup(descriptor.NamedName); obj != nil {
+			return obj.Type()
+		}
+	}
+	return c.registry.resolveNamedForLinkedField(descriptor.NamedPackage, descriptor.NamedName)
+}
+
+// resolveLinkedNamedGeneric finds the referenced generic named type
+// and instantiates it with the descriptor's TypeArgs.
+//
+// Synthesis order matters: LinkedGenericType registrations run before
+// LinkedFunction synthesis, so cross-references within the same
+// package resolve reliably.
+//
+// Takes pkg (*types.Package) which is the currently synthesising
+// package.
+// Takes descriptor (interp_link.GenericFieldType) which carries the
+// target name and TypeArgs.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter
+// references in TypeArgs.
+// Takes depth (int) which tracks the current recursion depth.
+//
+// Returns the instantiated type, or the empty interface on any failure
+// path (missing target, arity mismatch, instantiation error).
+func (c *reflectTypeConverter) resolveLinkedNamedGeneric(
+	pkg *types.Package,
+	descriptor interp_link.GenericFieldType,
+	typeParams []*types.TypeParam,
+	depth int,
+) types.Type {
+	if depth >= maxLinkedDescriptorDepth {
+		return types.NewInterfaceType(nil, nil)
+	}
+	if descriptor.NamedPackage == "" || descriptor.NamedName == "" {
+		return types.NewInterfaceType(nil, nil)
+	}
+	resolved := c.resolveLinkedNamed(pkg, descriptor)
+	if resolved == nil {
+		return types.NewInterfaceType(nil, nil)
+	}
+	named, ok := resolved.(*types.Named)
+	if !ok || named.TypeParams() == nil || named.TypeParams().Len() == 0 {
+		return resolved
+	}
+	if len(descriptor.TypeArgs) != named.TypeParams().Len() {
+		return types.NewInterfaceType(nil, nil)
+	}
+	if named.TypeParams().Len() > maxLinkedTypeArgCount {
+		return types.NewInterfaceType(nil, nil)
+	}
+	typeArgs := make([]types.Type, len(descriptor.TypeArgs))
+	for position, argDescriptor := range descriptor.TypeArgs {
+		typeArgs[position] = c.resolveLinkedDescriptor(pkg, argDescriptor, typeParams, depth+1)
+	}
+	instance, err := types.Instantiate(nil, named, typeArgs, true)
+	if err != nil {
+		return types.NewInterfaceType(nil, nil)
+	}
+	return instance
+}
+
+// linkedFuncParameters builds the parameter tuple for a linked
+// generic's synthesised signature, skipping the leading reflect.Type
+// stubs and substituting reflect.Value occurrences with the first
+// type parameter.
+//
+// Takes siblingType (reflect.Type) which is the sibling signature.
+// Takes typeArgCount (int) which is the number of leading
+// reflect.Type parameters to skip.
+// Takes firstTypeParam (*types.TypeParam) which is substituted in for
+// reflect.Value positions.
+//
+// Returns the per-parameter []*types.Var slice.
+func (c *reflectTypeConverter) linkedFuncParameters(siblingType reflect.Type, typeArgCount int, firstTypeParam *types.TypeParam) []*types.Var {
+	var parameters []*types.Var
+	inIndex := 0
+	for in := range siblingType.Ins() {
+		if inIndex < typeArgCount {
+			inIndex++
+			continue
+		}
+		parameters = append(parameters, types.NewParam(0, nil, "", c.substituteParametricType(in, firstTypeParam)))
+		inIndex++
+	}
+	return parameters
+}
+
+// linkedFuncResults builds the return tuple for a linked generic's
+// synthesised signature.
+//
+// Substitutes reflect.Value returns with the first type parameter so
+// callers can bind the result to an ordinary typed variable.
+//
+// Takes siblingType (reflect.Type) which is the sibling signature.
+// Takes firstTypeParam (*types.TypeParam) which is substituted in for
+// reflect.Value positions.
+//
+// Returns the per-result []*types.Var slice.
+func (c *reflectTypeConverter) linkedFuncResults(siblingType reflect.Type, firstTypeParam *types.TypeParam) []*types.Var {
+	var results []*types.Var
+	for out := range siblingType.Outs() {
+		results = append(results, types.NewParam(0, nil, "", c.substituteParametricType(out, firstTypeParam)))
+	}
+	return results
+}
+
+// substituteParametricType converts a reflect.Type to its go/types
+// equivalent, mapping reflect.Value to the first type parameter so
+// parametric positions surface as T in the reconstructed signature.
+//
+// Takes reflectType (reflect.Type) which is the sibling's position
+// type.
+// Takes firstTypeParam (*types.TypeParam) which replaces reflect.Value.
+//
+// Returns the corresponding types.Type.
+func (c *reflectTypeConverter) substituteParametricType(reflectType reflect.Type, firstTypeParam *types.TypeParam) types.Type {
+	if reflectType == linkedResultReflectValueType {
+		return firstTypeParam
+	}
+	return c.toGoType(reflectType)
+}
+
+// fallbackGenericSignature builds a permissive generic signature used
+// when the LinkedFunction's sibling cannot be inspected.
+//
+// The signature accepts no parameters and returns the first type
+// parameter, which lets go/types accept simple call sites without
+// crashing on malformed or future-shaped directives.
+//
+// Takes typeArgCount (int) which is the declared type-parameter count.
+//
+// Returns the fallback *types.Signature.
+func (c *reflectTypeConverter) fallbackGenericSignature(typeArgCount int) *types.Signature {
+	if typeArgCount < 1 {
+		typeArgCount = 1
+	}
+	typeParams := make([]*types.TypeParam, typeArgCount)
+	for i := range typeArgCount {
+		paramName := "T"
+		if i > 0 {
+			paramName = "T" + strconv.Itoa(i+1)
+		}
+		tname := types.NewTypeName(0, c.pkg, paramName, nil)
+		typeParams[i] = types.NewTypeParam(tname, types.NewInterfaceType(nil, nil))
+	}
+	return types.NewSignatureType(
+		nil,
+		nil,
+		typeParams,
+		types.NewTuple(),
+		types.NewTuple(types.NewParam(0, nil, "", typeParams[0])),
+		false,
+	)
 }
 
 // funcSignature converts a reflect function type to types.Signature.
@@ -840,8 +1370,11 @@ func (c *reflectTypeConverter) funcSignature(reflectType reflect.Type) *types.Si
 //
 // Returns the equivalent go/types struct type.
 func (c *reflectTypeConverter) structType(reflectType reflect.Type) types.Type {
-	placeholder := types.NewStruct(nil, nil)
-	c.seen[reflectType] = placeholder
+	_, hasNamedPlaceholder := c.seen[reflectType].(*types.Named)
+	if !hasNamedPlaceholder {
+		placeholder := types.NewStruct(nil, nil)
+		c.seen[reflectType] = placeholder
+	}
 
 	var fields []*types.Var
 	var tags []string
@@ -855,7 +1388,9 @@ func (c *reflectTypeConverter) structType(reflectType reflect.Type) types.Type {
 	}
 
 	result := types.NewStruct(fields, tags)
-	c.seen[reflectType] = result
+	if !hasNamedPlaceholder {
+		c.seen[reflectType] = result
+	}
 	return result
 }
 

@@ -39,6 +39,22 @@ import (
 // error messages (e.g. "undefined: content_domain.AnnotatedField").
 const undefinedPrefix = "undefined: "
 
+// couldNotImportPrefix is the prefix that go/types uses when the
+// Importer returns an error for a requested import.
+//
+// It is a stable part of the go/types public error format; a change
+// in upstream Go would cause us to silently stop enriching these
+// messages until adjusted here.
+const couldNotImportPrefix = "could not import "
+
+// notRegisteredMarker is the surface text of errPackageNotInRegistry
+// as it appears inside the Importer's wrapped error message. The
+// marker must stay in sync with the fmt.Errorf call at
+// symbol_registry.go:(*SymbolRegistry).Import; if that message is
+// reworded, update this marker or enrichTypeCheckError will fall
+// back to the un-enriched error.
+const notRegisteredMarker = "not registered with interpreter"
+
 // parseAllPackages parses and filters files for every package in a
 // multi-package compilation.
 //
@@ -426,6 +442,11 @@ func (s *Service) enrichTypeCheckError(err error, files []*ast.File, interpreted
 	}
 
 	msg := typesErr.Msg
+
+	if strings.HasPrefix(msg, couldNotImportPrefix) && strings.Contains(msg, notRegisteredMarker) {
+		return enrichMissingPackageError(err, msg)
+	}
+
 	if !strings.HasPrefix(msg, undefinedPrefix) {
 		return err
 	}
@@ -456,7 +477,56 @@ func (s *Service) enrichTypeCheckError(err error, files []*ast.File, interpreted
 
 	return fmt.Errorf(
 		"%w - symbol %q is not registered in the symbol registry for package %q; "+
-			"you may need to re-run \"piko extract\" to update symbol exports",
+			"you may need to re-run \"piko extract generate\" to update symbol exports",
 		err, symbolName, fullPath,
 	)
+}
+
+// enrichMissingPackageError appends an actionable hint to the original
+// type-check error when the underlying cause is a package missing from
+// the symbol registry. The hint directs the user at the discover and
+// generate subcommands, which together resolve the vast majority of
+// these failures.
+//
+// Takes err (error) which is the unwrapped types.Error returned by
+// go/types.
+// Takes msg (string) which is the types.Error.Msg, already matched
+// against couldNotImportPrefix and notRegisteredMarker.
+//
+// Returns the original error wrapped with a trailing hint block.
+func enrichMissingPackageError(err error, msg string) error {
+	importPath := extractMissingPackagePath(msg)
+	if importPath == "" {
+		return errors.Join(errPackageNotInRegistry, fmt.Errorf(
+			"%w\n\nhint: run \"piko extract discover\" to find missing package registrations, "+
+				"then \"piko extract generate\" to update the symbol registry",
+			err,
+		))
+	}
+	return errors.Join(errPackageNotInRegistry, fmt.Errorf(
+		"%w\n\nhint: add %q to piko-symbols.yaml and run \"piko extract generate\", "+
+			"or run \"piko extract discover\" to find all missing registrations",
+		err, importPath,
+	))
+}
+
+// extractMissingPackagePath pulls the import path out of the
+// "could not import X (package \"X\" not registered with interpreter)"
+// message shape emitted by go/types when the Importer returns
+// errPackageNotInRegistry. Returns empty string when the message does
+// not match the expected shape.
+//
+// Takes msg (string) which is the types.Error.Msg text.
+//
+// Returns the extracted import path or an empty string.
+func extractMissingPackagePath(msg string) string {
+	if !strings.HasPrefix(msg, couldNotImportPrefix) {
+		return ""
+	}
+	rest := msg[len(couldNotImportPrefix):]
+	end := strings.IndexByte(rest, ' ')
+	if end <= 0 {
+		return ""
+	}
+	return rest[:end]
 }

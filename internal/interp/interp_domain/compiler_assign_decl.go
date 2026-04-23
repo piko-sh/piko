@@ -289,6 +289,7 @@ func (c *compiler) compileShortVarIdent(ctx context.Context, identifier *ast.Ide
 		if err != nil {
 			return varLocation{}, err
 		}
+		valLocation = c.coerceEvalBoolResult(ctx, c.info, rightHandSideExprs[i], valLocation)
 		c.scopes.restoreWatermark(watermark)
 		hasValue = true
 	}
@@ -327,6 +328,7 @@ func (c *compiler) compileShortVarRedecl(ctx context.Context, identifier *ast.Id
 	if err != nil {
 		return varLocation{}, err
 	}
+	valLocation = c.coerceEvalBoolResult(ctx, c.info, rightHandSideExprs[i], valLocation)
 	c.emitMove(ctx, location, valLocation)
 	c.scopes.restoreWatermark(watermark)
 

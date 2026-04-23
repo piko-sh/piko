@@ -708,7 +708,7 @@ func (s *coordinatorService) generateSingleArtefact(
 		HashedName:                hashedName,
 		CanonicalGoPackagePath:    vc.CanonicalGoPackagePath,
 		IsPage:                    vc.IsPage,
-		VirtualInstances:          nil,
+		VirtualInstances:          generator_dto.ConvertVirtualInstances(vc.VirtualInstances),
 		CollectionName:            vc.Source.CollectionName,
 		ModuleName:                "",
 		VerifyGeneratedCode:       false,

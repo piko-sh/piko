@@ -285,6 +285,13 @@ type callSite struct {
 	// snapshots. Avoids make([]tailCallArg, n) per tail call.
 	tailArgsBuf []tailCallArg
 
+	// linkedTypeArgs holds the instantiated type arguments for a
+	// //piko:link-routed generic call, resolved at compile time from
+	// types.Info.Instances. When non-empty the native call handler
+	// prepends one reflect.Type value per element before the regular
+	// arguments and skips the nativeFastPath / paramTypes caches.
+	linkedTypeArgs []reflect.Type
+
 	// cachedRecvAddr stores the address of the receiver value when
 	// nativeFastPath was last populated, only used when isMethod is
 	// true. A mismatch means the receiver changed and the cached

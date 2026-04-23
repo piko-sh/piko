@@ -62,16 +62,76 @@ func (v *interpretedManifestStoreView) GetPageEntry(path string) (templater_doma
 	return pe, ok
 }
 
-// FindErrorPage is not supported in interpreted mode, returning
-// (nil, false) always because error pages require the compiled
-// manifest store.
+// FindErrorPage looks up the most specific error page for the given
+// HTTP status code and request path using the same three-tier
+// fallback chain as the compiled ManifestStore: exact status-code
+// match first, then range match, then catch-all. Within each tier
+// the candidate with the longest matching ScopePath wins.
 //
-// Takes statusCode (int) which is the HTTP status code (unused).
-// Takes requestPath (string) which is the request path (unused).
+// Takes statusCode (int) which is the HTTP status code to match.
+// Takes requestPath (string) which is the URL path being requested.
 //
-// Returns (nil, false) always.
-func (*interpretedManifestStoreView) FindErrorPage(_ int, _ string) (templater_domain.PageEntryView, bool) {
-	return nil, false
+// Returns templater_domain.PageEntryView which is the matching error
+// page entry.
+// Returns bool which is true when a matching error page was found.
+//
+// Concurrency: read-locks the runner's progCache for the scan duration.
+func (v *interpretedManifestStoreView) FindErrorPage(statusCode int, requestPath string) (templater_domain.PageEntryView, bool) {
+	v.r.cacheLock.RLock()
+	defer v.r.cacheLock.RUnlock()
+
+	if entry, ok := findErrorPageTier(v.r.progCache, requestPath, func(d *ErrorPageDispatch) bool {
+		return !d.IsCatchAll && d.StatusCodeMin == 0 && d.StatusCodeMax == 0 && d.StatusCode == statusCode
+	}); ok {
+		return entry, true
+	}
+	if entry, ok := findErrorPageTier(v.r.progCache, requestPath, func(d *ErrorPageDispatch) bool {
+		return !d.IsCatchAll && d.StatusCodeMin > 0 && d.StatusCodeMax > 0 &&
+			statusCode >= d.StatusCodeMin && statusCode <= d.StatusCodeMax
+	}); ok {
+		return entry, true
+	}
+	return findErrorPageTier(v.r.progCache, requestPath, func(d *ErrorPageDispatch) bool {
+		return d.IsCatchAll
+	})
+}
+
+// findErrorPageTier scans progCache for entries whose ErrorDispatch
+// satisfies match and whose ScopePath is a prefix of requestPath,
+// returning the entry with the longest matching ScopePath.
+//
+// Takes progCache (map[string]*PageEntry) holding the compiled
+// entries to scan.
+// Takes requestPath (string) which is the incoming request path.
+// Takes match (func(*ErrorPageDispatch) bool) which selects entries
+// belonging to the current tier.
+//
+// Returns templater_domain.PageEntryView and true when an entry was
+// found; nil and false otherwise.
+func findErrorPageTier(
+	progCache map[string]*PageEntry,
+	requestPath string,
+	match func(*ErrorPageDispatch) bool,
+) (templater_domain.PageEntryView, bool) {
+	var best *PageEntry
+	bestLen := -1
+	for _, entry := range progCache {
+		dispatch := entry.ErrorDispatch
+		if dispatch == nil || !match(dispatch) {
+			continue
+		}
+		if !strings.HasPrefix(requestPath, dispatch.ScopePath) {
+			continue
+		}
+		if len(dispatch.ScopePath) > bestLen {
+			best = entry
+			bestLen = len(dispatch.ScopePath)
+		}
+	}
+	if best == nil {
+		return nil, false
+	}
+	return best, true
 }
 
 // GetCollectionFallbackRoutes is not supported in interpreted mode. Static

@@ -1317,27 +1317,6 @@ func (c *Container) StartMonitoringService() {
 	)
 }
 
-// applyAutoMemoryLimit calls the configured auto memory limit function to
-// set GOMEMLIMIT based on the container's cgroup memory limit.
-//
-// This is a no-op when no auto memory limit provider is configured.
-func (c *Container) applyAutoMemoryLimit(ctx context.Context) {
-	if c.autoMemoryLimitFunc == nil {
-		return
-	}
-
-	_, l := logger_domain.From(ctx, log)
-
-	limit, err := c.autoMemoryLimitFunc()
-	if err != nil {
-		l.Warn("Auto memory limit detection skipped", logger_domain.Error(err))
-		return
-	}
-
-	l.Info("Auto memory limit applied",
-		logger_domain.String("GOMEMLIMIT", fmt.Sprintf("%d MiB", limit/(1024*1024))))
-}
-
 // StartProfilingServer starts the pprof HTTP server if profiling was enabled
 // via WithProfiling. It configures runtime block and mutex profiling rates,
 // checks for problematic build flags, and starts the server in a background
@@ -1468,6 +1447,27 @@ func (c *Container) StartGeneratorProfiling() func() {
 			logger_domain.String("output_dir", generatorProfilingConfig.OutputDir),
 		)
 	}
+}
+
+// applyAutoMemoryLimit calls the configured auto memory limit function to
+// set GOMEMLIMIT based on the container's cgroup memory limit.
+//
+// This is a no-op when no auto memory limit provider is configured.
+func (c *Container) applyAutoMemoryLimit(ctx context.Context) {
+	if c.autoMemoryLimitFunc == nil {
+		return
+	}
+
+	_, l := logger_domain.From(ctx, log)
+
+	limit, err := c.autoMemoryLimitFunc()
+	if err != nil {
+		l.Warn("Auto memory limit detection skipped", logger_domain.Error(err))
+		return
+	}
+
+	l.Info("Auto memory limit applied",
+		logger_domain.String("GOMEMLIMIT", fmt.Sprintf("%d MiB", limit/(1024*1024))))
 }
 
 // ensureOverrides lazily initialises the configServerOverrides struct so that

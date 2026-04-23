@@ -167,7 +167,8 @@ func NewController() *Controller {
 // Takes opts (ProfilingEnableOpts) which configures the profiling
 // session duration, port, and sampling rates.
 //
-// Returns *ProfilingStatus with the current state after enabling.
+// Returns *ProfilingStatus which describes the active profiling
+// session after enabling.
 // Returns error when the server fails to start or the duration
 // exceeds the maximum allowed.
 //
@@ -273,8 +274,6 @@ func (c *Controller) Disable(ctx context.Context) (bool, error) {
 // is safe for use as a shutdown hook.
 //
 // Returns error when the shutdown fails.
-//
-// Safe for concurrent use.
 func (c *Controller) Close(ctx context.Context) error {
 	_, err := c.Disable(ctx)
 	return err
@@ -347,7 +346,8 @@ func (c *Controller) extendSession(ctx context.Context, duration time.Duration) 
 // Takes blockRate (int) which is the block profile rate.
 // Takes mutexFraction (int) which is the mutex profile fraction.
 //
-// Returns *ProfilingStatus with the session state.
+// Returns *ProfilingStatus which describes the freshly enabled
+// profiling session.
 // Returns error when the server fails to start.
 func (c *Controller) startProfilingServer(
 	ctx context.Context,
@@ -390,7 +390,8 @@ func (c *Controller) startProfilingServer(
 // Takes duration (time.Duration) which is the session duration.
 // Takes originalMutexFraction (int) which is the pre-enable mutex fraction.
 //
-// Returns *ProfilingStatus with the session state.
+// Returns *ProfilingStatus which describes the newly committed
+// profiling session state.
 // Returns error when an enable race requires shutting down the duplicate server.
 func (c *Controller) commitSession(
 	ctx context.Context,
@@ -432,7 +433,8 @@ func (c *Controller) commitSession(
 // Takes server (*ServerHandle) which is the duplicate server to shut down.
 // Takes originalMutexFraction (int) which is the pre-enable mutex fraction to restore.
 //
-// Returns *ProfilingStatus with the existing session state.
+// Returns *ProfilingStatus which describes the existing session that
+// won the enable race.
 // Returns error when the duplicate server fails to shut down.
 func (c *Controller) handleEnableRace(
 	ctx context.Context,

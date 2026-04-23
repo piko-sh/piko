@@ -501,6 +501,166 @@ o := Outer{
 o.A.Fn() + o.B.Fn()`,
 			expect: int64(30),
 		},
+		{
+			name: "map of pointer-to-struct with elided literals",
+			code: `type Info struct { Icon string; Title string }
+m := map[string]*Info{
+	"a": {Icon: "x", Title: "Alpha"},
+	"b": {Icon: "y", Title: "Beta"},
+}
+m["a"].Title + "-" + m["b"].Icon`,
+			expect: "Alpha-y",
+		},
+		{
+			name: "slice of pointer-to-struct with elided literals",
+			code: `type P struct { V int }
+s := []*P{{V: 10}, {V: 20}, {V: 30}}
+s[0].V + s[1].V + s[2].V`,
+			expect: int64(60),
+		},
+		{
+			name: "array of pointer-to-struct with elided literals",
+			code: `type P struct { V int }
+a := [2]*P{{V: 7}, {V: 35}}
+a[0].V + a[1].V`,
+			expect: int64(42),
+		},
+		{
+			name: "elided and explicit address-of forms coexist",
+			code: `type P struct { V int }
+m := map[string]*P{
+	"elided":   {V: 1},
+	"explicit": &P{V: 10},
+}
+m["elided"].V + m["explicit"].V`,
+			expect: int64(11),
+		},
+		{
+			name: "mutate field through pointer retrieved from map",
+			code: `type P struct { V int }
+m := map[string]*P{"k": {V: 5}}
+m["k"].V = 99
+m["k"].V`,
+			expect: int64(99),
+		},
+		{
+			name: "nested struct with pointer-elided inner values",
+			code: `type Inner struct { V int }
+type Outer struct { A *Inner; B *Inner }
+o := Outer{A: &Inner{V: 3}, B: &Inner{V: 4}}
+o.A.V * o.B.V`,
+			expect: int64(12),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			service := NewService()
+			result, err := service.Eval(context.Background(), tt.code)
+			require.NoError(t, err)
+			require.Equal(t, tt.expect, result)
+		})
+	}
+}
+
+func TestEvalElidedPointerCompositeLiterals(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		expect any
+		name   string
+		code   string
+	}{
+		{
+			name: "empty map of pointer-to-struct",
+			code: `type P struct { V int }
+m := map[string]*P{}
+len(m)`,
+			expect: int64(0),
+		},
+		{
+			name: "empty slice of pointer-to-struct",
+			code: `type P struct { V int }
+s := []*P{}
+len(s)`,
+			expect: int64(0),
+		},
+		{
+			name: "single-field elided struct pointer",
+			code: `type P struct { V int }
+m := map[string]*P{"only": {V: 7}}
+m["only"].V`,
+			expect: int64(7),
+		},
+		{
+			name: "pointer-to-array element with elided literal",
+			code: `m := map[string]*[3]int{"row": {10, 20, 30}}
+a := *m["row"]
+a[0] + a[1] + a[2]`,
+			expect: int64(60),
+		},
+		{
+			name: "pointer-to-slice element with elided literal",
+			code: `m := map[string]*[]int{"row": {1, 2, 3, 4}}
+s := *m["row"]
+s[0] + s[1] + s[2] + s[3]`,
+			expect: int64(10),
+		},
+		{
+			name: "pointer-to-map element with elided literal",
+			code: `m := map[string]*map[string]int{"grp": {"a": 5, "b": 9}}
+inner := *m["grp"]
+inner["a"] + inner["b"]`,
+			expect: int64(14),
+		},
+		{
+			name: "slice of pointer-to-array with elided literal",
+			code: `s := []*[3]int{{1, 2, 3}, {4, 5, 6}}
+first := *s[0]
+second := *s[1]
+first[0] + first[1] + first[2] + second[0] + second[1] + second[2]`,
+			expect: int64(21),
+		},
+		{
+			name: "array of pointer-to-struct iterated",
+			code: `type P struct { V int }
+a := [4]*P{{V: 1}, {V: 2}, {V: 3}, {V: 4}}
+total := 0
+for i := 0; i < len(a); i++ {
+	total += a[i].V
+}
+total`,
+			expect: int64(10),
+		},
+		{
+			name: "slice of pointer-to-struct range iteration",
+			code: `type P struct { Name string; Qty int }
+items := []*P{
+	{Name: "a", Qty: 2},
+	{Name: "b", Qty: 3},
+	{Name: "c", Qty: 5},
+}
+total := 0
+for _, it := range items {
+	total += it.Qty
+}
+total`,
+			expect: int64(10),
+		},
+		{
+			name: "map of pointer-to-struct with not-ok branch",
+			code: `type P struct { V int }
+m := map[string]*P{"a": {V: 42}}
+result := 0
+if info, ok := m["missing"]; ok {
+	result = info.V
+} else {
+	result = m["a"].V
+}
+result`,
+			expect: int64(42),
+		},
 	}
 
 	for _, tt := range tests {

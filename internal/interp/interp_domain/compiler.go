@@ -122,12 +122,12 @@ type globalVariableInfo struct {
 
 // compiler translates type-checked Go AST into bytecode.
 type compiler struct {
-	// funcTable maps function names to indices in rootFunction.functions.
-	funcTable map[string]uint16
+	// forwardGotos holds goto jumps targeting labels not yet seen.
+	forwardGotos map[string][]int
 
-	// upvalueMap maps captured variable names to their upvalue index
-	// and register kind. Only set when compiling a closure body.
-	upvalueMap map[string]upvalueReference
+	// labelTable maps label names to their instruction PCs. Set when
+	// an *ast.LabeledStmt is encountered during compilation.
+	labelTable map[string]int
 
 	// function is the current function being compiled.
 	function *CompiledFunction
@@ -163,25 +163,33 @@ type compiler struct {
 	// fileSet is the file set from parsing.
 	fileSet *token.FileSet
 
-	// labelTable maps label names to their instruction PCs. Set when
-	// an *ast.LabeledStmt is encountered during compilation.
-	labelTable map[string]int
+	// reflectTypeCache caches reflect.Type synthesis for named types
+	// (including anonymous struct types encountered along the
+	// recursion). Caching is essential for mutually recursive named
+	// types, where each cycle-detection entry point would otherwise
+	// produce a structurally different reflect.Type for the same
+	// nominal type, breaking value assignments across entry points.
+	reflectTypeCache map[types.Type]reflect.Type
 
-	// forwardGotos holds goto jumps targeting labels not yet seen.
-	forwardGotos map[string][]int
-
-	// pendingLabel is set when compiling a labelled statement, so
-	// that the inner loop or switch can attach it to its breakable
-	// context for labelled break/continue.
-	pendingLabel string
+	// upvalueMap maps captured variable names to their upvalue index
+	// and register kind. Only set when compiling a closure body.
+	upvalueMap map[string]upvalueReference
 
 	// debugSourceMap is the source map being built during compilation.
 	// Nil when debug info is disabled.
 	debugSourceMap *sourceMap
 
+	// funcTable maps function names to indices in rootFunction.functions.
+	funcTable map[string]uint16
+
 	// debugFileIDs deduplicates file names to fileID indices in the
 	// source map's files slice.
 	debugFileIDs map[string]uint16
+
+	// pendingLabel is set when compiling a labelled statement, so
+	// that the inner loop or switch can attach it to its breakable
+	// context for labelled break/continue.
+	pendingLabel string
 
 	// breakables is a stack of contexts for break/continue targets.
 	// Loops and switches push onto this stack.
@@ -196,27 +204,42 @@ type compiler struct {
 	// to record source positions.
 	currentPosition token.Pos
 
+	// maxLiteralElements is the maximum number of elements in a
+	// single composite literal. Zero means unlimited.
+	maxLiteralElements int
+
+	// features controls which Go language constructs are allowed
+	// during compilation.
+	features InterpFeature
+
+	// debugEnabled is true when debug info generation is active.
+	debugEnabled bool
+
+	// hasDefers is set to true when a defer statement is compiled.
+	// Used to suppress tail call optimisation when defers are present.
+	hasDefers bool
+
 	// inLoopPost is true while compiling a for-loop post statement
 	// (e.g. i++), suppressing opWriteSharedCell because Go 1.22+
 	// per-iteration scoping means the post statement mutates the
 	// *next* iteration's variable, not the current iteration's
 	// captured cell.
 	inLoopPost bool
+}
 
-	// hasDefers is set to true when a defer statement is compiled.
-	// Used to suppress tail call optimisation when defers are present.
-	hasDefers bool
-
-	// debugEnabled is true when debug info generation is active.
-	debugEnabled bool
-
-	// features controls which Go language constructs are allowed
-	// during compilation.
-	features InterpFeature
-
-	// maxLiteralElements is the maximum number of elements in a
-	// single composite literal. Zero means unlimited.
-	maxLiteralElements int
+// typeToReflect wraps the package-level typeToReflect helper, threading
+// the compiler's shared reflect.Type cache so mutually recursive named
+// types resolve to identical reflect.Types across all call sites.
+//
+// Takes ctx (context.Context) which carries the logger.
+// Takes t (types.Type) which is the go/types.Type to convert.
+//
+// Returns the corresponding reflect.Type.
+func (c *compiler) typeToReflect(ctx context.Context, t types.Type) reflect.Type {
+	if c.reflectTypeCache == nil {
+		c.reflectTypeCache = make(map[types.Type]reflect.Type)
+	}
+	return typeToReflectCached(ctx, t, c.symbols, c.reflectTypeCache)
 }
 
 // checkFeature returns an error if the given feature is not allowed by
@@ -567,7 +590,7 @@ func (c *compiler) emitGlobalZeroGeneral(ctx context.Context, name *ast.Ident, g
 	if zeroValue, ok := c.zeroValueForCompositeType(ctx, typeObject.Type()); ok {
 		c.emitGlobalGeneralConst(ctx, gv, zeroValue, generalConstantDescriptor{
 			kind:     generalConstantCompositeZero,
-			typeDesc: reflectTypeToDescriptor(typeToReflect(ctx, typeObject.Type().Underlying(), c.symbols)),
+			typeDesc: reflectTypeToDescriptor(c.typeToReflect(ctx, typeObject.Type().Underlying())),
 		})
 	}
 }
@@ -690,6 +713,7 @@ func (c *compiler) compileValueSpec(ctx context.Context, spec *ast.ValueSpec) (v
 			if err != nil {
 				return varLocation{}, err
 			}
+			valLocation = c.coerceEvalBoolResult(ctx, c.info, spec.Values[i], valLocation)
 			c.emitMove(ctx, location, valLocation)
 			continue
 		}
@@ -735,14 +759,14 @@ func (c *compiler) emitLocalZeroValue(ctx context.Context, typeObject types.Obje
 	if zeroValue, ok := c.zeroValueForCompositeType(ctx, typeObject.Type()); ok {
 		constIndex := c.function.addGeneralConstant(zeroValue, generalConstantDescriptor{
 			kind:     generalConstantCompositeZero,
-			typeDesc: reflectTypeToDescriptor(typeToReflect(ctx, typeObject.Type().Underlying(), c.symbols)),
+			typeDesc: reflectTypeToDescriptor(c.typeToReflect(ctx, typeObject.Type().Underlying())),
 		})
 		c.function.emitWide(opLoadGeneralConst, location.register, constIndex)
 		return
 	}
 
 	if _, isInterface := typeObject.Type().Underlying().(*types.Interface); !isInterface {
-		if reflectType := typeToReflect(ctx, typeObject.Type().Underlying(), c.symbols); reflectType != nil {
+		if reflectType := c.typeToReflect(ctx, typeObject.Type().Underlying()); reflectType != nil {
 			constIndex := c.function.addGeneralConstant(reflect.Zero(reflectType), generalConstantDescriptor{
 				kind:     generalConstantCompositeZero,
 				typeDesc: reflectTypeToDescriptor(reflectType),
@@ -763,7 +787,7 @@ func (c *compiler) emitLocalZeroValue(ctx context.Context, typeObject types.Obje
 // Returns an addressable zero reflect.Value and true if the underlying type
 // is an array or struct, or a zero reflect.Value and false otherwise.
 func (c *compiler) zeroValueForCompositeType(ctx context.Context, t types.Type) (reflect.Value, bool) {
-	reflectType := typeToReflect(ctx, t.Underlying(), c.symbols)
+	reflectType := c.typeToReflect(ctx, t.Underlying())
 	if reflectType == nil {
 		return reflect.Value{}, false
 	}

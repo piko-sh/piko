@@ -745,9 +745,9 @@ func WithProfilingRollingTraceMaxBytes(maxBytes uint64) ProfilingOption {
 }
 
 // WithAutoMemoryLimit configures the Go runtime to set GOMEMLIMIT based on
-// the container's cgroup memory limit. 
+// the container's cgroup memory limit.
 //
-// This prevents OOM kills in containerised deployments by making the 
+// This prevents OOM kills in containerised deployments by making the
 // garbage collector aware of the memory ceiling.
 //
 // The provider function is called during bootstrap and should return the

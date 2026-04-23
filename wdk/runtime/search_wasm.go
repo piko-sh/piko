@@ -22,6 +22,7 @@ package runtime
 
 import (
 	"errors"
+	"reflect"
 
 	"piko.sh/piko/internal/templater/templater_dto"
 )
@@ -49,4 +50,33 @@ func SearchCollection[T any](
 // Returns error when called, as search is unavailable.
 func QuickSearch[T any](_ *templater_dto.RequestData, _ string, _ string) ([]T, error) {
 	return nil, errSearchNotAvailable
+}
+
+// SearchCollectionLink is not available in WASM builds.
+//
+// Takes tType (reflect.Type) which is the instantiated type argument.
+//
+// Returns a zero-length reflect slice and errSearchNotAvailable.
+func SearchCollectionLink(
+	tType reflect.Type,
+	_ *templater_dto.RequestData,
+	_ string,
+	_ string,
+	_ ...SearchOption,
+) (reflect.Value, error) {
+	return reflect.MakeSlice(reflect.SliceOf(tType), 0, 0), errSearchNotAvailable
+}
+
+// QuickSearchLink is not available in WASM builds.
+//
+// Takes tType (reflect.Type) which is the instantiated type argument.
+//
+// Returns a zero-length reflect slice and errSearchNotAvailable.
+func QuickSearchLink(
+	tType reflect.Type,
+	_ *templater_dto.RequestData,
+	_ string,
+	_ string,
+) (reflect.Value, error) {
+	return reflect.MakeSlice(reflect.SliceOf(tType), 0, 0), errSearchNotAvailable
 }

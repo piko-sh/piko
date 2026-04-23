@@ -39,6 +39,14 @@ const (
 	// reflectPackage is the package name used in AST nodes for the reflect
 	// import.
 	reflectPackage = "reflect"
+
+	// interpLinkPackage is the short name used in AST nodes for the
+	// interp_link import. The full import path is interpLinkImportPath.
+	interpLinkPackage = "interp_link"
+
+	// interpLinkImportPath is the public path holding the
+	// LinkedFunction sentinel and the Wrap helper.
+	interpLinkImportPath = "piko.sh/piko/wdk/interp/interp_link"
 )
 
 // wrapperMeta holds metadata about a generated wrapper function for
@@ -88,11 +96,14 @@ func GenerateFile(extractedPackage ExtractedPackage, outputPackage string, gener
 		}
 	}
 
-	if len(symbols) == 0 && len(wrapperDecls) == 0 {
+	linkedEntries := buildLinkedEntries(extractedPackage, alias)
+	linkedEntries = append(linkedEntries, buildLinkedTypeEntries(extractedPackage)...)
+
+	if len(symbols) == 0 && len(wrapperDecls) == 0 && len(linkedEntries) == 0 {
 		return nil, nil
 	}
 
-	mapEntries := buildMapEntries(symbols, wrapperMetas)
+	mapEntries := buildMapEntries(symbols, wrapperMetas, linkedEntries)
 	initFunc := buildInitFuncAST(extractedPackage.ImportPath, mapEntries)
 
 	var decls []ast.Decl
@@ -115,6 +126,9 @@ func GenerateFile(extractedPackage ExtractedPackage, outputPackage string, gener
 	}
 	if len(wrapperDecls) > 0 {
 		goastutil.AddImport(fset, file, "fmt")
+	}
+	if len(linkedEntries) > 0 {
+		goastutil.AddImport(fset, file, interpLinkImportPath)
 	}
 
 	formatted, err := goastutil.FormatAST(fset, file)
@@ -140,6 +154,58 @@ func GenerateFile(extractedPackage ExtractedPackage, outputPackage string, gener
 func OutputFileName(importPath string) string {
 	safe := strings.ReplaceAll(importPath, "/", "_")
 	return "gen_" + safe + ".go"
+}
+
+// GenerateRegisterFile produces the bootstrapping Go source that
+// declares the package-level Symbols map that every gen_*.go file's
+// init() populates. Without this file the per-package generated
+// files fail to compile with "undefined: Symbols".
+//
+// Takes outputPackage (string) which specifies the Go package name
+// for the generated file.
+//
+// Returns the formatted Go source bytes or an error if formatting
+// fails.
+func GenerateRegisterFile(outputPackage string) ([]byte, error) {
+	fset := token.NewFileSet()
+	file := &ast.File{
+		Name: goastutil.CachedIdent(outputPackage),
+		Decls: []ast.Decl{
+			&ast.GenDecl{
+				Tok: token.VAR,
+				Specs: []ast.Spec{
+					&ast.ValueSpec{
+						Names: []*ast.Ident{goastutil.CachedIdent("Symbols")},
+						Values: []ast.Expr{
+							&ast.CallExpr{
+								Fun: goastutil.CachedIdent("make"),
+								Args: []ast.Expr{
+									&ast.MapType{
+										Key: goastutil.CachedIdent("string"),
+										Value: &ast.MapType{
+											Key: goastutil.CachedIdent("string"),
+											Value: &ast.SelectorExpr{
+												X:   goastutil.CachedIdent(reflectPackage),
+												Sel: goastutil.CachedIdent("Value"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	goastutil.AddImport(fset, file, reflectPackage)
+
+	formatted, err := goastutil.FormatAST(fset, file)
+	if err != nil {
+		return nil, fmt.Errorf("formatting register file: %w", err)
+	}
+	return append([]byte(generatedFileHeader), formatted...), nil
 }
 
 // GenerateTypesLoaderFile produces the Go source for the types_loader
@@ -251,16 +317,19 @@ func buildSymbolEntries(extractedPackage ExtractedPackage, alias string) []symbo
 }
 
 // buildMapEntries constructs the AST key-value expressions for the
-// symbol map literal from both regular symbols and wrapper metas.
+// symbol map literal from regular symbols, generated wrappers, and
+// //piko:link-backed linked generics.
 //
 // Takes symbols ([]symbolEntry) which provides the regular symbol
 // entries.
 // Takes wrapperMetas ([]wrapperMeta) which provides the generated
 // wrapper metadata.
+// Takes linkedEntries ([]symbolEntry) which provides linked generic
+// entries (reflect.ValueOf(interp_link.Wrap(...)) calls).
 //
 // Returns a slice of AST key-value expressions for the map literal.
-func buildMapEntries(symbols []symbolEntry, wrapperMetas []wrapperMeta) []ast.Expr {
-	mapEntries := make([]ast.Expr, 0, len(symbols)+len(wrapperMetas))
+func buildMapEntries(symbols []symbolEntry, wrapperMetas []wrapperMeta, linkedEntries []symbolEntry) []ast.Expr {
+	mapEntries := make([]ast.Expr, 0, len(symbols)+len(wrapperMetas)+len(linkedEntries))
 	for _, s := range symbols {
 		mapEntries = append(mapEntries, goastutil.KeyValueExpr(goastutil.StrLit(s.name), s.expression))
 	}
@@ -273,7 +342,48 @@ func buildMapEntries(symbols []symbolEntry, wrapperMetas []wrapperMeta) []ast.Ex
 			),
 		))
 	}
+	for _, link := range linkedEntries {
+		mapEntries = append(mapEntries, goastutil.KeyValueExpr(
+			goastutil.StrLit(link.name),
+			link.expression,
+		))
+	}
 	return mapEntries
+}
+
+// buildLinkedEntries produces symbolEntry values for every generic
+// function annotated with //piko:link in the source package. Each
+// expression evaluates to reflect.ValueOf(interp_link.Wrap(N, pkg.Sibling)).
+//
+// Takes extractedPackage (ExtractedPackage) which holds the parsed
+// LinkedGenericFuncInfo entries for the package.
+// Takes alias (string) which is the import alias for the target
+// package used to qualify the sibling reference.
+//
+// Returns a slice of symbolEntry values keyed by the generic's
+// exported name so user .pk code calling pkg.Name[T] resolves
+// through the linked symbol.
+func buildLinkedEntries(extractedPackage ExtractedPackage, alias string) []symbolEntry {
+	if len(extractedPackage.LinkedGenericFuncs) == 0 {
+		return nil
+	}
+	entries := make([]symbolEntry, 0, len(extractedPackage.LinkedGenericFuncs))
+	for _, link := range extractedPackage.LinkedGenericFuncs {
+		reflectValueOf := goastutil.SelectorExpr(reflectPackage, "ValueOf")
+		wrapCall := goastutil.CallExpr(
+			goastutil.SelectorExpr(interpLinkPackage, "WrapFunc"),
+			goastutil.IntLit(link.TypeArgCount),
+			goastutil.SelectorExpr(alias, link.LinkTarget),
+			buildGenericFieldTypeSliceExpr(link.Params),
+			buildGenericFieldTypeSliceExpr(link.Results),
+			goastutil.CachedIdent(boolLiteral(link.Variadic)),
+		)
+		entries = append(entries, symbolEntry{
+			name:       link.Name,
+			expression: goastutil.CallExpr(reflectValueOf, wrapCall),
+		})
+	}
+	return entries
 }
 
 // buildInitFuncAST constructs the init() function declaration that

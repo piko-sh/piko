@@ -234,6 +234,7 @@ func (c *compiler) compileReturnExprs(ctx context.Context, statement *ast.Return
 		if err != nil {
 			return nil, err
 		}
+		location = c.coerceEvalBoolResult(ctx, c.info, result, location)
 		if len(statement.Results) > 1 {
 			tmp := c.scopes.alloc.allocTemp(location.kind)
 			tmpLocation := varLocation{register: tmp, kind: location.kind}
@@ -1032,7 +1033,7 @@ func (c *compiler) compileTypeSwitchCase(ctx context.Context,
 		if basic, ok := tv.Type.(*types.Basic); ok && basic.Kind() == types.UntypedNil {
 			reflectType = nil
 		} else {
-			reflectType = typeToReflect(ctx, tv.Type, c.symbols)
+			reflectType = c.typeToReflect(ctx, tv.Type)
 		}
 		typeIndex := c.function.addTypeRef(reflectType)
 

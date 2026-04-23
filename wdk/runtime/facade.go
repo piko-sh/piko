@@ -21,11 +21,7 @@ package runtime
 import (
 	"context"
 	"fmt"
-
-	// These imports point to the internal implementation. This is allowed because
-	// this facade package is part of the same Go module. Consumers of the
-	// framework outside this module will be prevented from importing these by the
-	// Go compiler.
+	"reflect"
 	"piko.sh/piko/internal/ast/ast_adapters"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
@@ -894,8 +890,26 @@ func (e *collectionNotFoundError) Unwrap() error { return e.cause }
 //
 // Returns T which is the page data converted to the specified type, or the zero
 // value if conversion fails.
+//
+//piko:link GetDataLink
 func GetData[T any](r *templater_dto.RequestData) T {
 	return generator_helpers.GetData[T](r)
+}
+
+// GetDataLink is the //piko:link sibling for GetData. The interpreter
+// dispatches to this function when a .pk file calls GetData[T] with a
+// user-defined T that has no compiled instantiation in the binary.
+//
+// Takes tType (reflect.Type) which is the instantiated type argument
+// the user wrote in the brackets.
+// Takes r (*templater_dto.RequestData) which contains the
+// CollectionData to extract.
+//
+// Returns a reflect.Value of concrete type tType, either populated from
+// the collection's "page" map or a zero value when conversion fails.
+func GetDataLink(tType reflect.Type, r *templater_dto.RequestData) reflect.Value {
+	value, _ := generator_helpers.GetDataReflect(r, tType)
+	return value
 }
 
 // GenerateLocaleHead generates internationalisation SEO metadata for a page. It

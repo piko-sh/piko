@@ -33,6 +33,10 @@ var (
 	// is outside the valid range [0, len).
 	errIndexOutOfRange = errors.New("index out of range")
 
+	// errNilPointerIndex is returned when an index operation is applied
+	// to a nil pointer (e.g. indexing a nil *[N]T).
+	errNilPointerIndex = errors.New("index of nil pointer")
+
 	// errSliceOutOfRange is returned when slice bounds are outside the
 	// valid range or low exceeds high.
 	errSliceOutOfRange = errors.New("slice bounds out of range")
@@ -102,4 +106,26 @@ var (
 	// (slice, array, map) has more elements than the configured
 	// maximum set via WithMaxLiteralElements.
 	errLiteralElementLimit = errors.New("literal element count limit exceeded")
+
+	// errPackageNotInRegistry is returned when the go/types Importer
+	// cannot locate an interpreted package in the symbol registry.
+	// Typically means a transitive dependency is missing from
+	// piko-symbols.yaml.
+	errPackageNotInRegistry = errors.New("package not registered with interpreter")
+
+	// errLinkedSiblingPanic wraps any panic recovered while invoking
+	// a //piko:link-routed sibling. The usual cause is a stale
+	// generated symbol file whose descriptors no longer match the
+	// sibling's real signature.
+	errLinkedSiblingPanic = errors.New("linked sibling invocation panicked")
+
+	// errLinkedSiblingShapeMismatch is returned when argument arity
+	// or kind checks on a //piko:link sibling fail before the call
+	// is attempted, so the VM reports a structured error instead of
+	// delegating to reflect.Call's panic.
+	errLinkedSiblingShapeMismatch = errors.New("linked sibling signature does not match call site")
+
+	// errNativeCallPanic wraps any panic recovered while invoking a
+	// registered native function via reflect.Call.
+	errNativeCallPanic = errors.New("native call panicked")
 )
