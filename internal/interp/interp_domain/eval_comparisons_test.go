@@ -227,3 +227,61 @@ func main() {}
 		})
 	}
 }
+
+func TestEvalBoolComparisonBoxedAsAny(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		expect any
+		name   string
+		source string
+	}{
+		{
+			name: "bool_compare_returned_as_any",
+			source: `package main
+
+func produce(a, b int) any { return a < b }
+func run() bool {
+	v := produce(1, 2)
+	return v.(bool)
+}
+func main() {}
+`,
+			expect: true,
+		},
+		{
+			name: "bool_compare_stored_as_any",
+			source: `package main
+
+func run() bool {
+	var v any = 1 < 2
+	return v.(bool)
+}
+func main() {}
+`,
+			expect: true,
+		},
+		{
+			name: "bool_compare_in_slice_any",
+			source: `package main
+
+func run() bool {
+	xs := []any{1 < 2, 1 > 2}
+	return xs[0].(bool) && !xs[1].(bool)
+}
+func main() {}
+`,
+			expect: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			service := NewService()
+			result, err := service.EvalFile(context.Background(), tt.source, "run")
+			require.NoError(t, err)
+			require.Equal(t, tt.expect, result)
+		})
+	}
+}

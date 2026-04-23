@@ -713,6 +713,7 @@ func (c *compiler) compileValueSpec(ctx context.Context, spec *ast.ValueSpec) (v
 			if err != nil {
 				return varLocation{}, err
 			}
+			valLocation = c.coerceEvalBoolResult(ctx, c.info, spec.Values[i], valLocation)
 			c.emitMove(ctx, location, valLocation)
 			continue
 		}

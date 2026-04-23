@@ -289,4 +289,3 @@ func marshalBounded(value any, limitBytes int) ([]byte, error) {
 	}
 	return bytes.TrimRight(writer.buf.Bytes(), "\n"), nil
 }
-

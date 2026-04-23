@@ -564,6 +564,11 @@ func (c *compiler) emitMultiReturnCall(ctx context.Context, callExpr *ast.CallEx
 
 // compileArgExprs compiles all argument expressions for a call.
 //
+// Bool-typed expressions whose results land in an int register (for
+// example the result of a comparison such as `a != ""`) are coerced
+// to a bool register so that downstream boxing into an interface{}
+// parameter reflects the source type rather than int64.
+//
 // Takes callExpr (*ast.CallExpr) which is the call expression whose
 // arguments are compiled.
 //
@@ -575,7 +580,7 @@ func (c *compiler) compileArgExprs(ctx context.Context, callExpr *ast.CallExpr) 
 		if err != nil {
 			return nil, err
 		}
-		argLocs[i] = location
+		argLocs[i] = c.coerceEvalBoolResult(ctx, c.info, arg, location)
 	}
 	return argLocs, nil
 }

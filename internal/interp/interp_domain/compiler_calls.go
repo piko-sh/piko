@@ -229,7 +229,7 @@ func (c *compiler) compileCallArgs(ctx context.Context, expression *ast.CallExpr
 			if err != nil {
 				return nil, err
 			}
-			argLocs[i] = location
+			argLocs[i] = c.coerceEvalBoolResult(ctx, c.info, arg, location)
 		}
 		return argLocs, nil
 	}
@@ -242,7 +242,7 @@ func (c *compiler) compileCallArgs(ctx context.Context, expression *ast.CallExpr
 		if err != nil {
 			return nil, err
 		}
-		argLocs[i] = location
+		argLocs[i] = c.coerceEvalBoolResult(ctx, c.info, expression.Args[i], location)
 	}
 
 	typeObject := c.info.Uses[expression.Fun.(*ast.Ident)]
@@ -269,6 +269,7 @@ func (c *compiler) compileCallArgs(ctx context.Context, expression *ast.CallExpr
 		if err != nil {
 			return nil, err
 		}
+		location = c.coerceEvalBoolResult(ctx, c.info, expression.Args[i], location)
 		c.boxToGeneralTemp(ctx, &location)
 		indexRegister := c.scopes.alloc.allocTemp(registerInt)
 		c.function.emitWide(opLoadIntConst, indexRegister, c.function.addIntConstant(int64(i-numFixed)))
@@ -669,7 +670,7 @@ func (c *compiler) compileNativeCallFromLocation(ctx context.Context, expression
 		if err != nil {
 			return varLocation{}, err
 		}
-		argLocs[i] = location
+		argLocs[i] = c.coerceEvalBoolResult(ctx, c.info, arg, location)
 	}
 
 	var returnLocs []varLocation

@@ -79,6 +79,7 @@ func (c *compiler) compileArrayLiteral(ctx context.Context, lit *ast.CompositeLi
 		if err != nil {
 			return varLocation{}, err
 		}
+		elemLocation = c.coerceEvalBoolResult(ctx, c.info, elt, elemLocation)
 
 		idxConst := c.function.addIntConstant(int64(i))
 		indexRegister := c.scopes.alloc.allocTemp(registerInt)
@@ -129,6 +130,7 @@ func (c *compiler) compileSliceLiteral(ctx context.Context, lit *ast.CompositeLi
 		if err != nil {
 			return varLocation{}, err
 		}
+		elemLocation = c.coerceEvalBoolResult(ctx, c.info, elt, elemLocation)
 
 		idxConst := c.function.addIntConstant(int64(i))
 		indexRegister := c.scopes.alloc.allocTemp(registerInt)
@@ -177,10 +179,12 @@ func (c *compiler) compileMapLiteral(ctx context.Context, lit *ast.CompositeLit,
 		if err != nil {
 			return varLocation{}, err
 		}
+		keyLocation = c.coerceEvalBoolResult(ctx, c.info, kv.Key, keyLocation)
 		valLocation, err := c.compileExpression(ctx, kv.Value)
 		if err != nil {
 			return varLocation{}, err
 		}
+		valLocation = c.coerceEvalBoolResult(ctx, c.info, kv.Value, valLocation)
 
 		c.boxToGeneralTemp(ctx, &keyLocation)
 		c.boxToGeneralTemp(ctx, &valLocation)

@@ -65,6 +65,9 @@ func coerceClosureToFunc(vm *VM, value reflect.Value, targetType reflect.Type) r
 		freshVM.initialiseASMDispatch()
 		defer freshVM.releaseArena()
 		result := freshVM.callClosureReflect(closure, arguments, targetType)
+		if freshVM.evalError != nil {
+			panic(fmt.Errorf("interp: native-wrapped closure failed: %w", freshVM.evalError))
+		}
 		return result
 	})
 }
@@ -109,7 +112,11 @@ func closureCallableValue(vm *VM, value reflect.Value) reflect.Value {
 		freshVM.ensureCallStack()
 		freshVM.initialiseASMDispatch()
 		defer freshVM.releaseArena()
-		return freshVM.callClosureReflect(closure, arguments, funcType)
+		result := freshVM.callClosureReflect(closure, arguments, funcType)
+		if freshVM.evalError != nil {
+			panic(fmt.Errorf("interp: native-wrapped closure failed: %w", freshVM.evalError))
+		}
+		return result
 	})
 }
 

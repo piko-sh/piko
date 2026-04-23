@@ -263,7 +263,7 @@ func (c *compiler) compileLinkedNativeCall(
 		if err != nil {
 			return varLocation{}, err
 		}
-		argLocs[argIndex] = location
+		argLocs[argIndex] = c.coerceEvalBoolResult(ctx, c.info, arg, location)
 	}
 
 	var returnLocs []varLocation

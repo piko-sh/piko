@@ -177,6 +177,7 @@ func (c *compiler) compileBuiltinAppend(ctx context.Context, expression *ast.Cal
 		if err != nil {
 			return varLocation{}, err
 		}
+		location = c.coerceEvalBoolResult(ctx, c.info, expression.Args[i], location)
 		if typedAppendOp != 0 && location.kind == typedAppendKind {
 			dest := c.scopes.alloc.alloc(registerGeneral)
 			c.function.emit(typedAppendOp, dest, sliceLocation.register, location.register)

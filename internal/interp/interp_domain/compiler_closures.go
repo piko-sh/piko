@@ -1403,6 +1403,7 @@ func (c *compiler) compileStructField(ctx context.Context, dest uint8, positiona
 	if err != nil {
 		return err
 	}
+	valLocation = c.coerceEvalBoolResult(ctx, c.info, valExpr, valLocation)
 
 	c.emitStructFieldSet(ctx, dest, safeconv.MustIntToUint8(fieldIndex), valLocation)
 	return nil

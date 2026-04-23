@@ -234,6 +234,7 @@ func (c *compiler) compileReturnExprs(ctx context.Context, statement *ast.Return
 		if err != nil {
 			return nil, err
 		}
+		location = c.coerceEvalBoolResult(ctx, c.info, result, location)
 		if len(statement.Results) > 1 {
 			tmp := c.scopes.alloc.allocTemp(location.kind)
 			tmpLocation := varLocation{register: tmp, kind: location.kind}

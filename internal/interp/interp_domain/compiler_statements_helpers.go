@@ -1090,6 +1090,7 @@ func (c *compiler) compileSend(ctx context.Context, statement *ast.SendStmt) (va
 	if err != nil {
 		return varLocation{}, err
 	}
+	valLocation = c.coerceEvalBoolResult(ctx, c.info, statement.Value, valLocation)
 
 	c.function.emit(opChanSend, chLocation.register, valLocation.register, uint8(valLocation.kind))
 

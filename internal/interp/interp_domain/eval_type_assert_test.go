@@ -109,6 +109,36 @@ v := x.(string)
 v`,
 			expect: "hello",
 		},
+		{
+			name: "assert interface to bool then branch",
+			code: `var x interface{} = true
+result := "no"
+if x.(bool) {
+	result = "yes"
+}
+result`,
+			expect: "yes",
+		},
+		{
+			name: "assert interface to bool false then branch",
+			code: `var x interface{} = false
+result := "no"
+if x.(bool) {
+	result = "yes"
+}
+result`,
+			expect: "no",
+		},
+		{
+			name: "assert function result to bool as if condition",
+			code: `pick := func(v interface{}) interface{} { return v }
+result := "no"
+if pick(true).(bool) {
+	result = "yes"
+}
+result`,
+			expect: "yes",
+		},
 	}
 
 	for _, tt := range tests {
