@@ -38,6 +38,9 @@ import (
 // Takes targetType (reflect.Type) which is the desired func type.
 //
 // Returns reflect.Value wrapping the closure as the target func type.
+//
+// Panics if the wrapped closure fails at call time, since
+// reflect.MakeFunc has no error channel.
 func coerceClosureToFunc(vm *VM, value reflect.Value, targetType reflect.Type) reflect.Value {
 	if targetType.Kind() != reflect.Func {
 		return value
@@ -79,6 +82,9 @@ func coerceClosureToFunc(vm *VM, value reflect.Value, targetType reflect.Type) r
 // Takes value (reflect.Value) which holds the runtimeClosure to wrap.
 //
 // Returns reflect.Value holding a reflect.Func with the derived signature.
+//
+// Panics if the wrapped closure fails at call time, since
+// reflect.MakeFunc has no error channel.
 func closureCallableValue(vm *VM, value reflect.Value) reflect.Value {
 	closure, ok := reflect.TypeAssert[*runtimeClosure](value)
 	if !ok {

@@ -664,12 +664,13 @@ func (c *compiler) ensureIntRegister(_ context.Context, location *varLocation) {
 	}
 }
 
-// ensureIntForBranch converts a variable location to an int register for
-// use in branch instructions. Bool registers are converted via
-// opBoolToInt; general (interface) registers are first unpacked to a
-// bool register via opUnpackInterface and then converted to int. The
-// general path is required because type-assert results (e.g.
-// v.(bool)) land in the general bank but opJumpIfFalse reads from int.
+// ensureIntForBranch converts a location to an int register for branching.
+//
+// Bool registers are converted via opBoolToInt; general (interface)
+// registers are first unpacked to a bool register via
+// opUnpackInterface and then converted to int. The general path is
+// required because type-assert results (e.g. v.(bool)) land in the
+// general bank but opJumpIfFalse reads from int.
 //
 // Takes location (varLocation) which is the variable location to
 // convert.

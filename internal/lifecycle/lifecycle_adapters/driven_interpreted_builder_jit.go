@@ -814,8 +814,8 @@ func (o *InterpretedBuildOrchestrator) createInstancePageEntry(
 //
 // data, others use zero values.
 //
-// Takes manifest (*generator_dto.Manifest) which holds the page, partial, and
-// email data to search.
+// Takes manifest (*generator_dto.Manifest) which holds the page, partial,
+// email, and error page data to search.
 // Takes sourcePath (string) which identifies the entry to find.
 //
 // Returns *templater_adapters.PageEntry which wraps the found manifest data,
@@ -844,6 +844,25 @@ func createPageEntryFromManifest(manifest *generator_dto.Manifest, sourcePath st
 				StyleBlock:          emailData.StyleBlock,
 				HasSupportedLocales: emailData.HasSupportedLocales,
 				LocalTranslations:   emailData.LocalTranslations,
+			},
+		}
+	}
+	if errorData, ok := manifest.ErrorPages[sourcePath]; ok {
+		return &templater_adapters.PageEntry{
+			ManifestPageEntry: generator_dto.ManifestPageEntry{
+				PackagePath:        errorData.PackagePath,
+				OriginalSourcePath: errorData.OriginalSourcePath,
+				StyleBlock:         errorData.StyleBlock,
+				JSArtefactIDs:      errorData.JSArtefactIDs,
+				CustomTags:         errorData.CustomTags,
+				IsE2EOnly:          errorData.IsE2EOnly,
+			},
+			ErrorDispatch: &templater_adapters.ErrorPageDispatch{
+				ScopePath:     errorData.ScopePath,
+				StatusCode:    errorData.StatusCode,
+				StatusCodeMin: errorData.StatusCodeMin,
+				StatusCodeMax: errorData.StatusCodeMax,
+				IsCatchAll:    errorData.IsCatchAll,
 			},
 		}
 	}
