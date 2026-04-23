@@ -133,6 +133,11 @@ type VM struct {
 	// callStack[fp].
 	callStack []callFrame
 
+	// rootSnapshots runs parallel to callStack; entry i holds the
+	// dispatch state to restore when frame i returns, or nil when no
+	// swap happened at push time.
+	rootSnapshots []*frameRootSnapshot
+
 	// functions is the program-level function table. All compiled
 	// functions are stored here, referenced by index from CallSites.
 	functions []*CompiledFunction
@@ -466,6 +471,11 @@ func (vm *VM) ensureCallStack() {
 	if vm.callStack == nil {
 		vm.callStack = vm.arena.frameStack()
 	}
+	if cap(vm.rootSnapshots) < len(vm.callStack) {
+		vm.rootSnapshots = make([]*frameRootSnapshot, len(vm.callStack))
+	} else {
+		vm.rootSnapshots = vm.rootSnapshots[:len(vm.callStack)]
+	}
 }
 
 // initialiseASMDispatch allocates the parallel ASM dispatch arrays
@@ -624,6 +634,13 @@ func (vm *VM) growCallStack() {
 			vm.asmDispatchSaves = newDisp
 		}
 	}
+	if cap(vm.rootSnapshots) < len(vm.callStack) {
+		grown := make([]*frameRootSnapshot, len(vm.callStack))
+		copy(grown, vm.rootSnapshots)
+		vm.rootSnapshots = grown
+	} else {
+		vm.rootSnapshots = vm.rootSnapshots[:len(vm.callStack)]
+	}
 }
 
 // pushFrame pushes a new call frame for the given function.
@@ -658,8 +675,16 @@ func (vm *VM) pushFrame(compiledFunction *CompiledFunction) {
 // If the arena is in use, restores it to the save point recorded when
 // the frame was pushed, reclaiming the frame's register slots.
 func (vm *VM) popFrame() {
+	frame := &vm.callStack[vm.framePointer]
+	if vm.framePointer < len(vm.rootSnapshots) {
+		if snapshot := vm.rootSnapshots[vm.framePointer]; snapshot != nil {
+			vm.functions = snapshot.functions
+			vm.rootFunction = snapshot.rootFunction
+			vm.rootSnapshots[vm.framePointer] = nil
+		}
+	}
 	if vm.arena != nil {
-		vm.arena.Restore(vm.callStack[vm.framePointer].arenaSave)
+		vm.arena.Restore(frame.arenaSave)
 	}
 	vm.framePointer--
 }
@@ -911,6 +936,8 @@ func (vm *VM) copyReturnValueAt(calleeFrame *callFrame, kind registerKind, srcRe
 func (vm *VM) callClosureReflect(closure *runtimeClosure, arguments []reflect.Value, funcType reflect.Type) []reflect.Value {
 	callee := closure.function
 
+	snapshot := vm.swapToClosureRoot(closure.rootFunction)
+
 	vm.framePointer++
 	if vm.framePointer >= len(vm.callStack) {
 		vm.growCallStack()
@@ -929,6 +956,7 @@ func (vm *VM) callClosureReflect(closure *runtimeClosure, arguments []reflect.Va
 	f.deferBase = len(vm.deferStack)
 	f.upvalues = nil
 	f.sharedCells = nil
+	vm.recordFrameSnapshot(closureFp, snapshot)
 	if closure.upvalues != nil {
 		f.initialiseUpvalues(closure.upvalues)
 	}
@@ -951,6 +979,11 @@ func (vm *VM) callClosureReflect(closure *runtimeClosure, arguments []reflect.Va
 type runtimeClosure struct {
 	// function is the compiled function that this closure executes.
 	function *CompiledFunction
+
+	// rootFunction is the compile root whose .functions slice resolves
+	// any funcIndex references in function's bytecode; nil falls back
+	// to the current VM's rootFunction.
+	rootFunction *CompiledFunction
 
 	// upvalues holds the captured variable cells shared with the enclosing scope.
 	upvalues []*upvalueCell
@@ -1168,11 +1201,14 @@ func (vm *VM) executeDeferredCall(d deferredCall) {
 		}
 	}
 
+	snapshot := vm.swapToClosureRoot(d.function.rootFunction)
+
 	vm.framePointer++
 	if vm.framePointer >= len(vm.callStack) {
 		vm.growCallStack()
 	}
 	vm.callStack[vm.framePointer] = newFrame
+	vm.recordFrameSnapshot(vm.framePointer, snapshot)
 
 	_, _ = vm.runDispatched(vm.framePointer)
 }

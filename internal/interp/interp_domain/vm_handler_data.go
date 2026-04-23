@@ -22,7 +22,14 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+
+	"piko.sh/piko/internal/logger/logger_domain"
 )
+
+// errorInterfaceType is the reflect.Type of the built-in error
+// interface, used to detect whether a wrapped closure's signature has
+// a trailing error return slot we can thread a failure into.
+var errorInterfaceType = reflect.TypeFor[error]()
 
 // coerceClosureToFunc converts a runtimeClosure value to a reflect.Func
 // matching the target type by wrapping it in reflect.MakeFunc.
@@ -38,9 +45,6 @@ import (
 // Takes targetType (reflect.Type) which is the desired func type.
 //
 // Returns reflect.Value wrapping the closure as the target func type.
-//
-// Panics if the wrapped closure fails at call time, since
-// reflect.MakeFunc has no error channel.
 func coerceClosureToFunc(vm *VM, value reflect.Value, targetType reflect.Type) reflect.Value {
 	if targetType.Kind() != reflect.Func {
 		return value
@@ -69,7 +73,7 @@ func coerceClosureToFunc(vm *VM, value reflect.Value, targetType reflect.Type) r
 		defer freshVM.releaseArena()
 		result := freshVM.callClosureReflect(closure, arguments, targetType)
 		if freshVM.evalError != nil {
-			panic(fmt.Errorf("interp: native-wrapped closure failed: %w", freshVM.evalError))
+			return buildClosureErrorReturns(ctx, targetType, freshVM.evalError)
 		}
 		return result
 	})
@@ -78,13 +82,15 @@ func coerceClosureToFunc(vm *VM, value reflect.Value, targetType reflect.Type) r
 // closureCallableValue wraps a runtimeClosure in a reflect.Func with
 // a signature derived from its compiled function's parameter and result kinds.
 //
+// When the wrapped closure fails at call time, the failure is threaded
+// into the signature's trailing error return (if present) and
+// non-error slots are filled with zero values; signatures without an
+// error slot log the failure and return all zero values.
+//
 // Takes vm (*VM) which provides context for the closure invocation.
 // Takes value (reflect.Value) which holds the runtimeClosure to wrap.
 //
 // Returns reflect.Value holding a reflect.Func with the derived signature.
-//
-// Panics if the wrapped closure fails at call time, since
-// reflect.MakeFunc has no error channel.
 func closureCallableValue(vm *VM, value reflect.Value) reflect.Value {
 	closure, ok := reflect.TypeAssert[*runtimeClosure](value)
 	if !ok {
@@ -120,10 +126,40 @@ func closureCallableValue(vm *VM, value reflect.Value) reflect.Value {
 		defer freshVM.releaseArena()
 		result := freshVM.callClosureReflect(closure, arguments, funcType)
 		if freshVM.evalError != nil {
-			panic(fmt.Errorf("interp: native-wrapped closure failed: %w", freshVM.evalError))
+			return buildClosureErrorReturns(ctx, funcType, freshVM.evalError)
 		}
 		return result
 	})
+}
+
+// buildClosureErrorReturns builds the zero-value return slots a failed
+// reflect.MakeFunc wrapper must hand back to its caller.
+//
+// Takes targetType (reflect.Type) which is the wrapped function type
+// whose return slots are being built.
+// Takes err (error) which is the interpreter-side failure.
+//
+// Returns []reflect.Value matching the target signature's outputs.
+func buildClosureErrorReturns(ctx context.Context, targetType reflect.Type, err error) []reflect.Value {
+	numOut := targetType.NumOut()
+	if numOut == 0 {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("interp: wrapped closure failed with no error return slot", logger_domain.Error(err))
+		return nil
+	}
+	returns := make([]reflect.Value, numOut)
+	lastIsError := targetType.Out(numOut-1) == errorInterfaceType
+	for i := range numOut - 1 {
+		returns[i] = reflect.Zero(targetType.Out(i))
+	}
+	if lastIsError {
+		returns[numOut-1] = reflect.ValueOf(err)
+		return returns
+	}
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("interp: wrapped closure failed with no error return slot", logger_domain.Error(err))
+	returns[numOut-1] = reflect.Zero(targetType.Out(numOut - 1))
+	return returns
 }
 
 // handleMakeSlice handles the opMakeSlice instruction by creating a

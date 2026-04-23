@@ -217,7 +217,7 @@ func (s *Service) bridgePackageExports(importPath string, result *packageCompile
 		if !ast.IsExported(name) || strings.Contains(name, ".") {
 			continue
 		}
-		closure := &runtimeClosure{function: result.rootFunction.functions[index]}
+		closure := &runtimeClosure{function: result.rootFunction.functions[index], rootFunction: result.rootFunction}
 		exports[name] = reflect.ValueOf(closure)
 	}
 

@@ -209,6 +209,7 @@ func handleCall(vm *VM, frame *callFrame, registers *Registers, instruction inst
 	site := &frame.function.callSites[siteIndex]
 	var callee *CompiledFunction
 	var closureCells []*upvalueCell
+	var closureRoot *CompiledFunction
 	if !site.isClosure {
 		if int(site.funcIndex) >= len(vm.functions) {
 			vmBoundsError(vm, frame, boundsTableFunction, int(site.funcIndex), len(vm.functions))
@@ -223,10 +224,12 @@ func handleCall(vm *VM, frame *callFrame, registers *Registers, instruction inst
 		}
 		callee = closure.function
 		closureCells = closure.upvalues
+		closureRoot = closure.rootFunction
 	}
 	if vm.framePointer >= vm.callDepthLimit() {
 		return opStackOverflow
 	}
+	snapshot := vm.swapToClosureRoot(closureRoot)
 	vm.framePointer++
 	if vm.framePointer >= len(vm.callStack) {
 		vm.growCallStack()
@@ -244,6 +247,7 @@ func handleCall(vm *VM, frame *callFrame, registers *Registers, instruction inst
 	f.deferBase = len(vm.deferStack)
 	f.upvalues = nil
 	f.sharedCells = nil
+	vm.recordFrameSnapshot(vm.framePointer, snapshot)
 	if closureCells != nil {
 		f.initialiseUpvalues(closureCells)
 	}
@@ -370,6 +374,7 @@ func handleCallNativeClosure(vm *VM, registers *Registers, site *callSite, closu
 	if vm.framePointer >= vm.callDepthLimit() {
 		return opStackOverflow
 	}
+	snapshot := vm.swapToClosureRoot(closure.rootFunction)
 	vm.framePointer++
 	if vm.framePointer >= len(vm.callStack) {
 		vm.growCallStack()
@@ -387,6 +392,7 @@ func handleCallNativeClosure(vm *VM, registers *Registers, site *callSite, closu
 	f.deferBase = len(vm.deferStack)
 	f.upvalues = nil
 	f.sharedCells = nil
+	vm.recordFrameSnapshot(vm.framePointer, snapshot)
 	if closure.upvalues != nil {
 		f.initialiseUpvalues(closure.upvalues)
 	}

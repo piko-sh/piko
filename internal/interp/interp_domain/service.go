@@ -711,6 +711,8 @@ func (s *Service) ExecuteInits(ctx context.Context, cfs *CompiledFileSet) error 
 	if cfs.variableInitFunction != nil {
 		vm := newVM(ctx, s.globals, s.symbols)
 		vm.limits = s.limits
+		vm.functions = cfs.root.functions
+		vm.rootFunction = cfs.root
 		vm.ensureCallStack()
 		defer vm.releaseArena()
 		vm.pushFrame(cfs.variableInitFunction)
