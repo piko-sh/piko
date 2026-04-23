@@ -629,15 +629,15 @@ func (s *coordinatorService) resolveEntryPointsToHashedNames(
 	return result
 }
 
-// generateArtefacts generates fully-emitted Go code artefacts for all
-// components in the build result. Called after annotation completes and only
-// used in dev-i mode to provide executable code to the interpreted runner.
+// generateArtefacts generates fully-emitted Go code artefacts for every
+// component that was annotated in this build round. Only used in dev-i
+// mode to provide executable code to the interpreted runner.
 //
 // Takes buildResult (*annotator_dto.ProjectAnnotationResult) which contains
 // the annotated components to generate code for.
 //
 // Returns []*generator_dto.GeneratedArtefact which contains the generated
-// code artefacts for each component.
+// code artefacts for each annotated component.
 // Returns error when the build result has no virtual module or when
 // generating any single artefact fails.
 func (s *coordinatorService) generateArtefacts(
@@ -654,10 +654,11 @@ func (s *coordinatorService) generateArtefacts(
 
 	artefacts := make([]*generator_dto.GeneratedArtefact, 0, len(buildResult.ComponentResults))
 
-	for hashedName, vc := range buildResult.VirtualModule.ComponentsByHash {
-		annotationResult, ok := buildResult.ComponentResults[hashedName]
+	for hashedName, annotationResult := range buildResult.ComponentResults {
+		vc, ok := buildResult.VirtualModule.ComponentsByHash[hashedName]
 		if !ok {
-			l.Warn("No annotation result for component", logger_domain.String(logKeyHashedName, hashedName))
+			l.Warn("Annotation result has no matching virtual component",
+				logger_domain.String(logKeyHashedName, hashedName))
 			continue
 		}
 

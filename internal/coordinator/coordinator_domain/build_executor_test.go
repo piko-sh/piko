@@ -396,7 +396,7 @@ func TestGenerateArtefacts(t *testing.T) {
 		assert.Equal(t, 2, emitter.Calls)
 	})
 
-	t.Run("skips components without annotation results", func(t *testing.T) {
+	t.Run("only generates for annotated components (fast-path)", func(t *testing.T) {
 		emitter := &mockCodeEmitter{
 			Result: []byte("generated code"),
 		}
@@ -421,6 +421,37 @@ func TestGenerateArtefacts(t *testing.T) {
 			},
 			ComponentResults: map[string]*annotator_dto.AnnotationResult{
 				"hash1": {},
+			},
+		}
+
+		artefacts, err := s.generateArtefacts(context.Background(), buildResult)
+
+		require.NoError(t, err)
+		assert.Len(t, artefacts, 1)
+		assert.Equal(t, 1, emitter.Calls)
+	})
+
+	t.Run("skips annotation results with no matching virtual component", func(t *testing.T) {
+		emitter := &mockCodeEmitter{
+			Result: []byte("generated code"),
+		}
+		s := &coordinatorService{
+			codeEmitter: emitter,
+		}
+
+		buildResult := &annotator_dto.ProjectAnnotationResult{
+			VirtualModule: &annotator_dto.VirtualModule{
+				ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
+					"hash1": {
+						HashedName:        "hash1",
+						VirtualGoFilePath: "/virtual/hash1.go",
+						Source:            &annotator_dto.ParsedComponent{SourcePath: "/src/comp1.pk"},
+					},
+				},
+			},
+			ComponentResults: map[string]*annotator_dto.AnnotationResult{
+				"hash1":      {},
+				"orphanHash": {},
 			},
 		}
 
