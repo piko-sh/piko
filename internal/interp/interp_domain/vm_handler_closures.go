@@ -41,7 +41,7 @@ func handleMakeClosure(vm *VM, frame *callFrame, registers *Registers, instructi
 			registers.general[instruction.a] = cached
 			return opContinue
 		}
-		reflectValue := reflect.ValueOf(&runtimeClosure{function: compiledFunction})
+		reflectValue := reflect.ValueOf(&runtimeClosure{function: compiledFunction, rootFunction: vm.rootFunction})
 		if vm.closureCache == nil {
 			vm.closureCache = make(map[uint16]reflect.Value)
 		}
@@ -85,7 +85,7 @@ func handleMakeClosure(vm *VM, frame *callFrame, registers *Registers, instructi
 		cells[i] = cell
 		parentFrame.sharedCells[key] = cell
 	}
-	registers.general[instruction.a] = reflect.ValueOf(&runtimeClosure{function: compiledFunction, upvalues: cells})
+	registers.general[instruction.a] = reflect.ValueOf(&runtimeClosure{function: compiledFunction, rootFunction: vm.rootFunction, upvalues: cells})
 	return opContinue
 }
 

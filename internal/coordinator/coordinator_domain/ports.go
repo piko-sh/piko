@@ -308,6 +308,37 @@ type CodeEmitterPort interface {
 	) ([]byte, []*ast_domain.Diagnostic, error)
 }
 
+// ClientScriptEmitterPort is the driven port for transpiling and
+// storing the <script lang="ts"> block of a .pk file as a client-side
+// JavaScript artefact.
+type ClientScriptEmitterPort interface {
+	// EmitJS transpiles and stores a client-side script for a .pk
+	// component, returning the artefact ID used to build the script
+	// URL on the rendered page.
+	//
+	// Takes source (string) which is the TypeScript/JavaScript source
+	// from the <script> block.
+	// Takes pagePath (string) which is the project-relative path of the
+	// component without its .pk extension (e.g. "partials/header").
+	// Takes moduleName (string) which is the Go module name used for
+	// @/ alias resolution in imports.
+	// Takes outputDir (string) which is ignored; the registry handles
+	// storage.
+	// Takes minify (bool) which is ignored; the capabilities pipeline
+	// handles minification.
+	//
+	// Returns artefactID (string) which identifies the stored artefact.
+	// Returns error when transpilation or registry storage fails.
+	EmitJS(
+		ctx context.Context,
+		source string,
+		pagePath string,
+		moduleName string,
+		outputDir string,
+		minify bool,
+	) (artefactID string, err error)
+}
+
 // DiagnosticOutputPort defines the driven port for diagnostic output.
 // Following hexagonal architecture, it lets the coordinator emit diagnostics
 // without knowing the context (CLI outputs ANSI to stderr; LSP is a no-op).

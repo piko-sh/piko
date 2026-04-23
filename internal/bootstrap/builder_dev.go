@@ -297,13 +297,9 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 		return nil, fmt.Errorf("failed to setup health probe server: %w", err)
 	}
 
-	lifecycleService, err := b.c.createLifecycleService(&lifecycleServiceConfig{
-		PathsConfig:      NewLifecyclePathsConfig(&b.deps.ConfigProvider.ServerConfig),
-		WatcherAdapter:   fsWatcher,
-		DevEventNotifier: b.devEventBroadcaster,
-	})
+	lifecycleService, err := b.buildLifecycleService(fsWatcher)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create lifecycle service: %w", err)
+		return nil, err
 	}
 
 	appCtx := b.c.GetAppContext()
@@ -343,6 +339,32 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 		OnServerBound:       b.c.OnServerBound(),
 		OnHealthBound:       b.c.OnHealthBound(),
 	}, nil
+}
+
+// buildLifecycleService constructs the lifecycle service wiring the
+// optional dev event broadcaster only when it has been created;
+// assigning a nil *DevEventBroadcaster straight into the
+// DevEventNotifier interface would produce a typed-nil that passes
+// `!= nil` checks and panics on first access.
+//
+// Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which feeds
+// file-change events into the service.
+//
+// Returns lifecycle_domain.LifecycleService ready for Start, or an
+// error if creation fails.
+func (b *devDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_domain.FileSystemWatcher) (lifecycle_domain.LifecycleService, error) {
+	config := &lifecycleServiceConfig{
+		PathsConfig:    NewLifecyclePathsConfig(&b.deps.ConfigProvider.ServerConfig),
+		WatcherAdapter: fsWatcher,
+	}
+	if b.devEventBroadcaster != nil {
+		config.DevEventNotifier = b.devEventBroadcaster
+	}
+	service, err := b.c.createLifecycleService(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create lifecycle service: %w", err)
+	}
+	return service, nil
 }
 
 // setupTLSServerAdapter creates the server adapter from TLS configuration and

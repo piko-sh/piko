@@ -326,7 +326,13 @@ func runCompiledGoroutine(parentVM *VM, limits vmLimits, closure *runtimeClosure
 	childArena := GetRegisterArena()
 	childVM := newVM(parentVM.ctx, parentVM.globals, parentVM.symbols)
 	childVM.limits = limits
-	childVM.functions = parentVM.functions
+	if closure.rootFunction != nil {
+		childVM.functions = closure.rootFunction.functions
+		childVM.rootFunction = closure.rootFunction
+	} else {
+		childVM.functions = parentVM.functions
+		childVM.rootFunction = parentVM.rootFunction
+	}
 	childVM.arena = childArena
 	childVM.callStack = childArena.frameStack()
 	childVM.pushFrame(closure.function)

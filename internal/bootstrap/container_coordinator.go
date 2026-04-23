@@ -309,6 +309,9 @@ func (c *Container) getCoordinatorOptions() []coordinator_domain.CoordinatorOpti
 	if c.coordinatorCodeEmitterOverride != nil {
 		opts = append(opts, coordinator_domain.WithCodeEmitter(c.coordinatorCodeEmitterOverride))
 	}
+	if c.coordinatorClientScriptEmitterOverride != nil {
+		opts = append(opts, coordinator_domain.WithClientScriptEmitter(c.coordinatorClientScriptEmitterOverride))
+	}
 
 	serverConfig := c.config.ServerConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")

@@ -629,15 +629,15 @@ func (s *coordinatorService) resolveEntryPointsToHashedNames(
 	return result
 }
 
-// generateArtefacts generates fully-emitted Go code artefacts for all
-// components in the build result. Called after annotation completes and only
-// used in dev-i mode to provide executable code to the interpreted runner.
+// generateArtefacts generates fully-emitted Go code artefacts for every
+// component that was annotated in this build round. Only used in dev-i
+// mode to provide executable code to the interpreted runner.
 //
 // Takes buildResult (*annotator_dto.ProjectAnnotationResult) which contains
 // the annotated components to generate code for.
 //
 // Returns []*generator_dto.GeneratedArtefact which contains the generated
-// code artefacts for each component.
+// code artefacts for each annotated component.
 // Returns error when the build result has no virtual module or when
 // generating any single artefact fails.
 func (s *coordinatorService) generateArtefacts(
@@ -654,10 +654,11 @@ func (s *coordinatorService) generateArtefacts(
 
 	artefacts := make([]*generator_dto.GeneratedArtefact, 0, len(buildResult.ComponentResults))
 
-	for hashedName, vc := range buildResult.VirtualModule.ComponentsByHash {
-		annotationResult, ok := buildResult.ComponentResults[hashedName]
+	for hashedName, annotationResult := range buildResult.ComponentResults {
+		vc, ok := buildResult.VirtualModule.ComponentsByHash[hashedName]
 		if !ok {
-			l.Warn("No annotation result for component", logger_domain.String(logKeyHashedName, hashedName))
+			l.Warn("Annotation result has no matching virtual component",
+				logger_domain.String(logKeyHashedName, hashedName))
 			continue
 		}
 
@@ -738,13 +739,76 @@ func (s *coordinatorService) generateSingleArtefact(
 		logger_domain.String(logKeyHashedName, hashedName),
 		logger_domain.Int("code_size", len(emittedCode)))
 
+	jsArtefactID := s.emitClientScript(ctx, vc, annotationResult)
+
 	return &generator_dto.GeneratedArtefact{
 		Result:        annotationResult,
 		Component:     vc,
 		SuggestedPath: vc.VirtualGoFilePath,
 		Content:       emittedCode,
-		JSArtefactID:  "",
+		JSArtefactID:  jsArtefactID,
 	}, nil
+}
+
+// emitClientScript returns the artefact ID for the component's client script.
+//
+// Takes vc (*annotator_dto.VirtualComponent) which identifies the
+// source file and is used to derive the component's relative path.
+// Takes annotationResult (*annotator_dto.AnnotationResult) which holds
+// the parsed ClientScript source.
+//
+// Returns string which is the registered artefact ID, or "" when no
+// JS was emitted.
+func (s *coordinatorService) emitClientScript(
+	ctx context.Context,
+	vc *annotator_dto.VirtualComponent,
+	annotationResult *annotator_dto.AnnotationResult,
+) string {
+	if s.clientScriptEmitter == nil || annotationResult.ClientScript == "" {
+		return ""
+	}
+	ctx, l := logger_domain.From(ctx, log)
+	pagePath := deriveComponentPagePath(vc.Source.SourcePath, s.resolver.GetBaseDir())
+	moduleName := s.resolver.GetModuleName()
+	jsPath, err := s.clientScriptEmitter.EmitJS(ctx, annotationResult.ClientScript, pagePath, moduleName, "", false)
+	if err != nil {
+		l.Warn("Failed to emit client-side JS; continuing without it",
+			logger_domain.String("source", vc.Source.SourcePath),
+			logger_domain.Error(err))
+		return ""
+	}
+	l.Trace("Emitted client-side JS",
+		logger_domain.String("source", vc.Source.SourcePath),
+		logger_domain.String("jsPath", jsPath))
+	return jsPath
+}
+
+// deriveComponentPagePath returns the project-relative path without the .pk suffix.
+//
+// The result is the human-readable segment the JS emitter uses when
+// building an artefact URL (e.g. "partials/integrations/grid"). It
+// mirrors derivePagePath in the generator service so the compiled and
+// dev-i paths produce identical artefact URLs.
+//
+// Takes sourcePath (string) which is the component's source file path.
+// Takes baseDir (string) which is the project root.
+//
+// Returns string which is the relative component path without the
+// ".pk" suffix.
+func deriveComponentPagePath(sourcePath, baseDir string) string {
+	absSource, absErr := filepath.Abs(sourcePath)
+	absBase, baseErr := filepath.Abs(baseDir)
+	if absErr == nil && baseErr == nil {
+		relativePath, err := filepath.Rel(absBase, absSource)
+		if err == nil && !strings.HasPrefix(relativePath, "..") {
+			return strings.TrimSuffix(filepath.ToSlash(relativePath), ".pk")
+		}
+	}
+	relativePath, err := filepath.Rel(baseDir, sourcePath)
+	if err != nil || strings.HasPrefix(relativePath, "..") {
+		relativePath = filepath.Base(sourcePath)
+	}
+	return strings.TrimSuffix(filepath.ToSlash(relativePath), ".pk")
 }
 
 // outputInternalCompilerLogs writes internal compiler logs to stderr for
