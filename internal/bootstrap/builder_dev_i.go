@@ -282,6 +282,7 @@ func (b *interpretedDaemonBuilder) setupCoordinatorOverrides(ctx context.Context
 		return fmt.Errorf("failed to get code emitter for interpreted mode: %w", err)
 	}
 	b.c.coordinatorCodeEmitterOverride = codeEmitter
+	b.c.coordinatorClientScriptEmitterOverride = b.c.createPKJSEmitter()
 	return nil
 }
 

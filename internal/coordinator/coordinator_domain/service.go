@@ -46,6 +46,10 @@ type coordinatorOptions struct {
 	// codeEmitter outputs formatted code in dev-i mode; nil disables output.
 	codeEmitter CodeEmitterPort
 
+	// clientScriptEmitter transpiles and stores client-side scripts in
+	// dev-i mode; nil disables per-component <script> emission.
+	clientScriptEmitter ClientScriptEmitterPort
+
 	// diagnosticOutput specifies where to write diagnostic messages; nil means
 	// silent.
 	diagnosticOutput DiagnosticOutputPort
@@ -116,6 +120,11 @@ type coordinatorService struct {
 
 	// codeEmitter generates code for dev-i mode; nil in other modes.
 	codeEmitter CodeEmitterPort
+
+	// clientScriptEmitter transpiles <script lang="ts"> blocks to JS in
+	// dev-i mode so the rendered page emits the per-component script
+	// tags; nil disables emission and matches the non-dev-i default.
+	clientScriptEmitter ClientScriptEmitterPort
 
 	// diagnosticOutput sends diagnostics to the user; nil in LSP mode.
 	diagnosticOutput DiagnosticOutputPort
@@ -527,6 +536,23 @@ func WithCodeEmitter(emitter CodeEmitterPort) CoordinatorOption {
 	}
 }
 
+// WithClientScriptEmitter sets the client script emitter for dev-i mode.
+//
+// The emitter transpiles each component's <script lang="ts"> block and
+// registers the resulting artefact ID so the renderer can emit
+// per-component script tags. When unset, interpreted pages skip
+// client-side script emission and client-side behaviour will not run.
+//
+// Takes emitter (ClientScriptEmitterPort) which handles JS emission.
+//
+// Returns CoordinatorOption which configures the coordinator with the
+// emitter.
+func WithClientScriptEmitter(emitter ClientScriptEmitterPort) CoordinatorOption {
+	return func(o *coordinatorOptions) {
+		o.clientScriptEmitter = emitter
+	}
+}
+
 // WithDiagnosticOutput sets how diagnostic messages are shown to users.
 // Command-line tools use rich ANSI-formatted output, while LSP mode stays
 // silent.
@@ -680,6 +706,7 @@ func applyCoordinatorOptions(opts ...CoordinatorOption) coordinatorOptions {
 	options := coordinatorOptions{
 		fileHashCache:        nil,
 		codeEmitter:          nil,
+		clientScriptEmitter:  nil,
 		diagnosticOutput:     nil,
 		clock:                nil,
 		baseDirSandbox:       nil,
@@ -726,6 +753,7 @@ func newCoordinatorService(
 		fsReader:                  fsReader,
 		annotator:                 annotator,
 		codeEmitter:               options.codeEmitter,
+		clientScriptEmitter:       options.clientScriptEmitter,
 		diagnosticOutput:          options.diagnosticOutput,
 		cache:                     cache,
 		introspectionCache:        introspectionCache,

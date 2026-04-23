@@ -31,6 +31,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_dto"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
 type mockDiagnosticOutput struct {
@@ -713,5 +714,144 @@ func TestIntrospectionCacheEntry_MatchesScriptHashes(t *testing.T) {
 		}
 
 		assert.False(t, entry.MatchesScriptHashes(nil))
+	})
+}
+
+type mockClientScriptEmitter struct {
+	Error      error
+	Result     string
+	LastSource string
+	LastPage   string
+	LastModule string
+	Calls      int
+}
+
+func (m *mockClientScriptEmitter) EmitJS(
+	_ context.Context,
+	source, pagePath, moduleName, _ string,
+	_ bool,
+) (string, error) {
+	m.Calls++
+	m.LastSource = source
+	m.LastPage = pagePath
+	m.LastModule = moduleName
+	return m.Result, m.Error
+}
+
+func TestDeriveComponentPagePath(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		sourcePath string
+		baseDir    string
+		expected   string
+	}{
+		{
+			name:       "partial under base directory",
+			sourcePath: "/project/partials/integrations/grid.pk",
+			baseDir:    "/project",
+			expected:   "partials/integrations/grid",
+		},
+		{
+			name:       "page at project root",
+			sourcePath: "/project/pages/home.pk",
+			baseDir:    "/project",
+			expected:   "pages/home",
+		},
+		{
+			name:       "relative source path with matching base",
+			sourcePath: "project/pages/home.pk",
+			baseDir:    "project",
+			expected:   "pages/home",
+		},
+		{
+			name:       "source outside base falls back to filename",
+			sourcePath: "/elsewhere/page.pk",
+			baseDir:    "/project",
+			expected:   "page",
+		},
+		{
+			name:       "keeps slashes for windows-style separators converted",
+			sourcePath: "/project/nested/dir/comp.pk",
+			baseDir:    "/project",
+			expected:   "nested/dir/comp",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := deriveComponentPagePath(tt.sourcePath, tt.baseDir)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestEmitClientScript(t *testing.T) {
+	t.Parallel()
+
+	baseVC := func() *annotator_dto.VirtualComponent {
+		return &annotator_dto.VirtualComponent{
+			Source: &annotator_dto.ParsedComponent{SourcePath: "/project/partials/demo.pk"},
+		}
+	}
+
+	t.Run("returns empty when emitter is nil", func(t *testing.T) {
+		t.Parallel()
+		s := &coordinatorService{}
+		annotation := &annotator_dto.AnnotationResult{ClientScript: "console.log(1)"}
+		got := s.emitClientScript(context.Background(), baseVC(), annotation)
+		assert.Empty(t, got)
+	})
+
+	t.Run("returns empty when ClientScript is absent", func(t *testing.T) {
+		t.Parallel()
+		emitter := &mockClientScriptEmitter{Result: "unused"}
+		s := &coordinatorService{
+			clientScriptEmitter: emitter,
+			resolver: &resolver_domain.MockResolver{
+				GetBaseDirFunc:    func() string { return "/project" },
+				GetModuleNameFunc: func() string { return "example.com/mod" },
+			},
+		}
+		got := s.emitClientScript(context.Background(), baseVC(), &annotator_dto.AnnotationResult{})
+		assert.Empty(t, got)
+		assert.Zero(t, emitter.Calls)
+	})
+
+	t.Run("forwards derived inputs and returns artefact id", func(t *testing.T) {
+		t.Parallel()
+		emitter := &mockClientScriptEmitter{Result: "pk-js/partials/demo.js"}
+		s := &coordinatorService{
+			clientScriptEmitter: emitter,
+			resolver: &resolver_domain.MockResolver{
+				GetBaseDirFunc:    func() string { return "/project" },
+				GetModuleNameFunc: func() string { return "example.com/mod" },
+			},
+		}
+		annotation := &annotator_dto.AnnotationResult{ClientScript: "export const x = 1"}
+		got := s.emitClientScript(context.Background(), baseVC(), annotation)
+		assert.Equal(t, "pk-js/partials/demo.js", got)
+		assert.Equal(t, 1, emitter.Calls)
+		assert.Equal(t, "export const x = 1", emitter.LastSource)
+		assert.Equal(t, "partials/demo", emitter.LastPage)
+		assert.Equal(t, "example.com/mod", emitter.LastModule)
+	})
+
+	t.Run("swallows emitter errors so the build continues", func(t *testing.T) {
+		t.Parallel()
+		emitter := &mockClientScriptEmitter{Error: errors.New("transpile failed")}
+		s := &coordinatorService{
+			clientScriptEmitter: emitter,
+			resolver: &resolver_domain.MockResolver{
+				GetBaseDirFunc:    func() string { return "/project" },
+				GetModuleNameFunc: func() string { return "example.com/mod" },
+			},
+		}
+		annotation := &annotator_dto.AnnotationResult{ClientScript: "broken"}
+		got := s.emitClientScript(context.Background(), baseVC(), annotation)
+		assert.Empty(t, got)
+		assert.Equal(t, 1, emitter.Calls)
 	})
 }

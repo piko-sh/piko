@@ -367,6 +367,12 @@ type Container struct {
 	// coordinatorCodeEmitterOverride overrides the code emitter; used for testing.
 	coordinatorCodeEmitterOverride coordinator_domain.CodeEmitterPort
 
+	// coordinatorClientScriptEmitterOverride overrides the client-side
+	// script emitter used by the coordinator in dev-i mode; nil disables
+	// emission (which skips per-component <script> tags in the rendered
+	// page).
+	coordinatorClientScriptEmitterOverride coordinator_domain.ClientScriptEmitterPort
+
 	// coordinatorDiagnosticOutputOverride replaces the default diagnostic
 	// output; nil uses CLIDiagnosticOutput.
 	coordinatorDiagnosticOutputOverride coordinator_domain.DiagnosticOutputPort
