@@ -120,13 +120,16 @@ func runTestCase(t *testing.T, tc testCase) {
 	annotatorComponentCache := annotator_adapters.NewComponentCache()
 
 	providerRegistry := collection_adapters_driver_registry.NewMemoryRegistry()
-	collectionService := collection_domain.NewCollectionService(context.Background(), providerRegistry)
 
 	markdownParser := markdown_testparser.NewParser()
 	markdownService := markdown_domain.NewMarkdownService(markdownParser, nil)
 	markdownSandbox, _ := safedisk.NewNoOpSandbox(absSrcDir, safedisk.ModeReadOnly)
 	markdownProvider := driver_markdown.NewMarkdownProvider("markdown", markdownSandbox, markdownService, nil)
 	_ = providerRegistry.Register(markdownProvider)
+
+	collectionService := collection_domain.NewCollectionService(context.Background(), providerRegistry,
+		collection_domain.WithDefaultSandbox(markdownSandbox),
+	)
 
 	componentRegistry := discoverTestComponents(t, absSrcDir, "components")
 

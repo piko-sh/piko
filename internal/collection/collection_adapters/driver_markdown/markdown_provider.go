@@ -228,6 +228,10 @@ func (m *MarkdownProvider) FetchStaticContent(
 		logger_domain.String(keyCollection, collectionName),
 		logger_domain.Bool("is_external_module", source.IsExternal))
 
+	if source.Sandbox == nil {
+		source.Sandbox = m.sandbox
+	}
+
 	config := m.getDefaultConfig(source.BasePath)
 	scanner := newFileScanner(source.Sandbox)
 
@@ -344,7 +348,7 @@ func (m *MarkdownProvider) Check(_ context.Context, _ healthprobe_dto.CheckType)
 //
 // Returns string which is the computed ETag, or "md-empty" if no files exist.
 // Returns error when scanning the collection directory fails.
-func (*MarkdownProvider) ComputeETag(
+func (m *MarkdownProvider) ComputeETag(
 	ctx context.Context,
 	collectionName string,
 	source collection_dto.ContentSource,
@@ -352,6 +356,10 @@ func (*MarkdownProvider) ComputeETag(
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Computing ETag for markdown collection",
 		logger_domain.String(keyCollection, collectionName))
+
+	if source.Sandbox == nil {
+		source.Sandbox = m.sandbox
+	}
 
 	scanner := newFileScanner(source.Sandbox)
 

@@ -1,5 +1,0 @@
-{
-  "security": {
-    "captchaProvider": "hmac_challenge"
-  }
-}

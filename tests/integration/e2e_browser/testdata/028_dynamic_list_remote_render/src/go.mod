@@ -2,10 +2,7 @@ module testmodule
 
 go 1.26.0
 
-require (
-	github.com/google/uuid v1.6.0
-	piko.sh/piko v0.0.0
-)
+require piko.sh/piko v0.0.0
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.1 // indirect
@@ -22,6 +19,7 @@ require (
 	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/maypok86/otter/v2 v2.3.0 // indirect

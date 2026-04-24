@@ -50,6 +50,9 @@ var (
 
 	// uuidPattern matches UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx.
 	uuidPattern = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
+
+	// integrityPattern matches SRI hashes in integrity="sha384-..." attributes.
+	integrityPattern = regexp.MustCompile(`(integrity=")sha384-[A-Za-z0-9+/=]+(")`)
 )
 
 // NormaliseOptions controls how DOM normalisation is performed.
@@ -95,6 +98,8 @@ func DefaultNormaliseOptions() NormaliseOptions {
 // Returns string which is the cleaned and optionally formatted HTML.
 func NormaliseDOM(html string, opts NormaliseOptions) string {
 	normalised := html
+
+	normalised = integrityPattern.ReplaceAllString(normalised, "${1}sha384-NORMALISED${2}")
 
 	if opts.ReplaceUUIDs {
 		normalised = uuidPattern.ReplaceAllString(normalised, "[UUID]")

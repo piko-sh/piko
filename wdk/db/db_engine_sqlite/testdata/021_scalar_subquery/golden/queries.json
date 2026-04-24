@@ -109,13 +109,13 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "real",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 1
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -139,6 +139,6 @@
     "IsDynamic": false,
     "Command": 1,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": false
   }
 ]

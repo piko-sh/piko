@@ -59,6 +59,7 @@ var (
 	mainGoTemplate     = template.Must(template.ParseFiles("main.go.tmpl"))
 	csrfTokenRegex     = regexp.MustCompile(`(<meta name="csrf-token" content=")[^"]*(")`)
 	csrfEphemeralRegex = regexp.MustCompile(`(<meta name="csrf-ephemeral" content=")[^"]*(")`)
+	integrityRegex     = regexp.MustCompile(`(integrity=")sha384-[A-Za-z0-9+/=]+(")`)
 )
 
 type TemplaterTestSpec struct {
@@ -266,6 +267,7 @@ func loadTestSpec(t *testing.T, tc testCase) TemplaterTestSpec {
 func normaliseCSRFTokens(data []byte) []byte {
 	result := csrfTokenRegex.ReplaceAll(data, []byte(`${1}NORMALISED${2}`))
 	result = csrfEphemeralRegex.ReplaceAll(result, []byte(`${1}NORMALISED${2}`))
+	result = integrityRegex.ReplaceAll(result, []byte(`${1}sha384-NORMALISED${2}`))
 	return result
 }
 

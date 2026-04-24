@@ -39,13 +39,13 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "real",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 1
         },
         "Number": 2,
         "Nullable": true,
@@ -87,13 +87,13 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "real",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 1
         },
         "Nullable": true,
         "IsEmbedded": false,
