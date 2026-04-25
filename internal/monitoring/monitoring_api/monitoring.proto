@@ -141,6 +141,19 @@ message GetSystemStatsResponse {
   string cgroup_path = 14;
   string monitoring_listen_addr = 15;
   CacheInfo cache = 16;
+  SchedulerInfo schedule = 17;
+  SyncInfo sync = 18;
+}
+
+message SchedulerInfo {
+  int64 latency_p50_ns = 1;
+  int64 latency_p99_ns = 2;
+  int32 goroutine_count = 3;
+  int32 gomaxprocs = 4;
+}
+
+message SyncInfo {
+  double mutex_wait_total_seconds = 1;
 }
 
 message CacheInfo {
@@ -176,6 +189,9 @@ message GCInfo {
   uint64 next_gc = 6;
   uint32 num_gc = 7;
   uint32 num_forced_gc = 8;
+  int64 pause_p50_ns = 9;
+  int64 pause_p95_ns = 10;
+  int64 pause_p99_ns = 11;
 }
 
 message MemoryInfo {
@@ -201,6 +217,12 @@ message MemoryInfo {
   uint64 other_sys = 20;
   uint64 buckhash_sys = 21;
   uint64 lookups = 22;
+  uint64 heap_objects_bytes = 23;
+  uint64 heap_free_bytes = 24;
+  uint64 heap_released_bytes = 25;
+  uint64 heap_stacks_bytes = 26;
+  uint64 heap_unused_bytes = 27;
+  uint64 total_bytes = 28;
 }
 
 message ProcessInfo {
@@ -594,4 +616,144 @@ message CaptureProfileChunk {
   bytes data = 1;
   bool is_last = 2;
   string warning = 3;
+}
+
+service WatchdogInspectorService {
+  rpc ListProfiles(ListProfilesRequest) returns (ListProfilesResponse);
+
+  rpc DownloadProfile(DownloadProfileRequest) returns (stream DownloadProfileChunk);
+
+  rpc DownloadSidecar(DownloadSidecarRequest) returns (DownloadSidecarResponse);
+
+  rpc PruneProfiles(PruneProfilesRequest) returns (PruneProfilesResponse);
+
+  rpc GetWatchdogStatus(GetWatchdogStatusRequest) returns (GetWatchdogStatusResponse);
+
+  rpc RunContentionDiagnostic(RunContentionDiagnosticRequest) returns (RunContentionDiagnosticResponse);
+
+  rpc GetStartupHistory(GetStartupHistoryRequest) returns (GetStartupHistoryResponse);
+
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+
+  rpc WatchEvents(WatchEventsRequest) returns (stream WatchdogEventMessage);
+}
+
+message ListProfilesRequest {}
+
+message ListProfilesResponse {
+  repeated WatchdogProfileEntry profiles = 1;
+}
+
+message WatchdogProfileEntry {
+  string filename = 1;
+  string type = 2;
+  int64 timestamp_ms = 3;
+  int64 size_bytes = 4;
+  bool has_sidecar = 5;
+}
+
+message DownloadProfileRequest {
+  string filename = 1;
+}
+
+message DownloadProfileChunk {
+  bytes data = 1;
+  bool is_last = 2;
+}
+
+message DownloadSidecarRequest {
+  string profile_filename = 1;
+}
+
+message DownloadSidecarResponse {
+  bytes data = 1;
+  bool present = 2;
+}
+
+message PruneProfilesRequest {
+  string profile_type = 1;
+}
+
+message PruneProfilesResponse {
+  int32 deleted_count = 1;
+}
+
+message GetWatchdogStatusRequest {}
+
+message GetWatchdogStatusResponse {
+  bool enabled = 1;
+  bool stopped = 2;
+  string profile_directory = 3;
+  int64 check_interval_ms = 4;
+  int64 cooldown_ms = 5;
+  int64 warm_up_duration_ms = 6;
+  int64 started_at_ms = 7;
+  uint64 heap_threshold_bytes = 8;
+  uint64 heap_high_water = 9;
+  int32 goroutine_threshold = 10;
+  int32 goroutine_safety_ceiling = 11;
+  int32 max_profiles_per_type = 12;
+  int64 capture_window_ms = 13;
+  int32 max_captures_per_window = 14;
+  int32 max_warnings_per_window = 15;
+  double fd_pressure_threshold_percent = 16;
+  int64 scheduler_latency_p99_threshold_ns = 17;
+  int64 crash_loop_window_ms = 18;
+  int32 crash_loop_threshold = 19;
+  bool continuous_profiling_enabled = 20;
+  int64 continuous_profiling_interval_ms = 21;
+  repeated string continuous_profiling_types = 22;
+  int32 continuous_profiling_retention = 23;
+  int64 contention_diagnostic_window_ms = 24;
+  int64 contention_diagnostic_cooldown_ms = 25;
+  bool contention_diagnostic_auto_fire = 26;
+  int64 contention_diagnostic_last_run_ms = 27;
+  int32 goroutine_baseline = 28;
+  int32 capture_window_used = 29;
+  int32 warning_window_used = 30;
+}
+
+message RunContentionDiagnosticRequest {}
+
+message RunContentionDiagnosticResponse {
+  bool started = 1;
+  string error = 2;
+}
+
+message GetStartupHistoryRequest {}
+
+message GetStartupHistoryResponse {
+  repeated StartupHistoryEntry entries = 1;
+}
+
+message StartupHistoryEntry {
+  int64 started_at_ms = 1;
+  int64 stopped_at_ms = 2;
+  int32 pid = 3;
+  string hostname = 4;
+  string version = 5;
+  int64 gomemlimit_bytes = 6;
+  string stop_reason = 7;
+}
+
+message ListEventsRequest {
+  int32 limit = 1;
+  int64 since_ms = 2;
+  string event_type = 3;
+}
+
+message ListEventsResponse {
+  repeated WatchdogEventMessage events = 1;
+}
+
+message WatchEventsRequest {
+  int64 since_ms = 1;
+}
+
+message WatchdogEventMessage {
+  string event_type = 1;
+  int32 priority = 2;
+  string message = 3;
+  map<string, string> fields = 4;
+  int64 emitted_at_ms = 5;
 }

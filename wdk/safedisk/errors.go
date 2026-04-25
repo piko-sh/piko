@@ -41,6 +41,16 @@ var (
 	// errTempFileExhausted is returned when CreateTemp fails to find a unique
 	// filename after the maximum number of attempts.
 	errTempFileExhausted = errors.New("safedisk: failed to create temp file after maximum attempts")
+
+	// ErrFileExceedsLimit is returned by ReadFileLimit when the target file is
+	// larger than the supplied byte cap. Surfaced as an exported sentinel so
+	// callers can use errors.Is to distinguish "file too large" from
+	// "missing", "permission denied", and other underlying I/O failures.
+	ErrFileExceedsLimit = errors.New("safedisk: file exceeds size limit")
+
+	// ErrInvalidLimit is returned by ReadFileLimit when the supplied byte cap
+	// is non-positive.
+	ErrInvalidLimit = errors.New("safedisk: limit must be positive")
 )
 
 // IsNotExist reports whether the error shows that a file or directory does

@@ -394,6 +394,10 @@ func (s *SSRServer) Run(runMode string) error {
 	}
 	s.Container = container
 
+	if err := s.installCrashOutput(ctx, container); err != nil {
+		return err
+	}
+
 	isDevMode := runMode == RunModeDev || runMode == RunModeDevInterpreted
 	if isDevMode {
 		if container.IsDevHotreloadEnabled() {
@@ -530,9 +534,41 @@ func (s *SSRServer) ensureContainer(ctx context.Context, deps *bootstrap.Depende
 	return container, nil
 }
 
-// buildDependencies creates the bootstrap dependencies struct.
+// installCrashOutput wires the runtime crash mirror into the running
+// process.
 //
-// Takes runMode (string) which specifies the server execution mode.
+// Called from Run as early as possible, before any application goroutines
+// are spawned, so the runtime can mirror unrecovered panics and fatal
+// errors to the configured file even when stderr is lost (container kill,
+// etc.). The closeFn returned by InstallCrashOutput is registered with the
+// shutdown pipeline so it runs at graceful shutdown alongside other
+// lifecycle cleanup.
+//
+// Takes container (*bootstrap.Container) which provides the configured
+// crash-output path and traceback level.
+//
+// Returns error wrapping the bootstrap failure when the configured
+// traceback level is invalid; file-open failures are best-effort and do
+// not propagate.
+func (*SSRServer) installCrashOutput(ctx context.Context, container *bootstrap.Container) error {
+	crashOutputClose, err := bootstrap.InstallCrashOutput(ctx, container)
+	if err != nil {
+		return fmt.Errorf("installing crash output: %w", err)
+	}
+	if crashOutputClose != nil {
+		shutdown.Register(ctx, "CrashOutput", func(_ context.Context) error {
+			crashOutputClose()
+			return nil
+		})
+	}
+	return nil
+}
+
+// buildDependencies creates the bootstrap dependencies struct from the
+// SSRServer's configured providers.
+//
+// Takes runMode (string) which specifies the server execution mode
+// (RunModeDev, RunModeDevInterpreted, or RunModeProd).
 //
 // Returns *bootstrap.Dependencies which contains the configured dependencies.
 // Returns error when dev-i mode is requested but no interpreter provider is
@@ -620,7 +656,6 @@ func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, conta
 // mode, executes it, and interprets the result. A normal server-closed error
 // is treated as a graceful stop.
 //
-// Takes ctx (context.Context) which controls the daemon lifetime.
 // Takes runMode (string) which selects between prod and dev execution paths.
 // Takes l (logger_domain.Logger) which is the logger for reporting the outcome.
 //
@@ -1067,7 +1102,6 @@ func performGlobalSetup(ctx context.Context, configProvider *config.Provider, co
 // setupFrontendModules configures frontend SRI, custom modules, and module HTML
 // from the container.
 //
-// Takes ctx (context.Context) which controls cancellation of module registration.
 // Takes l (logger_domain.Logger) which logs diagnostic messages about module setup.
 // Takes container (*bootstrap.Container) which provides frontend module configuration.
 //

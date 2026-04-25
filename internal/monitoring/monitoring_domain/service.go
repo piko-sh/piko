@@ -45,6 +45,19 @@ type ServiceConfig struct {
 	// When nil, the bootstrap layer uses its default noop factories.
 	Factories *ServiceFactories
 
+	// WatchdogConfig holds runtime watchdog settings. When non-nil, the
+	// watchdog monitors heap and goroutine counts and captures profiles
+	// automatically.
+	WatchdogConfig *WatchdogConfig
+
+	// WatchdogNotifier delivers watchdog event notifications to external
+	// systems. May be nil when notifications are not configured.
+	WatchdogNotifier WatchdogNotifier
+
+	// WatchdogProfileUploader uploads captured profiles to remote storage
+	// for preservation across pod restarts. May be nil when not configured.
+	WatchdogProfileUploader WatchdogProfileUploader
+
 	// Address specifies the transport server listen address. If it starts with
 	// a colon, BindAddress is prepended to form the full address.
 	Address string
@@ -57,17 +70,17 @@ type ServiceConfig struct {
 	// When enabled, the transport uses TLS for security.
 	TLS tlscert.TLSValues
 
-	// MaxSpans is the maximum number of spans to keep.
-	MaxSpans int
-
-	// MaxMetrics is the maximum number of unique metrics to store.
-	MaxMetrics int
-
 	// MaxMetricAge is the maximum age for metric data points; older data is discarded.
 	MaxMetricAge time.Duration
 
 	// MetricsCollectionInterval is how often to collect metrics from OTEL.
 	MetricsCollectionInterval time.Duration
+
+	// MaxSpans is the maximum number of spans to keep.
+	MaxSpans int
+
+	// MaxMetrics is the maximum number of unique metrics to store.
+	MaxMetrics int
 
 	// AutoNextPort enables automatic port selection when the configured port
 	// is already in use.
@@ -124,6 +137,14 @@ type Service struct {
 	// profilingController manages on-demand pprof profiling; nil when
 	// remote profiling is not enabled.
 	profilingController ProfilingController
+
+	// watchdogInspector provides read-only access to watchdog state and stored
+	// profiles; nil when the watchdog is not enabled.
+	watchdogInspector WatchdogInspector
+
+	// watchdog monitors runtime metrics and captures diagnostic profiles
+	// when anomalies are detected; nil when the watchdog is not enabled.
+	watchdog *Watchdog
 
 	// store provides telemetry data for the server dashboard.
 	store *TelemetryStore
@@ -193,17 +214,26 @@ func NewService(deps MonitoringDeps, factories ServiceFactories, opts ...Service
 	systemCollector := NewSystemCollector(WithListenAddress(listenAddr))
 	resourceCollector := NewResourceCollector()
 
-	return &Service{
+	watchdog := createWatchdogFromConfig(&config, systemCollector)
+
+	service := &Service{
 		store:                 store,
 		spanProcessor:         spanProcessor,
 		metricsCollector:      metricsCollector,
 		systemCollector:       systemCollector,
 		resourceCollector:     resourceCollector,
+		watchdog:              watchdog,
 		config:                config,
 		factories:             factories,
 		orchestratorInspector: deps.OrchestratorInspector,
 		registryInspector:     deps.RegistryInspector,
 	}
+
+	if watchdog != nil {
+		service.watchdogInspector = watchdog
+	}
+
+	return service
 }
 
 // SetInspectors updates the orchestrator, registry, dispatcher, rate limiter
@@ -270,6 +300,22 @@ func (s *Service) SetProfilingController(controller ProfilingController) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.profilingController = controller
+	if s.watchdog != nil {
+		s.watchdog.SetProfilingController(controller)
+	}
+}
+
+// SetWatchdogInspector sets the watchdog inspector for remote access to
+// watchdog state and stored profiles. Must be called before Start() for the
+// inspector to be available via the transport.
+//
+// Takes inspector (WatchdogInspector) which may be nil.
+//
+// Safe for concurrent use.
+func (s *Service) SetWatchdogInspector(inspector WatchdogInspector) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.watchdogInspector = inspector
 }
 
 // Start begins background collection and, when a transport factory is
@@ -302,12 +348,17 @@ func (s *Service) Start(ctx context.Context) error {
 		ProviderInfoInspector:    s.providerInfoInspector,
 		RenderCacheStatsProvider: s.renderCacheStats,
 		ProfilingController:      s.profilingController,
+		WatchdogInspector:        s.watchdogInspector,
 	}
 	s.mu.RUnlock()
 
 	s.metricsCollector.Start(ctx)
 	s.systemCollector.Start(ctx)
 	s.resourceCollector.Start(ctx)
+
+	if s.watchdog != nil {
+		s.watchdog.Start(ctx)
+	}
 
 	if s.config.TransportFactory != nil {
 		transportConfig := TransportConfig{
@@ -347,6 +398,11 @@ func (s *Service) Stop(ctx context.Context) {
 
 	if transport != nil {
 		transport.Stop(ctx)
+	}
+
+	if s.watchdog != nil {
+		s.watchdog.CapturePreDeathSnapshot(ctx)
+		s.watchdog.Stop()
 	}
 
 	if profilingController != nil {
@@ -497,4 +553,75 @@ func WithServiceTransportFactory(factory TransportFactory) ServiceOption {
 	return func(c *ServiceConfig) {
 		c.TransportFactory = factory
 	}
+}
+
+// WithServiceWatchdogConfig sets the watchdog configuration on the service.
+//
+// Takes config (*WatchdogConfig) which holds the watchdog settings.
+//
+// Returns ServiceOption which configures the watchdog on the service.
+func WithServiceWatchdogConfig(config *WatchdogConfig) ServiceOption {
+	return func(c *ServiceConfig) {
+		c.WatchdogConfig = config
+	}
+}
+
+// WithServiceWatchdogNotifier sets the notification delivery mechanism for the
+// watchdog on the service.
+//
+// Takes notifier (WatchdogNotifier) which delivers event notifications.
+//
+// Returns ServiceOption which configures the watchdog notifier on a service.
+func WithServiceWatchdogNotifier(notifier WatchdogNotifier) ServiceOption {
+	return func(c *ServiceConfig) {
+		c.WatchdogNotifier = notifier
+	}
+}
+
+// WithServiceWatchdogProfileUploader sets the remote storage backend for
+// profile uploads on the service.
+//
+// Takes uploader (WatchdogProfileUploader) which handles remote storage.
+//
+// Returns ServiceOption which configures the watchdog uploader on a service.
+func WithServiceWatchdogProfileUploader(uploader WatchdogProfileUploader) ServiceOption {
+	return func(c *ServiceConfig) {
+		c.WatchdogProfileUploader = uploader
+	}
+}
+
+// createWatchdogFromConfig creates a Watchdog from the service configuration
+// if enabled.
+//
+// Takes config (*ServiceConfig) which provides the watchdog settings and
+// optional notifier and uploader.
+// Takes systemCollector (*SystemCollector) which provides system statistics
+// for the watchdog to evaluate.
+//
+// Returns *Watchdog which is the initialised watchdog, or nil when the
+// watchdog is not configured or fails to initialise.
+func createWatchdogFromConfig(config *ServiceConfig, systemCollector *SystemCollector) *Watchdog {
+	if config.WatchdogConfig == nil || !config.WatchdogConfig.Enabled {
+		return nil
+	}
+
+	var watchdogOpts []WatchdogOption
+	if config.WatchdogNotifier != nil {
+		watchdogOpts = append(watchdogOpts, WithWatchdogNotifier(config.WatchdogNotifier))
+	}
+
+	if config.WatchdogProfileUploader != nil {
+		watchdogOpts = append(watchdogOpts, WithWatchdogProfileUploader(config.WatchdogProfileUploader))
+	}
+
+	watchdog, err := NewWatchdog(*config.WatchdogConfig, systemCollector, watchdogOpts...)
+	if err != nil {
+		log.Warn("Failed to initialise runtime watchdog, continuing without it",
+			logger_domain.Error(err),
+		)
+
+		return nil
+	}
+
+	return watchdog
 }

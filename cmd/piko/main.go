@@ -54,7 +54,7 @@ func main() {
 			os.Exit(cli.RunBytecode(os.Args[2:]))
 		case "profile":
 			os.Exit(cli.RunProfile(os.Args[2:]))
-		case "get", "describe", "info", "watch", "diagnostics", "tui", "profiling":
+		case "get", "describe", "info", "watch", "diagnostics", "tui", "profiling", "watchdog":
 			os.Exit(cli.RunCommand(subcommand, os.Args[2:]))
 		case "version", "--version":
 			fmt.Printf("piko %s\n", Version)
@@ -93,6 +93,7 @@ Monitoring Commands:
   info          Display system information (system, build, runtime, memory, gc, process)
   watch         Stream resource updates in real time
   profiling     Control on-demand runtime profiling (enable, disable, status, capture)
+  watchdog      Manage watchdog diagnostic profiles (list, download, prune, status)
   diagnostics   Test connectivity to the monitoring server
   tui           Launch the interactive terminal UI
 
@@ -135,6 +136,7 @@ Monitoring Commands:
   info          Display system information (system, build, runtime, memory, gc, process) (CPU, memory, goroutines, GC)
   watch         Stream resource updates in real time
   profiling     Control on-demand runtime profiling (enable, disable, status, capture)
+  watchdog      Manage watchdog diagnostic profiles (list, download, prune, status)
   diagnostics   Test connectivity to the monitoring server
   tui           Launch the interactive terminal UI
 
@@ -195,6 +197,11 @@ func printUsageExamples() {
   piko profiling capture heap             # Capture a heap profile
   piko profiling capture cpu 30s          # Capture CPU profile for 30 seconds
   piko profiling disable                  # Disable profiling
+
+  piko watchdog list                      # List captured profiles
+  piko watchdog download --latest --type heap  # Download latest heap profile
+  piko watchdog status                    # Show watchdog configuration
+  piko watchdog prune                     # Remove all stored profiles
 
 For subcommand-specific help:
   piko fmt -h

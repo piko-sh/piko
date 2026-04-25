@@ -227,6 +227,10 @@ type MonitoringDeps struct {
 	// ProfilingController manages on-demand pprof profiling.
 	// May be nil if remote profiling is not enabled.
 	ProfilingController ProfilingController
+
+	// WatchdogInspector provides read-only access to watchdog state and stored
+	// profiles. May be nil if the watchdog is not enabled.
+	WatchdogInspector WatchdogInspector
 }
 
 // HealthProbeService provides health check methods for liveness and readiness.
@@ -435,6 +439,16 @@ type ProfilingController interface {
 	//
 	// Returns *ProfilingStatus with the current state.
 	Status(ctx context.Context) *ProfilingStatus
+
+	// SnapshotFlightRecorder writes the current rolling execution trace
+	// buffer to the provided writer. Returns an error when the flight
+	// recorder is not enabled or the write fails.
+	//
+	// Takes w (io.Writer) which receives the trace data.
+	//
+	// Returns error when the flight recorder is disabled or the snapshot
+	// fails.
+	SnapshotFlightRecorder(ctx context.Context, w io.Writer) error
 
 	// CaptureProfile captures a Go runtime profile and writes the raw
 	// pprof data to the provided writer. For duration-based profiles

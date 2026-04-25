@@ -49,6 +49,9 @@ const (
 	// serviceProfiling is the name of the profiling service.
 	serviceProfiling = "ProfilingService"
 
+	// serviceWatchdog is the name of the watchdog inspector service.
+	serviceWatchdog = "WatchdogInspectorService"
+
 	// resultFailed is the status text shown when a diagnostic check fails.
 	resultFailed = "failed"
 
@@ -163,6 +166,7 @@ func (r *DiagnosticsResult) printServiceResults(w io.Writer) {
 		serviceOrchestrator,
 		serviceRegistry,
 		serviceProfiling,
+		serviceWatchdog,
 	}
 
 	for _, service := range serviceOrder {
@@ -331,6 +335,7 @@ func runServiceTests(ctx context.Context, conn *grpc.ClientConn, result *Diagnos
 	testOrchestratorService(ctx, pb.NewOrchestratorInspectorServiceClient(conn), result)
 	testRegistryService(ctx, pb.NewRegistryInspectorServiceClient(conn), result)
 	testProfilingService(ctx, pb.NewProfilingServiceClient(conn), result)
+	testWatchdogService(ctx, pb.NewWatchdogInspectorServiceClient(conn), result)
 }
 
 // testHealthService checks the health service endpoints and records the
@@ -461,18 +466,42 @@ func testRegistryService(ctx context.Context, client pb.RegistryInspectorService
 // Takes result (*DiagnosticsResult) which collects the test results.
 func testProfilingService(ctx context.Context, client pb.ProfilingServiceClient, result *DiagnosticsResult) {
 	statusResp, err := client.GetProfilingStatus(ctx, &pb.GetProfilingStatusRequest{})
+	testOptInEnabledService(result, serviceProfiling, "GetProfilingStatus", err, statusResp.GetEnabled())
+}
+
+// testWatchdogService tests the watchdog inspector service endpoint.
+//
+// Takes client (pb.WatchdogInspectorServiceClient) which provides access to
+// the watchdog inspector service API.
+// Takes result (*DiagnosticsResult) which collects the test results.
+func testWatchdogService(ctx context.Context, client pb.WatchdogInspectorServiceClient, result *DiagnosticsResult) {
+	statusResp, err := client.GetWatchdogStatus(ctx, &pb.GetWatchdogStatusRequest{})
+	testOptInEnabledService(result, serviceWatchdog, "GetWatchdogStatus", err, statusResp.GetEnabled())
+}
+
+// testOptInEnabledService records the result for an opt-in service that
+// returns an enabled/disabled status. If the RPC returns Unimplemented, the
+// check is recorded as skipped rather than failed.
+//
+// Takes result (*DiagnosticsResult) which collects the test results.
+// Takes service (string) which identifies the service being tested.
+// Takes method (string) which specifies the RPC method name.
+// Takes err (error) which is the RPC error, or nil on success.
+// Takes enabled (bool) which indicates whether the service reported itself
+// as enabled.
+func testOptInEnabledService(result *DiagnosticsResult, service, method string, err error, enabled bool) {
 	if err != nil {
 		if s, ok := grpcstatus.FromError(err); ok && s.Code() == codes.Unimplemented {
-			result.addSkippedResult(serviceProfiling, "GetProfilingStatus", resultSkipped)
+			result.addSkippedResult(service, method, resultSkipped)
 			return
 		}
-		result.addResult(serviceProfiling, "GetProfilingStatus", err, resultFailed)
+		result.addResult(service, method, err, resultFailed)
 		return
 	}
 
 	status := "disabled"
-	if statusResp.GetEnabled() {
+	if enabled {
 		status = "enabled"
 	}
-	result.addResult(serviceProfiling, "GetProfilingStatus", nil, fmt.Sprintf("status=%s", status))
+	result.addResult(service, method, nil, fmt.Sprintf("status=%s", status))
 }

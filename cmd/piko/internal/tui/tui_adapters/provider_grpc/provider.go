@@ -94,6 +94,10 @@ type Connection struct {
 	// profilingClient provides access to the profiling service for
 	// controlling on-demand runtime profiling.
 	profilingClient pb.ProfilingServiceClient
+
+	// watchdogClient provides access to the watchdog inspector service for
+	// querying watchdog state and stored profiles.
+	watchdogClient pb.WatchdogInspectorServiceClient
 }
 
 // NewConnection creates a new gRPC connection to the monitoring server.
@@ -140,31 +144,35 @@ func NewConnection(address string, opts ...Option) (*Connection, error) {
 		fmt.Errorf("gRPC dial exceeded %s timeout", config.DialTimeout))
 	defer cancel()
 
-	healthClient := pb.NewHealthServiceClient(conn)
-	metricsClient := pb.NewMetricsServiceClient(conn)
-	orchestratorClient := pb.NewOrchestratorInspectorServiceClient(conn)
-	registryClient := pb.NewRegistryInspectorServiceClient(conn)
-	dispatcherClient := pb.NewDispatcherInspectorServiceClient(conn)
-	rateLimiterClient := pb.NewRateLimiterInspectorServiceClient(conn)
-	providerInfoClient := pb.NewProviderInfoServiceClient(conn)
-	profilingClient := pb.NewProfilingServiceClient(conn)
+	connection := newConnectionClients(conn)
 
-	if _, err := healthClient.GetHealth(ctx, &pb.GetHealthRequest{}); err != nil {
+	if _, err := connection.healthClient.GetHealth(ctx, &pb.GetHealthRequest{}); err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("connecting to gRPC server at %s: %w", config.Address, err)
 	}
 
+	return connection, nil
+}
+
+// newConnectionClients initialises all gRPC service clients for the given
+// connection.
+//
+// Takes conn (*grpc.ClientConn) which provides the underlying transport.
+//
+// Returns *Connection with all service clients populated.
+func newConnectionClients(conn *grpc.ClientConn) *Connection {
 	return &Connection{
 		conn:               conn,
-		healthClient:       healthClient,
-		metricsClient:      metricsClient,
-		orchestratorClient: orchestratorClient,
-		registryClient:     registryClient,
-		dispatcherClient:   dispatcherClient,
-		rateLimiterClient:  rateLimiterClient,
-		providerInfoClient: providerInfoClient,
-		profilingClient:    profilingClient,
-	}, nil
+		healthClient:       pb.NewHealthServiceClient(conn),
+		metricsClient:      pb.NewMetricsServiceClient(conn),
+		orchestratorClient: pb.NewOrchestratorInspectorServiceClient(conn),
+		registryClient:     pb.NewRegistryInspectorServiceClient(conn),
+		dispatcherClient:   pb.NewDispatcherInspectorServiceClient(conn),
+		rateLimiterClient:  pb.NewRateLimiterInspectorServiceClient(conn),
+		providerInfoClient: pb.NewProviderInfoServiceClient(conn),
+		profilingClient:    pb.NewProfilingServiceClient(conn),
+		watchdogClient:     pb.NewWatchdogInspectorServiceClient(conn),
+	}
 }
 
 // HealthClient returns the gRPC health service client.
@@ -221,6 +229,14 @@ func (c *Connection) ProviderInfoClient() pb.ProviderInfoServiceClient {
 // profiling control API.
 func (c *Connection) ProfilingClient() pb.ProfilingServiceClient {
 	return c.profilingClient
+}
+
+// WatchdogClient returns the gRPC watchdog inspector service client.
+//
+// Returns pb.WatchdogInspectorServiceClient which provides access to the
+// watchdog inspection API.
+func (c *Connection) WatchdogClient() pb.WatchdogInspectorServiceClient {
+	return c.watchdogClient
 }
 
 // Close closes the gRPC connection.

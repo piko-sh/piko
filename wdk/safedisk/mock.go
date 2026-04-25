@@ -21,6 +21,7 @@ package safedisk
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"sync"
@@ -507,6 +508,10 @@ type MockSandbox struct {
 	// ReadFileErr is returned by ReadFile when set.
 	ReadFileErr error
 
+	// ReadFileLimitErr is returned by ReadFileLimit when set; allows tests
+	// to simulate read failures distinct from ReadFile.
+	ReadFileLimitErr error
+
 	// StatErr is the error to return from Stat; nil means success.
 	StatErr error
 
@@ -684,6 +689,45 @@ func (m *MockSandbox) ReadFile(name string) ([]byte, error) {
 	}
 
 	return file.Data(), nil
+}
+
+// ReadFileLimit reads up to maxBytes from a file in the mock sandbox.
+// Returns ErrFileExceedsLimit when the stored data is larger than
+// maxBytes, ErrInvalidLimit when maxBytes is non-positive, or
+// ReadFileLimitErr when set.
+//
+// Takes name (string) which is the path of the file to read.
+// Takes maxBytes (int64) which caps the byte count.
+//
+// Returns []byte containing the file content (up to maxBytes).
+// Returns int64 reporting the stored file size.
+// Returns error per the contract above.
+//
+// Safe for concurrent use.
+func (m *MockSandbox) ReadFileLimit(name string, maxBytes int64) ([]byte, int64, error) {
+	m.incrementCall("ReadFileLimit")
+
+	if m.ReadFileLimitErr != nil {
+		return nil, 0, m.ReadFileLimitErr
+	}
+	if maxBytes <= 0 {
+		return nil, 0, ErrInvalidLimit
+	}
+
+	m.mu.RLock()
+	file, exists := m.files[name]
+	m.mu.RUnlock()
+
+	if !exists {
+		return nil, 0, fs.ErrNotExist
+	}
+
+	data := file.Data()
+	size := int64(len(data))
+	if size > maxBytes {
+		return nil, size, fmt.Errorf("%w: %q is %d bytes, limit %d", ErrFileExceedsLimit, name, size, maxBytes)
+	}
+	return data, size, nil
 }
 
 // Stat returns file information for a path within the sandbox.

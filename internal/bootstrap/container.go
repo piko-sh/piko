@@ -27,22 +27,6 @@ package bootstrap
 // that can override default service implementations or configure how they are
 // built. This approach avoids external DI frameworks while providing clean,
 // testable, and highly maintainable service management.
-//
-// The container methods are split across multiple files for maintainability:
-//   - container.go: Core struct, NewContainer, GetAppContext, GetConfigProvider
-//   - container_events.go: Event bus and events provider
-//   - container_db.go: Database provider
-//   - container_registry.go: Registry, render registry, blob provider
-//   - container_orchestrator.go: Orchestrator, capabilities
-//   - container_coordinator.go: Coordinator, annotator, generator, resolver
-//   - container_email.go: Email service
-//   - container_storage.go: Storage service
-//   - container_cache.go: Cache service
-//   - container_captcha.go: Captcha service
-//   - container_crypto.go: Crypto service
-//   - container_querier_db.go: Named SQL database connections and migrations
-//   - container_ratelimiter.go: Centralised rate limiter
-//   - container_services.go: SEO, I18n, Image, Validator, etc.
 
 import (
 	"context"
@@ -611,6 +595,21 @@ type Container struct {
 	// websiteConfigOverride holds a programmatic website configuration
 	// provided via WithWebsiteConfig; nil uses the file-based config.json.
 	websiteConfigOverride *config.WebsiteConfig
+
+	// crashOutputPath is the file path the Go runtime should mirror crash
+	// output to via runtime/debug.SetCrashOutput; empty disables the
+	// feature and the default behaviour stays in place.
+	crashOutputPath string
+
+	// crashTracebackLevel is the GOTRACEBACK level applied via
+	// runtime/debug.SetTraceback at startup; empty keeps the runtime
+	// default in place.
+	crashTracebackLevel string
+
+	// diagnosticDirectory is the unified root for runtime-diagnostic
+	// artefacts (crash mirror, watchdog profiles, sidecars, startup
+	// history).
+	diagnosticDirectory string
 
 	// videoTranscoders maps provider names to video transcoder instances.
 	videoTranscoders map[string]video_domain.TranscoderPort
@@ -1587,7 +1586,6 @@ type contextStopper interface {
 // validateComponentsDirectory checks that the components directory exists and
 // is valid.
 //
-// Takes ctx (context.Context) which carries the application context for logging.
 // Takes absDir (string) which is the absolute path to the components directory.
 //
 // Returns bool which is true if the directory is valid and discovery should
@@ -1616,7 +1614,6 @@ func validateComponentsDirectory(ctx context.Context, absDir string) bool {
 
 // logComponentDiscoveryResults logs the outcome of component discovery.
 //
-// Takes ctx (context.Context) which carries the application context for logging.
 // Takes registered (int) which is the number of components registered.
 // Takes regErrors ([]string) which lists any errors that occurred.
 // Takes componentsDir (string) which is the directory that was scanned.
@@ -1656,7 +1653,6 @@ func defaultMetadataCacheProvider() registry_domain.MetadataCache {
 // If the service does not use any shutdown interface, this function does
 // nothing.
 //
-// Takes ctx (context.Context) which carries the application context for logging.
 // Takes name (string) which identifies the service in shutdown logs.
 // Takes service (any) which is the service to check for shutdown support.
 func registerCloseableForShutdown(ctx context.Context, name string, service any) {
