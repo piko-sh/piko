@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 
 	logger "piko.sh/piko/internal/logger/logger_domain"
 )
@@ -52,4 +53,65 @@ func readFileViaOpen(opener func(string) (FileHandle, error), name string) ([]by
 		return nil, fmt.Errorf("reading file contents %q: %w", name, err)
 	}
 	return data, nil
+}
+
+// readFileLimitViaOpen reads up to maxBytes from a file using the provided
+// open and stat functions. The size cap is enforced before allocation by
+// statting first; the read itself is wrapped in an io.LimitReader as belt
+// and braces against a file growing between stat and read.
+//
+// Takes opener (func(string) (FileHandle, error)) which opens the file for
+// reading.
+// Takes statter (func(string) (fs.FileInfo, error)) which returns the
+// file's metadata.
+// Takes name (string) which is the relative path within the sandbox.
+// Takes maxBytes (int64) which caps the byte count read into memory; must
+// be positive.
+//
+// Returns []byte containing the file content (up to maxBytes).
+// Returns int64 reporting the stat-observed size at the moment of stat.
+// Returns error wrapping ErrFileExceedsLimit when the file is larger than
+// maxBytes, ErrInvalidLimit when maxBytes is non-positive, or any
+// underlying stat / open / read error.
+func readFileLimitViaOpen(
+	opener func(string) (FileHandle, error),
+	statter func(string) (fs.FileInfo, error),
+	name string,
+	maxBytes int64,
+) ([]byte, int64, error) {
+	if maxBytes <= 0 {
+		return nil, 0, ErrInvalidLimit
+	}
+
+	info, err := statter(name)
+	if err != nil {
+		return nil, 0, err
+	}
+	size := info.Size()
+	if size > maxBytes {
+		return nil, size, fmt.Errorf("%w: %q is %d bytes, limit %d", ErrFileExceedsLimit, name, size, maxBytes)
+	}
+
+	f, err := opener(name)
+	if err != nil {
+		return nil, size, err
+	}
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			_, l := logger.From(context.Background(), log)
+			l.Warn("Failed to close file after limited read",
+				logger.Error(closeErr),
+				logger.String("file", name),
+			)
+		}
+	}()
+
+	data, err := io.ReadAll(io.LimitReader(f, maxBytes+1))
+	if err != nil {
+		return nil, size, fmt.Errorf("reading file contents %q: %w", name, err)
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, size, fmt.Errorf("%w: %q grew past %d bytes during read", ErrFileExceedsLimit, name, maxBytes)
+	}
+	return data, size, nil
 }

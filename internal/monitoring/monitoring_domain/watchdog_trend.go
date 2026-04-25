@@ -190,11 +190,10 @@ func (w *Watchdog) evaluateHeapTrend(ctx context.Context, now time.Time, stats *
 		return
 	}
 
-	if !w.checkCooldown(now, "heap_trend") {
+	if !w.tryAdmitWarning(now, "heap_trend") {
 		return
 	}
 
-	w.recordCapture(now, "heap_trend")
 	w.emitHeapTrendWarning(ctx, slopePerSecond, currentHeap, effectiveLimit, secondsToBreach)
 }
 

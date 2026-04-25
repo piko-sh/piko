@@ -116,6 +116,104 @@ var (
 	// watchdogProfileUploadErrorCount tracks the total number of profile
 	// upload failures.
 	watchdogProfileUploadErrorCount metric.Int64Counter
+
+	// watchdogLoopIterationsCount tracks the total number of evaluation loop
+	// iterations completed by the watchdog. Used as a self-heartbeat signal:
+	// absence of recent increments indicates the loop has stopped.
+	watchdogLoopIterationsCount metric.Int64Counter
+
+	// watchdogLoopLastTickEpochSeconds records the unix-seconds timestamp of
+	// the most recent evaluation tick. External monitoring can alert on
+	// staleness (now - last_tick > 2 * CheckInterval).
+	watchdogLoopLastTickEpochSeconds metric.Int64Gauge
+
+	// watchdogLoopPanicCount tracks the total number of unrecovered panics
+	// in the watchdog evaluation loop. Increments at most once per process
+	// because the loop does not auto-restart -- combined with a stale
+	// heartbeat this signals "watchdog has stopped working".
+	watchdogLoopPanicCount metric.Int64Counter
+
+	// watchdogFDPressureWarningCount tracks the total number of FD-pressure
+	// warnings emitted when the open FD count approaches the soft
+	// RLIMIT_NOFILE.
+	watchdogFDPressureWarningCount metric.Int64Counter
+
+	// watchdogFDCount records the current open FD count, sampled each tick
+	// when the soft limit is known.
+	watchdogFDCount metric.Int64Gauge
+
+	// watchdogFDLimitSoft records the process soft FD limit; recorded once
+	// at Start because the rlimit is stable for the process.
+	watchdogFDLimitSoft metric.Int64Gauge
+
+	// watchdogSchedulerLatencyEventCount tracks the total number of
+	// scheduler-latency warnings emitted.
+	watchdogSchedulerLatencyEventCount metric.Int64Counter
+
+	// watchdogSchedulerLatencyP99Nanos records the latest scheduler latency
+	// p99 in nanoseconds, sampled each tick from runtime/metrics.
+	watchdogSchedulerLatencyP99Nanos metric.Int64Gauge
+
+	// watchdogStartupHistoryReadErrorCount tracks the total number of
+	// startup-history read failures during Start. Read errors are
+	// best-effort; they do not block startup.
+	watchdogStartupHistoryReadErrorCount metric.Int64Counter
+
+	// watchdogStartupHistoryWriteErrorCount tracks the total number of
+	// startup-history write failures during Start or Stop.
+	watchdogStartupHistoryWriteErrorCount metric.Int64Counter
+
+	// watchdogCrashLoopDetectionCount tracks the total number of crash-loop
+	// detections at startup.
+	watchdogCrashLoopDetectionCount metric.Int64Counter
+
+	// watchdogUncleanShutdownCount tracks the total number of previous
+	// process runs classified as unclean exits.
+	watchdogUncleanShutdownCount metric.Int64Counter
+
+	// watchdogRoutineProfileCaptureCount tracks the total number of
+	// continuous-profiling routine captures completed.
+	watchdogRoutineProfileCaptureCount metric.Int64Counter
+
+	// watchdogContentionDiagnosticCount tracks the total number of
+	// completed contention diagnostics.
+	watchdogContentionDiagnosticCount metric.Int64Counter
+
+	// watchdogContentionDiagnosticErrorCount tracks the total number of
+	// contention diagnostics that failed to start (cooldown,
+	// already-running, stopped, missing controller) or errored mid-run.
+	watchdogContentionDiagnosticErrorCount metric.Int64Counter
+
+	// watchdogEventEmittedCount tracks every WatchdogEvent the watchdog
+	// emits, attributed by event_type so dashboards can break the rate
+	// down per rule fired.
+	watchdogEventEmittedCount metric.Int64Counter
+
+	// watchdogEventSubscriberCount is the live count of streaming event
+	// subscribers attached to the watchdog so operators can alert on drift
+	// such as orphaned dashboards keeping channels open.
+	watchdogEventSubscriberCount metric.Int64UpDownCounter
+
+	// watchdogEventSubscriberDropCount tracks how many events were
+	// silently dropped because a subscriber's bounded channel was full.
+	// Sustained drops imply a slow or hung consumer.
+	watchdogEventSubscriberDropCount metric.Int64Counter
+
+	// watchdogSidecarDownloadCount tracks every successful sidecar fetch
+	// served by the inspector RPC. Useful for distinguishing operator
+	// activity from automated polling.
+	watchdogSidecarDownloadCount metric.Int64Counter
+
+	// watchdogSidecarDownloadErrorCount tracks failed sidecar fetches
+	// (oversize, missing, read error) so dashboards can flag corrupt or
+	// stale on-disk metadata.
+	watchdogSidecarDownloadErrorCount metric.Int64Counter
+
+	// watchdogProfileFileOversizeCount tracks how many sandboxed reads
+	// (sidecar / history / profile) refused to load because the file
+	// exceeded its configured cap. Sustained increases imply disk
+	// corruption or a malicious tenant.
+	watchdogProfileFileOversizeCount metric.Int64Counter
 )
 
 func init() {
@@ -264,6 +362,176 @@ func init() {
 	watchdogProfileUploadErrorCount, err = watchdogMeter.Int64Counter(
 		"watchdog.profile_upload_error_count",
 		metric.WithDescription("Number of profile upload failures"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogLoopIterationsCount, err = watchdogMeter.Int64Counter(
+		"watchdog.loop_iterations_count",
+		metric.WithDescription("Number of evaluation loop iterations completed by the watchdog (self-heartbeat counter)"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogLoopLastTickEpochSeconds, err = watchdogMeter.Int64Gauge(
+		"watchdog.loop_last_tick_epoch_seconds",
+		metric.WithDescription("Unix-seconds timestamp of the most recent watchdog evaluation tick"),
+		metric.WithUnit("s"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogLoopPanicCount, err = watchdogMeter.Int64Counter(
+		"watchdog.loop_panic_count",
+		metric.WithDescription("Number of unrecovered panics in the watchdog evaluation loop"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogFDPressureWarningCount, err = watchdogMeter.Int64Counter(
+		"watchdog.fd_pressure_warning_count",
+		metric.WithDescription("Number of FD pressure warnings emitted when open file descriptor count approached the soft limit"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogFDCount, err = watchdogMeter.Int64Gauge(
+		"watchdog.fd_count",
+		metric.WithDescription("Current number of open file descriptors observed by the watchdog"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogFDLimitSoft, err = watchdogMeter.Int64Gauge(
+		"watchdog.fd_limit_soft",
+		metric.WithDescription("Soft RLIMIT_NOFILE for the process; stable for the process lifetime"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogSchedulerLatencyEventCount, err = watchdogMeter.Int64Counter(
+		"watchdog.scheduler_latency_event_count",
+		metric.WithDescription("Number of scheduler-latency warnings emitted from runtime/metrics observations"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogSchedulerLatencyP99Nanos, err = watchdogMeter.Int64Gauge(
+		"watchdog.scheduler_latency_p99_nanos",
+		metric.WithDescription("Latest scheduler-latency p99 in nanoseconds, sampled from runtime/metrics each watchdog tick"),
+		metric.WithUnit("ns"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogStartupHistoryReadErrorCount, err = watchdogMeter.Int64Counter(
+		"watchdog.startup_history_read_error_count",
+		metric.WithDescription("Number of failures while reading the startup history file at watchdog Start"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogStartupHistoryWriteErrorCount, err = watchdogMeter.Int64Counter(
+		"watchdog.startup_history_write_error_count",
+		metric.WithDescription("Number of failures while writing the startup history file at watchdog Start or Stop"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogCrashLoopDetectionCount, err = watchdogMeter.Int64Counter(
+		"watchdog.crash_loop_detection_count",
+		metric.WithDescription("Number of crash-loop detections at watchdog Start"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogUncleanShutdownCount, err = watchdogMeter.Int64Counter(
+		"watchdog.unclean_shutdown_count",
+		metric.WithDescription("Number of previous process runs classified as unclean exits"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogRoutineProfileCaptureCount, err = watchdogMeter.Int64Counter(
+		"watchdog.routine_profile_capture_count",
+		metric.WithDescription("Number of routine profile captures completed by the continuous-profiling loop"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogContentionDiagnosticCount, err = watchdogMeter.Int64Counter(
+		"watchdog.contention_diagnostic_count",
+		metric.WithDescription("Number of completed contention diagnostics (block + mutex profile pairs)"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogContentionDiagnosticErrorCount, err = watchdogMeter.Int64Counter(
+		"watchdog.contention_diagnostic_error_count",
+		metric.WithDescription("Number of contention diagnostics that failed to start or errored mid-run"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogEventEmittedCount, err = watchdogMeter.Int64Counter(
+		"watchdog.event_emitted_count",
+		metric.WithDescription("Number of watchdog events emitted, attributed by event_type"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogEventSubscriberCount, err = watchdogMeter.Int64UpDownCounter(
+		"watchdog.event_subscriber_count",
+		metric.WithDescription("Live count of streaming watchdog event subscribers"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogEventSubscriberDropCount, err = watchdogMeter.Int64Counter(
+		"watchdog.event_subscriber_drop_count",
+		metric.WithDescription("Number of events dropped from a subscriber channel because it was full"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogSidecarDownloadCount, err = watchdogMeter.Int64Counter(
+		"watchdog.sidecar_download_count",
+		metric.WithDescription("Number of sidecar JSON fetches served by the inspector"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogSidecarDownloadErrorCount, err = watchdogMeter.Int64Counter(
+		"watchdog.sidecar_download_error_count",
+		metric.WithDescription("Number of sidecar JSON fetches that failed (oversize / missing / read error)"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	watchdogProfileFileOversizeCount, err = watchdogMeter.Int64Counter(
+		"watchdog.profile_file_oversize_count",
+		metric.WithDescription("Number of sandboxed reads refused because the file exceeded its size cap"),
 	)
 	if err != nil {
 		otel.Handle(err)

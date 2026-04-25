@@ -81,6 +81,20 @@ func (s *noOpSandbox) ReadFile(name string) ([]byte, error) {
 	return readFileViaOpen(s.Open, name)
 }
 
+// ReadFileLimit reads up to maxBytes from a file. See Sandbox.ReadFileLimit
+// for the contract.
+//
+// Takes name (string) which specifies the path to the file to read.
+// Takes maxBytes (int64) which caps the byte count read into memory.
+//
+// Returns []byte which contains the file content (up to maxBytes).
+// Returns int64 which is the stat-reported file size at stat time.
+// Returns error which wraps ErrFileExceedsLimit, ErrInvalidLimit, or any
+// underlying stat or read error.
+func (s *noOpSandbox) ReadFileLimit(name string, maxBytes int64) ([]byte, int64, error) {
+	return readFileLimitViaOpen(s.Open, s.Stat, name, maxBytes)
+}
+
 // Stat returns file information.
 //
 // Takes name (string) which specifies the path to the file.

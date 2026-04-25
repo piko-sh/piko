@@ -365,6 +365,8 @@ func convertSystemStatsToPB(stats *monitoring_domain.SystemStats) *pb.GetSystemS
 		Gc:                   convertGCInfoToPB(stats.GC),
 		Memory:               convertMemoryInfoToPB(stats.Memory),
 		Process:              convertProcessInfoToPB(stats.Process),
+		Schedule:             convertSchedulerInfoToPB(stats.Schedule),
+		Sync:                 convertSyncInfoToPB(stats.Sync),
 		TimestampMs:          stats.TimestampMs,
 		UptimeMs:             stats.UptimeMs,
 		NumCgoCalls:          stats.NumCGOCalls,
@@ -427,6 +429,9 @@ func convertGCInfoToPB(gc monitoring_domain.GCInfo) *pb.GCInfo {
 		NextGc:        gc.NextGC,
 		NumGc:         gc.NumGC,
 		NumForcedGc:   gc.NumForcedGC,
+		PauseP50Ns:    gc.PauseP50.Nanoseconds(),
+		PauseP95Ns:    gc.PauseP95.Nanoseconds(),
+		PauseP99Ns:    gc.PauseP99.Nanoseconds(),
 	}
 }
 
@@ -440,28 +445,64 @@ func convertGCInfoToPB(gc monitoring_domain.GCInfo) *pb.GCInfo {
 // mapped.
 func convertMemoryInfoToPB(mem monitoring_domain.MemoryInfo) *pb.MemoryInfo {
 	return &pb.MemoryInfo{
-		Alloc:        mem.Alloc,
-		TotalAlloc:   mem.TotalAlloc,
-		Sys:          mem.Sys,
-		HeapAlloc:    mem.HeapAlloc,
-		HeapSys:      mem.HeapSys,
-		HeapIdle:     mem.HeapIdle,
-		HeapInuse:    mem.HeapInuse,
-		HeapObjects:  mem.HeapObjects,
-		HeapReleased: mem.HeapReleased,
-		StackSys:     mem.StackSys,
-		Mallocs:      mem.Mallocs,
-		Frees:        mem.Frees,
-		LiveObjects:  mem.LiveObjects,
-		StackInuse:   mem.StackInuse,
-		MspanInuse:   mem.MSpanInuse,
-		MspanSys:     mem.MSpanSys,
-		McacheInuse:  mem.MCacheInuse,
-		McacheSys:    mem.MCacheSys,
-		GcSys:        mem.GCSys,
-		OtherSys:     mem.OtherSys,
-		BuckhashSys:  mem.BuckHashSys,
-		Lookups:      mem.Lookups,
+		Alloc:             mem.Alloc,
+		TotalAlloc:        mem.TotalAlloc,
+		Sys:               mem.Sys,
+		HeapAlloc:         mem.HeapAlloc,
+		HeapSys:           mem.HeapSys,
+		HeapIdle:          mem.HeapIdle,
+		HeapInuse:         mem.HeapInuse,
+		HeapObjects:       mem.HeapObjects,
+		HeapReleased:      mem.HeapReleased,
+		StackSys:          mem.StackSys,
+		Mallocs:           mem.Mallocs,
+		Frees:             mem.Frees,
+		LiveObjects:       mem.LiveObjects,
+		StackInuse:        mem.StackInuse,
+		MspanInuse:        mem.MSpanInuse,
+		MspanSys:          mem.MSpanSys,
+		McacheInuse:       mem.MCacheInuse,
+		McacheSys:         mem.MCacheSys,
+		GcSys:             mem.GCSys,
+		OtherSys:          mem.OtherSys,
+		BuckhashSys:       mem.BuckHashSys,
+		Lookups:           mem.Lookups,
+		HeapObjectsBytes:  mem.HeapObjectsBytes,
+		HeapFreeBytes:     mem.HeapFreeBytes,
+		HeapReleasedBytes: mem.HeapReleasedBytes,
+		HeapStacksBytes:   mem.HeapStacksBytes,
+		HeapUnusedBytes:   mem.HeapUnusedBytes,
+		TotalBytes:        mem.TotalBytes,
+	}
+}
+
+// convertSchedulerInfoToPB converts a domain SchedulerInfo to its protobuf
+// representation.
+//
+// Takes sched (monitoring_domain.SchedulerInfo) which contains scheduler
+// latency percentiles, goroutine count, and GOMAXPROCS.
+//
+// Returns *pb.SchedulerInfo which is the protobuf message for the scheduler
+// information.
+func convertSchedulerInfoToPB(sched monitoring_domain.SchedulerInfo) *pb.SchedulerInfo {
+	return &pb.SchedulerInfo{
+		LatencyP50Ns:   sched.LatencyP50.Nanoseconds(),
+		LatencyP99Ns:   sched.LatencyP99.Nanoseconds(),
+		GoroutineCount: sched.GoroutineCount,
+		Gomaxprocs:     sched.GoMaxProcs,
+	}
+}
+
+// convertSyncInfoToPB converts a domain SyncInfo to its protobuf
+// representation.
+//
+// Takes sync (monitoring_domain.SyncInfo) which contains synchronisation
+// contention metrics.
+//
+// Returns *pb.SyncInfo which is the protobuf message for the sync information.
+func convertSyncInfoToPB(sync monitoring_domain.SyncInfo) *pb.SyncInfo {
+	return &pb.SyncInfo{
+		MutexWaitTotalSeconds: sync.MutexWaitTotalSeconds,
 	}
 }
 

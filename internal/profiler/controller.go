@@ -178,12 +178,8 @@ func NewController() *Controller {
 // Takes opts (ProfilingEnableOpts) which configures the profiling
 // session duration, port, and sampling rates.
 //
-// Returns *ProfilingStatus which describes the active profiling
-// session after enabling.
-// Returns error when the server fails to start or the duration
-// exceeds the maximum allowed.
-// Returns *monitoring_domain.ProfilingStatus which contains the current state
-// after enabling.
+// Returns *monitoring_domain.ProfilingStatus which describes the active
+// profiling session after enabling.
 // Returns error when the server fails to start or the duration exceeds the
 // maximum allowed.
 //
@@ -425,10 +421,8 @@ func (c *Controller) startProfilingServer(
 // Takes duration (time.Duration) which is the session duration.
 // Takes originalMutexFraction (int) which is the pre-enable mutex fraction.
 //
-// Returns *ProfilingStatus which describes the newly committed
-// profiling session state.
-// Returns error when an enable race requires shutting down the duplicate server.
-// Returns *monitoring_domain.ProfilingStatus which contains the session state.
+// Returns *monitoring_domain.ProfilingStatus which describes the newly
+// committed profiling session state.
 // Returns error when an enable race requires shutting down the duplicate
 // server.
 func (c *Controller) commitSession(
@@ -471,10 +465,8 @@ func (c *Controller) commitSession(
 // Takes server (*ServerHandle) which is the duplicate server to shut down.
 // Takes originalMutexFraction (int) which is the pre-enable mutex fraction to restore.
 //
-// Returns *ProfilingStatus which describes the existing session that
-// won the enable race.
-// Returns *monitoring_domain.ProfilingStatus which contains the existing
-// session state.
+// Returns *monitoring_domain.ProfilingStatus which describes the existing
+// session that won the enable race.
 // Returns error when the duplicate server fails to shut down.
 func (c *Controller) handleEnableRace(
 	ctx context.Context,

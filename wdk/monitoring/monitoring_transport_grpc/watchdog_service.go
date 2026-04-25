@@ -21,6 +21,7 @@ package monitoring_transport_grpc
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,6 +38,10 @@ const (
 
 	// maxDownloadBytes is the maximum total profile size delivered via gRPC.
 	maxDownloadBytes = 64 * 1024 * 1024
+
+	// maxSidecarBytes is the maximum sidecar JSON payload returned in a
+	// single gRPC response.
+	maxSidecarBytes = 1 * 1024 * 1024
 )
 
 // WatchdogInspectorService implements the gRPC watchdog inspector service
@@ -76,10 +81,40 @@ func (s *WatchdogInspectorService) ListProfiles(ctx context.Context, _ *pb.ListP
 			Type:        profile.Type,
 			TimestampMs: profile.Timestamp.UnixMilli(),
 			SizeBytes:   profile.SizeBytes,
+			HasSidecar:  profile.HasSidecar,
 		}
 	}
 
 	return &pb.ListProfilesResponse{Profiles: entries}, nil
+}
+
+// DownloadSidecar returns the JSON sidecar paired with a profile.
+//
+// Takes request (*pb.DownloadSidecarRequest) which specifies the profile
+// filename whose sidecar to fetch.
+//
+// Returns *pb.DownloadSidecarResponse which contains the sidecar bytes
+// and a presence flag.
+// Returns error when the request is malformed or the read fails for
+// reasons other than absence.
+func (s *WatchdogInspectorService) DownloadSidecar(ctx context.Context, request *pb.DownloadSidecarRequest) (*pb.DownloadSidecarResponse, error) {
+	filename := request.GetProfileFilename()
+	if filename == "" {
+		return nil, status.Error(codes.InvalidArgument, "profile_filename must not be empty")
+	}
+
+	data, present, err := s.inspector.DownloadSidecar(ctx, filename)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "downloading sidecar for %q: %v", filename, err)
+	}
+	if int64(len(data)) > maxSidecarBytes {
+		return nil, status.Errorf(codes.ResourceExhausted, "sidecar for %q exceeds %d byte limit", filename, maxSidecarBytes)
+	}
+
+	return &pb.DownloadSidecarResponse{
+		Data:    data,
+		Present: present,
+	}, nil
 }
 
 // DownloadProfile streams the raw bytes of a stored watchdog profile file
@@ -136,20 +171,157 @@ func (s *WatchdogInspectorService) PruneProfiles(ctx context.Context, request *p
 func (s *WatchdogInspectorService) GetWatchdogStatus(ctx context.Context, _ *pb.GetWatchdogStatusRequest) (*pb.GetWatchdogStatusResponse, error) {
 	watchdogStatus := s.inspector.GetWatchdogStatus(ctx)
 
+	contentionLastRunMs := int64(0)
+	if !watchdogStatus.ContentionDiagnosticLastRun.IsZero() {
+		contentionLastRunMs = watchdogStatus.ContentionDiagnosticLastRun.UnixMilli()
+	}
+
 	return &pb.GetWatchdogStatusResponse{
-		Enabled:                watchdogStatus.Enabled,
-		Stopped:                watchdogStatus.Stopped,
-		ProfileDirectory:       watchdogStatus.ProfileDirectory,
-		CheckIntervalMs:        watchdogStatus.CheckInterval.Milliseconds(),
-		CooldownMs:             watchdogStatus.Cooldown.Milliseconds(),
-		WarmUpDurationMs:       watchdogStatus.WarmUpDuration.Milliseconds(),
-		StartedAtMs:            watchdogStatus.StartedAt.UnixMilli(),
-		HeapThresholdBytes:     watchdogStatus.HeapThresholdBytes,
-		HeapHighWater:          watchdogStatus.HeapHighWater,
-		GoroutineThreshold:     safeconv.IntToInt32(watchdogStatus.GoroutineThreshold),
-		GoroutineSafetyCeiling: safeconv.IntToInt32(watchdogStatus.GoroutineSafetyCeiling),
-		MaxProfilesPerType:     safeconv.IntToInt32(watchdogStatus.MaxProfilesPerType),
+		Enabled:                        watchdogStatus.Enabled,
+		Stopped:                        watchdogStatus.Stopped,
+		ProfileDirectory:               watchdogStatus.ProfileDirectory,
+		CheckIntervalMs:                watchdogStatus.CheckInterval.Milliseconds(),
+		CooldownMs:                     watchdogStatus.Cooldown.Milliseconds(),
+		WarmUpDurationMs:               watchdogStatus.WarmUpDuration.Milliseconds(),
+		StartedAtMs:                    watchdogStatus.StartedAt.UnixMilli(),
+		HeapThresholdBytes:             watchdogStatus.HeapThresholdBytes,
+		HeapHighWater:                  watchdogStatus.HeapHighWater,
+		GoroutineThreshold:             safeconv.IntToInt32(watchdogStatus.GoroutineThreshold),
+		GoroutineSafetyCeiling:         safeconv.IntToInt32(watchdogStatus.GoroutineSafetyCeiling),
+		MaxProfilesPerType:             safeconv.IntToInt32(watchdogStatus.MaxProfilesPerType),
+		CaptureWindowMs:                watchdogStatus.CaptureWindow.Milliseconds(),
+		MaxCapturesPerWindow:           safeconv.IntToInt32(watchdogStatus.MaxCapturesPerWindow),
+		MaxWarningsPerWindow:           safeconv.IntToInt32(watchdogStatus.MaxWarningsPerWindow),
+		FdPressureThresholdPercent:     watchdogStatus.FDPressureThresholdPercent,
+		SchedulerLatencyP99ThresholdNs: watchdogStatus.SchedulerLatencyP99Threshold.Nanoseconds(),
+		CrashLoopWindowMs:              watchdogStatus.CrashLoopWindow.Milliseconds(),
+		CrashLoopThreshold:             safeconv.IntToInt32(watchdogStatus.CrashLoopThreshold),
+		ContinuousProfilingEnabled:     watchdogStatus.ContinuousProfilingEnabled,
+		ContinuousProfilingIntervalMs:  watchdogStatus.ContinuousProfilingInterval.Milliseconds(),
+		ContinuousProfilingTypes:       watchdogStatus.ContinuousProfilingTypes,
+		ContinuousProfilingRetention:   safeconv.IntToInt32(watchdogStatus.ContinuousProfilingRetention),
+		ContentionDiagnosticWindowMs:   watchdogStatus.ContentionDiagnosticWindow.Milliseconds(),
+		ContentionDiagnosticCooldownMs: watchdogStatus.ContentionDiagnosticCooldown.Milliseconds(),
+		ContentionDiagnosticAutoFire:   watchdogStatus.ContentionDiagnosticAutoFire,
+		ContentionDiagnosticLastRunMs:  contentionLastRunMs,
+		GoroutineBaseline:              watchdogStatus.GoroutineBaseline,
+		CaptureWindowUsed:              safeconv.IntToInt32(watchdogStatus.CaptureWindowUsed),
+		WarningWindowUsed:              safeconv.IntToInt32(watchdogStatus.WarningWindowUsed),
 	}, nil
+}
+
+// RunContentionDiagnostic enables block + mutex profiling for the configured
+// window, captures both profiles, then disables. The call is synchronous so
+// the gRPC response is returned only after the diagnostic completes.
+//
+// Returns *pb.RunContentionDiagnosticResponse with started=true on success.
+// Returns error wrapped as a gRPC status when the diagnostic cannot run.
+func (s *WatchdogInspectorService) RunContentionDiagnostic(ctx context.Context, _ *pb.RunContentionDiagnosticRequest) (*pb.RunContentionDiagnosticResponse, error) {
+	if err := s.inspector.RunContentionDiagnostic(ctx); err != nil {
+		return &pb.RunContentionDiagnosticResponse{
+			Started: false,
+			Error:   err.Error(),
+		}, nil
+	}
+	return &pb.RunContentionDiagnosticResponse{Started: true}, nil
+}
+
+// GetStartupHistory returns the parsed startup-history ring.
+//
+// Returns *pb.GetStartupHistoryResponse which contains each entry's start
+// and stop timestamps as unix milliseconds.
+// Returns error when the history file is unreadable or corrupt.
+func (s *WatchdogInspectorService) GetStartupHistory(ctx context.Context, _ *pb.GetStartupHistoryRequest) (*pb.GetStartupHistoryResponse, error) {
+	entries, err := s.inspector.GetStartupHistory(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "reading startup history: %v", err)
+	}
+
+	pbEntries := make([]*pb.StartupHistoryEntry, len(entries))
+	for index, entry := range entries {
+		stoppedAtMs := int64(0)
+		if !entry.StoppedAt.IsZero() {
+			stoppedAtMs = entry.StoppedAt.UnixMilli()
+		}
+		pbEntries[index] = &pb.StartupHistoryEntry{
+			StartedAtMs:     entry.StartedAt.UnixMilli(),
+			StoppedAtMs:     stoppedAtMs,
+			Pid:             safeconv.IntToInt32(entry.PID),
+			Hostname:        entry.Hostname,
+			Version:         entry.Version,
+			GomemlimitBytes: entry.GomemlimitBytes,
+			StopReason:      entry.Reason,
+		}
+	}
+
+	return &pb.GetStartupHistoryResponse{Entries: pbEntries}, nil
+}
+
+// ListEvents returns recent watchdog events from the in-memory ring.
+//
+// Takes request (*pb.ListEventsRequest) which filters by limit, since,
+// and event type.
+//
+// Returns *pb.ListEventsResponse which contains the matching events in
+// chronological order.
+// Returns error (always nil; included for interface compliance).
+func (s *WatchdogInspectorService) ListEvents(ctx context.Context, request *pb.ListEventsRequest) (*pb.ListEventsResponse, error) {
+	since := time.Time{}
+	if ms := request.GetSinceMs(); ms > 0 {
+		since = time.UnixMilli(ms)
+	}
+
+	events := s.inspector.ListEvents(ctx, int(request.GetLimit()), since, request.GetEventType())
+
+	pbEvents := make([]*pb.WatchdogEventMessage, len(events))
+	for index, event := range events {
+		pbEvents[index] = watchdogEventToProto(event)
+	}
+
+	return &pb.ListEventsResponse{Events: pbEvents}, nil
+}
+
+// WatchEvents streams newly emitted watchdog events to the client.
+// Optionally back-fills from the ring buffer before live streaming begins.
+//
+// Takes request (*pb.WatchEventsRequest) which carries the optional
+// since-millis back-fill watermark.
+// Takes stream (pb.WatchdogInspectorService_WatchEventsServer) which
+// receives each event message.
+//
+// Returns error when the subscription cannot be created or a send fails.
+func (s *WatchdogInspectorService) WatchEvents(request *pb.WatchEventsRequest, stream pb.WatchdogInspectorService_WatchEventsServer) error {
+	since := time.Time{}
+	if ms := request.GetSinceMs(); ms > 0 {
+		since = time.UnixMilli(ms)
+	}
+
+	ch, cancel := s.inspector.SubscribeEvents(stream.Context(), since)
+	defer cancel()
+
+	for event := range ch {
+		if err := stream.Send(watchdogEventToProto(event)); err != nil {
+			return fmt.Errorf("sending watchdog event: %w", err)
+		}
+	}
+	return nil
+}
+
+// watchdogEventToProto maps a domain WatchdogEventInfo to its protobuf form.
+//
+// Takes event (monitoring_domain.WatchdogEventInfo) which is the domain
+// event to project onto the wire format.
+//
+// Returns *pb.WatchdogEventMessage which captures every field of the
+// inspector-facing event.
+func watchdogEventToProto(event monitoring_domain.WatchdogEventInfo) *pb.WatchdogEventMessage {
+	return &pb.WatchdogEventMessage{
+		EventType:   string(event.EventType),
+		Priority:    safeconv.IntToInt32(int(event.Priority)),
+		Message:     event.Message,
+		Fields:      event.Fields,
+		EmittedAtMs: event.EmittedAt.UnixMilli(),
+	}
 }
 
 // sendDownloadChunks writes profile data to the stream in fixed-size chunks.

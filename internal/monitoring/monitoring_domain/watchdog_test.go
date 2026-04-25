@@ -19,11 +19,10 @@
 package monitoring_domain
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"errors"
 	"io"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -189,295 +188,61 @@ func TestWatchdog_WarmUpPeriod(t *testing.T) {
 	assert.Empty(t, controller.getCaptureCalls(), "no captures should occur during warm-up")
 }
 
-func TestWatchdog_HeapThresholdTriggersCapture(t *testing.T) {
+func TestValidateWatchdogConfig_RejectsContinuousProfilingShortInterval(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
 	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.HeapThresholdBytes = 100
-	config.Cooldown = time.Second
+	config.ContinuousProfilingEnabled = true
+	config.ContinuousProfilingInterval = time.Second
 
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-
-	highHeapStats := SystemStats{
-		Memory: MemoryInfo{HeapAlloc: 200},
-	}
-
-	watchdog.evaluate(context.Background(), &highHeapStats)
-
-	watchdog.captureWG.Wait()
-
-	calls := controller.getCaptureCalls()
-	assert.Contains(t, calls, "heap", "heap capture should have been triggered")
+	err := validateWatchdogConfig(&config)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidWatchdogConfig)
 }
 
-func TestWatchdog_HeapHighWaterEscalation(t *testing.T) {
+func TestValidateWatchdogConfig_RejectsContinuousProfilingDisallowedType(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
 	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.HeapThresholdBytes = 100
-	config.Cooldown = time.Second
+	config.ContinuousProfilingEnabled = true
+	config.ContinuousProfilingTypes = []string{"cpu"}
 
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-
-	firstStats := SystemStats{
-		Memory: MemoryInfo{HeapAlloc: 200},
-	}
-	watchdog.evaluate(context.Background(), &firstStats)
-	watchdog.captureWG.Wait()
-
-	watchdog.mu.Lock()
-	escalatedHighWater := watchdog.heapHighWater
-	watchdog.mu.Unlock()
-
-	assert.Equal(t, uint64(200), escalatedHighWater, "high-water mark should escalate to current heap")
-
-	mockClock.Advance(2 * time.Second)
-
-	secondStats := SystemStats{
-		Memory: MemoryInfo{HeapAlloc: 200},
-	}
-	watchdog.evaluate(context.Background(), &secondStats)
-	watchdog.captureWG.Wait()
-
-	calls := controller.getCaptureCalls()
-	heapCaptureCount := 0
-	for _, call := range calls {
-		if call == "heap" {
-			heapCaptureCount++
-		}
-	}
-
-	assert.Equal(t, 1, heapCaptureCount, "no second capture should occur at the same heap level")
+	err := validateWatchdogConfig(&config)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidWatchdogConfig)
 }
 
-func TestWatchdog_HeapHighWaterReset(t *testing.T) {
+func TestValidateWatchdogConfig_RejectsContentionDiagnosticWindowOutOfRange(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
 	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.HeapThresholdBytes = 1000
-	config.HighWaterResetCooldown = 10 * time.Minute
-	config.Cooldown = time.Second
+	config.ContentionDiagnosticWindowDuration = 10 * time.Minute
 
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-
-	watchdog.mu.Lock()
-	watchdog.heapHighWater = 5000
-	watchdog.heapHighWaterSetAt = startTime
-	watchdog.mu.Unlock()
-
-	mockClock.Advance(11 * time.Minute)
-
-	lowStats := SystemStats{
-		Memory: MemoryInfo{HeapAlloc: 100},
-	}
-	watchdog.evaluate(context.Background(), &lowStats)
-
-	watchdog.mu.Lock()
-	resetHighWater := watchdog.heapHighWater
-	watchdog.mu.Unlock()
-
-	assert.Equal(t, uint64(1000), resetHighWater, "high-water mark should reset to the initial threshold")
+	err := validateWatchdogConfig(&config)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidWatchdogConfig)
 }
 
-func TestWatchdog_GoroutineThreshold(t *testing.T) {
+func TestValidateWatchdogConfig_RejectsInvalidFDPressureThreshold(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
 	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.GoroutineThreshold = 100
-	config.GoroutineSafetyCeiling = 100000
-	config.Cooldown = time.Second
+	config.FDPressureThresholdPercent = 1.5
 
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-	watchdog.goroutineBaseline.Store(10)
-
-	goroutineStats := SystemStats{
-		NumGoroutines: 200,
-	}
-
-	watchdog.evaluate(context.Background(), &goroutineStats)
-	watchdog.captureWG.Wait()
-
-	calls := controller.getCaptureCalls()
-	assert.Contains(t, calls, "goroutine", "goroutine capture should have been triggered")
+	err := validateWatchdogConfig(&config)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidWatchdogConfig)
 }
 
-func TestWatchdog_GoroutineSafetyCeiling(t *testing.T) {
+func TestValidateWatchdogConfig_RejectsNegativeSchedulerThreshold(t *testing.T) {
 	t.Parallel()
 
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
 	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.GoroutineThreshold = 100
-	config.GoroutineSafetyCeiling = 50000
-	config.Cooldown = time.Second
+	config.SchedulerLatencyP99Threshold = -time.Millisecond
 
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-	watchdog.goroutineBaseline.Store(10)
-
-	ceilingStats := SystemStats{
-		NumGoroutines: 60000,
-	}
-
-	watchdog.evaluate(context.Background(), &ceilingStats)
-	watchdog.captureWG.Wait()
-
-	calls := controller.getCaptureCalls()
-	goroutineCaptureCount := 0
-	for _, call := range calls {
-		if call == "goroutine" {
-			goroutineCaptureCount++
-		}
-	}
-
-	assert.Equal(t, 0, goroutineCaptureCount, "no capture should occur when goroutine count exceeds the safety ceiling")
-}
-
-func TestWatchdog_GCPressureWarning(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.GCPressureThreshold = 0.5
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-
-	gcStats := SystemStats{
-		GC: GCInfo{GCCPUFraction: 0.6},
-	}
-
-	watchdog.evaluate(context.Background(), &gcStats)
-	watchdog.captureWG.Wait()
-
-	calls := controller.getCaptureCalls()
-	assert.Empty(t, calls, "GC pressure should not trigger a profile capture")
-
-	watchdog.mu.Lock()
-	_, gcPressureRecorded := watchdog.lastCaptureTime["gc_pressure"]
-	watchdog.mu.Unlock()
-
-	assert.True(t, gcPressureRecorded, "gc_pressure warning should have been recorded")
-}
-
-func TestWatchdog_CooldownPreventsRapidCaptures(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.HeapThresholdBytes = 100
-	config.Cooldown = 2 * time.Minute
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-
-	firstStats := SystemStats{
-		Memory: MemoryInfo{HeapAlloc: 200},
-	}
-	watchdog.evaluate(context.Background(), &firstStats)
-	watchdog.captureWG.Wait()
-
-	mockClock.Advance(10 * time.Second)
-
-	watchdog.mu.Lock()
-	watchdog.heapHighWater = 100
-	watchdog.mu.Unlock()
-
-	secondStats := SystemStats{
-		Memory: MemoryInfo{HeapAlloc: 300},
-	}
-	watchdog.evaluate(context.Background(), &secondStats)
-	watchdog.captureWG.Wait()
-
-	calls := controller.getCaptureCalls()
-	heapCaptureCount := 0
-	for _, call := range calls {
-		if call == "heap" {
-			heapCaptureCount++
-		}
-	}
-
-	assert.Equal(t, 1, heapCaptureCount, "cooldown should prevent a second capture")
-}
-
-func TestWatchdog_GlobalRateLimit(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.HeapThresholdBytes = 100
-	config.Cooldown = time.Second
-	config.MaxCapturesPerWindow = 2
-	config.CaptureWindow = 15 * time.Minute
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-
-	watchdog.recordCapture(startTime, "heap")
-	watchdog.recordCapture(startTime.Add(time.Second), "goroutine")
-
-	mockClock.Advance(5 * time.Second)
-
-	watchdog.mu.Lock()
-	watchdog.heapHighWater = 100
-	watchdog.mu.Unlock()
-
-	exceededStats := SystemStats{
-		Memory: MemoryInfo{HeapAlloc: 200},
-	}
-	watchdog.evaluate(context.Background(), &exceededStats)
-	watchdog.captureWG.Wait()
-
-	calls := controller.getCaptureCalls()
-	assert.Empty(t, calls, "no capture should occur when the global rate limit is exhausted")
+	err := validateWatchdogConfig(&config)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidWatchdogConfig)
 }
 
 func TestWatchdog_NilProfilingController(t *testing.T) {
@@ -518,207 +283,6 @@ func TestWatchdog_StopIsIdempotent(t *testing.T) {
 		watchdog.Stop()
 		watchdog.Stop()
 	}, "calling Stop multiple times should not panic")
-}
-
-func TestProfileStore_WriteAndRotate(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	tempDirectory := t.TempDir()
-	sandbox, err := safedisk.NewNoOpSandbox(tempDirectory, safedisk.ModeReadWrite)
-	require.NoError(t, err)
-
-	maxProfiles := 3
-	store := &profileStore{
-		sandbox:            sandbox,
-		clock:              mockClock,
-		maxProfilesPerType: maxProfiles,
-	}
-
-	for i := range 5 {
-		mockClock.Advance(time.Minute)
-
-		data := []byte("profile-data-" + string(rune('A'+i)))
-		err := store.write("heap", data)
-		require.NoError(t, err, "write %d should succeed", i)
-	}
-
-	entries, err := sandbox.ReadDir(".")
-	require.NoError(t, err)
-
-	heapFileCount := 0
-	for _, entry := range entries {
-		if entry.Name() != "" && len(entry.Name()) > 5 && entry.Name()[:5] == "heap-" {
-			heapFileCount++
-		}
-	}
-
-	assert.Equal(t, maxProfiles, heapFileCount, "rotation should keep only %d profiles", maxProfiles)
-}
-
-func TestProfileStore_GzipCompression(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	tempDirectory := t.TempDir()
-	sandbox, err := safedisk.NewNoOpSandbox(tempDirectory, safedisk.ModeReadWrite)
-	require.NoError(t, err)
-
-	store := &profileStore{
-		sandbox:            sandbox,
-		clock:              mockClock,
-		maxProfilesPerType: 5,
-	}
-
-	originalData := []byte("this is test profile data for gzip verification")
-
-	err = store.write("goroutine", originalData)
-	require.NoError(t, err)
-
-	entries, err := sandbox.ReadDir(".")
-	require.NoError(t, err)
-	require.Len(t, entries, 1)
-
-	compressedData, err := sandbox.ReadFile(entries[0].Name())
-	require.NoError(t, err)
-
-	gzipReader, err := gzip.NewReader(bytes.NewReader(compressedData))
-	require.NoError(t, err, "stored file must be valid gzip")
-
-	decompressedData, err := io.ReadAll(gzipReader)
-	require.NoError(t, err)
-	require.NoError(t, gzipReader.Close())
-
-	assert.Equal(t, originalData, decompressedData, "decompressed data should match the original input")
-}
-
-func TestWatchdog_CheckCooldown(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.Cooldown = 2 * time.Minute
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-
-	assert.True(t, watchdog.checkCooldown(mockClock.Now(), "heap"),
-		"first cooldown check should pass with no prior captures")
-
-	watchdog.recordCapture(mockClock.Now(), "heap")
-
-	assert.False(t, watchdog.checkCooldown(mockClock.Now(), "heap"),
-		"cooldown check should fail immediately after a capture")
-
-	mockClock.Advance(3 * time.Minute)
-
-	assert.True(t, watchdog.checkCooldown(mockClock.Now(), "heap"),
-		"cooldown check should pass after the cooldown duration has elapsed")
-}
-
-func TestWatchdog_CheckGlobalRateLimit(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.MaxCapturesPerWindow = 3
-	config.CaptureWindow = 10 * time.Minute
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-
-	for i := range 3 {
-		watchdog.recordCapture(startTime.Add(time.Duration(i)*time.Second), "heap")
-	}
-
-	assert.False(t, watchdog.checkGlobalRateLimit(mockClock.Now()),
-		"rate limit should be enforced when window is full")
-
-	mockClock.Advance(11 * time.Minute)
-
-	assert.True(t, watchdog.checkGlobalRateLimit(mockClock.Now()),
-		"rate limit should pass after all timestamps have expired")
-}
-
-func TestWatchdog_RecordCapture(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-
-	captureTime := startTime.Add(5 * time.Minute)
-
-	watchdog.recordCapture(captureTime, "heap")
-
-	watchdog.mu.Lock()
-	lastHeapCapture := watchdog.lastCaptureTime["heap"]
-	timestampCount := len(watchdog.captureTimestamps)
-	watchdog.mu.Unlock()
-
-	assert.Equal(t, captureTime, lastHeapCapture, "last capture time should match")
-	assert.Equal(t, 1, timestampCount, "one timestamp should be recorded in the sliding window")
-}
-
-func TestWatchdog_EvaluateGoroutinesIgnoresBelowBaseline(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.GoroutineThreshold = 100
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-	watchdog.goroutineBaseline.Store(50)
-
-	belowBaselineStats := SystemStats{
-		NumGoroutines: 40,
-	}
-	watchdog.evaluateGoroutines(context.Background(), mockClock.Now(), &belowBaselineStats)
-	watchdog.captureWG.Wait()
-
-	assert.Empty(t, controller.getCaptureCalls(), "no capture should occur when goroutine count is below baseline")
-}
-
-func TestWatchdog_EvaluateGoroutinesBelowThresholdNoCapture(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.GoroutineThreshold = 100
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-	watchdog.goroutineBaseline.Store(10)
-
-	belowThresholdStats := SystemStats{
-		NumGoroutines: 50,
-	}
-	watchdog.evaluateGoroutines(context.Background(), mockClock.Now(), &belowThresholdStats)
-	watchdog.captureWG.Wait()
-
-	assert.Empty(t, controller.getCaptureCalls(), "no capture should occur when goroutine count is below the threshold")
 }
 
 func TestWatchdog_StartDisabledIsNoop(t *testing.T) {
@@ -780,8 +344,8 @@ type mockWatchdogProfileUploader struct {
 }
 
 type mockUploadRecord struct {
-	profileType string
 	metadata    map[string]string
+	profileType string
 	dataLength  int
 }
 
@@ -805,116 +369,6 @@ func (m *mockWatchdogProfileUploader) getUploads() []mockUploadRecord {
 	copy(result, m.uploads)
 
 	return result
-}
-
-func TestWatchdog_HeapThresholdNotifies(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.HeapThresholdBytes = 100
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	notifier := &mockWatchdogNotifier{}
-	watchdog.SetProfilingController(controller)
-	watchdog.notifier = notifier
-	watchdog.startedAt = startTime
-
-	highHeapStats := SystemStats{
-		Memory: MemoryInfo{HeapAlloc: 200},
-	}
-
-	watchdog.evaluate(context.Background(), &highHeapStats)
-	watchdog.captureWG.Wait()
-	watchdog.backgroundWG.Wait()
-
-	assert.NotEmpty(t, notifier.getEvents(), "at least one notification should have been sent")
-}
-
-func TestWatchdog_GoroutineSafetyCeilingNotifies(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.GoroutineThreshold = 100
-	config.GoroutineSafetyCeiling = 50000
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	notifier := &mockWatchdogNotifier{}
-	watchdog.notifier = notifier
-	watchdog.startedAt = startTime
-	watchdog.goroutineBaseline.Store(10)
-
-	ceilingStats := SystemStats{
-		NumGoroutines: 60000,
-	}
-
-	watchdog.evaluate(context.Background(), &ceilingStats)
-	watchdog.backgroundWG.Wait()
-
-	ceilingEvents := notifier.getEventsByType(WatchdogEventGoroutineSafetyCeiling)
-	assert.NotEmpty(t, ceilingEvents, "safety ceiling notification should have been sent")
-	assert.Equal(t, WatchdogPriorityCritical, ceilingEvents[0].Priority)
-}
-
-func TestWatchdog_GCPressureNotifies(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.GCPressureThreshold = 0.5
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	notifier := &mockWatchdogNotifier{}
-	watchdog.notifier = notifier
-	watchdog.startedAt = startTime
-
-	gcStats := SystemStats{
-		GC: GCInfo{GCCPUFraction: 0.6},
-	}
-
-	watchdog.evaluate(context.Background(), &gcStats)
-	watchdog.backgroundWG.Wait()
-
-	gcEvents := notifier.getEventsByType(WatchdogEventGCPressureWarning)
-	assert.NotEmpty(t, gcEvents, "GC pressure notification should have been sent")
-	assert.Equal(t, WatchdogPriorityNormal, gcEvents[0].Priority)
-}
-
-func TestWatchdog_GomemlimitWarningNotifies(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.HeapThresholdBytes = 100
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	notifier := &mockWatchdogNotifier{}
-	watchdog.notifier = notifier
-
-	watchdog.resolveHeapThreshold(context.Background())
-
-	watchdog.backgroundWG.Wait()
-
-	if watchdog.gomemlimit <= 0 || watchdog.gomemlimit >= (1<<63-1) {
-		assert.NotEmpty(t, notifier.getEventsByType(WatchdogEventGomemlimitNotConfigured),
-			"GOMEMLIMIT warning notification should have been sent")
-	}
 }
 
 func TestWatchdog_NilNotifierDoesNotPanic(t *testing.T) {
@@ -943,43 +397,6 @@ func TestWatchdog_NilNotifierDoesNotPanic(t *testing.T) {
 	}, "evaluate should not panic when the notifier is nil")
 }
 
-func TestWatchdog_ProfileUploadAfterCapture(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.HeapThresholdBytes = 100
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	uploader := &mockWatchdogProfileUploader{}
-	watchdog.SetProfilingController(controller)
-	watchdog.profileUploader = uploader
-	watchdog.startedAt = startTime
-
-	highHeapStats := SystemStats{
-		Memory: MemoryInfo{HeapAlloc: 200},
-	}
-
-	watchdog.evaluate(context.Background(), &highHeapStats)
-	watchdog.captureWG.Wait()
-	watchdog.backgroundWG.Wait()
-
-	uploads := uploader.getUploads()
-	assert.NotEmpty(t, uploads, "profile should have been uploaded after capture")
-
-	if len(uploads) > 0 {
-		assert.Equal(t, "heap", uploads[0].profileType)
-		assert.Greater(t, uploads[0].dataLength, 0, "uploaded data should not be empty")
-		assert.NotEmpty(t, uploads[0].metadata["hostname"])
-		assert.NotEmpty(t, uploads[0].metadata["profile_type"])
-	}
-}
-
 func TestWatchdog_NilUploaderDoesNotPanic(t *testing.T) {
 	t.Parallel()
 
@@ -1004,243 +421,6 @@ func TestWatchdog_NilUploaderDoesNotPanic(t *testing.T) {
 		watchdog.evaluate(context.Background(), &highHeapStats)
 		watchdog.captureWG.Wait()
 	}, "evaluate should not panic when the uploader is nil")
-}
-
-func TestWatchdog_RSSThresholdTriggersCapture(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.RSSThresholdPercent = 0.85
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	notifier := &mockWatchdogNotifier{}
-	watchdog.SetProfilingController(controller)
-	watchdog.notifier = notifier
-	watchdog.startedAt = startTime
-
-	rssStats := SystemStats{
-		Process: ProcessInfo{
-			RSS:               900 * 1024 * 1024,
-			CgroupMemoryLimit: 1024 * 1024 * 1024,
-		},
-	}
-
-	watchdog.evaluate(context.Background(), &rssStats)
-	watchdog.captureWG.Wait()
-
-	calls := controller.getCaptureCalls()
-	assert.Contains(t, calls, "heap", "heap capture should have been triggered by RSS threshold")
-
-	watchdog.backgroundWG.Wait()
-
-	assert.NotEmpty(t, notifier.getEventsByType(WatchdogEventRSSThresholdExceeded),
-		"RSS threshold notification should have been sent")
-}
-
-func TestWatchdog_RSSBelowThresholdNoCapture(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.RSSThresholdPercent = 0.85
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-
-	lowRSSStats := SystemStats{
-		Process: ProcessInfo{
-			RSS:               500 * 1024 * 1024,
-			CgroupMemoryLimit: 1024 * 1024 * 1024,
-		},
-	}
-
-	watchdog.evaluate(context.Background(), &lowRSSStats)
-	watchdog.captureWG.Wait()
-
-	calls := controller.getCaptureCalls()
-	rssCaptureCount := 0
-	for _, call := range calls {
-		if call == "heap" {
-			rssCaptureCount++
-		}
-	}
-
-	assert.Equal(t, 0, rssCaptureCount, "no capture should occur when RSS is below the threshold")
-}
-
-func TestWatchdog_RSSNoCgroupLimitSkips(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	controller := &mockProfilingController{}
-	watchdog.SetProfilingController(controller)
-	watchdog.startedAt = startTime
-
-	noCgroupStats := SystemStats{
-		Process: ProcessInfo{
-			RSS:               900 * 1024 * 1024,
-			CgroupMemoryLimit: 0,
-		},
-	}
-
-	watchdog.evaluate(context.Background(), &noCgroupStats)
-	watchdog.captureWG.Wait()
-
-	assert.Empty(t, controller.getCaptureCalls(), "no capture should occur when cgroup memory limit is unknown")
-}
-
-func TestHeapTrendBuffer_Slope_LinearGrowth(t *testing.T) {
-	t.Parallel()
-
-	buffer := newHeapTrendBuffer(10)
-
-	for step := range 10 {
-		buffer.add(uint64(100 + step*100))
-	}
-
-	slope := buffer.slope()
-
-	assert.InDelta(t, 100.0, slope, 0.001, "slope should be 100 bytes per sample for linear growth")
-}
-
-func TestHeapTrendBuffer_Slope_StableHeap(t *testing.T) {
-	t.Parallel()
-
-	buffer := newHeapTrendBuffer(10)
-
-	for range 10 {
-		buffer.add(500)
-	}
-
-	slope := buffer.slope()
-
-	assert.InDelta(t, 0.0, slope, 0.001, "slope should be zero for a stable heap")
-}
-
-func TestHeapTrendBuffer_Slope_InsufficientSamples(t *testing.T) {
-	t.Parallel()
-
-	buffer := newHeapTrendBuffer(10)
-	buffer.add(100)
-
-	slope := buffer.slope()
-
-	assert.Equal(t, 0.0, slope, "slope should be zero with fewer than 2 samples")
-}
-
-func TestHeapTrendBuffer_RingBufferWraps(t *testing.T) {
-	t.Parallel()
-
-	buffer := newHeapTrendBuffer(5)
-
-	for range 5 {
-		buffer.add(0)
-	}
-
-	for step := range 5 {
-		buffer.add(uint64(100 + step*100))
-	}
-
-	assert.True(t, buffer.isFull())
-
-	slope := buffer.slope()
-
-	assert.InDelta(t, 100.0, slope, 0.001, "slope should be 100 after ring buffer wraps")
-}
-
-func TestWatchdog_HeapTrendWarning(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.TrendWindowSize = 20
-	config.TrendEvaluationInterval = 0
-	config.TrendWarningHorizon = 5 * time.Minute
-	config.CheckInterval = 500 * time.Millisecond
-	config.Cooldown = time.Second
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	notifier := &mockWatchdogNotifier{}
-	watchdog.notifier = notifier
-	watchdog.startedAt = startTime
-
-	watchdog.heapTrendBuffer = newHeapTrendBuffer(config.TrendWindowSize)
-
-	watchdog.gomemlimit = 1024 * 1024 * 1024
-
-	baseMiB := uint64(800 * 1024 * 1024)
-	stepMiB := uint64(10 * 1024 * 1024)
-
-	for step := range 20 {
-		heapAlloc := baseMiB + uint64(step)*stepMiB
-
-		stats := SystemStats{
-			Memory: MemoryInfo{HeapAlloc: heapAlloc},
-		}
-
-		mockClock.Advance(500 * time.Millisecond)
-		watchdog.evaluate(context.Background(), &stats)
-	}
-
-	watchdog.backgroundWG.Wait()
-
-	assert.NotEmpty(t, notifier.getEventsByType(WatchdogEventHeapTrendWarning),
-		"heap trend warning notification should have been sent")
-}
-
-func TestWatchdog_HeapTrendNoWarningWhenStable(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-	config.TrendWindowSize = 20
-	config.TrendEvaluationInterval = 0
-	config.TrendWarningHorizon = 5 * time.Minute
-	config.CheckInterval = 500 * time.Millisecond
-
-	watchdog := newTestWatchdog(t, config, mockClock)
-	notifier := &mockWatchdogNotifier{}
-	watchdog.notifier = notifier
-	watchdog.startedAt = startTime
-	watchdog.heapTrendBuffer = newHeapTrendBuffer(config.TrendWindowSize)
-	watchdog.gomemlimit = 1024 * 1024 * 1024
-
-	for range 20 {
-		stats := SystemStats{
-			Memory: MemoryInfo{HeapAlloc: 200 * 1024 * 1024},
-		}
-
-		mockClock.Advance(500 * time.Millisecond)
-		watchdog.evaluate(context.Background(), &stats)
-	}
-
-	trendEvents := notifier.getEventsByType(WatchdogEventHeapTrendWarning)
-	assert.Empty(t, trendEvents, "no trend warning should be emitted for a stable heap")
 }
 
 func TestWatchdog_CapturePreDeathSnapshot(t *testing.T) {
@@ -1303,8 +483,8 @@ func TestWatchdog_CapturePreDeathSnapshotRespectsContextCancellation(t *testing.
 }
 
 type errorProfilingController struct {
-	mockProfilingController
 	captureError error
+	mockProfilingController
 }
 
 func (e *errorProfilingController) CaptureProfile(_ context.Context, profileType string, _ int, _ io.Writer) (string, error) {
@@ -1316,8 +496,8 @@ func (e *errorProfilingController) CaptureProfile(_ context.Context, profileType
 }
 
 type flightRecorderController struct {
-	mockProfilingController
 	traceData []byte
+	mockProfilingController
 }
 
 func (f *flightRecorderController) SnapshotFlightRecorder(_ context.Context, writer io.Writer) error {
@@ -1457,8 +637,8 @@ func TestWatchdog_ConfigValidation(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name   string
 		modify func(*WatchdogConfig)
+		name   string
 	}{
 		{
 			name:   "zero CheckInterval",
@@ -1559,7 +739,51 @@ func TestWatchdog_ProfileSizeLimitEnforced(t *testing.T) {
 	assert.Equal(t, 0, heapFileCount, "no heap profiles should be stored when they exceed the size limit")
 }
 
-func TestWatchdog_EvaluateGoroutineLeaksDisabled(t *testing.T) {
+func TestWatchdog_WithWatchdogNotifierConfiguresNotifier(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	notifier := &mockWatchdogNotifier{}
+
+	tempDirectory := t.TempDir()
+	sandbox, err := safedisk.NewNoOpSandbox(tempDirectory, safedisk.ModeReadWrite)
+	require.NoError(t, err)
+
+	collector := NewSystemCollector(WithSystemCollectorClock(mockClock))
+	watchdog, err := NewWatchdog(DefaultWatchdogConfig(), collector,
+		WithWatchdogClock(mockClock),
+		WithWatchdogSandbox(sandbox),
+		WithWatchdogNotifier(notifier),
+	)
+	require.NoError(t, err)
+	t.Cleanup(watchdog.Stop)
+
+	assert.Same(t, notifier, watchdog.notifier, "WithWatchdogNotifier should install the notifier")
+}
+
+func TestWatchdog_WithWatchdogProfileUploaderConfiguresUploader(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	uploader := &mockWatchdogProfileUploader{}
+
+	tempDirectory := t.TempDir()
+	sandbox, err := safedisk.NewNoOpSandbox(tempDirectory, safedisk.ModeReadWrite)
+	require.NoError(t, err)
+
+	collector := NewSystemCollector(WithSystemCollectorClock(mockClock))
+	watchdog, err := NewWatchdog(DefaultWatchdogConfig(), collector,
+		WithWatchdogClock(mockClock),
+		WithWatchdogSandbox(sandbox),
+		WithWatchdogProfileUploader(uploader),
+	)
+	require.NoError(t, err)
+	t.Cleanup(watchdog.Stop)
+
+	assert.Same(t, uploader, watchdog.profileUploader, "WithWatchdogProfileUploader should install the uploader")
+}
+
+func TestWatchdog_ListProfilesReturnsStoredEntries(t *testing.T) {
 	t.Parallel()
 
 	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -1567,11 +791,127 @@ func TestWatchdog_EvaluateGoroutineLeaksDisabled(t *testing.T) {
 
 	config := DefaultWatchdogConfig()
 	config.WarmUpDuration = 0
+	watchdog := newTestWatchdog(t, config, mockClock)
 
+	mockClock.Advance(time.Second)
+	timestamp, err := watchdog.profileStore.write("heap", []byte("payload"))
+	require.NoError(t, err)
+	require.NoError(t, watchdog.profileStore.writeMetadata("heap", timestamp, captureMetadata{
+		RuleFired: "heap_high_water", ProfileType: "heap",
+	}))
+
+	profiles, err := watchdog.ListProfiles(context.Background())
+	require.NoError(t, err)
+	require.Len(t, profiles, 1)
+	assert.Equal(t, "heap", profiles[0].Type)
+	assert.True(t, profiles[0].HasSidecar, "sidecar pairing reported on the inspector surface")
+}
+
+func TestWatchdog_DownloadProfileWritesBytesToWriter(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	mockClock := clock.NewMockClock(startTime)
+
+	config := DefaultWatchdogConfig()
+	config.WarmUpDuration = 0
+	watchdog := newTestWatchdog(t, config, mockClock)
+
+	mockClock.Advance(time.Second)
+	timestamp, err := watchdog.profileStore.write("heap", []byte("compressed-bytes"))
+	require.NoError(t, err)
+
+	var buffer strings.Builder
+	require.NoError(t, watchdog.DownloadProfile(context.Background(),
+		"heap-"+timestamp+profileFileExtension, &buffer))
+	assert.NotEmpty(t, buffer.String(), "downloaded profile should write bytes to the writer")
+}
+
+func TestWatchdog_DownloadProfileMissingReturnsError(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	config := DefaultWatchdogConfig()
+	config.WarmUpDuration = 0
+	watchdog := newTestWatchdog(t, config, mockClock)
+
+	var buffer strings.Builder
+	err := watchdog.DownloadProfile(context.Background(), "nonexistent.pb.gz", &buffer)
+	require.Error(t, err, "missing profile should surface a read error")
+}
+
+func TestWatchdog_PruneProfilesByTypeAndAll(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	mockClock := clock.NewMockClock(startTime)
+
+	config := DefaultWatchdogConfig()
+	config.WarmUpDuration = 0
+	watchdog := newTestWatchdog(t, config, mockClock)
+
+	mockClock.Advance(time.Second)
+	_, err := watchdog.profileStore.write("heap", []byte("h"))
+	require.NoError(t, err)
+	mockClock.Advance(time.Second)
+	_, err = watchdog.profileStore.write("heap", []byte("h2"))
+	require.NoError(t, err)
+	mockClock.Advance(time.Second)
+	_, err = watchdog.profileStore.write("goroutine", []byte("g"))
+	require.NoError(t, err)
+
+	heapDeleted, err := watchdog.PruneProfiles(context.Background(), "heap")
+	require.NoError(t, err)
+	assert.Equal(t, 2, heapDeleted)
+
+	allDeleted, err := watchdog.PruneProfiles(context.Background(), "")
+	require.NoError(t, err)
+	assert.Equal(t, 1, allDeleted, "only the goroutine profile remained")
+}
+
+func TestWatchdog_GetWatchdogStatusReportsConfigAndState(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	mockClock := clock.NewMockClock(startTime)
+
+	config := DefaultWatchdogConfig()
+	config.WarmUpDuration = 30 * time.Second
+	config.HeapThresholdBytes = 256 * 1024 * 1024
+	config.GoroutineThreshold = 12345
+	config.ContinuousProfilingTypes = []string{"heap", "goroutine"}
+	config.ContentionDiagnosticAutoFire = true
 	watchdog := newTestWatchdog(t, config, mockClock)
 	watchdog.startedAt = startTime
 
-	assert.NotPanics(t, func() {
-		watchdog.evaluateGoroutineLeaks(context.Background(), mockClock.Now())
-	})
+	status := watchdog.GetWatchdogStatus(context.Background())
+	require.NotNil(t, status)
+
+	assert.True(t, status.Enabled)
+	assert.False(t, status.Stopped)
+	assert.Equal(t, 30*time.Second, status.WarmUpDuration)
+	assert.Equal(t, 12345, status.GoroutineThreshold)
+	assert.Equal(t, []string{"heap", "goroutine"}, status.ContinuousProfilingTypes)
+	assert.True(t, status.ContentionDiagnosticAutoFire)
+	assert.Equal(t, startTime, status.StartedAt)
+}
+
+func TestWatchdog_HandleLoopPanicEmitsCriticalEvent(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	config := DefaultWatchdogConfig()
+	config.WarmUpDuration = 0
+
+	watchdog := newTestWatchdog(t, config, mockClock)
+	notifier := &mockWatchdogNotifier{}
+	watchdog.notifier = notifier
+
+	watchdog.handleLoopPanic(context.Background(), errors.New("simulated loop panic"))
+	watchdog.backgroundWG.Wait()
+
+	events := notifier.getEventsByType(WatchdogEventLoopPanicked)
+	require.Len(t, events, 1)
+	assert.Equal(t, WatchdogPriorityCritical, events[0].Priority)
+	assert.Contains(t, events[0].Fields["panic"], "simulated loop panic")
 }

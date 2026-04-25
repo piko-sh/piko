@@ -144,6 +144,25 @@ type Sandbox interface {
 	// Returns error if the file cannot be read or path escapes sandbox.
 	ReadFile(name string) ([]byte, error)
 
+	// ReadFileLimit reads up to maxBytes of a file within the sandbox after
+	// stat-checking the file's size. Refuses to allocate when the file is
+	// larger than maxBytes; this prevents a malformed or attacker-influenced
+	// file from dominating memory in callers that consume sandbox content.
+	//
+	// The returned size is the stat-reported file size at the moment of stat,
+	// independent of how many bytes were read. Callers may compare it against
+	// len(data) to detect a file that grew between stat and read.
+	//
+	// Takes name (string) which is the relative path within the sandbox.
+	// Takes maxBytes (int64) which caps the byte count allocated for the
+	// read. Must be positive.
+	//
+	// Returns []byte which contains the file content (up to maxBytes).
+	// Returns int64 which is the stat-reported file size at stat time.
+	// Returns error wrapping ErrFileExceedsLimit when the file is larger
+	// than maxBytes, or any underlying stat / read error.
+	ReadFileLimit(name string, maxBytes int64) ([]byte, int64, error)
+
 	// Stat returns file information for a path within the sandbox.
 	//
 	// Takes name (string) which is the relative path within the sandbox.

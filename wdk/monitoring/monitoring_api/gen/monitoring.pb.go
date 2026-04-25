@@ -921,6 +921,8 @@ type GetSystemStatsResponse struct {
 	CgroupPath           string                 `protobuf:"bytes,14,opt,name=cgroup_path,json=cgroupPath,proto3" json:"cgroup_path,omitempty"`
 	MonitoringListenAddr string                 `protobuf:"bytes,15,opt,name=monitoring_listen_addr,json=monitoringListenAddr,proto3" json:"monitoring_listen_addr,omitempty"`
 	Cache                *CacheInfo             `protobuf:"bytes,16,opt,name=cache,proto3" json:"cache,omitempty"`
+	Schedule             *SchedulerInfo         `protobuf:"bytes,17,opt,name=schedule,proto3" json:"schedule,omitempty"`
+	Sync                 *SyncInfo              `protobuf:"bytes,18,opt,name=sync,proto3" json:"sync,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1067,6 +1069,132 @@ func (x *GetSystemStatsResponse) GetCache() *CacheInfo {
 	return nil
 }
 
+func (x *GetSystemStatsResponse) GetSchedule() *SchedulerInfo {
+	if x != nil {
+		return x.Schedule
+	}
+	return nil
+}
+
+func (x *GetSystemStatsResponse) GetSync() *SyncInfo {
+	if x != nil {
+		return x.Sync
+	}
+	return nil
+}
+
+type SchedulerInfo struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	LatencyP50Ns   int64                  `protobuf:"varint,1,opt,name=latency_p50_ns,json=latencyP50Ns,proto3" json:"latency_p50_ns,omitempty"`
+	LatencyP99Ns   int64                  `protobuf:"varint,2,opt,name=latency_p99_ns,json=latencyP99Ns,proto3" json:"latency_p99_ns,omitempty"`
+	GoroutineCount int32                  `protobuf:"varint,3,opt,name=goroutine_count,json=goroutineCount,proto3" json:"goroutine_count,omitempty"`
+	Gomaxprocs     int32                  `protobuf:"varint,4,opt,name=gomaxprocs,proto3" json:"gomaxprocs,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SchedulerInfo) Reset() {
+	*x = SchedulerInfo{}
+	mi := &file_monitoring_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SchedulerInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SchedulerInfo) ProtoMessage() {}
+
+func (x *SchedulerInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SchedulerInfo.ProtoReflect.Descriptor instead.
+func (*SchedulerInfo) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *SchedulerInfo) GetLatencyP50Ns() int64 {
+	if x != nil {
+		return x.LatencyP50Ns
+	}
+	return 0
+}
+
+func (x *SchedulerInfo) GetLatencyP99Ns() int64 {
+	if x != nil {
+		return x.LatencyP99Ns
+	}
+	return 0
+}
+
+func (x *SchedulerInfo) GetGoroutineCount() int32 {
+	if x != nil {
+		return x.GoroutineCount
+	}
+	return 0
+}
+
+func (x *SchedulerInfo) GetGomaxprocs() int32 {
+	if x != nil {
+		return x.Gomaxprocs
+	}
+	return 0
+}
+
+type SyncInfo struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	MutexWaitTotalSeconds float64                `protobuf:"fixed64,1,opt,name=mutex_wait_total_seconds,json=mutexWaitTotalSeconds,proto3" json:"mutex_wait_total_seconds,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *SyncInfo) Reset() {
+	*x = SyncInfo{}
+	mi := &file_monitoring_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncInfo) ProtoMessage() {}
+
+func (x *SyncInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncInfo.ProtoReflect.Descriptor instead.
+func (*SyncInfo) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *SyncInfo) GetMutexWaitTotalSeconds() float64 {
+	if x != nil {
+		return x.MutexWaitTotalSeconds
+	}
+	return 0
+}
+
 type CacheInfo struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	ComponentCacheSize int32                  `protobuf:"varint,1,opt,name=component_cache_size,json=componentCacheSize,proto3" json:"component_cache_size,omitempty"`
@@ -1077,7 +1205,7 @@ type CacheInfo struct {
 
 func (x *CacheInfo) Reset() {
 	*x = CacheInfo{}
-	mi := &file_monitoring_proto_msgTypes[15]
+	mi := &file_monitoring_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1089,7 +1217,7 @@ func (x *CacheInfo) String() string {
 func (*CacheInfo) ProtoMessage() {}
 
 func (x *CacheInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[15]
+	mi := &file_monitoring_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1102,7 +1230,7 @@ func (x *CacheInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CacheInfo.ProtoReflect.Descriptor instead.
 func (*CacheInfo) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{15}
+	return file_monitoring_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CacheInfo) GetComponentCacheSize() int32 {
@@ -1137,7 +1265,7 @@ type BuildInfo struct {
 
 func (x *BuildInfo) Reset() {
 	*x = BuildInfo{}
-	mi := &file_monitoring_proto_msgTypes[16]
+	mi := &file_monitoring_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1149,7 +1277,7 @@ func (x *BuildInfo) String() string {
 func (*BuildInfo) ProtoMessage() {}
 
 func (x *BuildInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[16]
+	mi := &file_monitoring_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1162,7 +1290,7 @@ func (x *BuildInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildInfo.ProtoReflect.Descriptor instead.
 func (*BuildInfo) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{16}
+	return file_monitoring_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *BuildInfo) GetGoVersion() string {
@@ -1246,7 +1374,7 @@ type RuntimeInfo struct {
 
 func (x *RuntimeInfo) Reset() {
 	*x = RuntimeInfo{}
-	mi := &file_monitoring_proto_msgTypes[17]
+	mi := &file_monitoring_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1258,7 +1386,7 @@ func (x *RuntimeInfo) String() string {
 func (*RuntimeInfo) ProtoMessage() {}
 
 func (x *RuntimeInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[17]
+	mi := &file_monitoring_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1271,7 +1399,7 @@ func (x *RuntimeInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeInfo.ProtoReflect.Descriptor instead.
 func (*RuntimeInfo) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{17}
+	return file_monitoring_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RuntimeInfo) GetGogc() string {
@@ -1305,13 +1433,16 @@ type GCInfo struct {
 	NextGc        uint64                 `protobuf:"varint,6,opt,name=next_gc,json=nextGc,proto3" json:"next_gc,omitempty"`
 	NumGc         uint32                 `protobuf:"varint,7,opt,name=num_gc,json=numGc,proto3" json:"num_gc,omitempty"`
 	NumForcedGc   uint32                 `protobuf:"varint,8,opt,name=num_forced_gc,json=numForcedGc,proto3" json:"num_forced_gc,omitempty"`
+	PauseP50Ns    int64                  `protobuf:"varint,9,opt,name=pause_p50_ns,json=pauseP50Ns,proto3" json:"pause_p50_ns,omitempty"`
+	PauseP95Ns    int64                  `protobuf:"varint,10,opt,name=pause_p95_ns,json=pauseP95Ns,proto3" json:"pause_p95_ns,omitempty"`
+	PauseP99Ns    int64                  `protobuf:"varint,11,opt,name=pause_p99_ns,json=pauseP99Ns,proto3" json:"pause_p99_ns,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GCInfo) Reset() {
 	*x = GCInfo{}
-	mi := &file_monitoring_proto_msgTypes[18]
+	mi := &file_monitoring_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1323,7 +1454,7 @@ func (x *GCInfo) String() string {
 func (*GCInfo) ProtoMessage() {}
 
 func (x *GCInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[18]
+	mi := &file_monitoring_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1336,7 +1467,7 @@ func (x *GCInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GCInfo.ProtoReflect.Descriptor instead.
 func (*GCInfo) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{18}
+	return file_monitoring_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GCInfo) GetRecentPauses() []uint64 {
@@ -1395,37 +1526,64 @@ func (x *GCInfo) GetNumForcedGc() uint32 {
 	return 0
 }
 
+func (x *GCInfo) GetPauseP50Ns() int64 {
+	if x != nil {
+		return x.PauseP50Ns
+	}
+	return 0
+}
+
+func (x *GCInfo) GetPauseP95Ns() int64 {
+	if x != nil {
+		return x.PauseP95Ns
+	}
+	return 0
+}
+
+func (x *GCInfo) GetPauseP99Ns() int64 {
+	if x != nil {
+		return x.PauseP99Ns
+	}
+	return 0
+}
+
 type MemoryInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Alloc         uint64                 `protobuf:"varint,1,opt,name=alloc,proto3" json:"alloc,omitempty"`
-	TotalAlloc    uint64                 `protobuf:"varint,2,opt,name=total_alloc,json=totalAlloc,proto3" json:"total_alloc,omitempty"`
-	Sys           uint64                 `protobuf:"varint,3,opt,name=sys,proto3" json:"sys,omitempty"`
-	HeapAlloc     uint64                 `protobuf:"varint,4,opt,name=heap_alloc,json=heapAlloc,proto3" json:"heap_alloc,omitempty"`
-	HeapSys       uint64                 `protobuf:"varint,5,opt,name=heap_sys,json=heapSys,proto3" json:"heap_sys,omitempty"`
-	HeapIdle      uint64                 `protobuf:"varint,6,opt,name=heap_idle,json=heapIdle,proto3" json:"heap_idle,omitempty"`
-	HeapInuse     uint64                 `protobuf:"varint,7,opt,name=heap_inuse,json=heapInuse,proto3" json:"heap_inuse,omitempty"`
-	HeapObjects   uint64                 `protobuf:"varint,8,opt,name=heap_objects,json=heapObjects,proto3" json:"heap_objects,omitempty"`
-	HeapReleased  uint64                 `protobuf:"varint,9,opt,name=heap_released,json=heapReleased,proto3" json:"heap_released,omitempty"`
-	StackSys      uint64                 `protobuf:"varint,10,opt,name=stack_sys,json=stackSys,proto3" json:"stack_sys,omitempty"`
-	Mallocs       uint64                 `protobuf:"varint,11,opt,name=mallocs,proto3" json:"mallocs,omitempty"`
-	Frees         uint64                 `protobuf:"varint,12,opt,name=frees,proto3" json:"frees,omitempty"`
-	LiveObjects   uint64                 `protobuf:"varint,13,opt,name=live_objects,json=liveObjects,proto3" json:"live_objects,omitempty"`
-	StackInuse    uint64                 `protobuf:"varint,14,opt,name=stack_inuse,json=stackInuse,proto3" json:"stack_inuse,omitempty"`
-	MspanInuse    uint64                 `protobuf:"varint,15,opt,name=mspan_inuse,json=mspanInuse,proto3" json:"mspan_inuse,omitempty"`
-	MspanSys      uint64                 `protobuf:"varint,16,opt,name=mspan_sys,json=mspanSys,proto3" json:"mspan_sys,omitempty"`
-	McacheInuse   uint64                 `protobuf:"varint,17,opt,name=mcache_inuse,json=mcacheInuse,proto3" json:"mcache_inuse,omitempty"`
-	McacheSys     uint64                 `protobuf:"varint,18,opt,name=mcache_sys,json=mcacheSys,proto3" json:"mcache_sys,omitempty"`
-	GcSys         uint64                 `protobuf:"varint,19,opt,name=gc_sys,json=gcSys,proto3" json:"gc_sys,omitempty"`
-	OtherSys      uint64                 `protobuf:"varint,20,opt,name=other_sys,json=otherSys,proto3" json:"other_sys,omitempty"`
-	BuckhashSys   uint64                 `protobuf:"varint,21,opt,name=buckhash_sys,json=buckhashSys,proto3" json:"buckhash_sys,omitempty"`
-	Lookups       uint64                 `protobuf:"varint,22,opt,name=lookups,proto3" json:"lookups,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Alloc             uint64                 `protobuf:"varint,1,opt,name=alloc,proto3" json:"alloc,omitempty"`
+	TotalAlloc        uint64                 `protobuf:"varint,2,opt,name=total_alloc,json=totalAlloc,proto3" json:"total_alloc,omitempty"`
+	Sys               uint64                 `protobuf:"varint,3,opt,name=sys,proto3" json:"sys,omitempty"`
+	HeapAlloc         uint64                 `protobuf:"varint,4,opt,name=heap_alloc,json=heapAlloc,proto3" json:"heap_alloc,omitempty"`
+	HeapSys           uint64                 `protobuf:"varint,5,opt,name=heap_sys,json=heapSys,proto3" json:"heap_sys,omitempty"`
+	HeapIdle          uint64                 `protobuf:"varint,6,opt,name=heap_idle,json=heapIdle,proto3" json:"heap_idle,omitempty"`
+	HeapInuse         uint64                 `protobuf:"varint,7,opt,name=heap_inuse,json=heapInuse,proto3" json:"heap_inuse,omitempty"`
+	HeapObjects       uint64                 `protobuf:"varint,8,opt,name=heap_objects,json=heapObjects,proto3" json:"heap_objects,omitempty"`
+	HeapReleased      uint64                 `protobuf:"varint,9,opt,name=heap_released,json=heapReleased,proto3" json:"heap_released,omitempty"`
+	StackSys          uint64                 `protobuf:"varint,10,opt,name=stack_sys,json=stackSys,proto3" json:"stack_sys,omitempty"`
+	Mallocs           uint64                 `protobuf:"varint,11,opt,name=mallocs,proto3" json:"mallocs,omitempty"`
+	Frees             uint64                 `protobuf:"varint,12,opt,name=frees,proto3" json:"frees,omitempty"`
+	LiveObjects       uint64                 `protobuf:"varint,13,opt,name=live_objects,json=liveObjects,proto3" json:"live_objects,omitempty"`
+	StackInuse        uint64                 `protobuf:"varint,14,opt,name=stack_inuse,json=stackInuse,proto3" json:"stack_inuse,omitempty"`
+	MspanInuse        uint64                 `protobuf:"varint,15,opt,name=mspan_inuse,json=mspanInuse,proto3" json:"mspan_inuse,omitempty"`
+	MspanSys          uint64                 `protobuf:"varint,16,opt,name=mspan_sys,json=mspanSys,proto3" json:"mspan_sys,omitempty"`
+	McacheInuse       uint64                 `protobuf:"varint,17,opt,name=mcache_inuse,json=mcacheInuse,proto3" json:"mcache_inuse,omitempty"`
+	McacheSys         uint64                 `protobuf:"varint,18,opt,name=mcache_sys,json=mcacheSys,proto3" json:"mcache_sys,omitempty"`
+	GcSys             uint64                 `protobuf:"varint,19,opt,name=gc_sys,json=gcSys,proto3" json:"gc_sys,omitempty"`
+	OtherSys          uint64                 `protobuf:"varint,20,opt,name=other_sys,json=otherSys,proto3" json:"other_sys,omitempty"`
+	BuckhashSys       uint64                 `protobuf:"varint,21,opt,name=buckhash_sys,json=buckhashSys,proto3" json:"buckhash_sys,omitempty"`
+	Lookups           uint64                 `protobuf:"varint,22,opt,name=lookups,proto3" json:"lookups,omitempty"`
+	HeapObjectsBytes  uint64                 `protobuf:"varint,23,opt,name=heap_objects_bytes,json=heapObjectsBytes,proto3" json:"heap_objects_bytes,omitempty"`
+	HeapFreeBytes     uint64                 `protobuf:"varint,24,opt,name=heap_free_bytes,json=heapFreeBytes,proto3" json:"heap_free_bytes,omitempty"`
+	HeapReleasedBytes uint64                 `protobuf:"varint,25,opt,name=heap_released_bytes,json=heapReleasedBytes,proto3" json:"heap_released_bytes,omitempty"`
+	HeapStacksBytes   uint64                 `protobuf:"varint,26,opt,name=heap_stacks_bytes,json=heapStacksBytes,proto3" json:"heap_stacks_bytes,omitempty"`
+	HeapUnusedBytes   uint64                 `protobuf:"varint,27,opt,name=heap_unused_bytes,json=heapUnusedBytes,proto3" json:"heap_unused_bytes,omitempty"`
+	TotalBytes        uint64                 `protobuf:"varint,28,opt,name=total_bytes,json=totalBytes,proto3" json:"total_bytes,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *MemoryInfo) Reset() {
 	*x = MemoryInfo{}
-	mi := &file_monitoring_proto_msgTypes[19]
+	mi := &file_monitoring_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1437,7 +1595,7 @@ func (x *MemoryInfo) String() string {
 func (*MemoryInfo) ProtoMessage() {}
 
 func (x *MemoryInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[19]
+	mi := &file_monitoring_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1450,7 +1608,7 @@ func (x *MemoryInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryInfo.ProtoReflect.Descriptor instead.
 func (*MemoryInfo) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{19}
+	return file_monitoring_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *MemoryInfo) GetAlloc() uint64 {
@@ -1607,6 +1765,48 @@ func (x *MemoryInfo) GetLookups() uint64 {
 	return 0
 }
 
+func (x *MemoryInfo) GetHeapObjectsBytes() uint64 {
+	if x != nil {
+		return x.HeapObjectsBytes
+	}
+	return 0
+}
+
+func (x *MemoryInfo) GetHeapFreeBytes() uint64 {
+	if x != nil {
+		return x.HeapFreeBytes
+	}
+	return 0
+}
+
+func (x *MemoryInfo) GetHeapReleasedBytes() uint64 {
+	if x != nil {
+		return x.HeapReleasedBytes
+	}
+	return 0
+}
+
+func (x *MemoryInfo) GetHeapStacksBytes() uint64 {
+	if x != nil {
+		return x.HeapStacksBytes
+	}
+	return 0
+}
+
+func (x *MemoryInfo) GetHeapUnusedBytes() uint64 {
+	if x != nil {
+		return x.HeapUnusedBytes
+	}
+	return 0
+}
+
+func (x *MemoryInfo) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
 type ProcessInfo struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Pid              int32                  `protobuf:"varint,1,opt,name=pid,proto3" json:"pid,omitempty"`
@@ -1631,7 +1831,7 @@ type ProcessInfo struct {
 
 func (x *ProcessInfo) Reset() {
 	*x = ProcessInfo{}
-	mi := &file_monitoring_proto_msgTypes[20]
+	mi := &file_monitoring_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1643,7 +1843,7 @@ func (x *ProcessInfo) String() string {
 func (*ProcessInfo) ProtoMessage() {}
 
 func (x *ProcessInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[20]
+	mi := &file_monitoring_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1656,7 +1856,7 @@ func (x *ProcessInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessInfo.ProtoReflect.Descriptor instead.
 func (*ProcessInfo) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{20}
+	return file_monitoring_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ProcessInfo) GetPid() int32 {
@@ -1779,7 +1979,7 @@ type GetFileDescriptorsRequest struct {
 
 func (x *GetFileDescriptorsRequest) Reset() {
 	*x = GetFileDescriptorsRequest{}
-	mi := &file_monitoring_proto_msgTypes[21]
+	mi := &file_monitoring_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1791,7 +1991,7 @@ func (x *GetFileDescriptorsRequest) String() string {
 func (*GetFileDescriptorsRequest) ProtoMessage() {}
 
 func (x *GetFileDescriptorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[21]
+	mi := &file_monitoring_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1804,7 +2004,7 @@ func (x *GetFileDescriptorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFileDescriptorsRequest.ProtoReflect.Descriptor instead.
 func (*GetFileDescriptorsRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{21}
+	return file_monitoring_proto_rawDescGZIP(), []int{23}
 }
 
 type GetFileDescriptorsResponse struct {
@@ -1818,7 +2018,7 @@ type GetFileDescriptorsResponse struct {
 
 func (x *GetFileDescriptorsResponse) Reset() {
 	*x = GetFileDescriptorsResponse{}
-	mi := &file_monitoring_proto_msgTypes[22]
+	mi := &file_monitoring_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1830,7 +2030,7 @@ func (x *GetFileDescriptorsResponse) String() string {
 func (*GetFileDescriptorsResponse) ProtoMessage() {}
 
 func (x *GetFileDescriptorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[22]
+	mi := &file_monitoring_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1843,7 +2043,7 @@ func (x *GetFileDescriptorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFileDescriptorsResponse.ProtoReflect.Descriptor instead.
 func (*GetFileDescriptorsResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{22}
+	return file_monitoring_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetFileDescriptorsResponse) GetCategories() []*FileDescriptorCategory {
@@ -1878,7 +2078,7 @@ type FileDescriptorCategory struct {
 
 func (x *FileDescriptorCategory) Reset() {
 	*x = FileDescriptorCategory{}
-	mi := &file_monitoring_proto_msgTypes[23]
+	mi := &file_monitoring_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1890,7 +2090,7 @@ func (x *FileDescriptorCategory) String() string {
 func (*FileDescriptorCategory) ProtoMessage() {}
 
 func (x *FileDescriptorCategory) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[23]
+	mi := &file_monitoring_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1903,7 +2103,7 @@ func (x *FileDescriptorCategory) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileDescriptorCategory.ProtoReflect.Descriptor instead.
 func (*FileDescriptorCategory) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{23}
+	return file_monitoring_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *FileDescriptorCategory) GetCategory() string {
@@ -1940,7 +2140,7 @@ type FileDescriptorInfo struct {
 
 func (x *FileDescriptorInfo) Reset() {
 	*x = FileDescriptorInfo{}
-	mi := &file_monitoring_proto_msgTypes[24]
+	mi := &file_monitoring_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1952,7 +2152,7 @@ func (x *FileDescriptorInfo) String() string {
 func (*FileDescriptorInfo) ProtoMessage() {}
 
 func (x *FileDescriptorInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[24]
+	mi := &file_monitoring_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1965,7 +2165,7 @@ func (x *FileDescriptorInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileDescriptorInfo.ProtoReflect.Descriptor instead.
 func (*FileDescriptorInfo) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{24}
+	return file_monitoring_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *FileDescriptorInfo) GetFd() int32 {
@@ -2012,7 +2212,7 @@ type WatchMetricsRequest struct {
 
 func (x *WatchMetricsRequest) Reset() {
 	*x = WatchMetricsRequest{}
-	mi := &file_monitoring_proto_msgTypes[25]
+	mi := &file_monitoring_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2024,7 +2224,7 @@ func (x *WatchMetricsRequest) String() string {
 func (*WatchMetricsRequest) ProtoMessage() {}
 
 func (x *WatchMetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[25]
+	mi := &file_monitoring_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2037,7 +2237,7 @@ func (x *WatchMetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchMetricsRequest.ProtoReflect.Descriptor instead.
 func (*WatchMetricsRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{25}
+	return file_monitoring_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *WatchMetricsRequest) GetIntervalMs() int64 {
@@ -2057,7 +2257,7 @@ type MetricsUpdate struct {
 
 func (x *MetricsUpdate) Reset() {
 	*x = MetricsUpdate{}
-	mi := &file_monitoring_proto_msgTypes[26]
+	mi := &file_monitoring_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2069,7 +2269,7 @@ func (x *MetricsUpdate) String() string {
 func (*MetricsUpdate) ProtoMessage() {}
 
 func (x *MetricsUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[26]
+	mi := &file_monitoring_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2082,7 +2282,7 @@ func (x *MetricsUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsUpdate.ProtoReflect.Descriptor instead.
 func (*MetricsUpdate) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{26}
+	return file_monitoring_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *MetricsUpdate) GetMetrics() []*Metric {
@@ -2107,7 +2307,7 @@ type GetTaskSummaryRequest struct {
 
 func (x *GetTaskSummaryRequest) Reset() {
 	*x = GetTaskSummaryRequest{}
-	mi := &file_monitoring_proto_msgTypes[27]
+	mi := &file_monitoring_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2119,7 +2319,7 @@ func (x *GetTaskSummaryRequest) String() string {
 func (*GetTaskSummaryRequest) ProtoMessage() {}
 
 func (x *GetTaskSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[27]
+	mi := &file_monitoring_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2132,7 +2332,7 @@ func (x *GetTaskSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetTaskSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{27}
+	return file_monitoring_proto_rawDescGZIP(), []int{29}
 }
 
 type GetTaskSummaryResponse struct {
@@ -2144,7 +2344,7 @@ type GetTaskSummaryResponse struct {
 
 func (x *GetTaskSummaryResponse) Reset() {
 	*x = GetTaskSummaryResponse{}
-	mi := &file_monitoring_proto_msgTypes[28]
+	mi := &file_monitoring_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2156,7 +2356,7 @@ func (x *GetTaskSummaryResponse) String() string {
 func (*GetTaskSummaryResponse) ProtoMessage() {}
 
 func (x *GetTaskSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[28]
+	mi := &file_monitoring_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2169,7 +2369,7 @@ func (x *GetTaskSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskSummaryResponse.ProtoReflect.Descriptor instead.
 func (*GetTaskSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{28}
+	return file_monitoring_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetTaskSummaryResponse) GetSummaries() []*TaskSummary {
@@ -2189,7 +2389,7 @@ type TaskSummary struct {
 
 func (x *TaskSummary) Reset() {
 	*x = TaskSummary{}
-	mi := &file_monitoring_proto_msgTypes[29]
+	mi := &file_monitoring_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2201,7 +2401,7 @@ func (x *TaskSummary) String() string {
 func (*TaskSummary) ProtoMessage() {}
 
 func (x *TaskSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[29]
+	mi := &file_monitoring_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2214,7 +2414,7 @@ func (x *TaskSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskSummary.ProtoReflect.Descriptor instead.
 func (*TaskSummary) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{29}
+	return file_monitoring_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *TaskSummary) GetStatus() string {
@@ -2240,7 +2440,7 @@ type ListRecentTasksRequest struct {
 
 func (x *ListRecentTasksRequest) Reset() {
 	*x = ListRecentTasksRequest{}
-	mi := &file_monitoring_proto_msgTypes[30]
+	mi := &file_monitoring_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2252,7 +2452,7 @@ func (x *ListRecentTasksRequest) String() string {
 func (*ListRecentTasksRequest) ProtoMessage() {}
 
 func (x *ListRecentTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[30]
+	mi := &file_monitoring_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2265,7 +2465,7 @@ func (x *ListRecentTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecentTasksRequest.ProtoReflect.Descriptor instead.
 func (*ListRecentTasksRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{30}
+	return file_monitoring_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListRecentTasksRequest) GetLimit() int32 {
@@ -2284,7 +2484,7 @@ type ListRecentTasksResponse struct {
 
 func (x *ListRecentTasksResponse) Reset() {
 	*x = ListRecentTasksResponse{}
-	mi := &file_monitoring_proto_msgTypes[31]
+	mi := &file_monitoring_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2296,7 +2496,7 @@ func (x *ListRecentTasksResponse) String() string {
 func (*ListRecentTasksResponse) ProtoMessage() {}
 
 func (x *ListRecentTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[31]
+	mi := &file_monitoring_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2309,7 +2509,7 @@ func (x *ListRecentTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecentTasksResponse.ProtoReflect.Descriptor instead.
 func (*ListRecentTasksResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{31}
+	return file_monitoring_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListRecentTasksResponse) GetTasks() []*TaskListItem {
@@ -2336,7 +2536,7 @@ type TaskListItem struct {
 
 func (x *TaskListItem) Reset() {
 	*x = TaskListItem{}
-	mi := &file_monitoring_proto_msgTypes[32]
+	mi := &file_monitoring_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2348,7 +2548,7 @@ func (x *TaskListItem) String() string {
 func (*TaskListItem) ProtoMessage() {}
 
 func (x *TaskListItem) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[32]
+	mi := &file_monitoring_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2361,7 +2561,7 @@ func (x *TaskListItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskListItem.ProtoReflect.Descriptor instead.
 func (*TaskListItem) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{32}
+	return file_monitoring_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *TaskListItem) GetId() string {
@@ -2436,7 +2636,7 @@ type ListWorkflowSummaryRequest struct {
 
 func (x *ListWorkflowSummaryRequest) Reset() {
 	*x = ListWorkflowSummaryRequest{}
-	mi := &file_monitoring_proto_msgTypes[33]
+	mi := &file_monitoring_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2448,7 +2648,7 @@ func (x *ListWorkflowSummaryRequest) String() string {
 func (*ListWorkflowSummaryRequest) ProtoMessage() {}
 
 func (x *ListWorkflowSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[33]
+	mi := &file_monitoring_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2461,7 +2661,7 @@ func (x *ListWorkflowSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkflowSummaryRequest.ProtoReflect.Descriptor instead.
 func (*ListWorkflowSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{33}
+	return file_monitoring_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ListWorkflowSummaryRequest) GetLimit() int32 {
@@ -2480,7 +2680,7 @@ type ListWorkflowSummaryResponse struct {
 
 func (x *ListWorkflowSummaryResponse) Reset() {
 	*x = ListWorkflowSummaryResponse{}
-	mi := &file_monitoring_proto_msgTypes[34]
+	mi := &file_monitoring_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2492,7 +2692,7 @@ func (x *ListWorkflowSummaryResponse) String() string {
 func (*ListWorkflowSummaryResponse) ProtoMessage() {}
 
 func (x *ListWorkflowSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[34]
+	mi := &file_monitoring_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2505,7 +2705,7 @@ func (x *ListWorkflowSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkflowSummaryResponse.ProtoReflect.Descriptor instead.
 func (*ListWorkflowSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{34}
+	return file_monitoring_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ListWorkflowSummaryResponse) GetSummaries() []*WorkflowSummary {
@@ -2530,7 +2730,7 @@ type WorkflowSummary struct {
 
 func (x *WorkflowSummary) Reset() {
 	*x = WorkflowSummary{}
-	mi := &file_monitoring_proto_msgTypes[35]
+	mi := &file_monitoring_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2542,7 +2742,7 @@ func (x *WorkflowSummary) String() string {
 func (*WorkflowSummary) ProtoMessage() {}
 
 func (x *WorkflowSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[35]
+	mi := &file_monitoring_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2555,7 +2755,7 @@ func (x *WorkflowSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowSummary.ProtoReflect.Descriptor instead.
 func (*WorkflowSummary) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{35}
+	return file_monitoring_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *WorkflowSummary) GetWorkflowId() string {
@@ -2616,7 +2816,7 @@ type WatchTasksRequest struct {
 
 func (x *WatchTasksRequest) Reset() {
 	*x = WatchTasksRequest{}
-	mi := &file_monitoring_proto_msgTypes[36]
+	mi := &file_monitoring_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2628,7 +2828,7 @@ func (x *WatchTasksRequest) String() string {
 func (*WatchTasksRequest) ProtoMessage() {}
 
 func (x *WatchTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[36]
+	mi := &file_monitoring_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2641,7 +2841,7 @@ func (x *WatchTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchTasksRequest.ProtoReflect.Descriptor instead.
 func (*WatchTasksRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{36}
+	return file_monitoring_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *WatchTasksRequest) GetIntervalMs() int64 {
@@ -2662,7 +2862,7 @@ type TasksUpdate struct {
 
 func (x *TasksUpdate) Reset() {
 	*x = TasksUpdate{}
-	mi := &file_monitoring_proto_msgTypes[37]
+	mi := &file_monitoring_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2674,7 +2874,7 @@ func (x *TasksUpdate) String() string {
 func (*TasksUpdate) ProtoMessage() {}
 
 func (x *TasksUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[37]
+	mi := &file_monitoring_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2687,7 +2887,7 @@ func (x *TasksUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TasksUpdate.ProtoReflect.Descriptor instead.
 func (*TasksUpdate) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{37}
+	return file_monitoring_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *TasksUpdate) GetSummaries() []*TaskSummary {
@@ -2719,7 +2919,7 @@ type GetArtefactSummaryRequest struct {
 
 func (x *GetArtefactSummaryRequest) Reset() {
 	*x = GetArtefactSummaryRequest{}
-	mi := &file_monitoring_proto_msgTypes[38]
+	mi := &file_monitoring_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2731,7 +2931,7 @@ func (x *GetArtefactSummaryRequest) String() string {
 func (*GetArtefactSummaryRequest) ProtoMessage() {}
 
 func (x *GetArtefactSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[38]
+	mi := &file_monitoring_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2744,7 +2944,7 @@ func (x *GetArtefactSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtefactSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetArtefactSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{38}
+	return file_monitoring_proto_rawDescGZIP(), []int{40}
 }
 
 type GetArtefactSummaryResponse struct {
@@ -2756,7 +2956,7 @@ type GetArtefactSummaryResponse struct {
 
 func (x *GetArtefactSummaryResponse) Reset() {
 	*x = GetArtefactSummaryResponse{}
-	mi := &file_monitoring_proto_msgTypes[39]
+	mi := &file_monitoring_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2768,7 +2968,7 @@ func (x *GetArtefactSummaryResponse) String() string {
 func (*GetArtefactSummaryResponse) ProtoMessage() {}
 
 func (x *GetArtefactSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[39]
+	mi := &file_monitoring_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2781,7 +2981,7 @@ func (x *GetArtefactSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtefactSummaryResponse.ProtoReflect.Descriptor instead.
 func (*GetArtefactSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{39}
+	return file_monitoring_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *GetArtefactSummaryResponse) GetSummaries() []*ArtefactSummary {
@@ -2801,7 +3001,7 @@ type ArtefactSummary struct {
 
 func (x *ArtefactSummary) Reset() {
 	*x = ArtefactSummary{}
-	mi := &file_monitoring_proto_msgTypes[40]
+	mi := &file_monitoring_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2813,7 +3013,7 @@ func (x *ArtefactSummary) String() string {
 func (*ArtefactSummary) ProtoMessage() {}
 
 func (x *ArtefactSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[40]
+	mi := &file_monitoring_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2826,7 +3026,7 @@ func (x *ArtefactSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArtefactSummary.ProtoReflect.Descriptor instead.
 func (*ArtefactSummary) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{40}
+	return file_monitoring_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ArtefactSummary) GetStatus() string {
@@ -2851,7 +3051,7 @@ type GetVariantSummaryRequest struct {
 
 func (x *GetVariantSummaryRequest) Reset() {
 	*x = GetVariantSummaryRequest{}
-	mi := &file_monitoring_proto_msgTypes[41]
+	mi := &file_monitoring_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2863,7 +3063,7 @@ func (x *GetVariantSummaryRequest) String() string {
 func (*GetVariantSummaryRequest) ProtoMessage() {}
 
 func (x *GetVariantSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[41]
+	mi := &file_monitoring_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2876,7 +3076,7 @@ func (x *GetVariantSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVariantSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetVariantSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{41}
+	return file_monitoring_proto_rawDescGZIP(), []int{43}
 }
 
 type GetVariantSummaryResponse struct {
@@ -2888,7 +3088,7 @@ type GetVariantSummaryResponse struct {
 
 func (x *GetVariantSummaryResponse) Reset() {
 	*x = GetVariantSummaryResponse{}
-	mi := &file_monitoring_proto_msgTypes[42]
+	mi := &file_monitoring_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2900,7 +3100,7 @@ func (x *GetVariantSummaryResponse) String() string {
 func (*GetVariantSummaryResponse) ProtoMessage() {}
 
 func (x *GetVariantSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[42]
+	mi := &file_monitoring_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2913,7 +3113,7 @@ func (x *GetVariantSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVariantSummaryResponse.ProtoReflect.Descriptor instead.
 func (*GetVariantSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{42}
+	return file_monitoring_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *GetVariantSummaryResponse) GetSummaries() []*VariantSummary {
@@ -2933,7 +3133,7 @@ type VariantSummary struct {
 
 func (x *VariantSummary) Reset() {
 	*x = VariantSummary{}
-	mi := &file_monitoring_proto_msgTypes[43]
+	mi := &file_monitoring_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2945,7 +3145,7 @@ func (x *VariantSummary) String() string {
 func (*VariantSummary) ProtoMessage() {}
 
 func (x *VariantSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[43]
+	mi := &file_monitoring_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2958,7 +3158,7 @@ func (x *VariantSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VariantSummary.ProtoReflect.Descriptor instead.
 func (*VariantSummary) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{43}
+	return file_monitoring_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *VariantSummary) GetStatus() string {
@@ -2984,7 +3184,7 @@ type ListRecentArtefactsRequest struct {
 
 func (x *ListRecentArtefactsRequest) Reset() {
 	*x = ListRecentArtefactsRequest{}
-	mi := &file_monitoring_proto_msgTypes[44]
+	mi := &file_monitoring_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2996,7 +3196,7 @@ func (x *ListRecentArtefactsRequest) String() string {
 func (*ListRecentArtefactsRequest) ProtoMessage() {}
 
 func (x *ListRecentArtefactsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[44]
+	mi := &file_monitoring_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3009,7 +3209,7 @@ func (x *ListRecentArtefactsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecentArtefactsRequest.ProtoReflect.Descriptor instead.
 func (*ListRecentArtefactsRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{44}
+	return file_monitoring_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ListRecentArtefactsRequest) GetLimit() int32 {
@@ -3028,7 +3228,7 @@ type ListRecentArtefactsResponse struct {
 
 func (x *ListRecentArtefactsResponse) Reset() {
 	*x = ListRecentArtefactsResponse{}
-	mi := &file_monitoring_proto_msgTypes[45]
+	mi := &file_monitoring_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3040,7 +3240,7 @@ func (x *ListRecentArtefactsResponse) String() string {
 func (*ListRecentArtefactsResponse) ProtoMessage() {}
 
 func (x *ListRecentArtefactsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[45]
+	mi := &file_monitoring_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3053,7 +3253,7 @@ func (x *ListRecentArtefactsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecentArtefactsResponse.ProtoReflect.Descriptor instead.
 func (*ListRecentArtefactsResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{45}
+	return file_monitoring_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ListRecentArtefactsResponse) GetArtefacts() []*ArtefactListItem {
@@ -3078,7 +3278,7 @@ type ArtefactListItem struct {
 
 func (x *ArtefactListItem) Reset() {
 	*x = ArtefactListItem{}
-	mi := &file_monitoring_proto_msgTypes[46]
+	mi := &file_monitoring_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3090,7 +3290,7 @@ func (x *ArtefactListItem) String() string {
 func (*ArtefactListItem) ProtoMessage() {}
 
 func (x *ArtefactListItem) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[46]
+	mi := &file_monitoring_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3103,7 +3303,7 @@ func (x *ArtefactListItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArtefactListItem.ProtoReflect.Descriptor instead.
 func (*ArtefactListItem) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{46}
+	return file_monitoring_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ArtefactListItem) GetId() string {
@@ -3164,7 +3364,7 @@ type WatchArtefactsRequest struct {
 
 func (x *WatchArtefactsRequest) Reset() {
 	*x = WatchArtefactsRequest{}
-	mi := &file_monitoring_proto_msgTypes[47]
+	mi := &file_monitoring_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3176,7 +3376,7 @@ func (x *WatchArtefactsRequest) String() string {
 func (*WatchArtefactsRequest) ProtoMessage() {}
 
 func (x *WatchArtefactsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[47]
+	mi := &file_monitoring_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3189,7 +3389,7 @@ func (x *WatchArtefactsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchArtefactsRequest.ProtoReflect.Descriptor instead.
 func (*WatchArtefactsRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{47}
+	return file_monitoring_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *WatchArtefactsRequest) GetIntervalMs() int64 {
@@ -3210,7 +3410,7 @@ type ArtefactsUpdate struct {
 
 func (x *ArtefactsUpdate) Reset() {
 	*x = ArtefactsUpdate{}
-	mi := &file_monitoring_proto_msgTypes[48]
+	mi := &file_monitoring_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3222,7 +3422,7 @@ func (x *ArtefactsUpdate) String() string {
 func (*ArtefactsUpdate) ProtoMessage() {}
 
 func (x *ArtefactsUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[48]
+	mi := &file_monitoring_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3235,7 +3435,7 @@ func (x *ArtefactsUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArtefactsUpdate.ProtoReflect.Descriptor instead.
 func (*ArtefactsUpdate) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{48}
+	return file_monitoring_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *ArtefactsUpdate) GetSummaries() []*ArtefactSummary {
@@ -3267,7 +3467,7 @@ type GetDispatcherSummaryRequest struct {
 
 func (x *GetDispatcherSummaryRequest) Reset() {
 	*x = GetDispatcherSummaryRequest{}
-	mi := &file_monitoring_proto_msgTypes[49]
+	mi := &file_monitoring_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3279,7 +3479,7 @@ func (x *GetDispatcherSummaryRequest) String() string {
 func (*GetDispatcherSummaryRequest) ProtoMessage() {}
 
 func (x *GetDispatcherSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[49]
+	mi := &file_monitoring_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3292,7 +3492,7 @@ func (x *GetDispatcherSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDispatcherSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetDispatcherSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{49}
+	return file_monitoring_proto_rawDescGZIP(), []int{51}
 }
 
 type GetDispatcherSummaryResponse struct {
@@ -3304,7 +3504,7 @@ type GetDispatcherSummaryResponse struct {
 
 func (x *GetDispatcherSummaryResponse) Reset() {
 	*x = GetDispatcherSummaryResponse{}
-	mi := &file_monitoring_proto_msgTypes[50]
+	mi := &file_monitoring_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3316,7 +3516,7 @@ func (x *GetDispatcherSummaryResponse) String() string {
 func (*GetDispatcherSummaryResponse) ProtoMessage() {}
 
 func (x *GetDispatcherSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[50]
+	mi := &file_monitoring_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3329,7 +3529,7 @@ func (x *GetDispatcherSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDispatcherSummaryResponse.ProtoReflect.Descriptor instead.
 func (*GetDispatcherSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{50}
+	return file_monitoring_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *GetDispatcherSummaryResponse) GetSummaries() []*DispatcherSummary {
@@ -3356,7 +3556,7 @@ type DispatcherSummary struct {
 
 func (x *DispatcherSummary) Reset() {
 	*x = DispatcherSummary{}
-	mi := &file_monitoring_proto_msgTypes[51]
+	mi := &file_monitoring_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3368,7 +3568,7 @@ func (x *DispatcherSummary) String() string {
 func (*DispatcherSummary) ProtoMessage() {}
 
 func (x *DispatcherSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[51]
+	mi := &file_monitoring_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3381,7 +3581,7 @@ func (x *DispatcherSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DispatcherSummary.ProtoReflect.Descriptor instead.
 func (*DispatcherSummary) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{51}
+	return file_monitoring_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *DispatcherSummary) GetType() string {
@@ -3457,7 +3657,7 @@ type ListDLQEntriesRequest struct {
 
 func (x *ListDLQEntriesRequest) Reset() {
 	*x = ListDLQEntriesRequest{}
-	mi := &file_monitoring_proto_msgTypes[52]
+	mi := &file_monitoring_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3469,7 +3669,7 @@ func (x *ListDLQEntriesRequest) String() string {
 func (*ListDLQEntriesRequest) ProtoMessage() {}
 
 func (x *ListDLQEntriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[52]
+	mi := &file_monitoring_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3482,7 +3682,7 @@ func (x *ListDLQEntriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDLQEntriesRequest.ProtoReflect.Descriptor instead.
 func (*ListDLQEntriesRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{52}
+	return file_monitoring_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ListDLQEntriesRequest) GetDispatcherType() string {
@@ -3508,7 +3708,7 @@ type ListDLQEntriesResponse struct {
 
 func (x *ListDLQEntriesResponse) Reset() {
 	*x = ListDLQEntriesResponse{}
-	mi := &file_monitoring_proto_msgTypes[53]
+	mi := &file_monitoring_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3520,7 +3720,7 @@ func (x *ListDLQEntriesResponse) String() string {
 func (*ListDLQEntriesResponse) ProtoMessage() {}
 
 func (x *ListDLQEntriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[53]
+	mi := &file_monitoring_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3533,7 +3733,7 @@ func (x *ListDLQEntriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDLQEntriesResponse.ProtoReflect.Descriptor instead.
 func (*ListDLQEntriesResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{53}
+	return file_monitoring_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ListDLQEntriesResponse) GetEntries() []*DLQEntry {
@@ -3558,7 +3758,7 @@ type DLQEntry struct {
 
 func (x *DLQEntry) Reset() {
 	*x = DLQEntry{}
-	mi := &file_monitoring_proto_msgTypes[54]
+	mi := &file_monitoring_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3570,7 +3770,7 @@ func (x *DLQEntry) String() string {
 func (*DLQEntry) ProtoMessage() {}
 
 func (x *DLQEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[54]
+	mi := &file_monitoring_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3583,7 +3783,7 @@ func (x *DLQEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DLQEntry.ProtoReflect.Descriptor instead.
 func (*DLQEntry) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{54}
+	return file_monitoring_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *DLQEntry) GetId() string {
@@ -3644,7 +3844,7 @@ type GetDLQCountRequest struct {
 
 func (x *GetDLQCountRequest) Reset() {
 	*x = GetDLQCountRequest{}
-	mi := &file_monitoring_proto_msgTypes[55]
+	mi := &file_monitoring_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3656,7 +3856,7 @@ func (x *GetDLQCountRequest) String() string {
 func (*GetDLQCountRequest) ProtoMessage() {}
 
 func (x *GetDLQCountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[55]
+	mi := &file_monitoring_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3669,7 +3869,7 @@ func (x *GetDLQCountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDLQCountRequest.ProtoReflect.Descriptor instead.
 func (*GetDLQCountRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{55}
+	return file_monitoring_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *GetDLQCountRequest) GetDispatcherType() string {
@@ -3689,7 +3889,7 @@ type GetDLQCountResponse struct {
 
 func (x *GetDLQCountResponse) Reset() {
 	*x = GetDLQCountResponse{}
-	mi := &file_monitoring_proto_msgTypes[56]
+	mi := &file_monitoring_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3701,7 +3901,7 @@ func (x *GetDLQCountResponse) String() string {
 func (*GetDLQCountResponse) ProtoMessage() {}
 
 func (x *GetDLQCountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[56]
+	mi := &file_monitoring_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3714,7 +3914,7 @@ func (x *GetDLQCountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDLQCountResponse.ProtoReflect.Descriptor instead.
 func (*GetDLQCountResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{56}
+	return file_monitoring_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *GetDLQCountResponse) GetCount() int32 {
@@ -3740,7 +3940,7 @@ type ClearDLQRequest struct {
 
 func (x *ClearDLQRequest) Reset() {
 	*x = ClearDLQRequest{}
-	mi := &file_monitoring_proto_msgTypes[57]
+	mi := &file_monitoring_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3752,7 +3952,7 @@ func (x *ClearDLQRequest) String() string {
 func (*ClearDLQRequest) ProtoMessage() {}
 
 func (x *ClearDLQRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[57]
+	mi := &file_monitoring_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3765,7 +3965,7 @@ func (x *ClearDLQRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearDLQRequest.ProtoReflect.Descriptor instead.
 func (*ClearDLQRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{57}
+	return file_monitoring_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ClearDLQRequest) GetDispatcherType() string {
@@ -3785,7 +3985,7 @@ type ClearDLQResponse struct {
 
 func (x *ClearDLQResponse) Reset() {
 	*x = ClearDLQResponse{}
-	mi := &file_monitoring_proto_msgTypes[58]
+	mi := &file_monitoring_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3797,7 +3997,7 @@ func (x *ClearDLQResponse) String() string {
 func (*ClearDLQResponse) ProtoMessage() {}
 
 func (x *ClearDLQResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[58]
+	mi := &file_monitoring_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3810,7 +4010,7 @@ func (x *ClearDLQResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearDLQResponse.ProtoReflect.Descriptor instead.
 func (*ClearDLQResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{58}
+	return file_monitoring_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *ClearDLQResponse) GetDispatcherType() string {
@@ -3835,7 +4035,7 @@ type GetRateLimiterStatusRequest struct {
 
 func (x *GetRateLimiterStatusRequest) Reset() {
 	*x = GetRateLimiterStatusRequest{}
-	mi := &file_monitoring_proto_msgTypes[59]
+	mi := &file_monitoring_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3847,7 +4047,7 @@ func (x *GetRateLimiterStatusRequest) String() string {
 func (*GetRateLimiterStatusRequest) ProtoMessage() {}
 
 func (x *GetRateLimiterStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[59]
+	mi := &file_monitoring_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3860,7 +4060,7 @@ func (x *GetRateLimiterStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRateLimiterStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetRateLimiterStatusRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{59}
+	return file_monitoring_proto_rawDescGZIP(), []int{61}
 }
 
 type GetRateLimiterStatusResponse struct {
@@ -3879,7 +4079,7 @@ type GetRateLimiterStatusResponse struct {
 
 func (x *GetRateLimiterStatusResponse) Reset() {
 	*x = GetRateLimiterStatusResponse{}
-	mi := &file_monitoring_proto_msgTypes[60]
+	mi := &file_monitoring_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3891,7 +4091,7 @@ func (x *GetRateLimiterStatusResponse) String() string {
 func (*GetRateLimiterStatusResponse) ProtoMessage() {}
 
 func (x *GetRateLimiterStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[60]
+	mi := &file_monitoring_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3904,7 +4104,7 @@ func (x *GetRateLimiterStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRateLimiterStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetRateLimiterStatusResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{60}
+	return file_monitoring_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *GetRateLimiterStatusResponse) GetTokenBucketStore() string {
@@ -3971,7 +4171,7 @@ type ListResourceTypesRequest struct {
 
 func (x *ListResourceTypesRequest) Reset() {
 	*x = ListResourceTypesRequest{}
-	mi := &file_monitoring_proto_msgTypes[61]
+	mi := &file_monitoring_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3983,7 +4183,7 @@ func (x *ListResourceTypesRequest) String() string {
 func (*ListResourceTypesRequest) ProtoMessage() {}
 
 func (x *ListResourceTypesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[61]
+	mi := &file_monitoring_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3996,7 +4196,7 @@ func (x *ListResourceTypesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResourceTypesRequest.ProtoReflect.Descriptor instead.
 func (*ListResourceTypesRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{61}
+	return file_monitoring_proto_rawDescGZIP(), []int{63}
 }
 
 type ListResourceTypesResponse struct {
@@ -4008,7 +4208,7 @@ type ListResourceTypesResponse struct {
 
 func (x *ListResourceTypesResponse) Reset() {
 	*x = ListResourceTypesResponse{}
-	mi := &file_monitoring_proto_msgTypes[62]
+	mi := &file_monitoring_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4020,7 +4220,7 @@ func (x *ListResourceTypesResponse) String() string {
 func (*ListResourceTypesResponse) ProtoMessage() {}
 
 func (x *ListResourceTypesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[62]
+	mi := &file_monitoring_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4033,7 +4233,7 @@ func (x *ListResourceTypesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResourceTypesResponse.ProtoReflect.Descriptor instead.
 func (*ListResourceTypesResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{62}
+	return file_monitoring_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *ListResourceTypesResponse) GetResourceTypes() []string {
@@ -4052,7 +4252,7 @@ type ListProvidersRequest struct {
 
 func (x *ListProvidersRequest) Reset() {
 	*x = ListProvidersRequest{}
-	mi := &file_monitoring_proto_msgTypes[63]
+	mi := &file_monitoring_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4064,7 +4264,7 @@ func (x *ListProvidersRequest) String() string {
 func (*ListProvidersRequest) ProtoMessage() {}
 
 func (x *ListProvidersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[63]
+	mi := &file_monitoring_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4077,7 +4277,7 @@ func (x *ListProvidersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProvidersRequest.ProtoReflect.Descriptor instead.
 func (*ListProvidersRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{63}
+	return file_monitoring_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *ListProvidersRequest) GetResourceType() string {
@@ -4097,7 +4297,7 @@ type ListProvidersResponse struct {
 
 func (x *ListProvidersResponse) Reset() {
 	*x = ListProvidersResponse{}
-	mi := &file_monitoring_proto_msgTypes[64]
+	mi := &file_monitoring_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4109,7 +4309,7 @@ func (x *ListProvidersResponse) String() string {
 func (*ListProvidersResponse) ProtoMessage() {}
 
 func (x *ListProvidersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[64]
+	mi := &file_monitoring_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4122,7 +4322,7 @@ func (x *ListProvidersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProvidersResponse.ProtoReflect.Descriptor instead.
 func (*ListProvidersResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{64}
+	return file_monitoring_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *ListProvidersResponse) GetColumns() []*ProviderColumn {
@@ -4150,7 +4350,7 @@ type ProviderColumn struct {
 
 func (x *ProviderColumn) Reset() {
 	*x = ProviderColumn{}
-	mi := &file_monitoring_proto_msgTypes[65]
+	mi := &file_monitoring_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4162,7 +4362,7 @@ func (x *ProviderColumn) String() string {
 func (*ProviderColumn) ProtoMessage() {}
 
 func (x *ProviderColumn) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[65]
+	mi := &file_monitoring_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4175,7 +4375,7 @@ func (x *ProviderColumn) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderColumn.ProtoReflect.Descriptor instead.
 func (*ProviderColumn) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{65}
+	return file_monitoring_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *ProviderColumn) GetHeader() string {
@@ -4210,7 +4410,7 @@ type ProviderRow struct {
 
 func (x *ProviderRow) Reset() {
 	*x = ProviderRow{}
-	mi := &file_monitoring_proto_msgTypes[66]
+	mi := &file_monitoring_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4222,7 +4422,7 @@ func (x *ProviderRow) String() string {
 func (*ProviderRow) ProtoMessage() {}
 
 func (x *ProviderRow) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[66]
+	mi := &file_monitoring_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4235,7 +4435,7 @@ func (x *ProviderRow) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderRow.ProtoReflect.Descriptor instead.
 func (*ProviderRow) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{66}
+	return file_monitoring_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *ProviderRow) GetName() string {
@@ -4269,7 +4469,7 @@ type DescribeProviderRequest struct {
 
 func (x *DescribeProviderRequest) Reset() {
 	*x = DescribeProviderRequest{}
-	mi := &file_monitoring_proto_msgTypes[67]
+	mi := &file_monitoring_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4281,7 +4481,7 @@ func (x *DescribeProviderRequest) String() string {
 func (*DescribeProviderRequest) ProtoMessage() {}
 
 func (x *DescribeProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[67]
+	mi := &file_monitoring_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4294,7 +4494,7 @@ func (x *DescribeProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DescribeProviderRequest.ProtoReflect.Descriptor instead.
 func (*DescribeProviderRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{67}
+	return file_monitoring_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *DescribeProviderRequest) GetResourceType() string {
@@ -4321,7 +4521,7 @@ type DescribeProviderResponse struct {
 
 func (x *DescribeProviderResponse) Reset() {
 	*x = DescribeProviderResponse{}
-	mi := &file_monitoring_proto_msgTypes[68]
+	mi := &file_monitoring_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4333,7 +4533,7 @@ func (x *DescribeProviderResponse) String() string {
 func (*DescribeProviderResponse) ProtoMessage() {}
 
 func (x *DescribeProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[68]
+	mi := &file_monitoring_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4346,7 +4546,7 @@ func (x *DescribeProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DescribeProviderResponse.ProtoReflect.Descriptor instead.
 func (*DescribeProviderResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{68}
+	return file_monitoring_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *DescribeProviderResponse) GetName() string {
@@ -4373,7 +4573,7 @@ type ProviderInfoSection struct {
 
 func (x *ProviderInfoSection) Reset() {
 	*x = ProviderInfoSection{}
-	mi := &file_monitoring_proto_msgTypes[69]
+	mi := &file_monitoring_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4385,7 +4585,7 @@ func (x *ProviderInfoSection) String() string {
 func (*ProviderInfoSection) ProtoMessage() {}
 
 func (x *ProviderInfoSection) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[69]
+	mi := &file_monitoring_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4398,7 +4598,7 @@ func (x *ProviderInfoSection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderInfoSection.ProtoReflect.Descriptor instead.
 func (*ProviderInfoSection) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{69}
+	return file_monitoring_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *ProviderInfoSection) GetTitle() string {
@@ -4425,7 +4625,7 @@ type ProviderInfoEntry struct {
 
 func (x *ProviderInfoEntry) Reset() {
 	*x = ProviderInfoEntry{}
-	mi := &file_monitoring_proto_msgTypes[70]
+	mi := &file_monitoring_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4437,7 +4637,7 @@ func (x *ProviderInfoEntry) String() string {
 func (*ProviderInfoEntry) ProtoMessage() {}
 
 func (x *ProviderInfoEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[70]
+	mi := &file_monitoring_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4450,7 +4650,7 @@ func (x *ProviderInfoEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderInfoEntry.ProtoReflect.Descriptor instead.
 func (*ProviderInfoEntry) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{70}
+	return file_monitoring_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *ProviderInfoEntry) GetKey() string {
@@ -4477,7 +4677,7 @@ type ListSubResourcesRequest struct {
 
 func (x *ListSubResourcesRequest) Reset() {
 	*x = ListSubResourcesRequest{}
-	mi := &file_monitoring_proto_msgTypes[71]
+	mi := &file_monitoring_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4489,7 +4689,7 @@ func (x *ListSubResourcesRequest) String() string {
 func (*ListSubResourcesRequest) ProtoMessage() {}
 
 func (x *ListSubResourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[71]
+	mi := &file_monitoring_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4502,7 +4702,7 @@ func (x *ListSubResourcesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSubResourcesRequest.ProtoReflect.Descriptor instead.
 func (*ListSubResourcesRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{71}
+	return file_monitoring_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *ListSubResourcesRequest) GetResourceType() string {
@@ -4530,7 +4730,7 @@ type ListSubResourcesResponse struct {
 
 func (x *ListSubResourcesResponse) Reset() {
 	*x = ListSubResourcesResponse{}
-	mi := &file_monitoring_proto_msgTypes[72]
+	mi := &file_monitoring_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4542,7 +4742,7 @@ func (x *ListSubResourcesResponse) String() string {
 func (*ListSubResourcesResponse) ProtoMessage() {}
 
 func (x *ListSubResourcesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[72]
+	mi := &file_monitoring_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4555,7 +4755,7 @@ func (x *ListSubResourcesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSubResourcesResponse.ProtoReflect.Descriptor instead.
 func (*ListSubResourcesResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{72}
+	return file_monitoring_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *ListSubResourcesResponse) GetColumns() []*ProviderColumn {
@@ -4588,7 +4788,7 @@ type DescribeResourceTypeRequest struct {
 
 func (x *DescribeResourceTypeRequest) Reset() {
 	*x = DescribeResourceTypeRequest{}
-	mi := &file_monitoring_proto_msgTypes[73]
+	mi := &file_monitoring_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4600,7 +4800,7 @@ func (x *DescribeResourceTypeRequest) String() string {
 func (*DescribeResourceTypeRequest) ProtoMessage() {}
 
 func (x *DescribeResourceTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[73]
+	mi := &file_monitoring_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4613,7 +4813,7 @@ func (x *DescribeResourceTypeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DescribeResourceTypeRequest.ProtoReflect.Descriptor instead.
 func (*DescribeResourceTypeRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{73}
+	return file_monitoring_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *DescribeResourceTypeRequest) GetResourceType() string {
@@ -4635,7 +4835,7 @@ type EnableProfilingRequest struct {
 
 func (x *EnableProfilingRequest) Reset() {
 	*x = EnableProfilingRequest{}
-	mi := &file_monitoring_proto_msgTypes[74]
+	mi := &file_monitoring_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4647,7 +4847,7 @@ func (x *EnableProfilingRequest) String() string {
 func (*EnableProfilingRequest) ProtoMessage() {}
 
 func (x *EnableProfilingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[74]
+	mi := &file_monitoring_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4660,7 +4860,7 @@ func (x *EnableProfilingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnableProfilingRequest.ProtoReflect.Descriptor instead.
 func (*EnableProfilingRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{74}
+	return file_monitoring_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *EnableProfilingRequest) GetDurationMs() int64 {
@@ -4706,7 +4906,7 @@ type EnableProfilingResponse struct {
 
 func (x *EnableProfilingResponse) Reset() {
 	*x = EnableProfilingResponse{}
-	mi := &file_monitoring_proto_msgTypes[75]
+	mi := &file_monitoring_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4718,7 +4918,7 @@ func (x *EnableProfilingResponse) String() string {
 func (*EnableProfilingResponse) ProtoMessage() {}
 
 func (x *EnableProfilingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[75]
+	mi := &file_monitoring_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4731,7 +4931,7 @@ func (x *EnableProfilingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnableProfilingResponse.ProtoReflect.Descriptor instead.
 func (*EnableProfilingResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{75}
+	return file_monitoring_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *EnableProfilingResponse) GetAlreadyEnabled() bool {
@@ -4791,7 +4991,7 @@ type DisableProfilingRequest struct {
 
 func (x *DisableProfilingRequest) Reset() {
 	*x = DisableProfilingRequest{}
-	mi := &file_monitoring_proto_msgTypes[76]
+	mi := &file_monitoring_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4803,7 +5003,7 @@ func (x *DisableProfilingRequest) String() string {
 func (*DisableProfilingRequest) ProtoMessage() {}
 
 func (x *DisableProfilingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[76]
+	mi := &file_monitoring_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4816,7 +5016,7 @@ func (x *DisableProfilingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableProfilingRequest.ProtoReflect.Descriptor instead.
 func (*DisableProfilingRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{76}
+	return file_monitoring_proto_rawDescGZIP(), []int{78}
 }
 
 type DisableProfilingResponse struct {
@@ -4828,7 +5028,7 @@ type DisableProfilingResponse struct {
 
 func (x *DisableProfilingResponse) Reset() {
 	*x = DisableProfilingResponse{}
-	mi := &file_monitoring_proto_msgTypes[77]
+	mi := &file_monitoring_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4840,7 +5040,7 @@ func (x *DisableProfilingResponse) String() string {
 func (*DisableProfilingResponse) ProtoMessage() {}
 
 func (x *DisableProfilingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[77]
+	mi := &file_monitoring_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4853,7 +5053,7 @@ func (x *DisableProfilingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableProfilingResponse.ProtoReflect.Descriptor instead.
 func (*DisableProfilingResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{77}
+	return file_monitoring_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *DisableProfilingResponse) GetWasEnabled() bool {
@@ -4871,7 +5071,7 @@ type GetProfilingStatusRequest struct {
 
 func (x *GetProfilingStatusRequest) Reset() {
 	*x = GetProfilingStatusRequest{}
-	mi := &file_monitoring_proto_msgTypes[78]
+	mi := &file_monitoring_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4883,7 +5083,7 @@ func (x *GetProfilingStatusRequest) String() string {
 func (*GetProfilingStatusRequest) ProtoMessage() {}
 
 func (x *GetProfilingStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[78]
+	mi := &file_monitoring_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4896,7 +5096,7 @@ func (x *GetProfilingStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProfilingStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetProfilingStatusRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{78}
+	return file_monitoring_proto_rawDescGZIP(), []int{80}
 }
 
 type GetProfilingStatusResponse struct {
@@ -4916,7 +5116,7 @@ type GetProfilingStatusResponse struct {
 
 func (x *GetProfilingStatusResponse) Reset() {
 	*x = GetProfilingStatusResponse{}
-	mi := &file_monitoring_proto_msgTypes[79]
+	mi := &file_monitoring_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4928,7 +5128,7 @@ func (x *GetProfilingStatusResponse) String() string {
 func (*GetProfilingStatusResponse) ProtoMessage() {}
 
 func (x *GetProfilingStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[79]
+	mi := &file_monitoring_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4941,7 +5141,7 @@ func (x *GetProfilingStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProfilingStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetProfilingStatusResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{79}
+	return file_monitoring_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *GetProfilingStatusResponse) GetEnabled() bool {
@@ -5017,7 +5217,7 @@ type CaptureProfileRequest struct {
 
 func (x *CaptureProfileRequest) Reset() {
 	*x = CaptureProfileRequest{}
-	mi := &file_monitoring_proto_msgTypes[80]
+	mi := &file_monitoring_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5029,7 +5229,7 @@ func (x *CaptureProfileRequest) String() string {
 func (*CaptureProfileRequest) ProtoMessage() {}
 
 func (x *CaptureProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[80]
+	mi := &file_monitoring_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5042,7 +5242,7 @@ func (x *CaptureProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CaptureProfileRequest.ProtoReflect.Descriptor instead.
 func (*CaptureProfileRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{80}
+	return file_monitoring_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *CaptureProfileRequest) GetProfileType() string {
@@ -5070,7 +5270,7 @@ type CaptureProfileChunk struct {
 
 func (x *CaptureProfileChunk) Reset() {
 	*x = CaptureProfileChunk{}
-	mi := &file_monitoring_proto_msgTypes[81]
+	mi := &file_monitoring_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5082,7 +5282,7 @@ func (x *CaptureProfileChunk) String() string {
 func (*CaptureProfileChunk) ProtoMessage() {}
 
 func (x *CaptureProfileChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[81]
+	mi := &file_monitoring_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5095,7 +5295,7 @@ func (x *CaptureProfileChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CaptureProfileChunk.ProtoReflect.Descriptor instead.
 func (*CaptureProfileChunk) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{81}
+	return file_monitoring_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *CaptureProfileChunk) GetData() []byte {
@@ -5127,7 +5327,7 @@ type ListProfilesRequest struct {
 
 func (x *ListProfilesRequest) Reset() {
 	*x = ListProfilesRequest{}
-	mi := &file_monitoring_proto_msgTypes[82]
+	mi := &file_monitoring_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5139,7 +5339,7 @@ func (x *ListProfilesRequest) String() string {
 func (*ListProfilesRequest) ProtoMessage() {}
 
 func (x *ListProfilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[82]
+	mi := &file_monitoring_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5152,7 +5352,7 @@ func (x *ListProfilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProfilesRequest.ProtoReflect.Descriptor instead.
 func (*ListProfilesRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{82}
+	return file_monitoring_proto_rawDescGZIP(), []int{84}
 }
 
 type ListProfilesResponse struct {
@@ -5164,7 +5364,7 @@ type ListProfilesResponse struct {
 
 func (x *ListProfilesResponse) Reset() {
 	*x = ListProfilesResponse{}
-	mi := &file_monitoring_proto_msgTypes[83]
+	mi := &file_monitoring_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5176,7 +5376,7 @@ func (x *ListProfilesResponse) String() string {
 func (*ListProfilesResponse) ProtoMessage() {}
 
 func (x *ListProfilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[83]
+	mi := &file_monitoring_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5189,7 +5389,7 @@ func (x *ListProfilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProfilesResponse.ProtoReflect.Descriptor instead.
 func (*ListProfilesResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{83}
+	return file_monitoring_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *ListProfilesResponse) GetProfiles() []*WatchdogProfileEntry {
@@ -5205,13 +5405,14 @@ type WatchdogProfileEntry struct {
 	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
 	TimestampMs   int64                  `protobuf:"varint,3,opt,name=timestamp_ms,json=timestampMs,proto3" json:"timestamp_ms,omitempty"`
 	SizeBytes     int64                  `protobuf:"varint,4,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	HasSidecar    bool                   `protobuf:"varint,5,opt,name=has_sidecar,json=hasSidecar,proto3" json:"has_sidecar,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WatchdogProfileEntry) Reset() {
 	*x = WatchdogProfileEntry{}
-	mi := &file_monitoring_proto_msgTypes[84]
+	mi := &file_monitoring_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5223,7 +5424,7 @@ func (x *WatchdogProfileEntry) String() string {
 func (*WatchdogProfileEntry) ProtoMessage() {}
 
 func (x *WatchdogProfileEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[84]
+	mi := &file_monitoring_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5236,7 +5437,7 @@ func (x *WatchdogProfileEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchdogProfileEntry.ProtoReflect.Descriptor instead.
 func (*WatchdogProfileEntry) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{84}
+	return file_monitoring_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *WatchdogProfileEntry) GetFilename() string {
@@ -5267,6 +5468,13 @@ func (x *WatchdogProfileEntry) GetSizeBytes() int64 {
 	return 0
 }
 
+func (x *WatchdogProfileEntry) GetHasSidecar() bool {
+	if x != nil {
+		return x.HasSidecar
+	}
+	return false
+}
+
 type DownloadProfileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Filename      string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
@@ -5276,7 +5484,7 @@ type DownloadProfileRequest struct {
 
 func (x *DownloadProfileRequest) Reset() {
 	*x = DownloadProfileRequest{}
-	mi := &file_monitoring_proto_msgTypes[85]
+	mi := &file_monitoring_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5288,7 +5496,7 @@ func (x *DownloadProfileRequest) String() string {
 func (*DownloadProfileRequest) ProtoMessage() {}
 
 func (x *DownloadProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[85]
+	mi := &file_monitoring_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5301,7 +5509,7 @@ func (x *DownloadProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadProfileRequest.ProtoReflect.Descriptor instead.
 func (*DownloadProfileRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{85}
+	return file_monitoring_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *DownloadProfileRequest) GetFilename() string {
@@ -5321,7 +5529,7 @@ type DownloadProfileChunk struct {
 
 func (x *DownloadProfileChunk) Reset() {
 	*x = DownloadProfileChunk{}
-	mi := &file_monitoring_proto_msgTypes[86]
+	mi := &file_monitoring_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5333,7 +5541,7 @@ func (x *DownloadProfileChunk) String() string {
 func (*DownloadProfileChunk) ProtoMessage() {}
 
 func (x *DownloadProfileChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[86]
+	mi := &file_monitoring_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5346,7 +5554,7 @@ func (x *DownloadProfileChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadProfileChunk.ProtoReflect.Descriptor instead.
 func (*DownloadProfileChunk) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{86}
+	return file_monitoring_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *DownloadProfileChunk) GetData() []byte {
@@ -5363,6 +5571,102 @@ func (x *DownloadProfileChunk) GetIsLast() bool {
 	return false
 }
 
+type DownloadSidecarRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ProfileFilename string                 `protobuf:"bytes,1,opt,name=profile_filename,json=profileFilename,proto3" json:"profile_filename,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *DownloadSidecarRequest) Reset() {
+	*x = DownloadSidecarRequest{}
+	mi := &file_monitoring_proto_msgTypes[89]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DownloadSidecarRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownloadSidecarRequest) ProtoMessage() {}
+
+func (x *DownloadSidecarRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[89]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownloadSidecarRequest.ProtoReflect.Descriptor instead.
+func (*DownloadSidecarRequest) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{89}
+}
+
+func (x *DownloadSidecarRequest) GetProfileFilename() string {
+	if x != nil {
+		return x.ProfileFilename
+	}
+	return ""
+}
+
+type DownloadSidecarResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Present       bool                   `protobuf:"varint,2,opt,name=present,proto3" json:"present,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DownloadSidecarResponse) Reset() {
+	*x = DownloadSidecarResponse{}
+	mi := &file_monitoring_proto_msgTypes[90]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DownloadSidecarResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownloadSidecarResponse) ProtoMessage() {}
+
+func (x *DownloadSidecarResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[90]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownloadSidecarResponse.ProtoReflect.Descriptor instead.
+func (*DownloadSidecarResponse) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{90}
+}
+
+func (x *DownloadSidecarResponse) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *DownloadSidecarResponse) GetPresent() bool {
+	if x != nil {
+		return x.Present
+	}
+	return false
+}
+
 type PruneProfilesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProfileType   string                 `protobuf:"bytes,1,opt,name=profile_type,json=profileType,proto3" json:"profile_type,omitempty"`
@@ -5372,7 +5676,7 @@ type PruneProfilesRequest struct {
 
 func (x *PruneProfilesRequest) Reset() {
 	*x = PruneProfilesRequest{}
-	mi := &file_monitoring_proto_msgTypes[87]
+	mi := &file_monitoring_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5384,7 +5688,7 @@ func (x *PruneProfilesRequest) String() string {
 func (*PruneProfilesRequest) ProtoMessage() {}
 
 func (x *PruneProfilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[87]
+	mi := &file_monitoring_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5397,7 +5701,7 @@ func (x *PruneProfilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PruneProfilesRequest.ProtoReflect.Descriptor instead.
 func (*PruneProfilesRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{87}
+	return file_monitoring_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *PruneProfilesRequest) GetProfileType() string {
@@ -5416,7 +5720,7 @@ type PruneProfilesResponse struct {
 
 func (x *PruneProfilesResponse) Reset() {
 	*x = PruneProfilesResponse{}
-	mi := &file_monitoring_proto_msgTypes[88]
+	mi := &file_monitoring_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5428,7 +5732,7 @@ func (x *PruneProfilesResponse) String() string {
 func (*PruneProfilesResponse) ProtoMessage() {}
 
 func (x *PruneProfilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[88]
+	mi := &file_monitoring_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5441,7 +5745,7 @@ func (x *PruneProfilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PruneProfilesResponse.ProtoReflect.Descriptor instead.
 func (*PruneProfilesResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{88}
+	return file_monitoring_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *PruneProfilesResponse) GetDeletedCount() int32 {
@@ -5459,7 +5763,7 @@ type GetWatchdogStatusRequest struct {
 
 func (x *GetWatchdogStatusRequest) Reset() {
 	*x = GetWatchdogStatusRequest{}
-	mi := &file_monitoring_proto_msgTypes[89]
+	mi := &file_monitoring_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5471,7 +5775,7 @@ func (x *GetWatchdogStatusRequest) String() string {
 func (*GetWatchdogStatusRequest) ProtoMessage() {}
 
 func (x *GetWatchdogStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[89]
+	mi := &file_monitoring_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5484,30 +5788,48 @@ func (x *GetWatchdogStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWatchdogStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetWatchdogStatusRequest) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{89}
+	return file_monitoring_proto_rawDescGZIP(), []int{93}
 }
 
 type GetWatchdogStatusResponse struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	Enabled                bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	Stopped                bool                   `protobuf:"varint,2,opt,name=stopped,proto3" json:"stopped,omitempty"`
-	ProfileDirectory       string                 `protobuf:"bytes,3,opt,name=profile_directory,json=profileDirectory,proto3" json:"profile_directory,omitempty"`
-	CheckIntervalMs        int64                  `protobuf:"varint,4,opt,name=check_interval_ms,json=checkIntervalMs,proto3" json:"check_interval_ms,omitempty"`
-	CooldownMs             int64                  `protobuf:"varint,5,opt,name=cooldown_ms,json=cooldownMs,proto3" json:"cooldown_ms,omitempty"`
-	WarmUpDurationMs       int64                  `protobuf:"varint,6,opt,name=warm_up_duration_ms,json=warmUpDurationMs,proto3" json:"warm_up_duration_ms,omitempty"`
-	StartedAtMs            int64                  `protobuf:"varint,7,opt,name=started_at_ms,json=startedAtMs,proto3" json:"started_at_ms,omitempty"`
-	HeapThresholdBytes     uint64                 `protobuf:"varint,8,opt,name=heap_threshold_bytes,json=heapThresholdBytes,proto3" json:"heap_threshold_bytes,omitempty"`
-	HeapHighWater          uint64                 `protobuf:"varint,9,opt,name=heap_high_water,json=heapHighWater,proto3" json:"heap_high_water,omitempty"`
-	GoroutineThreshold     int32                  `protobuf:"varint,10,opt,name=goroutine_threshold,json=goroutineThreshold,proto3" json:"goroutine_threshold,omitempty"`
-	GoroutineSafetyCeiling int32                  `protobuf:"varint,11,opt,name=goroutine_safety_ceiling,json=goroutineSafetyCeiling,proto3" json:"goroutine_safety_ceiling,omitempty"`
-	MaxProfilesPerType     int32                  `protobuf:"varint,12,opt,name=max_profiles_per_type,json=maxProfilesPerType,proto3" json:"max_profiles_per_type,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"open.v1"`
+	Enabled                        bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Stopped                        bool                   `protobuf:"varint,2,opt,name=stopped,proto3" json:"stopped,omitempty"`
+	ProfileDirectory               string                 `protobuf:"bytes,3,opt,name=profile_directory,json=profileDirectory,proto3" json:"profile_directory,omitempty"`
+	CheckIntervalMs                int64                  `protobuf:"varint,4,opt,name=check_interval_ms,json=checkIntervalMs,proto3" json:"check_interval_ms,omitempty"`
+	CooldownMs                     int64                  `protobuf:"varint,5,opt,name=cooldown_ms,json=cooldownMs,proto3" json:"cooldown_ms,omitempty"`
+	WarmUpDurationMs               int64                  `protobuf:"varint,6,opt,name=warm_up_duration_ms,json=warmUpDurationMs,proto3" json:"warm_up_duration_ms,omitempty"`
+	StartedAtMs                    int64                  `protobuf:"varint,7,opt,name=started_at_ms,json=startedAtMs,proto3" json:"started_at_ms,omitempty"`
+	HeapThresholdBytes             uint64                 `protobuf:"varint,8,opt,name=heap_threshold_bytes,json=heapThresholdBytes,proto3" json:"heap_threshold_bytes,omitempty"`
+	HeapHighWater                  uint64                 `protobuf:"varint,9,opt,name=heap_high_water,json=heapHighWater,proto3" json:"heap_high_water,omitempty"`
+	GoroutineThreshold             int32                  `protobuf:"varint,10,opt,name=goroutine_threshold,json=goroutineThreshold,proto3" json:"goroutine_threshold,omitempty"`
+	GoroutineSafetyCeiling         int32                  `protobuf:"varint,11,opt,name=goroutine_safety_ceiling,json=goroutineSafetyCeiling,proto3" json:"goroutine_safety_ceiling,omitempty"`
+	MaxProfilesPerType             int32                  `protobuf:"varint,12,opt,name=max_profiles_per_type,json=maxProfilesPerType,proto3" json:"max_profiles_per_type,omitempty"`
+	CaptureWindowMs                int64                  `protobuf:"varint,13,opt,name=capture_window_ms,json=captureWindowMs,proto3" json:"capture_window_ms,omitempty"`
+	MaxCapturesPerWindow           int32                  `protobuf:"varint,14,opt,name=max_captures_per_window,json=maxCapturesPerWindow,proto3" json:"max_captures_per_window,omitempty"`
+	MaxWarningsPerWindow           int32                  `protobuf:"varint,15,opt,name=max_warnings_per_window,json=maxWarningsPerWindow,proto3" json:"max_warnings_per_window,omitempty"`
+	FdPressureThresholdPercent     float64                `protobuf:"fixed64,16,opt,name=fd_pressure_threshold_percent,json=fdPressureThresholdPercent,proto3" json:"fd_pressure_threshold_percent,omitempty"`
+	SchedulerLatencyP99ThresholdNs int64                  `protobuf:"varint,17,opt,name=scheduler_latency_p99_threshold_ns,json=schedulerLatencyP99ThresholdNs,proto3" json:"scheduler_latency_p99_threshold_ns,omitempty"`
+	CrashLoopWindowMs              int64                  `protobuf:"varint,18,opt,name=crash_loop_window_ms,json=crashLoopWindowMs,proto3" json:"crash_loop_window_ms,omitempty"`
+	CrashLoopThreshold             int32                  `protobuf:"varint,19,opt,name=crash_loop_threshold,json=crashLoopThreshold,proto3" json:"crash_loop_threshold,omitempty"`
+	ContinuousProfilingEnabled     bool                   `protobuf:"varint,20,opt,name=continuous_profiling_enabled,json=continuousProfilingEnabled,proto3" json:"continuous_profiling_enabled,omitempty"`
+	ContinuousProfilingIntervalMs  int64                  `protobuf:"varint,21,opt,name=continuous_profiling_interval_ms,json=continuousProfilingIntervalMs,proto3" json:"continuous_profiling_interval_ms,omitempty"`
+	ContinuousProfilingTypes       []string               `protobuf:"bytes,22,rep,name=continuous_profiling_types,json=continuousProfilingTypes,proto3" json:"continuous_profiling_types,omitempty"`
+	ContinuousProfilingRetention   int32                  `protobuf:"varint,23,opt,name=continuous_profiling_retention,json=continuousProfilingRetention,proto3" json:"continuous_profiling_retention,omitempty"`
+	ContentionDiagnosticWindowMs   int64                  `protobuf:"varint,24,opt,name=contention_diagnostic_window_ms,json=contentionDiagnosticWindowMs,proto3" json:"contention_diagnostic_window_ms,omitempty"`
+	ContentionDiagnosticCooldownMs int64                  `protobuf:"varint,25,opt,name=contention_diagnostic_cooldown_ms,json=contentionDiagnosticCooldownMs,proto3" json:"contention_diagnostic_cooldown_ms,omitempty"`
+	ContentionDiagnosticAutoFire   bool                   `protobuf:"varint,26,opt,name=contention_diagnostic_auto_fire,json=contentionDiagnosticAutoFire,proto3" json:"contention_diagnostic_auto_fire,omitempty"`
+	ContentionDiagnosticLastRunMs  int64                  `protobuf:"varint,27,opt,name=contention_diagnostic_last_run_ms,json=contentionDiagnosticLastRunMs,proto3" json:"contention_diagnostic_last_run_ms,omitempty"`
+	GoroutineBaseline              int32                  `protobuf:"varint,28,opt,name=goroutine_baseline,json=goroutineBaseline,proto3" json:"goroutine_baseline,omitempty"`
+	CaptureWindowUsed              int32                  `protobuf:"varint,29,opt,name=capture_window_used,json=captureWindowUsed,proto3" json:"capture_window_used,omitempty"`
+	WarningWindowUsed              int32                  `protobuf:"varint,30,opt,name=warning_window_used,json=warningWindowUsed,proto3" json:"warning_window_used,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *GetWatchdogStatusResponse) Reset() {
 	*x = GetWatchdogStatusResponse{}
-	mi := &file_monitoring_proto_msgTypes[90]
+	mi := &file_monitoring_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5519,7 +5841,7 @@ func (x *GetWatchdogStatusResponse) String() string {
 func (*GetWatchdogStatusResponse) ProtoMessage() {}
 
 func (x *GetWatchdogStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitoring_proto_msgTypes[90]
+	mi := &file_monitoring_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5532,7 +5854,7 @@ func (x *GetWatchdogStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWatchdogStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetWatchdogStatusResponse) Descriptor() ([]byte, []int) {
-	return file_monitoring_proto_rawDescGZIP(), []int{90}
+	return file_monitoring_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *GetWatchdogStatusResponse) GetEnabled() bool {
@@ -5615,6 +5937,616 @@ func (x *GetWatchdogStatusResponse) GetGoroutineSafetyCeiling() int32 {
 func (x *GetWatchdogStatusResponse) GetMaxProfilesPerType() int32 {
 	if x != nil {
 		return x.MaxProfilesPerType
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetCaptureWindowMs() int64 {
+	if x != nil {
+		return x.CaptureWindowMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetMaxCapturesPerWindow() int32 {
+	if x != nil {
+		return x.MaxCapturesPerWindow
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetMaxWarningsPerWindow() int32 {
+	if x != nil {
+		return x.MaxWarningsPerWindow
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetFdPressureThresholdPercent() float64 {
+	if x != nil {
+		return x.FdPressureThresholdPercent
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetSchedulerLatencyP99ThresholdNs() int64 {
+	if x != nil {
+		return x.SchedulerLatencyP99ThresholdNs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetCrashLoopWindowMs() int64 {
+	if x != nil {
+		return x.CrashLoopWindowMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetCrashLoopThreshold() int32 {
+	if x != nil {
+		return x.CrashLoopThreshold
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetContinuousProfilingEnabled() bool {
+	if x != nil {
+		return x.ContinuousProfilingEnabled
+	}
+	return false
+}
+
+func (x *GetWatchdogStatusResponse) GetContinuousProfilingIntervalMs() int64 {
+	if x != nil {
+		return x.ContinuousProfilingIntervalMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetContinuousProfilingTypes() []string {
+	if x != nil {
+		return x.ContinuousProfilingTypes
+	}
+	return nil
+}
+
+func (x *GetWatchdogStatusResponse) GetContinuousProfilingRetention() int32 {
+	if x != nil {
+		return x.ContinuousProfilingRetention
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetContentionDiagnosticWindowMs() int64 {
+	if x != nil {
+		return x.ContentionDiagnosticWindowMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetContentionDiagnosticCooldownMs() int64 {
+	if x != nil {
+		return x.ContentionDiagnosticCooldownMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetContentionDiagnosticAutoFire() bool {
+	if x != nil {
+		return x.ContentionDiagnosticAutoFire
+	}
+	return false
+}
+
+func (x *GetWatchdogStatusResponse) GetContentionDiagnosticLastRunMs() int64 {
+	if x != nil {
+		return x.ContentionDiagnosticLastRunMs
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetGoroutineBaseline() int32 {
+	if x != nil {
+		return x.GoroutineBaseline
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetCaptureWindowUsed() int32 {
+	if x != nil {
+		return x.CaptureWindowUsed
+	}
+	return 0
+}
+
+func (x *GetWatchdogStatusResponse) GetWarningWindowUsed() int32 {
+	if x != nil {
+		return x.WarningWindowUsed
+	}
+	return 0
+}
+
+type RunContentionDiagnosticRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunContentionDiagnosticRequest) Reset() {
+	*x = RunContentionDiagnosticRequest{}
+	mi := &file_monitoring_proto_msgTypes[95]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunContentionDiagnosticRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunContentionDiagnosticRequest) ProtoMessage() {}
+
+func (x *RunContentionDiagnosticRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[95]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunContentionDiagnosticRequest.ProtoReflect.Descriptor instead.
+func (*RunContentionDiagnosticRequest) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{95}
+}
+
+type RunContentionDiagnosticResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Started       bool                   `protobuf:"varint,1,opt,name=started,proto3" json:"started,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunContentionDiagnosticResponse) Reset() {
+	*x = RunContentionDiagnosticResponse{}
+	mi := &file_monitoring_proto_msgTypes[96]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunContentionDiagnosticResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunContentionDiagnosticResponse) ProtoMessage() {}
+
+func (x *RunContentionDiagnosticResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[96]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunContentionDiagnosticResponse.ProtoReflect.Descriptor instead.
+func (*RunContentionDiagnosticResponse) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{96}
+}
+
+func (x *RunContentionDiagnosticResponse) GetStarted() bool {
+	if x != nil {
+		return x.Started
+	}
+	return false
+}
+
+func (x *RunContentionDiagnosticResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type GetStartupHistoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStartupHistoryRequest) Reset() {
+	*x = GetStartupHistoryRequest{}
+	mi := &file_monitoring_proto_msgTypes[97]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStartupHistoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStartupHistoryRequest) ProtoMessage() {}
+
+func (x *GetStartupHistoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[97]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStartupHistoryRequest.ProtoReflect.Descriptor instead.
+func (*GetStartupHistoryRequest) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{97}
+}
+
+type GetStartupHistoryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*StartupHistoryEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStartupHistoryResponse) Reset() {
+	*x = GetStartupHistoryResponse{}
+	mi := &file_monitoring_proto_msgTypes[98]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStartupHistoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStartupHistoryResponse) ProtoMessage() {}
+
+func (x *GetStartupHistoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[98]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStartupHistoryResponse.ProtoReflect.Descriptor instead.
+func (*GetStartupHistoryResponse) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{98}
+}
+
+func (x *GetStartupHistoryResponse) GetEntries() []*StartupHistoryEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+type StartupHistoryEntry struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	StartedAtMs     int64                  `protobuf:"varint,1,opt,name=started_at_ms,json=startedAtMs,proto3" json:"started_at_ms,omitempty"`
+	StoppedAtMs     int64                  `protobuf:"varint,2,opt,name=stopped_at_ms,json=stoppedAtMs,proto3" json:"stopped_at_ms,omitempty"`
+	Pid             int32                  `protobuf:"varint,3,opt,name=pid,proto3" json:"pid,omitempty"`
+	Hostname        string                 `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Version         string                 `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
+	GomemlimitBytes int64                  `protobuf:"varint,6,opt,name=gomemlimit_bytes,json=gomemlimitBytes,proto3" json:"gomemlimit_bytes,omitempty"`
+	StopReason      string                 `protobuf:"bytes,7,opt,name=stop_reason,json=stopReason,proto3" json:"stop_reason,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *StartupHistoryEntry) Reset() {
+	*x = StartupHistoryEntry{}
+	mi := &file_monitoring_proto_msgTypes[99]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartupHistoryEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartupHistoryEntry) ProtoMessage() {}
+
+func (x *StartupHistoryEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[99]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartupHistoryEntry.ProtoReflect.Descriptor instead.
+func (*StartupHistoryEntry) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{99}
+}
+
+func (x *StartupHistoryEntry) GetStartedAtMs() int64 {
+	if x != nil {
+		return x.StartedAtMs
+	}
+	return 0
+}
+
+func (x *StartupHistoryEntry) GetStoppedAtMs() int64 {
+	if x != nil {
+		return x.StoppedAtMs
+	}
+	return 0
+}
+
+func (x *StartupHistoryEntry) GetPid() int32 {
+	if x != nil {
+		return x.Pid
+	}
+	return 0
+}
+
+func (x *StartupHistoryEntry) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *StartupHistoryEntry) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *StartupHistoryEntry) GetGomemlimitBytes() int64 {
+	if x != nil {
+		return x.GomemlimitBytes
+	}
+	return 0
+}
+
+func (x *StartupHistoryEntry) GetStopReason() string {
+	if x != nil {
+		return x.StopReason
+	}
+	return ""
+}
+
+type ListEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	SinceMs       int64                  `protobuf:"varint,2,opt,name=since_ms,json=sinceMs,proto3" json:"since_ms,omitempty"`
+	EventType     string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEventsRequest) Reset() {
+	*x = ListEventsRequest{}
+	mi := &file_monitoring_proto_msgTypes[100]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEventsRequest) ProtoMessage() {}
+
+func (x *ListEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[100]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEventsRequest.ProtoReflect.Descriptor instead.
+func (*ListEventsRequest) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{100}
+}
+
+func (x *ListEventsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListEventsRequest) GetSinceMs() int64 {
+	if x != nil {
+		return x.SinceMs
+	}
+	return 0
+}
+
+func (x *ListEventsRequest) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+type ListEventsResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Events        []*WatchdogEventMessage `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEventsResponse) Reset() {
+	*x = ListEventsResponse{}
+	mi := &file_monitoring_proto_msgTypes[101]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEventsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEventsResponse) ProtoMessage() {}
+
+func (x *ListEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[101]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEventsResponse.ProtoReflect.Descriptor instead.
+func (*ListEventsResponse) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{101}
+}
+
+func (x *ListEventsResponse) GetEvents() []*WatchdogEventMessage {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+type WatchEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SinceMs       int64                  `protobuf:"varint,1,opt,name=since_ms,json=sinceMs,proto3" json:"since_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchEventsRequest) Reset() {
+	*x = WatchEventsRequest{}
+	mi := &file_monitoring_proto_msgTypes[102]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchEventsRequest) ProtoMessage() {}
+
+func (x *WatchEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[102]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchEventsRequest.ProtoReflect.Descriptor instead.
+func (*WatchEventsRequest) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{102}
+}
+
+func (x *WatchEventsRequest) GetSinceMs() int64 {
+	if x != nil {
+		return x.SinceMs
+	}
+	return 0
+}
+
+type WatchdogEventMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	Priority      int32                  `protobuf:"varint,2,opt,name=priority,proto3" json:"priority,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Fields        map[string]string      `protobuf:"bytes,4,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	EmittedAtMs   int64                  `protobuf:"varint,5,opt,name=emitted_at_ms,json=emittedAtMs,proto3" json:"emitted_at_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchdogEventMessage) Reset() {
+	*x = WatchdogEventMessage{}
+	mi := &file_monitoring_proto_msgTypes[103]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchdogEventMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchdogEventMessage) ProtoMessage() {}
+
+func (x *WatchdogEventMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_monitoring_proto_msgTypes[103]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchdogEventMessage.ProtoReflect.Descriptor instead.
+func (*WatchdogEventMessage) Descriptor() ([]byte, []int) {
+	return file_monitoring_proto_rawDescGZIP(), []int{103}
+}
+
+func (x *WatchdogEventMessage) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *WatchdogEventMessage) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
+func (x *WatchdogEventMessage) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *WatchdogEventMessage) GetFields() map[string]string {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
+func (x *WatchdogEventMessage) GetEmittedAtMs() int64 {
+	if x != nil {
+		return x.EmittedAtMs
 	}
 	return 0
 }
@@ -5702,7 +6634,7 @@ const file_monitoring_proto_rawDesc = "" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x17\n" +
-	"\x15GetSystemStatsRequest\"\xc8\x05\n" +
+	"\x15GetSystemStatsRequest\"\xb9\x06\n" +
 	"\x16GetSystemStatsResponse\x123\n" +
 	"\x05build\x18\x01 \x01(\v2\x1d.piko.monitoring.v1.BuildInfoR\x05build\x129\n" +
 	"\aruntime\x18\x02 \x01(\v2\x1f.piko.monitoring.v1.RuntimeInfoR\aruntime\x12*\n" +
@@ -5723,7 +6655,18 @@ const file_monitoring_proto_rawDesc = "" +
 	"\vcgroup_path\x18\x0e \x01(\tR\n" +
 	"cgroupPath\x124\n" +
 	"\x16monitoring_listen_addr\x18\x0f \x01(\tR\x14monitoringListenAddr\x123\n" +
-	"\x05cache\x18\x10 \x01(\v2\x1d.piko.monitoring.v1.CacheInfoR\x05cache\"c\n" +
+	"\x05cache\x18\x10 \x01(\v2\x1d.piko.monitoring.v1.CacheInfoR\x05cache\x12=\n" +
+	"\bschedule\x18\x11 \x01(\v2!.piko.monitoring.v1.SchedulerInfoR\bschedule\x120\n" +
+	"\x04sync\x18\x12 \x01(\v2\x1c.piko.monitoring.v1.SyncInfoR\x04sync\"\xa4\x01\n" +
+	"\rSchedulerInfo\x12$\n" +
+	"\x0elatency_p50_ns\x18\x01 \x01(\x03R\flatencyP50Ns\x12$\n" +
+	"\x0elatency_p99_ns\x18\x02 \x01(\x03R\flatencyP99Ns\x12'\n" +
+	"\x0fgoroutine_count\x18\x03 \x01(\x05R\x0egoroutineCount\x12\x1e\n" +
+	"\n" +
+	"gomaxprocs\x18\x04 \x01(\x05R\n" +
+	"gomaxprocs\"C\n" +
+	"\bSyncInfo\x127\n" +
+	"\x18mutex_wait_total_seconds\x18\x01 \x01(\x01R\x15mutexWaitTotalSeconds\"c\n" +
 	"\tCacheInfo\x120\n" +
 	"\x14component_cache_size\x18\x01 \x01(\x05R\x12componentCacheSize\x12$\n" +
 	"\x0esvg_cache_size\x18\x02 \x01(\x05R\fsvgCacheSize\"\xa5\x02\n" +
@@ -5747,7 +6690,7 @@ const file_monitoring_proto_rawDesc = "" +
 	"\n" +
 	"gomemlimit\x18\x02 \x01(\tR\n" +
 	"gomemlimit\x12\x1a\n" +
-	"\bcompiler\x18\x03 \x01(\tR\bcompiler\"\x91\x02\n" +
+	"\bcompiler\x18\x03 \x01(\tR\bcompiler\"\xf7\x02\n" +
 	"\x06GCInfo\x12#\n" +
 	"\rrecent_pauses\x18\x01 \x03(\x04R\frecentPauses\x12\x1c\n" +
 	"\n" +
@@ -5757,7 +6700,14 @@ const file_monitoring_proto_rawDesc = "" +
 	"\x0fgc_cpu_fraction\x18\x05 \x01(\x01R\rgcCpuFraction\x12\x17\n" +
 	"\anext_gc\x18\x06 \x01(\x04R\x06nextGc\x12\x15\n" +
 	"\x06num_gc\x18\a \x01(\rR\x05numGc\x12\"\n" +
-	"\rnum_forced_gc\x18\b \x01(\rR\vnumForcedGc\"\x95\x05\n" +
+	"\rnum_forced_gc\x18\b \x01(\rR\vnumForcedGc\x12 \n" +
+	"\fpause_p50_ns\x18\t \x01(\x03R\n" +
+	"pauseP50Ns\x12 \n" +
+	"\fpause_p95_ns\x18\n" +
+	" \x01(\x03R\n" +
+	"pauseP95Ns\x12 \n" +
+	"\fpause_p99_ns\x18\v \x01(\x03R\n" +
+	"pauseP99Ns\"\x94\a\n" +
 	"\n" +
 	"MemoryInfo\x12\x14\n" +
 	"\x05alloc\x18\x01 \x01(\x04R\x05alloc\x12\x1f\n" +
@@ -5788,7 +6738,14 @@ const file_monitoring_proto_rawDesc = "" +
 	"\x06gc_sys\x18\x13 \x01(\x04R\x05gcSys\x12\x1b\n" +
 	"\tother_sys\x18\x14 \x01(\x04R\botherSys\x12!\n" +
 	"\fbuckhash_sys\x18\x15 \x01(\x04R\vbuckhashSys\x12\x18\n" +
-	"\alookups\x18\x16 \x01(\x04R\alookups\"\xd3\x03\n" +
+	"\alookups\x18\x16 \x01(\x04R\alookups\x12,\n" +
+	"\x12heap_objects_bytes\x18\x17 \x01(\x04R\x10heapObjectsBytes\x12&\n" +
+	"\x0fheap_free_bytes\x18\x18 \x01(\x04R\rheapFreeBytes\x12.\n" +
+	"\x13heap_released_bytes\x18\x19 \x01(\x04R\x11heapReleasedBytes\x12*\n" +
+	"\x11heap_stacks_bytes\x18\x1a \x01(\x04R\x0fheapStacksBytes\x12*\n" +
+	"\x11heap_unused_bytes\x18\x1b \x01(\x04R\x0fheapUnusedBytes\x12\x1f\n" +
+	"\vtotal_bytes\x18\x1c \x01(\x04R\n" +
+	"totalBytes\"\xd3\x03\n" +
 	"\vProcessInfo\x12\x10\n" +
 	"\x03pid\x18\x01 \x01(\x05R\x03pid\x12!\n" +
 	"\fthread_count\x18\x02 \x01(\x05R\vthreadCount\x12\x19\n" +
@@ -6042,23 +6999,30 @@ const file_monitoring_proto_rawDesc = "" +
 	"\awarning\x18\x03 \x01(\tR\awarning\"\x15\n" +
 	"\x13ListProfilesRequest\"\\\n" +
 	"\x14ListProfilesResponse\x12D\n" +
-	"\bprofiles\x18\x01 \x03(\v2(.piko.monitoring.v1.WatchdogProfileEntryR\bprofiles\"\x88\x01\n" +
+	"\bprofiles\x18\x01 \x03(\v2(.piko.monitoring.v1.WatchdogProfileEntryR\bprofiles\"\xa9\x01\n" +
 	"\x14WatchdogProfileEntry\x12\x1a\n" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12!\n" +
 	"\ftimestamp_ms\x18\x03 \x01(\x03R\vtimestampMs\x12\x1d\n" +
 	"\n" +
-	"size_bytes\x18\x04 \x01(\x03R\tsizeBytes\"4\n" +
+	"size_bytes\x18\x04 \x01(\x03R\tsizeBytes\x12\x1f\n" +
+	"\vhas_sidecar\x18\x05 \x01(\bR\n" +
+	"hasSidecar\"4\n" +
 	"\x16DownloadProfileRequest\x12\x1a\n" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\"C\n" +
 	"\x14DownloadProfileChunk\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12\x17\n" +
-	"\ais_last\x18\x02 \x01(\bR\x06isLast\"9\n" +
+	"\ais_last\x18\x02 \x01(\bR\x06isLast\"C\n" +
+	"\x16DownloadSidecarRequest\x12)\n" +
+	"\x10profile_filename\x18\x01 \x01(\tR\x0fprofileFilename\"G\n" +
+	"\x17DownloadSidecarResponse\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\x12\x18\n" +
+	"\apresent\x18\x02 \x01(\bR\apresent\"9\n" +
 	"\x14PruneProfilesRequest\x12!\n" +
 	"\fprofile_type\x18\x01 \x01(\tR\vprofileType\"<\n" +
 	"\x15PruneProfilesResponse\x12#\n" +
 	"\rdeleted_count\x18\x01 \x01(\x05R\fdeletedCount\"\x1a\n" +
-	"\x18GetWatchdogStatusRequest\"\x94\x04\n" +
+	"\x18GetWatchdogStatusRequest\"\xe1\f\n" +
 	"\x19GetWatchdogStatusResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x18\n" +
 	"\astopped\x18\x02 \x01(\bR\astopped\x12+\n" +
@@ -6073,7 +7037,60 @@ const file_monitoring_proto_rawDesc = "" +
 	"\x13goroutine_threshold\x18\n" +
 	" \x01(\x05R\x12goroutineThreshold\x128\n" +
 	"\x18goroutine_safety_ceiling\x18\v \x01(\x05R\x16goroutineSafetyCeiling\x121\n" +
-	"\x15max_profiles_per_type\x18\f \x01(\x05R\x12maxProfilesPerType2\xc4\x01\n" +
+	"\x15max_profiles_per_type\x18\f \x01(\x05R\x12maxProfilesPerType\x12*\n" +
+	"\x11capture_window_ms\x18\r \x01(\x03R\x0fcaptureWindowMs\x125\n" +
+	"\x17max_captures_per_window\x18\x0e \x01(\x05R\x14maxCapturesPerWindow\x125\n" +
+	"\x17max_warnings_per_window\x18\x0f \x01(\x05R\x14maxWarningsPerWindow\x12A\n" +
+	"\x1dfd_pressure_threshold_percent\x18\x10 \x01(\x01R\x1afdPressureThresholdPercent\x12J\n" +
+	"\"scheduler_latency_p99_threshold_ns\x18\x11 \x01(\x03R\x1eschedulerLatencyP99ThresholdNs\x12/\n" +
+	"\x14crash_loop_window_ms\x18\x12 \x01(\x03R\x11crashLoopWindowMs\x120\n" +
+	"\x14crash_loop_threshold\x18\x13 \x01(\x05R\x12crashLoopThreshold\x12@\n" +
+	"\x1ccontinuous_profiling_enabled\x18\x14 \x01(\bR\x1acontinuousProfilingEnabled\x12G\n" +
+	" continuous_profiling_interval_ms\x18\x15 \x01(\x03R\x1dcontinuousProfilingIntervalMs\x12<\n" +
+	"\x1acontinuous_profiling_types\x18\x16 \x03(\tR\x18continuousProfilingTypes\x12D\n" +
+	"\x1econtinuous_profiling_retention\x18\x17 \x01(\x05R\x1ccontinuousProfilingRetention\x12E\n" +
+	"\x1fcontention_diagnostic_window_ms\x18\x18 \x01(\x03R\x1ccontentionDiagnosticWindowMs\x12I\n" +
+	"!contention_diagnostic_cooldown_ms\x18\x19 \x01(\x03R\x1econtentionDiagnosticCooldownMs\x12E\n" +
+	"\x1fcontention_diagnostic_auto_fire\x18\x1a \x01(\bR\x1ccontentionDiagnosticAutoFire\x12H\n" +
+	"!contention_diagnostic_last_run_ms\x18\x1b \x01(\x03R\x1dcontentionDiagnosticLastRunMs\x12-\n" +
+	"\x12goroutine_baseline\x18\x1c \x01(\x05R\x11goroutineBaseline\x12.\n" +
+	"\x13capture_window_used\x18\x1d \x01(\x05R\x11captureWindowUsed\x12.\n" +
+	"\x13warning_window_used\x18\x1e \x01(\x05R\x11warningWindowUsed\" \n" +
+	"\x1eRunContentionDiagnosticRequest\"Q\n" +
+	"\x1fRunContentionDiagnosticResponse\x12\x18\n" +
+	"\astarted\x18\x01 \x01(\bR\astarted\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"\x1a\n" +
+	"\x18GetStartupHistoryRequest\"^\n" +
+	"\x19GetStartupHistoryResponse\x12A\n" +
+	"\aentries\x18\x01 \x03(\v2'.piko.monitoring.v1.StartupHistoryEntryR\aentries\"\xf1\x01\n" +
+	"\x13StartupHistoryEntry\x12\"\n" +
+	"\rstarted_at_ms\x18\x01 \x01(\x03R\vstartedAtMs\x12\"\n" +
+	"\rstopped_at_ms\x18\x02 \x01(\x03R\vstoppedAtMs\x12\x10\n" +
+	"\x03pid\x18\x03 \x01(\x05R\x03pid\x12\x1a\n" +
+	"\bhostname\x18\x04 \x01(\tR\bhostname\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\tR\aversion\x12)\n" +
+	"\x10gomemlimit_bytes\x18\x06 \x01(\x03R\x0fgomemlimitBytes\x12\x1f\n" +
+	"\vstop_reason\x18\a \x01(\tR\n" +
+	"stopReason\"c\n" +
+	"\x11ListEventsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x19\n" +
+	"\bsince_ms\x18\x02 \x01(\x03R\asinceMs\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x03 \x01(\tR\teventType\"V\n" +
+	"\x12ListEventsResponse\x12@\n" +
+	"\x06events\x18\x01 \x03(\v2(.piko.monitoring.v1.WatchdogEventMessageR\x06events\"/\n" +
+	"\x12WatchEventsRequest\x12\x19\n" +
+	"\bsince_ms\x18\x01 \x01(\x03R\asinceMs\"\x98\x02\n" +
+	"\x14WatchdogEventMessage\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x01 \x01(\tR\teventType\x12\x1a\n" +
+	"\bpriority\x18\x02 \x01(\x05R\bpriority\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12L\n" +
+	"\x06fields\x18\x04 \x03(\v24.piko.monitoring.v1.WatchdogEventMessage.FieldsEntryR\x06fields\x12\"\n" +
+	"\remitted_at_ms\x18\x05 \x01(\x03R\vemittedAtMs\x1a9\n" +
+	"\vFieldsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012\xc4\x01\n" +
 	"\rHealthService\x12X\n" +
 	"\tGetHealth\x12$.piko.monitoring.v1.GetHealthRequest\x1a%.piko.monitoring.v1.GetHealthResponse\x12Y\n" +
 	"\vWatchHealth\x12&.piko.monitoring.v1.WatchHealthRequest\x1a .piko.monitoring.v1.HealthUpdate0\x012\x83\x04\n" +
@@ -6112,12 +7129,18 @@ const file_monitoring_proto_rawDesc = "" +
 	"\x0fEnableProfiling\x12*.piko.monitoring.v1.EnableProfilingRequest\x1a+.piko.monitoring.v1.EnableProfilingResponse\x12m\n" +
 	"\x10DisableProfiling\x12+.piko.monitoring.v1.DisableProfilingRequest\x1a,.piko.monitoring.v1.DisableProfilingResponse\x12s\n" +
 	"\x12GetProfilingStatus\x12-.piko.monitoring.v1.GetProfilingStatusRequest\x1a..piko.monitoring.v1.GetProfilingStatusResponse\x12f\n" +
-	"\x0eCaptureProfile\x12).piko.monitoring.v1.CaptureProfileRequest\x1a'.piko.monitoring.v1.CaptureProfileChunk0\x012\xc0\x03\n" +
+	"\x0eCaptureProfile\x12).piko.monitoring.v1.CaptureProfileRequest\x1a'.piko.monitoring.v1.CaptureProfileChunk0\x012\xe3\a\n" +
 	"\x18WatchdogInspectorService\x12a\n" +
 	"\fListProfiles\x12'.piko.monitoring.v1.ListProfilesRequest\x1a(.piko.monitoring.v1.ListProfilesResponse\x12i\n" +
-	"\x0fDownloadProfile\x12*.piko.monitoring.v1.DownloadProfileRequest\x1a(.piko.monitoring.v1.DownloadProfileChunk0\x01\x12d\n" +
+	"\x0fDownloadProfile\x12*.piko.monitoring.v1.DownloadProfileRequest\x1a(.piko.monitoring.v1.DownloadProfileChunk0\x01\x12j\n" +
+	"\x0fDownloadSidecar\x12*.piko.monitoring.v1.DownloadSidecarRequest\x1a+.piko.monitoring.v1.DownloadSidecarResponse\x12d\n" +
 	"\rPruneProfiles\x12(.piko.monitoring.v1.PruneProfilesRequest\x1a).piko.monitoring.v1.PruneProfilesResponse\x12p\n" +
-	"\x11GetWatchdogStatus\x12,.piko.monitoring.v1.GetWatchdogStatusRequest\x1a-.piko.monitoring.v1.GetWatchdogStatusResponseB?Z=piko.sh/piko/wdk/monitoring/monitoring_api/gen;monitoring_apib\x06proto3"
+	"\x11GetWatchdogStatus\x12,.piko.monitoring.v1.GetWatchdogStatusRequest\x1a-.piko.monitoring.v1.GetWatchdogStatusResponse\x12\x82\x01\n" +
+	"\x17RunContentionDiagnostic\x122.piko.monitoring.v1.RunContentionDiagnosticRequest\x1a3.piko.monitoring.v1.RunContentionDiagnosticResponse\x12p\n" +
+	"\x11GetStartupHistory\x12,.piko.monitoring.v1.GetStartupHistoryRequest\x1a-.piko.monitoring.v1.GetStartupHistoryResponse\x12[\n" +
+	"\n" +
+	"ListEvents\x12%.piko.monitoring.v1.ListEventsRequest\x1a&.piko.monitoring.v1.ListEventsResponse\x12a\n" +
+	"\vWatchEvents\x12&.piko.monitoring.v1.WatchEventsRequest\x1a(.piko.monitoring.v1.WatchdogEventMessage0\x01B?Z=piko.sh/piko/wdk/monitoring/monitoring_api/gen;monitoring_apib\x06proto3"
 
 var (
 	file_monitoring_proto_rawDescOnce sync.Once
@@ -6131,217 +7154,246 @@ func file_monitoring_proto_rawDescGZIP() []byte {
 	return file_monitoring_proto_rawDescData
 }
 
-var file_monitoring_proto_msgTypes = make([]protoimpl.MessageInfo, 95)
+var file_monitoring_proto_msgTypes = make([]protoimpl.MessageInfo, 109)
 var file_monitoring_proto_goTypes = []any{
-	(*GetHealthRequest)(nil),             // 0: piko.monitoring.v1.GetHealthRequest
-	(*GetHealthResponse)(nil),            // 1: piko.monitoring.v1.GetHealthResponse
-	(*HealthStatus)(nil),                 // 2: piko.monitoring.v1.HealthStatus
-	(*WatchHealthRequest)(nil),           // 3: piko.monitoring.v1.WatchHealthRequest
-	(*HealthUpdate)(nil),                 // 4: piko.monitoring.v1.HealthUpdate
-	(*GetMetricsRequest)(nil),            // 5: piko.monitoring.v1.GetMetricsRequest
-	(*GetMetricsResponse)(nil),           // 6: piko.monitoring.v1.GetMetricsResponse
-	(*Metric)(nil),                       // 7: piko.monitoring.v1.Metric
-	(*MetricDataPoint)(nil),              // 8: piko.monitoring.v1.MetricDataPoint
-	(*GetTracesRequest)(nil),             // 9: piko.monitoring.v1.GetTracesRequest
-	(*GetTracesResponse)(nil),            // 10: piko.monitoring.v1.GetTracesResponse
-	(*Span)(nil),                         // 11: piko.monitoring.v1.Span
-	(*SpanEvent)(nil),                    // 12: piko.monitoring.v1.SpanEvent
-	(*GetSystemStatsRequest)(nil),        // 13: piko.monitoring.v1.GetSystemStatsRequest
-	(*GetSystemStatsResponse)(nil),       // 14: piko.monitoring.v1.GetSystemStatsResponse
-	(*CacheInfo)(nil),                    // 15: piko.monitoring.v1.CacheInfo
-	(*BuildInfo)(nil),                    // 16: piko.monitoring.v1.BuildInfo
-	(*RuntimeInfo)(nil),                  // 17: piko.monitoring.v1.RuntimeInfo
-	(*GCInfo)(nil),                       // 18: piko.monitoring.v1.GCInfo
-	(*MemoryInfo)(nil),                   // 19: piko.monitoring.v1.MemoryInfo
-	(*ProcessInfo)(nil),                  // 20: piko.monitoring.v1.ProcessInfo
-	(*GetFileDescriptorsRequest)(nil),    // 21: piko.monitoring.v1.GetFileDescriptorsRequest
-	(*GetFileDescriptorsResponse)(nil),   // 22: piko.monitoring.v1.GetFileDescriptorsResponse
-	(*FileDescriptorCategory)(nil),       // 23: piko.monitoring.v1.FileDescriptorCategory
-	(*FileDescriptorInfo)(nil),           // 24: piko.monitoring.v1.FileDescriptorInfo
-	(*WatchMetricsRequest)(nil),          // 25: piko.monitoring.v1.WatchMetricsRequest
-	(*MetricsUpdate)(nil),                // 26: piko.monitoring.v1.MetricsUpdate
-	(*GetTaskSummaryRequest)(nil),        // 27: piko.monitoring.v1.GetTaskSummaryRequest
-	(*GetTaskSummaryResponse)(nil),       // 28: piko.monitoring.v1.GetTaskSummaryResponse
-	(*TaskSummary)(nil),                  // 29: piko.monitoring.v1.TaskSummary
-	(*ListRecentTasksRequest)(nil),       // 30: piko.monitoring.v1.ListRecentTasksRequest
-	(*ListRecentTasksResponse)(nil),      // 31: piko.monitoring.v1.ListRecentTasksResponse
-	(*TaskListItem)(nil),                 // 32: piko.monitoring.v1.TaskListItem
-	(*ListWorkflowSummaryRequest)(nil),   // 33: piko.monitoring.v1.ListWorkflowSummaryRequest
-	(*ListWorkflowSummaryResponse)(nil),  // 34: piko.monitoring.v1.ListWorkflowSummaryResponse
-	(*WorkflowSummary)(nil),              // 35: piko.monitoring.v1.WorkflowSummary
-	(*WatchTasksRequest)(nil),            // 36: piko.monitoring.v1.WatchTasksRequest
-	(*TasksUpdate)(nil),                  // 37: piko.monitoring.v1.TasksUpdate
-	(*GetArtefactSummaryRequest)(nil),    // 38: piko.monitoring.v1.GetArtefactSummaryRequest
-	(*GetArtefactSummaryResponse)(nil),   // 39: piko.monitoring.v1.GetArtefactSummaryResponse
-	(*ArtefactSummary)(nil),              // 40: piko.monitoring.v1.ArtefactSummary
-	(*GetVariantSummaryRequest)(nil),     // 41: piko.monitoring.v1.GetVariantSummaryRequest
-	(*GetVariantSummaryResponse)(nil),    // 42: piko.monitoring.v1.GetVariantSummaryResponse
-	(*VariantSummary)(nil),               // 43: piko.monitoring.v1.VariantSummary
-	(*ListRecentArtefactsRequest)(nil),   // 44: piko.monitoring.v1.ListRecentArtefactsRequest
-	(*ListRecentArtefactsResponse)(nil),  // 45: piko.monitoring.v1.ListRecentArtefactsResponse
-	(*ArtefactListItem)(nil),             // 46: piko.monitoring.v1.ArtefactListItem
-	(*WatchArtefactsRequest)(nil),        // 47: piko.monitoring.v1.WatchArtefactsRequest
-	(*ArtefactsUpdate)(nil),              // 48: piko.monitoring.v1.ArtefactsUpdate
-	(*GetDispatcherSummaryRequest)(nil),  // 49: piko.monitoring.v1.GetDispatcherSummaryRequest
-	(*GetDispatcherSummaryResponse)(nil), // 50: piko.monitoring.v1.GetDispatcherSummaryResponse
-	(*DispatcherSummary)(nil),            // 51: piko.monitoring.v1.DispatcherSummary
-	(*ListDLQEntriesRequest)(nil),        // 52: piko.monitoring.v1.ListDLQEntriesRequest
-	(*ListDLQEntriesResponse)(nil),       // 53: piko.monitoring.v1.ListDLQEntriesResponse
-	(*DLQEntry)(nil),                     // 54: piko.monitoring.v1.DLQEntry
-	(*GetDLQCountRequest)(nil),           // 55: piko.monitoring.v1.GetDLQCountRequest
-	(*GetDLQCountResponse)(nil),          // 56: piko.monitoring.v1.GetDLQCountResponse
-	(*ClearDLQRequest)(nil),              // 57: piko.monitoring.v1.ClearDLQRequest
-	(*ClearDLQResponse)(nil),             // 58: piko.monitoring.v1.ClearDLQResponse
-	(*GetRateLimiterStatusRequest)(nil),  // 59: piko.monitoring.v1.GetRateLimiterStatusRequest
-	(*GetRateLimiterStatusResponse)(nil), // 60: piko.monitoring.v1.GetRateLimiterStatusResponse
-	(*ListResourceTypesRequest)(nil),     // 61: piko.monitoring.v1.ListResourceTypesRequest
-	(*ListResourceTypesResponse)(nil),    // 62: piko.monitoring.v1.ListResourceTypesResponse
-	(*ListProvidersRequest)(nil),         // 63: piko.monitoring.v1.ListProvidersRequest
-	(*ListProvidersResponse)(nil),        // 64: piko.monitoring.v1.ListProvidersResponse
-	(*ProviderColumn)(nil),               // 65: piko.monitoring.v1.ProviderColumn
-	(*ProviderRow)(nil),                  // 66: piko.monitoring.v1.ProviderRow
-	(*DescribeProviderRequest)(nil),      // 67: piko.monitoring.v1.DescribeProviderRequest
-	(*DescribeProviderResponse)(nil),     // 68: piko.monitoring.v1.DescribeProviderResponse
-	(*ProviderInfoSection)(nil),          // 69: piko.monitoring.v1.ProviderInfoSection
-	(*ProviderInfoEntry)(nil),            // 70: piko.monitoring.v1.ProviderInfoEntry
-	(*ListSubResourcesRequest)(nil),      // 71: piko.monitoring.v1.ListSubResourcesRequest
-	(*ListSubResourcesResponse)(nil),     // 72: piko.monitoring.v1.ListSubResourcesResponse
-	(*DescribeResourceTypeRequest)(nil),  // 73: piko.monitoring.v1.DescribeResourceTypeRequest
-	(*EnableProfilingRequest)(nil),       // 74: piko.monitoring.v1.EnableProfilingRequest
-	(*EnableProfilingResponse)(nil),      // 75: piko.monitoring.v1.EnableProfilingResponse
-	(*DisableProfilingRequest)(nil),      // 76: piko.monitoring.v1.DisableProfilingRequest
-	(*DisableProfilingResponse)(nil),     // 77: piko.monitoring.v1.DisableProfilingResponse
-	(*GetProfilingStatusRequest)(nil),    // 78: piko.monitoring.v1.GetProfilingStatusRequest
-	(*GetProfilingStatusResponse)(nil),   // 79: piko.monitoring.v1.GetProfilingStatusResponse
-	(*CaptureProfileRequest)(nil),        // 80: piko.monitoring.v1.CaptureProfileRequest
-	(*CaptureProfileChunk)(nil),          // 81: piko.monitoring.v1.CaptureProfileChunk
-	(*ListProfilesRequest)(nil),          // 82: piko.monitoring.v1.ListProfilesRequest
-	(*ListProfilesResponse)(nil),         // 83: piko.monitoring.v1.ListProfilesResponse
-	(*WatchdogProfileEntry)(nil),         // 84: piko.monitoring.v1.WatchdogProfileEntry
-	(*DownloadProfileRequest)(nil),       // 85: piko.monitoring.v1.DownloadProfileRequest
-	(*DownloadProfileChunk)(nil),         // 86: piko.monitoring.v1.DownloadProfileChunk
-	(*PruneProfilesRequest)(nil),         // 87: piko.monitoring.v1.PruneProfilesRequest
-	(*PruneProfilesResponse)(nil),        // 88: piko.monitoring.v1.PruneProfilesResponse
-	(*GetWatchdogStatusRequest)(nil),     // 89: piko.monitoring.v1.GetWatchdogStatusRequest
-	(*GetWatchdogStatusResponse)(nil),    // 90: piko.monitoring.v1.GetWatchdogStatusResponse
-	nil,                                  // 91: piko.monitoring.v1.MetricDataPoint.AttributesEntry
-	nil,                                  // 92: piko.monitoring.v1.Span.AttributesEntry
-	nil,                                  // 93: piko.monitoring.v1.SpanEvent.AttributesEntry
-	nil,                                  // 94: piko.monitoring.v1.ProviderRow.ValuesEntry
+	(*GetHealthRequest)(nil),                // 0: piko.monitoring.v1.GetHealthRequest
+	(*GetHealthResponse)(nil),               // 1: piko.monitoring.v1.GetHealthResponse
+	(*HealthStatus)(nil),                    // 2: piko.monitoring.v1.HealthStatus
+	(*WatchHealthRequest)(nil),              // 3: piko.monitoring.v1.WatchHealthRequest
+	(*HealthUpdate)(nil),                    // 4: piko.monitoring.v1.HealthUpdate
+	(*GetMetricsRequest)(nil),               // 5: piko.monitoring.v1.GetMetricsRequest
+	(*GetMetricsResponse)(nil),              // 6: piko.monitoring.v1.GetMetricsResponse
+	(*Metric)(nil),                          // 7: piko.monitoring.v1.Metric
+	(*MetricDataPoint)(nil),                 // 8: piko.monitoring.v1.MetricDataPoint
+	(*GetTracesRequest)(nil),                // 9: piko.monitoring.v1.GetTracesRequest
+	(*GetTracesResponse)(nil),               // 10: piko.monitoring.v1.GetTracesResponse
+	(*Span)(nil),                            // 11: piko.monitoring.v1.Span
+	(*SpanEvent)(nil),                       // 12: piko.monitoring.v1.SpanEvent
+	(*GetSystemStatsRequest)(nil),           // 13: piko.monitoring.v1.GetSystemStatsRequest
+	(*GetSystemStatsResponse)(nil),          // 14: piko.monitoring.v1.GetSystemStatsResponse
+	(*SchedulerInfo)(nil),                   // 15: piko.monitoring.v1.SchedulerInfo
+	(*SyncInfo)(nil),                        // 16: piko.monitoring.v1.SyncInfo
+	(*CacheInfo)(nil),                       // 17: piko.monitoring.v1.CacheInfo
+	(*BuildInfo)(nil),                       // 18: piko.monitoring.v1.BuildInfo
+	(*RuntimeInfo)(nil),                     // 19: piko.monitoring.v1.RuntimeInfo
+	(*GCInfo)(nil),                          // 20: piko.monitoring.v1.GCInfo
+	(*MemoryInfo)(nil),                      // 21: piko.monitoring.v1.MemoryInfo
+	(*ProcessInfo)(nil),                     // 22: piko.monitoring.v1.ProcessInfo
+	(*GetFileDescriptorsRequest)(nil),       // 23: piko.monitoring.v1.GetFileDescriptorsRequest
+	(*GetFileDescriptorsResponse)(nil),      // 24: piko.monitoring.v1.GetFileDescriptorsResponse
+	(*FileDescriptorCategory)(nil),          // 25: piko.monitoring.v1.FileDescriptorCategory
+	(*FileDescriptorInfo)(nil),              // 26: piko.monitoring.v1.FileDescriptorInfo
+	(*WatchMetricsRequest)(nil),             // 27: piko.monitoring.v1.WatchMetricsRequest
+	(*MetricsUpdate)(nil),                   // 28: piko.monitoring.v1.MetricsUpdate
+	(*GetTaskSummaryRequest)(nil),           // 29: piko.monitoring.v1.GetTaskSummaryRequest
+	(*GetTaskSummaryResponse)(nil),          // 30: piko.monitoring.v1.GetTaskSummaryResponse
+	(*TaskSummary)(nil),                     // 31: piko.monitoring.v1.TaskSummary
+	(*ListRecentTasksRequest)(nil),          // 32: piko.monitoring.v1.ListRecentTasksRequest
+	(*ListRecentTasksResponse)(nil),         // 33: piko.monitoring.v1.ListRecentTasksResponse
+	(*TaskListItem)(nil),                    // 34: piko.monitoring.v1.TaskListItem
+	(*ListWorkflowSummaryRequest)(nil),      // 35: piko.monitoring.v1.ListWorkflowSummaryRequest
+	(*ListWorkflowSummaryResponse)(nil),     // 36: piko.monitoring.v1.ListWorkflowSummaryResponse
+	(*WorkflowSummary)(nil),                 // 37: piko.monitoring.v1.WorkflowSummary
+	(*WatchTasksRequest)(nil),               // 38: piko.monitoring.v1.WatchTasksRequest
+	(*TasksUpdate)(nil),                     // 39: piko.monitoring.v1.TasksUpdate
+	(*GetArtefactSummaryRequest)(nil),       // 40: piko.monitoring.v1.GetArtefactSummaryRequest
+	(*GetArtefactSummaryResponse)(nil),      // 41: piko.monitoring.v1.GetArtefactSummaryResponse
+	(*ArtefactSummary)(nil),                 // 42: piko.monitoring.v1.ArtefactSummary
+	(*GetVariantSummaryRequest)(nil),        // 43: piko.monitoring.v1.GetVariantSummaryRequest
+	(*GetVariantSummaryResponse)(nil),       // 44: piko.monitoring.v1.GetVariantSummaryResponse
+	(*VariantSummary)(nil),                  // 45: piko.monitoring.v1.VariantSummary
+	(*ListRecentArtefactsRequest)(nil),      // 46: piko.monitoring.v1.ListRecentArtefactsRequest
+	(*ListRecentArtefactsResponse)(nil),     // 47: piko.monitoring.v1.ListRecentArtefactsResponse
+	(*ArtefactListItem)(nil),                // 48: piko.monitoring.v1.ArtefactListItem
+	(*WatchArtefactsRequest)(nil),           // 49: piko.monitoring.v1.WatchArtefactsRequest
+	(*ArtefactsUpdate)(nil),                 // 50: piko.monitoring.v1.ArtefactsUpdate
+	(*GetDispatcherSummaryRequest)(nil),     // 51: piko.monitoring.v1.GetDispatcherSummaryRequest
+	(*GetDispatcherSummaryResponse)(nil),    // 52: piko.monitoring.v1.GetDispatcherSummaryResponse
+	(*DispatcherSummary)(nil),               // 53: piko.monitoring.v1.DispatcherSummary
+	(*ListDLQEntriesRequest)(nil),           // 54: piko.monitoring.v1.ListDLQEntriesRequest
+	(*ListDLQEntriesResponse)(nil),          // 55: piko.monitoring.v1.ListDLQEntriesResponse
+	(*DLQEntry)(nil),                        // 56: piko.monitoring.v1.DLQEntry
+	(*GetDLQCountRequest)(nil),              // 57: piko.monitoring.v1.GetDLQCountRequest
+	(*GetDLQCountResponse)(nil),             // 58: piko.monitoring.v1.GetDLQCountResponse
+	(*ClearDLQRequest)(nil),                 // 59: piko.monitoring.v1.ClearDLQRequest
+	(*ClearDLQResponse)(nil),                // 60: piko.monitoring.v1.ClearDLQResponse
+	(*GetRateLimiterStatusRequest)(nil),     // 61: piko.monitoring.v1.GetRateLimiterStatusRequest
+	(*GetRateLimiterStatusResponse)(nil),    // 62: piko.monitoring.v1.GetRateLimiterStatusResponse
+	(*ListResourceTypesRequest)(nil),        // 63: piko.monitoring.v1.ListResourceTypesRequest
+	(*ListResourceTypesResponse)(nil),       // 64: piko.monitoring.v1.ListResourceTypesResponse
+	(*ListProvidersRequest)(nil),            // 65: piko.monitoring.v1.ListProvidersRequest
+	(*ListProvidersResponse)(nil),           // 66: piko.monitoring.v1.ListProvidersResponse
+	(*ProviderColumn)(nil),                  // 67: piko.monitoring.v1.ProviderColumn
+	(*ProviderRow)(nil),                     // 68: piko.monitoring.v1.ProviderRow
+	(*DescribeProviderRequest)(nil),         // 69: piko.monitoring.v1.DescribeProviderRequest
+	(*DescribeProviderResponse)(nil),        // 70: piko.monitoring.v1.DescribeProviderResponse
+	(*ProviderInfoSection)(nil),             // 71: piko.monitoring.v1.ProviderInfoSection
+	(*ProviderInfoEntry)(nil),               // 72: piko.monitoring.v1.ProviderInfoEntry
+	(*ListSubResourcesRequest)(nil),         // 73: piko.monitoring.v1.ListSubResourcesRequest
+	(*ListSubResourcesResponse)(nil),        // 74: piko.monitoring.v1.ListSubResourcesResponse
+	(*DescribeResourceTypeRequest)(nil),     // 75: piko.monitoring.v1.DescribeResourceTypeRequest
+	(*EnableProfilingRequest)(nil),          // 76: piko.monitoring.v1.EnableProfilingRequest
+	(*EnableProfilingResponse)(nil),         // 77: piko.monitoring.v1.EnableProfilingResponse
+	(*DisableProfilingRequest)(nil),         // 78: piko.monitoring.v1.DisableProfilingRequest
+	(*DisableProfilingResponse)(nil),        // 79: piko.monitoring.v1.DisableProfilingResponse
+	(*GetProfilingStatusRequest)(nil),       // 80: piko.monitoring.v1.GetProfilingStatusRequest
+	(*GetProfilingStatusResponse)(nil),      // 81: piko.monitoring.v1.GetProfilingStatusResponse
+	(*CaptureProfileRequest)(nil),           // 82: piko.monitoring.v1.CaptureProfileRequest
+	(*CaptureProfileChunk)(nil),             // 83: piko.monitoring.v1.CaptureProfileChunk
+	(*ListProfilesRequest)(nil),             // 84: piko.monitoring.v1.ListProfilesRequest
+	(*ListProfilesResponse)(nil),            // 85: piko.monitoring.v1.ListProfilesResponse
+	(*WatchdogProfileEntry)(nil),            // 86: piko.monitoring.v1.WatchdogProfileEntry
+	(*DownloadProfileRequest)(nil),          // 87: piko.monitoring.v1.DownloadProfileRequest
+	(*DownloadProfileChunk)(nil),            // 88: piko.monitoring.v1.DownloadProfileChunk
+	(*DownloadSidecarRequest)(nil),          // 89: piko.monitoring.v1.DownloadSidecarRequest
+	(*DownloadSidecarResponse)(nil),         // 90: piko.monitoring.v1.DownloadSidecarResponse
+	(*PruneProfilesRequest)(nil),            // 91: piko.monitoring.v1.PruneProfilesRequest
+	(*PruneProfilesResponse)(nil),           // 92: piko.monitoring.v1.PruneProfilesResponse
+	(*GetWatchdogStatusRequest)(nil),        // 93: piko.monitoring.v1.GetWatchdogStatusRequest
+	(*GetWatchdogStatusResponse)(nil),       // 94: piko.monitoring.v1.GetWatchdogStatusResponse
+	(*RunContentionDiagnosticRequest)(nil),  // 95: piko.monitoring.v1.RunContentionDiagnosticRequest
+	(*RunContentionDiagnosticResponse)(nil), // 96: piko.monitoring.v1.RunContentionDiagnosticResponse
+	(*GetStartupHistoryRequest)(nil),        // 97: piko.monitoring.v1.GetStartupHistoryRequest
+	(*GetStartupHistoryResponse)(nil),       // 98: piko.monitoring.v1.GetStartupHistoryResponse
+	(*StartupHistoryEntry)(nil),             // 99: piko.monitoring.v1.StartupHistoryEntry
+	(*ListEventsRequest)(nil),               // 100: piko.monitoring.v1.ListEventsRequest
+	(*ListEventsResponse)(nil),              // 101: piko.monitoring.v1.ListEventsResponse
+	(*WatchEventsRequest)(nil),              // 102: piko.monitoring.v1.WatchEventsRequest
+	(*WatchdogEventMessage)(nil),            // 103: piko.monitoring.v1.WatchdogEventMessage
+	nil,                                     // 104: piko.monitoring.v1.MetricDataPoint.AttributesEntry
+	nil,                                     // 105: piko.monitoring.v1.Span.AttributesEntry
+	nil,                                     // 106: piko.monitoring.v1.SpanEvent.AttributesEntry
+	nil,                                     // 107: piko.monitoring.v1.ProviderRow.ValuesEntry
+	nil,                                     // 108: piko.monitoring.v1.WatchdogEventMessage.FieldsEntry
 }
 var file_monitoring_proto_depIdxs = []int32{
-	2,  // 0: piko.monitoring.v1.GetHealthResponse.liveness:type_name -> piko.monitoring.v1.HealthStatus
-	2,  // 1: piko.monitoring.v1.GetHealthResponse.readiness:type_name -> piko.monitoring.v1.HealthStatus
-	2,  // 2: piko.monitoring.v1.HealthStatus.dependencies:type_name -> piko.monitoring.v1.HealthStatus
-	2,  // 3: piko.monitoring.v1.HealthUpdate.liveness:type_name -> piko.monitoring.v1.HealthStatus
-	2,  // 4: piko.monitoring.v1.HealthUpdate.readiness:type_name -> piko.monitoring.v1.HealthStatus
-	7,  // 5: piko.monitoring.v1.GetMetricsResponse.metrics:type_name -> piko.monitoring.v1.Metric
-	8,  // 6: piko.monitoring.v1.Metric.data_points:type_name -> piko.monitoring.v1.MetricDataPoint
-	91, // 7: piko.monitoring.v1.MetricDataPoint.attributes:type_name -> piko.monitoring.v1.MetricDataPoint.AttributesEntry
-	11, // 8: piko.monitoring.v1.GetTracesResponse.spans:type_name -> piko.monitoring.v1.Span
-	92, // 9: piko.monitoring.v1.Span.attributes:type_name -> piko.monitoring.v1.Span.AttributesEntry
-	12, // 10: piko.monitoring.v1.Span.events:type_name -> piko.monitoring.v1.SpanEvent
-	93, // 11: piko.monitoring.v1.SpanEvent.attributes:type_name -> piko.monitoring.v1.SpanEvent.AttributesEntry
-	16, // 12: piko.monitoring.v1.GetSystemStatsResponse.build:type_name -> piko.monitoring.v1.BuildInfo
-	17, // 13: piko.monitoring.v1.GetSystemStatsResponse.runtime:type_name -> piko.monitoring.v1.RuntimeInfo
-	18, // 14: piko.monitoring.v1.GetSystemStatsResponse.gc:type_name -> piko.monitoring.v1.GCInfo
-	19, // 15: piko.monitoring.v1.GetSystemStatsResponse.memory:type_name -> piko.monitoring.v1.MemoryInfo
-	20, // 16: piko.monitoring.v1.GetSystemStatsResponse.process:type_name -> piko.monitoring.v1.ProcessInfo
-	15, // 17: piko.monitoring.v1.GetSystemStatsResponse.cache:type_name -> piko.monitoring.v1.CacheInfo
-	23, // 18: piko.monitoring.v1.GetFileDescriptorsResponse.categories:type_name -> piko.monitoring.v1.FileDescriptorCategory
-	24, // 19: piko.monitoring.v1.FileDescriptorCategory.fds:type_name -> piko.monitoring.v1.FileDescriptorInfo
-	7,  // 20: piko.monitoring.v1.MetricsUpdate.metrics:type_name -> piko.monitoring.v1.Metric
-	29, // 21: piko.monitoring.v1.GetTaskSummaryResponse.summaries:type_name -> piko.monitoring.v1.TaskSummary
-	32, // 22: piko.monitoring.v1.ListRecentTasksResponse.tasks:type_name -> piko.monitoring.v1.TaskListItem
-	35, // 23: piko.monitoring.v1.ListWorkflowSummaryResponse.summaries:type_name -> piko.monitoring.v1.WorkflowSummary
-	29, // 24: piko.monitoring.v1.TasksUpdate.summaries:type_name -> piko.monitoring.v1.TaskSummary
-	32, // 25: piko.monitoring.v1.TasksUpdate.recent_tasks:type_name -> piko.monitoring.v1.TaskListItem
-	40, // 26: piko.monitoring.v1.GetArtefactSummaryResponse.summaries:type_name -> piko.monitoring.v1.ArtefactSummary
-	43, // 27: piko.monitoring.v1.GetVariantSummaryResponse.summaries:type_name -> piko.monitoring.v1.VariantSummary
-	46, // 28: piko.monitoring.v1.ListRecentArtefactsResponse.artefacts:type_name -> piko.monitoring.v1.ArtefactListItem
-	40, // 29: piko.monitoring.v1.ArtefactsUpdate.summaries:type_name -> piko.monitoring.v1.ArtefactSummary
-	46, // 30: piko.monitoring.v1.ArtefactsUpdate.recent_artefacts:type_name -> piko.monitoring.v1.ArtefactListItem
-	51, // 31: piko.monitoring.v1.GetDispatcherSummaryResponse.summaries:type_name -> piko.monitoring.v1.DispatcherSummary
-	54, // 32: piko.monitoring.v1.ListDLQEntriesResponse.entries:type_name -> piko.monitoring.v1.DLQEntry
-	65, // 33: piko.monitoring.v1.ListProvidersResponse.columns:type_name -> piko.monitoring.v1.ProviderColumn
-	66, // 34: piko.monitoring.v1.ListProvidersResponse.rows:type_name -> piko.monitoring.v1.ProviderRow
-	94, // 35: piko.monitoring.v1.ProviderRow.values:type_name -> piko.monitoring.v1.ProviderRow.ValuesEntry
-	69, // 36: piko.monitoring.v1.DescribeProviderResponse.sections:type_name -> piko.monitoring.v1.ProviderInfoSection
-	70, // 37: piko.monitoring.v1.ProviderInfoSection.entries:type_name -> piko.monitoring.v1.ProviderInfoEntry
-	65, // 38: piko.monitoring.v1.ListSubResourcesResponse.columns:type_name -> piko.monitoring.v1.ProviderColumn
-	66, // 39: piko.monitoring.v1.ListSubResourcesResponse.rows:type_name -> piko.monitoring.v1.ProviderRow
-	84, // 40: piko.monitoring.v1.ListProfilesResponse.profiles:type_name -> piko.monitoring.v1.WatchdogProfileEntry
-	0,  // 41: piko.monitoring.v1.HealthService.GetHealth:input_type -> piko.monitoring.v1.GetHealthRequest
-	3,  // 42: piko.monitoring.v1.HealthService.WatchHealth:input_type -> piko.monitoring.v1.WatchHealthRequest
-	5,  // 43: piko.monitoring.v1.MetricsService.GetMetrics:input_type -> piko.monitoring.v1.GetMetricsRequest
-	9,  // 44: piko.monitoring.v1.MetricsService.GetTraces:input_type -> piko.monitoring.v1.GetTracesRequest
-	13, // 45: piko.monitoring.v1.MetricsService.GetSystemStats:input_type -> piko.monitoring.v1.GetSystemStatsRequest
-	21, // 46: piko.monitoring.v1.MetricsService.GetFileDescriptors:input_type -> piko.monitoring.v1.GetFileDescriptorsRequest
-	25, // 47: piko.monitoring.v1.MetricsService.WatchMetrics:input_type -> piko.monitoring.v1.WatchMetricsRequest
-	27, // 48: piko.monitoring.v1.OrchestratorInspectorService.GetTaskSummary:input_type -> piko.monitoring.v1.GetTaskSummaryRequest
-	30, // 49: piko.monitoring.v1.OrchestratorInspectorService.ListRecentTasks:input_type -> piko.monitoring.v1.ListRecentTasksRequest
-	33, // 50: piko.monitoring.v1.OrchestratorInspectorService.ListWorkflowSummary:input_type -> piko.monitoring.v1.ListWorkflowSummaryRequest
-	36, // 51: piko.monitoring.v1.OrchestratorInspectorService.WatchTasks:input_type -> piko.monitoring.v1.WatchTasksRequest
-	38, // 52: piko.monitoring.v1.RegistryInspectorService.GetArtefactSummary:input_type -> piko.monitoring.v1.GetArtefactSummaryRequest
-	41, // 53: piko.monitoring.v1.RegistryInspectorService.GetVariantSummary:input_type -> piko.monitoring.v1.GetVariantSummaryRequest
-	44, // 54: piko.monitoring.v1.RegistryInspectorService.ListRecentArtefacts:input_type -> piko.monitoring.v1.ListRecentArtefactsRequest
-	47, // 55: piko.monitoring.v1.RegistryInspectorService.WatchArtefacts:input_type -> piko.monitoring.v1.WatchArtefactsRequest
-	49, // 56: piko.monitoring.v1.DispatcherInspectorService.GetDispatcherSummary:input_type -> piko.monitoring.v1.GetDispatcherSummaryRequest
-	52, // 57: piko.monitoring.v1.DispatcherInspectorService.ListDLQEntries:input_type -> piko.monitoring.v1.ListDLQEntriesRequest
-	55, // 58: piko.monitoring.v1.DispatcherInspectorService.GetDLQCount:input_type -> piko.monitoring.v1.GetDLQCountRequest
-	57, // 59: piko.monitoring.v1.DispatcherInspectorService.ClearDLQ:input_type -> piko.monitoring.v1.ClearDLQRequest
-	59, // 60: piko.monitoring.v1.RateLimiterInspectorService.GetRateLimiterStatus:input_type -> piko.monitoring.v1.GetRateLimiterStatusRequest
-	61, // 61: piko.monitoring.v1.ProviderInfoService.ListResourceTypes:input_type -> piko.monitoring.v1.ListResourceTypesRequest
-	63, // 62: piko.monitoring.v1.ProviderInfoService.ListProviders:input_type -> piko.monitoring.v1.ListProvidersRequest
-	67, // 63: piko.monitoring.v1.ProviderInfoService.DescribeProvider:input_type -> piko.monitoring.v1.DescribeProviderRequest
-	71, // 64: piko.monitoring.v1.ProviderInfoService.ListSubResources:input_type -> piko.monitoring.v1.ListSubResourcesRequest
-	73, // 65: piko.monitoring.v1.ProviderInfoService.DescribeResourceType:input_type -> piko.monitoring.v1.DescribeResourceTypeRequest
-	74, // 66: piko.monitoring.v1.ProfilingService.EnableProfiling:input_type -> piko.monitoring.v1.EnableProfilingRequest
-	76, // 67: piko.monitoring.v1.ProfilingService.DisableProfiling:input_type -> piko.monitoring.v1.DisableProfilingRequest
-	78, // 68: piko.monitoring.v1.ProfilingService.GetProfilingStatus:input_type -> piko.monitoring.v1.GetProfilingStatusRequest
-	80, // 69: piko.monitoring.v1.ProfilingService.CaptureProfile:input_type -> piko.monitoring.v1.CaptureProfileRequest
-	82, // 70: piko.monitoring.v1.WatchdogInspectorService.ListProfiles:input_type -> piko.monitoring.v1.ListProfilesRequest
-	85, // 71: piko.monitoring.v1.WatchdogInspectorService.DownloadProfile:input_type -> piko.monitoring.v1.DownloadProfileRequest
-	87, // 72: piko.monitoring.v1.WatchdogInspectorService.PruneProfiles:input_type -> piko.monitoring.v1.PruneProfilesRequest
-	89, // 73: piko.monitoring.v1.WatchdogInspectorService.GetWatchdogStatus:input_type -> piko.monitoring.v1.GetWatchdogStatusRequest
-	1,  // 74: piko.monitoring.v1.HealthService.GetHealth:output_type -> piko.monitoring.v1.GetHealthResponse
-	4,  // 75: piko.monitoring.v1.HealthService.WatchHealth:output_type -> piko.monitoring.v1.HealthUpdate
-	6,  // 76: piko.monitoring.v1.MetricsService.GetMetrics:output_type -> piko.monitoring.v1.GetMetricsResponse
-	10, // 77: piko.monitoring.v1.MetricsService.GetTraces:output_type -> piko.monitoring.v1.GetTracesResponse
-	14, // 78: piko.monitoring.v1.MetricsService.GetSystemStats:output_type -> piko.monitoring.v1.GetSystemStatsResponse
-	22, // 79: piko.monitoring.v1.MetricsService.GetFileDescriptors:output_type -> piko.monitoring.v1.GetFileDescriptorsResponse
-	26, // 80: piko.monitoring.v1.MetricsService.WatchMetrics:output_type -> piko.monitoring.v1.MetricsUpdate
-	28, // 81: piko.monitoring.v1.OrchestratorInspectorService.GetTaskSummary:output_type -> piko.monitoring.v1.GetTaskSummaryResponse
-	31, // 82: piko.monitoring.v1.OrchestratorInspectorService.ListRecentTasks:output_type -> piko.monitoring.v1.ListRecentTasksResponse
-	34, // 83: piko.monitoring.v1.OrchestratorInspectorService.ListWorkflowSummary:output_type -> piko.monitoring.v1.ListWorkflowSummaryResponse
-	37, // 84: piko.monitoring.v1.OrchestratorInspectorService.WatchTasks:output_type -> piko.monitoring.v1.TasksUpdate
-	39, // 85: piko.monitoring.v1.RegistryInspectorService.GetArtefactSummary:output_type -> piko.monitoring.v1.GetArtefactSummaryResponse
-	42, // 86: piko.monitoring.v1.RegistryInspectorService.GetVariantSummary:output_type -> piko.monitoring.v1.GetVariantSummaryResponse
-	45, // 87: piko.monitoring.v1.RegistryInspectorService.ListRecentArtefacts:output_type -> piko.monitoring.v1.ListRecentArtefactsResponse
-	48, // 88: piko.monitoring.v1.RegistryInspectorService.WatchArtefacts:output_type -> piko.monitoring.v1.ArtefactsUpdate
-	50, // 89: piko.monitoring.v1.DispatcherInspectorService.GetDispatcherSummary:output_type -> piko.monitoring.v1.GetDispatcherSummaryResponse
-	53, // 90: piko.monitoring.v1.DispatcherInspectorService.ListDLQEntries:output_type -> piko.monitoring.v1.ListDLQEntriesResponse
-	56, // 91: piko.monitoring.v1.DispatcherInspectorService.GetDLQCount:output_type -> piko.monitoring.v1.GetDLQCountResponse
-	58, // 92: piko.monitoring.v1.DispatcherInspectorService.ClearDLQ:output_type -> piko.monitoring.v1.ClearDLQResponse
-	60, // 93: piko.monitoring.v1.RateLimiterInspectorService.GetRateLimiterStatus:output_type -> piko.monitoring.v1.GetRateLimiterStatusResponse
-	62, // 94: piko.monitoring.v1.ProviderInfoService.ListResourceTypes:output_type -> piko.monitoring.v1.ListResourceTypesResponse
-	64, // 95: piko.monitoring.v1.ProviderInfoService.ListProviders:output_type -> piko.monitoring.v1.ListProvidersResponse
-	68, // 96: piko.monitoring.v1.ProviderInfoService.DescribeProvider:output_type -> piko.monitoring.v1.DescribeProviderResponse
-	72, // 97: piko.monitoring.v1.ProviderInfoService.ListSubResources:output_type -> piko.monitoring.v1.ListSubResourcesResponse
-	68, // 98: piko.monitoring.v1.ProviderInfoService.DescribeResourceType:output_type -> piko.monitoring.v1.DescribeProviderResponse
-	75, // 99: piko.monitoring.v1.ProfilingService.EnableProfiling:output_type -> piko.monitoring.v1.EnableProfilingResponse
-	77, // 100: piko.monitoring.v1.ProfilingService.DisableProfiling:output_type -> piko.monitoring.v1.DisableProfilingResponse
-	79, // 101: piko.monitoring.v1.ProfilingService.GetProfilingStatus:output_type -> piko.monitoring.v1.GetProfilingStatusResponse
-	81, // 102: piko.monitoring.v1.ProfilingService.CaptureProfile:output_type -> piko.monitoring.v1.CaptureProfileChunk
-	83, // 103: piko.monitoring.v1.WatchdogInspectorService.ListProfiles:output_type -> piko.monitoring.v1.ListProfilesResponse
-	86, // 104: piko.monitoring.v1.WatchdogInspectorService.DownloadProfile:output_type -> piko.monitoring.v1.DownloadProfileChunk
-	88, // 105: piko.monitoring.v1.WatchdogInspectorService.PruneProfiles:output_type -> piko.monitoring.v1.PruneProfilesResponse
-	90, // 106: piko.monitoring.v1.WatchdogInspectorService.GetWatchdogStatus:output_type -> piko.monitoring.v1.GetWatchdogStatusResponse
-	74, // [74:107] is the sub-list for method output_type
-	41, // [41:74] is the sub-list for method input_type
-	41, // [41:41] is the sub-list for extension type_name
-	41, // [41:41] is the sub-list for extension extendee
-	0,  // [0:41] is the sub-list for field type_name
+	2,   // 0: piko.monitoring.v1.GetHealthResponse.liveness:type_name -> piko.monitoring.v1.HealthStatus
+	2,   // 1: piko.monitoring.v1.GetHealthResponse.readiness:type_name -> piko.monitoring.v1.HealthStatus
+	2,   // 2: piko.monitoring.v1.HealthStatus.dependencies:type_name -> piko.monitoring.v1.HealthStatus
+	2,   // 3: piko.monitoring.v1.HealthUpdate.liveness:type_name -> piko.monitoring.v1.HealthStatus
+	2,   // 4: piko.monitoring.v1.HealthUpdate.readiness:type_name -> piko.monitoring.v1.HealthStatus
+	7,   // 5: piko.monitoring.v1.GetMetricsResponse.metrics:type_name -> piko.monitoring.v1.Metric
+	8,   // 6: piko.monitoring.v1.Metric.data_points:type_name -> piko.monitoring.v1.MetricDataPoint
+	104, // 7: piko.monitoring.v1.MetricDataPoint.attributes:type_name -> piko.monitoring.v1.MetricDataPoint.AttributesEntry
+	11,  // 8: piko.monitoring.v1.GetTracesResponse.spans:type_name -> piko.monitoring.v1.Span
+	105, // 9: piko.monitoring.v1.Span.attributes:type_name -> piko.monitoring.v1.Span.AttributesEntry
+	12,  // 10: piko.monitoring.v1.Span.events:type_name -> piko.monitoring.v1.SpanEvent
+	106, // 11: piko.monitoring.v1.SpanEvent.attributes:type_name -> piko.monitoring.v1.SpanEvent.AttributesEntry
+	18,  // 12: piko.monitoring.v1.GetSystemStatsResponse.build:type_name -> piko.monitoring.v1.BuildInfo
+	19,  // 13: piko.monitoring.v1.GetSystemStatsResponse.runtime:type_name -> piko.monitoring.v1.RuntimeInfo
+	20,  // 14: piko.monitoring.v1.GetSystemStatsResponse.gc:type_name -> piko.monitoring.v1.GCInfo
+	21,  // 15: piko.monitoring.v1.GetSystemStatsResponse.memory:type_name -> piko.monitoring.v1.MemoryInfo
+	22,  // 16: piko.monitoring.v1.GetSystemStatsResponse.process:type_name -> piko.monitoring.v1.ProcessInfo
+	17,  // 17: piko.monitoring.v1.GetSystemStatsResponse.cache:type_name -> piko.monitoring.v1.CacheInfo
+	15,  // 18: piko.monitoring.v1.GetSystemStatsResponse.schedule:type_name -> piko.monitoring.v1.SchedulerInfo
+	16,  // 19: piko.monitoring.v1.GetSystemStatsResponse.sync:type_name -> piko.monitoring.v1.SyncInfo
+	25,  // 20: piko.monitoring.v1.GetFileDescriptorsResponse.categories:type_name -> piko.monitoring.v1.FileDescriptorCategory
+	26,  // 21: piko.monitoring.v1.FileDescriptorCategory.fds:type_name -> piko.monitoring.v1.FileDescriptorInfo
+	7,   // 22: piko.monitoring.v1.MetricsUpdate.metrics:type_name -> piko.monitoring.v1.Metric
+	31,  // 23: piko.monitoring.v1.GetTaskSummaryResponse.summaries:type_name -> piko.monitoring.v1.TaskSummary
+	34,  // 24: piko.monitoring.v1.ListRecentTasksResponse.tasks:type_name -> piko.monitoring.v1.TaskListItem
+	37,  // 25: piko.monitoring.v1.ListWorkflowSummaryResponse.summaries:type_name -> piko.monitoring.v1.WorkflowSummary
+	31,  // 26: piko.monitoring.v1.TasksUpdate.summaries:type_name -> piko.monitoring.v1.TaskSummary
+	34,  // 27: piko.monitoring.v1.TasksUpdate.recent_tasks:type_name -> piko.monitoring.v1.TaskListItem
+	42,  // 28: piko.monitoring.v1.GetArtefactSummaryResponse.summaries:type_name -> piko.monitoring.v1.ArtefactSummary
+	45,  // 29: piko.monitoring.v1.GetVariantSummaryResponse.summaries:type_name -> piko.monitoring.v1.VariantSummary
+	48,  // 30: piko.monitoring.v1.ListRecentArtefactsResponse.artefacts:type_name -> piko.monitoring.v1.ArtefactListItem
+	42,  // 31: piko.monitoring.v1.ArtefactsUpdate.summaries:type_name -> piko.monitoring.v1.ArtefactSummary
+	48,  // 32: piko.monitoring.v1.ArtefactsUpdate.recent_artefacts:type_name -> piko.monitoring.v1.ArtefactListItem
+	53,  // 33: piko.monitoring.v1.GetDispatcherSummaryResponse.summaries:type_name -> piko.monitoring.v1.DispatcherSummary
+	56,  // 34: piko.monitoring.v1.ListDLQEntriesResponse.entries:type_name -> piko.monitoring.v1.DLQEntry
+	67,  // 35: piko.monitoring.v1.ListProvidersResponse.columns:type_name -> piko.monitoring.v1.ProviderColumn
+	68,  // 36: piko.monitoring.v1.ListProvidersResponse.rows:type_name -> piko.monitoring.v1.ProviderRow
+	107, // 37: piko.monitoring.v1.ProviderRow.values:type_name -> piko.monitoring.v1.ProviderRow.ValuesEntry
+	71,  // 38: piko.monitoring.v1.DescribeProviderResponse.sections:type_name -> piko.monitoring.v1.ProviderInfoSection
+	72,  // 39: piko.monitoring.v1.ProviderInfoSection.entries:type_name -> piko.monitoring.v1.ProviderInfoEntry
+	67,  // 40: piko.monitoring.v1.ListSubResourcesResponse.columns:type_name -> piko.monitoring.v1.ProviderColumn
+	68,  // 41: piko.monitoring.v1.ListSubResourcesResponse.rows:type_name -> piko.monitoring.v1.ProviderRow
+	86,  // 42: piko.monitoring.v1.ListProfilesResponse.profiles:type_name -> piko.monitoring.v1.WatchdogProfileEntry
+	99,  // 43: piko.monitoring.v1.GetStartupHistoryResponse.entries:type_name -> piko.monitoring.v1.StartupHistoryEntry
+	103, // 44: piko.monitoring.v1.ListEventsResponse.events:type_name -> piko.monitoring.v1.WatchdogEventMessage
+	108, // 45: piko.monitoring.v1.WatchdogEventMessage.fields:type_name -> piko.monitoring.v1.WatchdogEventMessage.FieldsEntry
+	0,   // 46: piko.monitoring.v1.HealthService.GetHealth:input_type -> piko.monitoring.v1.GetHealthRequest
+	3,   // 47: piko.monitoring.v1.HealthService.WatchHealth:input_type -> piko.monitoring.v1.WatchHealthRequest
+	5,   // 48: piko.monitoring.v1.MetricsService.GetMetrics:input_type -> piko.monitoring.v1.GetMetricsRequest
+	9,   // 49: piko.monitoring.v1.MetricsService.GetTraces:input_type -> piko.monitoring.v1.GetTracesRequest
+	13,  // 50: piko.monitoring.v1.MetricsService.GetSystemStats:input_type -> piko.monitoring.v1.GetSystemStatsRequest
+	23,  // 51: piko.monitoring.v1.MetricsService.GetFileDescriptors:input_type -> piko.monitoring.v1.GetFileDescriptorsRequest
+	27,  // 52: piko.monitoring.v1.MetricsService.WatchMetrics:input_type -> piko.monitoring.v1.WatchMetricsRequest
+	29,  // 53: piko.monitoring.v1.OrchestratorInspectorService.GetTaskSummary:input_type -> piko.monitoring.v1.GetTaskSummaryRequest
+	32,  // 54: piko.monitoring.v1.OrchestratorInspectorService.ListRecentTasks:input_type -> piko.monitoring.v1.ListRecentTasksRequest
+	35,  // 55: piko.monitoring.v1.OrchestratorInspectorService.ListWorkflowSummary:input_type -> piko.monitoring.v1.ListWorkflowSummaryRequest
+	38,  // 56: piko.monitoring.v1.OrchestratorInspectorService.WatchTasks:input_type -> piko.monitoring.v1.WatchTasksRequest
+	40,  // 57: piko.monitoring.v1.RegistryInspectorService.GetArtefactSummary:input_type -> piko.monitoring.v1.GetArtefactSummaryRequest
+	43,  // 58: piko.monitoring.v1.RegistryInspectorService.GetVariantSummary:input_type -> piko.monitoring.v1.GetVariantSummaryRequest
+	46,  // 59: piko.monitoring.v1.RegistryInspectorService.ListRecentArtefacts:input_type -> piko.monitoring.v1.ListRecentArtefactsRequest
+	49,  // 60: piko.monitoring.v1.RegistryInspectorService.WatchArtefacts:input_type -> piko.monitoring.v1.WatchArtefactsRequest
+	51,  // 61: piko.monitoring.v1.DispatcherInspectorService.GetDispatcherSummary:input_type -> piko.monitoring.v1.GetDispatcherSummaryRequest
+	54,  // 62: piko.monitoring.v1.DispatcherInspectorService.ListDLQEntries:input_type -> piko.monitoring.v1.ListDLQEntriesRequest
+	57,  // 63: piko.monitoring.v1.DispatcherInspectorService.GetDLQCount:input_type -> piko.monitoring.v1.GetDLQCountRequest
+	59,  // 64: piko.monitoring.v1.DispatcherInspectorService.ClearDLQ:input_type -> piko.monitoring.v1.ClearDLQRequest
+	61,  // 65: piko.monitoring.v1.RateLimiterInspectorService.GetRateLimiterStatus:input_type -> piko.monitoring.v1.GetRateLimiterStatusRequest
+	63,  // 66: piko.monitoring.v1.ProviderInfoService.ListResourceTypes:input_type -> piko.monitoring.v1.ListResourceTypesRequest
+	65,  // 67: piko.monitoring.v1.ProviderInfoService.ListProviders:input_type -> piko.monitoring.v1.ListProvidersRequest
+	69,  // 68: piko.monitoring.v1.ProviderInfoService.DescribeProvider:input_type -> piko.monitoring.v1.DescribeProviderRequest
+	73,  // 69: piko.monitoring.v1.ProviderInfoService.ListSubResources:input_type -> piko.monitoring.v1.ListSubResourcesRequest
+	75,  // 70: piko.monitoring.v1.ProviderInfoService.DescribeResourceType:input_type -> piko.monitoring.v1.DescribeResourceTypeRequest
+	76,  // 71: piko.monitoring.v1.ProfilingService.EnableProfiling:input_type -> piko.monitoring.v1.EnableProfilingRequest
+	78,  // 72: piko.monitoring.v1.ProfilingService.DisableProfiling:input_type -> piko.monitoring.v1.DisableProfilingRequest
+	80,  // 73: piko.monitoring.v1.ProfilingService.GetProfilingStatus:input_type -> piko.monitoring.v1.GetProfilingStatusRequest
+	82,  // 74: piko.monitoring.v1.ProfilingService.CaptureProfile:input_type -> piko.monitoring.v1.CaptureProfileRequest
+	84,  // 75: piko.monitoring.v1.WatchdogInspectorService.ListProfiles:input_type -> piko.monitoring.v1.ListProfilesRequest
+	87,  // 76: piko.monitoring.v1.WatchdogInspectorService.DownloadProfile:input_type -> piko.monitoring.v1.DownloadProfileRequest
+	89,  // 77: piko.monitoring.v1.WatchdogInspectorService.DownloadSidecar:input_type -> piko.monitoring.v1.DownloadSidecarRequest
+	91,  // 78: piko.monitoring.v1.WatchdogInspectorService.PruneProfiles:input_type -> piko.monitoring.v1.PruneProfilesRequest
+	93,  // 79: piko.monitoring.v1.WatchdogInspectorService.GetWatchdogStatus:input_type -> piko.monitoring.v1.GetWatchdogStatusRequest
+	95,  // 80: piko.monitoring.v1.WatchdogInspectorService.RunContentionDiagnostic:input_type -> piko.monitoring.v1.RunContentionDiagnosticRequest
+	97,  // 81: piko.monitoring.v1.WatchdogInspectorService.GetStartupHistory:input_type -> piko.monitoring.v1.GetStartupHistoryRequest
+	100, // 82: piko.monitoring.v1.WatchdogInspectorService.ListEvents:input_type -> piko.monitoring.v1.ListEventsRequest
+	102, // 83: piko.monitoring.v1.WatchdogInspectorService.WatchEvents:input_type -> piko.monitoring.v1.WatchEventsRequest
+	1,   // 84: piko.monitoring.v1.HealthService.GetHealth:output_type -> piko.monitoring.v1.GetHealthResponse
+	4,   // 85: piko.monitoring.v1.HealthService.WatchHealth:output_type -> piko.monitoring.v1.HealthUpdate
+	6,   // 86: piko.monitoring.v1.MetricsService.GetMetrics:output_type -> piko.monitoring.v1.GetMetricsResponse
+	10,  // 87: piko.monitoring.v1.MetricsService.GetTraces:output_type -> piko.monitoring.v1.GetTracesResponse
+	14,  // 88: piko.monitoring.v1.MetricsService.GetSystemStats:output_type -> piko.monitoring.v1.GetSystemStatsResponse
+	24,  // 89: piko.monitoring.v1.MetricsService.GetFileDescriptors:output_type -> piko.monitoring.v1.GetFileDescriptorsResponse
+	28,  // 90: piko.monitoring.v1.MetricsService.WatchMetrics:output_type -> piko.monitoring.v1.MetricsUpdate
+	30,  // 91: piko.monitoring.v1.OrchestratorInspectorService.GetTaskSummary:output_type -> piko.monitoring.v1.GetTaskSummaryResponse
+	33,  // 92: piko.monitoring.v1.OrchestratorInspectorService.ListRecentTasks:output_type -> piko.monitoring.v1.ListRecentTasksResponse
+	36,  // 93: piko.monitoring.v1.OrchestratorInspectorService.ListWorkflowSummary:output_type -> piko.monitoring.v1.ListWorkflowSummaryResponse
+	39,  // 94: piko.monitoring.v1.OrchestratorInspectorService.WatchTasks:output_type -> piko.monitoring.v1.TasksUpdate
+	41,  // 95: piko.monitoring.v1.RegistryInspectorService.GetArtefactSummary:output_type -> piko.monitoring.v1.GetArtefactSummaryResponse
+	44,  // 96: piko.monitoring.v1.RegistryInspectorService.GetVariantSummary:output_type -> piko.monitoring.v1.GetVariantSummaryResponse
+	47,  // 97: piko.monitoring.v1.RegistryInspectorService.ListRecentArtefacts:output_type -> piko.monitoring.v1.ListRecentArtefactsResponse
+	50,  // 98: piko.monitoring.v1.RegistryInspectorService.WatchArtefacts:output_type -> piko.monitoring.v1.ArtefactsUpdate
+	52,  // 99: piko.monitoring.v1.DispatcherInspectorService.GetDispatcherSummary:output_type -> piko.monitoring.v1.GetDispatcherSummaryResponse
+	55,  // 100: piko.monitoring.v1.DispatcherInspectorService.ListDLQEntries:output_type -> piko.monitoring.v1.ListDLQEntriesResponse
+	58,  // 101: piko.monitoring.v1.DispatcherInspectorService.GetDLQCount:output_type -> piko.monitoring.v1.GetDLQCountResponse
+	60,  // 102: piko.monitoring.v1.DispatcherInspectorService.ClearDLQ:output_type -> piko.monitoring.v1.ClearDLQResponse
+	62,  // 103: piko.monitoring.v1.RateLimiterInspectorService.GetRateLimiterStatus:output_type -> piko.monitoring.v1.GetRateLimiterStatusResponse
+	64,  // 104: piko.monitoring.v1.ProviderInfoService.ListResourceTypes:output_type -> piko.monitoring.v1.ListResourceTypesResponse
+	66,  // 105: piko.monitoring.v1.ProviderInfoService.ListProviders:output_type -> piko.monitoring.v1.ListProvidersResponse
+	70,  // 106: piko.monitoring.v1.ProviderInfoService.DescribeProvider:output_type -> piko.monitoring.v1.DescribeProviderResponse
+	74,  // 107: piko.monitoring.v1.ProviderInfoService.ListSubResources:output_type -> piko.monitoring.v1.ListSubResourcesResponse
+	70,  // 108: piko.monitoring.v1.ProviderInfoService.DescribeResourceType:output_type -> piko.monitoring.v1.DescribeProviderResponse
+	77,  // 109: piko.monitoring.v1.ProfilingService.EnableProfiling:output_type -> piko.monitoring.v1.EnableProfilingResponse
+	79,  // 110: piko.monitoring.v1.ProfilingService.DisableProfiling:output_type -> piko.monitoring.v1.DisableProfilingResponse
+	81,  // 111: piko.monitoring.v1.ProfilingService.GetProfilingStatus:output_type -> piko.monitoring.v1.GetProfilingStatusResponse
+	83,  // 112: piko.monitoring.v1.ProfilingService.CaptureProfile:output_type -> piko.monitoring.v1.CaptureProfileChunk
+	85,  // 113: piko.monitoring.v1.WatchdogInspectorService.ListProfiles:output_type -> piko.monitoring.v1.ListProfilesResponse
+	88,  // 114: piko.monitoring.v1.WatchdogInspectorService.DownloadProfile:output_type -> piko.monitoring.v1.DownloadProfileChunk
+	90,  // 115: piko.monitoring.v1.WatchdogInspectorService.DownloadSidecar:output_type -> piko.monitoring.v1.DownloadSidecarResponse
+	92,  // 116: piko.monitoring.v1.WatchdogInspectorService.PruneProfiles:output_type -> piko.monitoring.v1.PruneProfilesResponse
+	94,  // 117: piko.monitoring.v1.WatchdogInspectorService.GetWatchdogStatus:output_type -> piko.monitoring.v1.GetWatchdogStatusResponse
+	96,  // 118: piko.monitoring.v1.WatchdogInspectorService.RunContentionDiagnostic:output_type -> piko.monitoring.v1.RunContentionDiagnosticResponse
+	98,  // 119: piko.monitoring.v1.WatchdogInspectorService.GetStartupHistory:output_type -> piko.monitoring.v1.GetStartupHistoryResponse
+	101, // 120: piko.monitoring.v1.WatchdogInspectorService.ListEvents:output_type -> piko.monitoring.v1.ListEventsResponse
+	103, // 121: piko.monitoring.v1.WatchdogInspectorService.WatchEvents:output_type -> piko.monitoring.v1.WatchdogEventMessage
+	84,  // [84:122] is the sub-list for method output_type
+	46,  // [46:84] is the sub-list for method input_type
+	46,  // [46:46] is the sub-list for extension type_name
+	46,  // [46:46] is the sub-list for extension extendee
+	0,   // [0:46] is the sub-list for field type_name
 }
 
 func init() { file_monitoring_proto_init() }
@@ -6349,14 +7401,14 @@ func file_monitoring_proto_init() {
 	if File_monitoring_proto != nil {
 		return
 	}
-	file_monitoring_proto_msgTypes[32].OneofWrappers = []any{}
+	file_monitoring_proto_msgTypes[34].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_monitoring_proto_rawDesc), len(file_monitoring_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   95,
+			NumMessages:   109,
 			NumExtensions: 0,
 			NumServices:   9,
 		},

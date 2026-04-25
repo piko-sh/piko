@@ -69,9 +69,6 @@ const (
 // SystemCollector gathers runtime statistics for the system.
 // It implements SystemStatsProvider.
 type SystemCollector struct {
-	// clock provides time operations; defaults to real clock if not set.
-	clock clock.Clock
-
 	// startTime records when the collector was created, used to calculate uptime.
 	startTime time.Time
 
@@ -79,13 +76,26 @@ type SystemCollector struct {
 	// calculate elapsed time for CPU usage.
 	lastCPUSampleAt time.Time
 
+	// clock provides time operations; defaults to real clock if not set.
+	clock clock.Clock
+
 	// stopCh signals the collector to stop processing when closed.
 	stopCh chan struct{}
+
+	// runtimeMetrics samples the runtime/metrics view for histogram-derived
+	// signals (GC pause percentiles, scheduler latency, mutex contention)
+	// that runtime.MemStats does not expose.
+	runtimeMetrics *runtimeMetricsCollector
 
 	// listenAddr is the monitoring gRPC server listen address.
 	listenAddr string
 
-	// memStats stores the runtime memory statistics used to populate MemoryInfo.
+	// lastSnapshot is the most recent runtime/metrics snapshot, refreshed
+	// once per tick alongside memStats.
+	lastSnapshot runtimeMetricsSnapshot
+
+	// memStats stores the runtime memory statistics used to populate the
+	// legacy MemoryInfo and GCInfo fields. Updated each tick.
 	memStats runtime.MemStats
 
 	// lastCPUTime is the CPU time in ticks from the previous sample.
@@ -117,6 +127,7 @@ func NewSystemCollector(opts ...SystemCollectorOption) *SystemCollector {
 		lastCPUSampleAt: time.Time{},
 		stopCh:          make(chan struct{}),
 		memStats:        runtime.MemStats{},
+		runtimeMetrics:  newRuntimeMetricsCollector(),
 		lastCPUTime:     0,
 		cpuMillicores:   0,
 		mu:              sync.RWMutex{},
@@ -183,17 +194,20 @@ func (c *SystemCollector) GetStats() SystemStats {
 		NumCGOCalls:          runtime.NumCgoCall(),
 		CPUMillicores:        c.cpuMillicores,
 		Memory:               c.buildMemoryInfo(),
-		GC:                   GCInfo(c.buildGCStats()),
+		GC:                   c.buildGCInfo(),
+		Schedule:             c.buildSchedulerInfo(),
+		Sync:                 c.buildSyncInfo(),
 		Build:                BuildInfo(buildBuildInfo()),
 		Runtime:              RuntimeInfo(buildRuntimeConfig()),
 		Process:              buildPublicProcessInfo(),
 	}
 }
 
-// buildMemoryInfo converts the current runtime.MemStats into the public
-// MemoryInfo struct.
+// buildMemoryInfo converts the current runtime.MemStats and runtime/metrics
+// snapshot into the public MemoryInfo struct.
 //
-// Returns MemoryInfo which contains heap, stack, and allocator statistics.
+// Returns MemoryInfo which contains heap, stack, allocator statistics, and
+// runtime/metrics-derived heap class partitions.
 func (c *SystemCollector) buildMemoryInfo() MemoryInfo {
 	return MemoryInfo{
 		Alloc:        c.memStats.Alloc,
@@ -218,7 +232,78 @@ func (c *SystemCollector) buildMemoryInfo() MemoryInfo {
 		OtherSys:     c.memStats.OtherSys,
 		BuckHashSys:  c.memStats.BuckHashSys,
 		Lookups:      c.memStats.Lookups,
+
+		HeapObjectsBytes:  c.lastSnapshot.HeapObjectsBytes,
+		HeapFreeBytes:     c.lastSnapshot.HeapFreeBytes,
+		HeapReleasedBytes: c.lastSnapshot.HeapReleasedBytes,
+		HeapStacksBytes:   c.lastSnapshot.HeapStacksBytes,
+		HeapUnusedBytes:   c.lastSnapshot.HeapUnusedBytes,
+		TotalBytes:        c.lastSnapshot.TotalMemoryBytes,
 	}
+}
+
+// buildGCInfo combines legacy MemStats GC data with runtime/metrics
+// histogram-derived percentiles for the public GCInfo struct.
+//
+// Returns GCInfo which contains pause times, recent pauses ring, and pause
+// histogram percentiles.
+func (c *SystemCollector) buildGCInfo() GCInfo {
+	internal := c.buildGCStats()
+	return GCInfo{
+		RecentPauses:  internal.RecentPauses,
+		LastGC:        internal.LastGC,
+		PauseTotalNs:  internal.PauseTotalNs,
+		LastPauseNs:   internal.LastPauseNs,
+		GCCPUFraction: internal.GCCPUFraction,
+		NextGC:        internal.NextGC,
+		NumGC:         internal.NumGC,
+		NumForcedGC:   internal.NumForcedGC,
+		PauseP50:      c.lastSnapshot.GCPauseP50,
+		PauseP95:      c.lastSnapshot.GCPauseP95,
+		PauseP99:      c.lastSnapshot.GCPauseP99,
+	}
+}
+
+// buildSchedulerInfo populates the SchedulerInfo struct from the latest
+// runtime/metrics snapshot.
+//
+// Returns SchedulerInfo which contains scheduler latency percentiles,
+// goroutine count, and GOMAXPROCS as observed by runtime/metrics.
+func (c *SystemCollector) buildSchedulerInfo() SchedulerInfo {
+	return SchedulerInfo{
+		LatencyP50:     c.lastSnapshot.SchedulerLatencyP50,
+		LatencyP99:     c.lastSnapshot.SchedulerLatencyP99,
+		GoroutineCount: safeconv.Int64ToInt32(c.lastSnapshot.Goroutines),
+		GoMaxProcs:     safeconv.Int64ToInt32(c.lastSnapshot.GoMaxProcs),
+	}
+}
+
+// buildSyncInfo populates the SyncInfo struct from the latest runtime/metrics
+// snapshot. The MutexWaitTotalSeconds counter is only populated when mutex
+// profiling is enabled via runtime.SetMutexProfileFraction; otherwise it
+// stays at zero.
+//
+// Returns SyncInfo which contains the cumulative mutex wait time.
+func (c *SystemCollector) buildSyncInfo() SyncInfo {
+	return SyncInfo{
+		MutexWaitTotalSeconds: c.lastSnapshot.MutexWaitTotalSeconds,
+	}
+}
+
+// lastRuntimeMetricsSnapshot returns the most recent runtime/metrics
+// snapshot for in-package callers that need direct access to
+// histogram-derived signals (such as the watchdog sidecar metadata
+// writer).
+//
+// The returned snapshot is a value copy and safe to retain across goroutines.
+//
+// Returns runtimeMetricsSnapshot which contains the latest sampled values.
+//
+// Safe for concurrent use; protected by the collector's read lock.
+func (c *SystemCollector) lastRuntimeMetricsSnapshot() runtimeMetricsSnapshot {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.lastSnapshot
 }
 
 // loop runs the periodic sampling loop until stopped.
@@ -249,6 +334,9 @@ func (c *SystemCollector) sample() {
 	now := c.clock.Now()
 
 	runtime.ReadMemStats(&c.memStats)
+	if c.runtimeMetrics != nil {
+		c.lastSnapshot = c.runtimeMetrics.sample(now)
+	}
 
 	cpuTime := readProcessCPUTime()
 	if cpuTime > 0 && c.lastCPUTime > 0 && !c.lastCPUSampleAt.IsZero() {

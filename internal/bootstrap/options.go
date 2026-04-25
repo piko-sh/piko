@@ -19,6 +19,7 @@
 package bootstrap
 
 import (
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -538,6 +539,12 @@ func WithMonitoring(opts ...MonitoringOption) Option {
 			opt(&monitoringConfig)
 		}
 
+		if c.diagnosticDirectory != "" &&
+			monitoringConfig.WatchdogConfig != nil &&
+			monitoringConfig.WatchdogConfig.ProfileDirectory == "" {
+			monitoringConfig.WatchdogConfig.ProfileDirectory = filepath.Join(c.diagnosticDirectory, "profiles")
+		}
+
 		serviceOpts := buildMonitoringServiceOpts(&monitoringConfig)
 		factories := resolveMonitoringFactories(&monitoringConfig)
 		service := monitoring_domain.NewService(monitoring_domain.MonitoringDeps{}, factories, serviceOpts...)
@@ -689,6 +696,59 @@ func WithMonitoringProfiling() MonitoringOption {
 // WatchdogOption configures the runtime watchdog.
 type WatchdogOption func(*monitoring_domain.WatchdogConfig)
 
+// WithDiagnosticDirectory sets a single root directory for all runtime
+// diagnostic artefacts: the crash mirror file (dir/crash.log) and the
+// watchdog's profile / sidecar / startup-history files (dir/profiles).
+//
+// Takes directory (string) which is the root directory for diagnostic
+// artefacts.
+//
+// Returns Option which sets the diagnostic directory on the container.
+func WithDiagnosticDirectory(directory string) Option {
+	return func(c *Container) {
+		c.diagnosticDirectory = directory
+		if directory == "" {
+			return
+		}
+		c.crashOutputPath = filepath.Join(directory, "crash.log")
+	}
+}
+
+// WithCrashOutput configures runtime/debug.SetCrashOutput to mirror Go's
+// fatal-error output (panics, stack overflows, concurrent map writes, OOM
+// aborts) to the given file path. The file is opened in append mode so
+// captures from earlier crashes are preserved.
+//
+// When the file cannot be opened (read-only filesystem, missing parent
+// directory) the feature is disabled silently and a warning is logged.
+// Crash output must never block startup.
+//
+// Pass an empty path to leave the feature disabled (default).
+//
+// Takes path (string) which is the absolute file path for crash output.
+//
+// Returns Option which sets the crash-output path on the container.
+func WithCrashOutput(path string) Option {
+	return func(c *Container) {
+		c.crashOutputPath = path
+	}
+}
+
+// WithCrashTraceback sets the GOTRACEBACK level via
+// runtime/debug.SetTraceback. Valid levels are "none", "single" (Go default),
+// "all", "system", "crash" (raises SIGABRT after the traceback so the kernel
+// or systemd-coredump can capture a coredump), and "wer" (Windows error
+// reporting).
+//
+// Takes level (string) which is the traceback level to set.
+//
+// Returns Option which sets the crash-traceback level on the container.
+func WithCrashTraceback(level string) Option {
+	return func(c *Container) {
+		c.crashTracebackLevel = level
+	}
+}
+
 // WithMonitoringWatchdog enables the runtime watchdog that monitors heap
 // memory, goroutine counts, and GC pressure, automatically capturing
 // diagnostic profiles when anomalies are detected.
@@ -814,6 +874,163 @@ func WithWatchdogDeltaProfiling() WatchdogOption {
 func WithWatchdogRSSThresholdPercent(percent float64) WatchdogOption {
 	return func(c *monitoring_domain.WatchdogConfig) {
 		c.RSSThresholdPercent = percent
+	}
+}
+
+// WithWatchdogFDPressureThresholdPercent sets the fraction of the soft
+// RLIMIT_NOFILE above which the watchdog emits an FD pressure warning.
+//
+// Default is 0.80; pass 0 to disable the rule.
+//
+// Takes percent (float64) which is the threshold fraction (0.0-1.0).
+//
+// Returns WatchdogOption which configures the FD pressure threshold.
+func WithWatchdogFDPressureThresholdPercent(percent float64) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.FDPressureThresholdPercent = percent
+	}
+}
+
+// WithWatchdogSchedulerLatencyP99Threshold sets the p99 scheduler latency
+// above which the watchdog emits a scheduler-latency warning.
+//
+// Default is 10ms; pass zero to disable the rule.
+//
+// Takes threshold (time.Duration) which is the p99 latency threshold.
+//
+// Returns WatchdogOption which configures the scheduler-latency threshold.
+func WithWatchdogSchedulerLatencyP99Threshold(threshold time.Duration) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.SchedulerLatencyP99Threshold = threshold
+	}
+}
+
+// WithWatchdogMaxWarningsPerWindow sets the maximum number of warning-only
+// events permitted within a single CaptureWindow.
+//
+// Default is 10. Warnings have their own budget separate from profile
+// captures so flapping warnings cannot crowd out real captures.
+//
+// Takes count (int) which is the maximum warnings per window.
+//
+// Returns WatchdogOption which configures the warning budget.
+func WithWatchdogMaxWarningsPerWindow(count int) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.MaxWarningsPerWindow = count
+	}
+}
+
+// WithWatchdogContinuousProfiling enables the continuous-profiling loop
+// which captures routine profile snapshots so post-mortem operators have
+// recent profiles even when no threshold breach occurred. Default behaviour
+// is disabled (opt-in).
+//
+// Returns WatchdogOption which enables continuous profiling.
+func WithWatchdogContinuousProfiling() WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContinuousProfilingEnabled = true
+	}
+}
+
+// WithWatchdogContinuousProfilingInterval sets the interval between routine
+// profile captures.
+//
+// Default is 10 minutes; validation enforces a minimum of 1 minute.
+//
+// Takes interval (time.Duration) which is the period between captures.
+//
+// Returns WatchdogOption which configures the routine capture interval.
+func WithWatchdogContinuousProfilingInterval(interval time.Duration) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContinuousProfilingInterval = interval
+	}
+}
+
+// WithWatchdogContinuousProfilingTypes sets the profile types captured each
+// routine interval.
+//
+// Default is ["heap"]. Allowed values are heap, goroutine, and allocs.
+//
+// Takes types (...string) which is the list of profile types to capture.
+//
+// Returns WatchdogOption which configures the routine capture set.
+func WithWatchdogContinuousProfilingTypes(types ...string) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContinuousProfilingTypes = types
+	}
+}
+
+// WithWatchdogContinuousProfilingRetention sets the maximum number of
+// routine profile files retained per type. Default: 6.
+//
+// Takes count (int) which is the retention cap.
+//
+// Returns WatchdogOption which configures routine profile retention.
+func WithWatchdogContinuousProfilingRetention(count int) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContinuousProfilingRetention = count
+	}
+}
+
+// WithWatchdogContinuousProfilingNotify enables informational notifications
+// for each routine capture. Default behaviour is suppression to avoid
+// flooding notifiers.
+//
+// Returns WatchdogOption which enables routine-capture notifications.
+func WithWatchdogContinuousProfilingNotify() WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContinuousProfilingNotify = true
+	}
+}
+
+// WithWatchdogContentionDiagnosticWindow sets the duration during which
+// block + mutex profiling are active during a contention diagnostic.
+//
+// Default is 60s; allowed range is 1s to 5m.
+//
+// Takes window (time.Duration) which is the diagnostic window duration.
+//
+// Returns WatchdogOption which configures the diagnostic window.
+func WithWatchdogContentionDiagnosticWindow(window time.Duration) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContentionDiagnosticWindowDuration = window
+	}
+}
+
+// WithWatchdogContentionDiagnosticAutoFire enables automatic
+// contention-diagnostic firing when scheduler-latency events repeat.
+// Default behaviour is manual (operator must call RunContentionDiagnostic).
+//
+// Returns WatchdogOption which enables automatic contention diagnostic
+// firing.
+func WithWatchdogContentionDiagnosticAutoFire() WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContentionDiagnosticAutoFire = true
+	}
+}
+
+// WithWatchdogContentionDiagnosticBlockProfileRate sets the runtime block
+// profile rate during a contention diagnostic. Default: 1e6 (one sample per
+// 1ms of blocking).
+//
+// Takes rate (int) which is the runtime block profile rate.
+//
+// Returns WatchdogOption which configures the block profile rate.
+func WithWatchdogContentionDiagnosticBlockProfileRate(rate int) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContentionDiagnosticBlockProfileRate = rate
+	}
+}
+
+// WithWatchdogContentionDiagnosticMutexProfileFraction sets the runtime
+// mutex profile fraction during a contention diagnostic. Default: 100.
+//
+// Takes fraction (int) which is the runtime mutex profile fraction.
+//
+// Returns WatchdogOption which configures the mutex profile fraction.
+func WithWatchdogContentionDiagnosticMutexProfileFraction(fraction int) WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContentionDiagnosticMutexProfileFraction = fraction
 	}
 }
 

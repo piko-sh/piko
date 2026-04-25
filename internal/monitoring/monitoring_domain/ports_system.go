@@ -18,6 +18,8 @@
 
 package monitoring_domain
 
+import "time"
+
 // SystemStats holds system and runtime statistics for monitoring.
 type SystemStats struct {
 	// MonitoringListenAddr is the address the monitoring gRPC server listens on.
@@ -41,6 +43,14 @@ type SystemStats struct {
 
 	// Memory contains heap and system memory statistics.
 	Memory MemoryInfo
+
+	// Schedule contains scheduler latency, goroutine counts, and GOMAXPROCS
+	// as reported by runtime/metrics. Histogram-derived percentiles are
+	// zero when no samples are present yet.
+	Schedule SchedulerInfo
+
+	// Sync summarises synchronisation contention metrics from runtime/metrics.
+	Sync SyncInfo
 
 	// TimestampMs is the Unix timestamp in milliseconds when the stats were
 	// collected.
@@ -115,7 +125,9 @@ type RuntimeInfo struct {
 
 // GCInfo holds garbage collection statistics for the Go runtime.
 type GCInfo struct {
-	// RecentPauses contains recent GC pause durations in nanoseconds.
+	// RecentPauses contains recent GC pause durations in nanoseconds. Derived
+	// from the /gc/pauses:seconds histogram by retaining a small ring of the
+	// most recent pauses observed across collector ticks.
 	RecentPauses []uint64
 
 	// LastGC is the timestamp of the last garbage collection in nanoseconds.
@@ -139,9 +151,57 @@ type GCInfo struct {
 
 	// NumForcedGC is the number of GC cycles that were forced by the application.
 	NumForcedGC uint32
+
+	// PauseP50 is the p50 GC pause derived from the runtime histogram.
+	// Zero when no samples are present yet.
+	PauseP50 time.Duration
+
+	// PauseP95 is the p95 GC pause derived from the runtime histogram.
+	PauseP95 time.Duration
+
+	// PauseP99 is the p99 GC pause derived from the runtime histogram.
+	PauseP99 time.Duration
+}
+
+// SchedulerInfo holds Go scheduler statistics from runtime/metrics. Provides
+// signals that the legacy MemStats path could not -- most importantly the
+// scheduler latency p99 which catches goroutine starvation.
+type SchedulerInfo struct {
+	// LatencyP50 is the p50 scheduler latency from the runtime histogram --
+	// the median wait between a goroutine becoming runnable and being
+	// scheduled.
+	LatencyP50 time.Duration
+
+	// LatencyP99 is the p99 scheduler latency from the runtime histogram --
+	// the tail of how long runnable goroutines wait for CPU. High values
+	// indicate scheduler starvation.
+	LatencyP99 time.Duration
+
+	// GoroutineCount mirrors the value of /sched/goroutines:goroutines and
+	// is reported alongside SystemStats.NumGoroutines for symmetry with
+	// other runtime/metrics fields.
+	GoroutineCount int32
+
+	// GoMaxProcs is the value of /sched/gomaxprocs:threads.
+	GoMaxProcs int32
+}
+
+// SyncInfo summarises mutex contention from runtime/metrics. Mutex profiling
+// must be enabled via runtime.SetMutexProfileFraction for these values to be
+// non-zero; otherwise the runtime reports them as zero.
+type SyncInfo struct {
+	// MutexWaitTotalSeconds is a monotonic counter of cumulative seconds
+	// spent waiting on mutexes across all goroutines. Derive the contention
+	// rate by sampling twice and dividing the delta by elapsed wall time.
+	MutexWaitTotalSeconds float64
 }
 
 // MemoryInfo holds memory usage data for the running process.
+//
+// Legacy fields are populated from runtime.MemStats. Newer fields prefixed
+// with the runtime/metrics canonical name segment (HeapFreeBytes etc.) come
+// from runtime/metrics directly. Both sets are populated by the system
+// collector each tick.
 type MemoryInfo struct {
 	// Alloc is the current heap allocation in bytes.
 	Alloc uint64
@@ -209,6 +269,35 @@ type MemoryInfo struct {
 
 	// Lookups is the number of pointer lookups performed by the runtime.
 	Lookups uint64
+
+	// HeapObjectsBytes is bytes occupied by live heap objects, sourced from
+	// /memory/classes/heap/objects:bytes (canonically equivalent to HeapAlloc
+	// but exposed under the runtime/metrics name for consumers that prefer
+	// that vocabulary).
+	HeapObjectsBytes uint64
+
+	// HeapFreeBytes is heap memory available for reuse but not yet returned
+	// to the OS -- a fragmentation indicator. Sourced from
+	// /memory/classes/heap/free:bytes.
+	HeapFreeBytes uint64
+
+	// HeapReleasedBytes is heap memory returned to the OS via madvise.
+	// Sourced from /memory/classes/heap/released:bytes (parallel of the
+	// legacy HeapReleased field).
+	HeapReleasedBytes uint64
+
+	// HeapStacksBytes is heap memory used by goroutine stacks, sourced from
+	// /memory/classes/heap/stacks:bytes.
+	HeapStacksBytes uint64
+
+	// HeapUnusedBytes is heap memory reserved for future allocation but not
+	// currently containing objects, sourced from
+	// /memory/classes/heap/unused:bytes.
+	HeapUnusedBytes uint64
+
+	// TotalBytes is the full Go-managed memory footprint, sourced from
+	// /memory/classes/total:bytes (parallel of the legacy Sys field).
+	TotalBytes uint64
 }
 
 // ProcessInfo holds details about a running process for monitoring.
