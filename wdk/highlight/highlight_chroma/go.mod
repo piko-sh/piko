@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.23.1
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/stretchr/testify v1.11.1
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.17
 )
 
 require (
