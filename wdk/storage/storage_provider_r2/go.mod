@@ -3,8 +3,8 @@ module piko.sh/piko/wdk/storage/storage_provider_r2
 go 1.26.0
 
 require (
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/storage/storage_provider_s3 v0.0.0
+	piko.sh/piko v0.0.0-alpha.16
+	piko.sh/piko/wdk/storage/storage_provider_s3 v0.0.0-alpha.16
 )
 
 require (

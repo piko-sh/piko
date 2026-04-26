@@ -7,7 +7,7 @@ require (
 	go.opentelemetry.io/otel v1.42.0
 	go.opentelemetry.io/otel/metric v1.42.0
 	golang.org/x/image v0.38.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.16
 )
 
 require (
