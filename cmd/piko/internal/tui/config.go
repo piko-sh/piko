@@ -18,8 +18,8 @@
 
 package tui
 
-// TUIConfig holds TUI settings from piko.yaml.
-type TUIConfig struct {
+// Config holds TUI settings from piko.yaml.
+type Config struct {
 	// Endpoint is the API endpoint URL for the TUI service.
 	Endpoint string `json:"endpoint" yaml:"endpoint"`
 
@@ -36,5 +36,5 @@ type TUIConfig struct {
 // pikoConfig is a minimal representation of piko.yaml for extracting TUI settings.
 type pikoConfig struct {
 	// TUI contains the terminal user interface configuration.
-	TUI TUIConfig `json:"tui" yaml:"tui"`
+	TUI Config `json:"tui" yaml:"tui"`
 }

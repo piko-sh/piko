@@ -22,12 +22,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	"piko.sh/piko/wdk/safeconv"
 
 	"piko.sh/piko/wdk/clock"
@@ -365,7 +367,7 @@ func (p *SystemPanel) renderSystemHeader(content *strings.Builder) int {
 	if stats != nil {
 		uptimeString := formatUptime(stats.Uptime)
 		header := lipgloss.NewStyle().
-			Foreground(colorForegroundDim).
+			Foreground(colourForegroundDim).
 			Render(fmt.Sprintf("Uptime: %s  |  CPUs: %d  |  GOMAXPROCS: %d",
 				uptimeString, stats.NumCPU, stats.GOMAXPROCS))
 		content.WriteString(header)
@@ -469,16 +471,16 @@ func (p *SystemPanel) getSectionContent(section systemSection, config *Sparkline
 	case sectionCPU:
 		return sectionContent{label: "CPU", sparkline: Sparkline(cpuHist, config), value: formatMillicores(stats.CPUMillicores)}
 	case sectionMemory:
-		return sectionContent{label: "Memory", sparkline: Sparkline(memHist, config), value: formatBytes(stats.Memory.Alloc)}
+		return sectionContent{label: "Memory", sparkline: Sparkline(memHist, config), value: inspector.FormatBytes(stats.Memory.Alloc)}
 	case sectionGoroutines:
-		return sectionContent{label: "Goroutines", sparkline: Sparkline(goroutineHist, config), value: fmt.Sprintf("%d", stats.NumGoroutines)}
+		return sectionContent{label: "Goroutines", sparkline: Sparkline(goroutineHist, config), value: strconv.Itoa(stats.NumGoroutines)}
 	case sectionGC:
 		lastPause := time.Duration(safeconv.Uint64ToInt64(stats.GC.LastPauseNs))
 		return sectionContent{label: "GC Pause", sparkline: Sparkline(gcPauseHist, config), value: lastPause.Round(time.Microsecond).String()}
 	case sectionBuild:
 		return sectionContent{label: "Build", sparkline: "", value: fmt.Sprintf("%s (%s)", stats.Build.Version, stats.Build.GoVersion)}
 	case sectionProcess:
-		return sectionContent{label: "Process", sparkline: "", value: fmt.Sprintf("PID %d | RSS %s", stats.Process.PID, formatBytes(stats.Process.RSS))}
+		return sectionContent{label: "Process", sparkline: "", value: fmt.Sprintf("PID %d | RSS %s", stats.Process.PID, inspector.FormatBytes(stats.Process.RSS))}
 	case sectionRuntime:
 		return sectionContent{label: "Runtime", sparkline: "", value: fmt.Sprintf("GOGC=%s GOMEMLIMIT=%s", stats.Runtime.GOGC, stats.Runtime.GOMEMLIMIT)}
 	case sectionCache:
@@ -512,7 +514,7 @@ func (p *SystemPanel) renderSectionRow(section systemSection, selected, expanded
 		label = lipgloss.NewStyle().Bold(true).Render(label)
 	}
 
-	value := lipgloss.NewStyle().Foreground(colorForeground).Render(sc.value)
+	value := lipgloss.NewStyle().Foreground(colourForeground).Render(sc.value)
 
 	return fmt.Sprintf("%s%s %s %s %s", cursor, expandChar, label, sc.sparkline, value)
 }
@@ -535,7 +537,7 @@ func (p *SystemPanel) renderSectionDetails(ctx *ScrollContext, sectionKey string
 		return
 	}
 
-	dimStyle := lipgloss.NewStyle().Foreground(colorForegroundDim)
+	dimStyle := lipgloss.NewStyle().Foreground(colourForegroundDim)
 	indent := "      "
 
 	var lines []string
@@ -573,7 +575,7 @@ func (p *SystemPanel) renderSectionDetails(ctx *ScrollContext, sectionKey string
 func (p *SystemPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return SystemRefreshMessage{Stats: nil, Err: errors.New("no system provider")}
+			return SystemRefreshMessage{Stats: nil, Err: errNoSystemProvider}
 		}
 
 		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
@@ -627,7 +629,7 @@ func (r *systemRenderer) RenderExpanded(section systemSection, _ int) []string {
 		return nil
 	}
 
-	dimStyle := lipgloss.NewStyle().Foreground(colorForegroundDim)
+	dimStyle := lipgloss.NewStyle().Foreground(colourForegroundDim)
 	indent := "      "
 
 	var lines []string
@@ -793,19 +795,19 @@ func renderCPUDetails(stats *SystemStats, cpuHist []float64, dimStyle *lipgloss.
 // Returns []string which contains the formatted memory detail lines.
 func renderMemoryDetails(stats *SystemStats, dimStyle *lipgloss.Style) []string {
 	return []string{
-		dimStyle.Render(fmt.Sprintf("Alloc: %s", formatBytes(stats.Memory.Alloc))),
-		dimStyle.Render(fmt.Sprintf("TotalAlloc: %s", formatBytes(stats.Memory.TotalAlloc))),
-		dimStyle.Render(fmt.Sprintf("Sys: %s", formatBytes(stats.Memory.Sys))),
-		dimStyle.Render(fmt.Sprintf("HeapAlloc: %s", formatBytes(stats.Memory.HeapAlloc))),
-		dimStyle.Render(fmt.Sprintf("HeapSys: %s", formatBytes(stats.Memory.HeapSys))),
-		dimStyle.Render(fmt.Sprintf("HeapIdle: %s", formatBytes(stats.Memory.HeapIdle))),
-		dimStyle.Render(fmt.Sprintf("HeapInuse: %s", formatBytes(stats.Memory.HeapInuse))),
-		dimStyle.Render(fmt.Sprintf("HeapReleased: %s", formatBytes(stats.Memory.HeapReleased))),
+		dimStyle.Render(fmt.Sprintf("Alloc: %s", inspector.FormatBytes(stats.Memory.Alloc))),
+		dimStyle.Render(fmt.Sprintf("TotalAlloc: %s", inspector.FormatBytes(stats.Memory.TotalAlloc))),
+		dimStyle.Render(fmt.Sprintf("Sys: %s", inspector.FormatBytes(stats.Memory.Sys))),
+		dimStyle.Render(fmt.Sprintf("HeapAlloc: %s", inspector.FormatBytes(stats.Memory.HeapAlloc))),
+		dimStyle.Render(fmt.Sprintf("HeapSys: %s", inspector.FormatBytes(stats.Memory.HeapSys))),
+		dimStyle.Render(fmt.Sprintf("HeapIdle: %s", inspector.FormatBytes(stats.Memory.HeapIdle))),
+		dimStyle.Render(fmt.Sprintf("HeapInuse: %s", inspector.FormatBytes(stats.Memory.HeapInuse))),
+		dimStyle.Render(fmt.Sprintf("HeapReleased: %s", inspector.FormatBytes(stats.Memory.HeapReleased))),
 		dimStyle.Render(fmt.Sprintf("HeapObjects: %d", stats.Memory.HeapObjects)),
 		dimStyle.Render(fmt.Sprintf("LiveObjects: %d", stats.Memory.LiveObjects)),
 		dimStyle.Render(fmt.Sprintf("Mallocs: %d", stats.Memory.Mallocs)),
 		dimStyle.Render(fmt.Sprintf("Frees: %d", stats.Memory.Frees)),
-		dimStyle.Render(fmt.Sprintf("StackSys: %s", formatBytes(stats.Memory.StackSys))),
+		dimStyle.Render(fmt.Sprintf("StackSys: %s", inspector.FormatBytes(stats.Memory.StackSys))),
 	}
 }
 
@@ -851,7 +853,7 @@ func renderGCDetails(stats *SystemStats, now time.Time, dimStyle *lipgloss.Style
 		dimStyle.Render(fmt.Sprintf("LastGC: %s ago", now.Sub(lastGCTime).Round(time.Second))),
 		dimStyle.Render(fmt.Sprintf("PauseTotalNs: %s", pauseTotalDur)),
 		dimStyle.Render(fmt.Sprintf("GCCPUFraction: %.4f%%", stats.GC.GCCPUFraction*100)),
-		dimStyle.Render(fmt.Sprintf("NextGC: %s", formatBytes(stats.GC.NextGC))),
+		dimStyle.Render(fmt.Sprintf("NextGC: %s", inspector.FormatBytes(stats.GC.NextGC))),
 	}
 	if len(stats.GC.RecentPauses) > 0 {
 		numPauses := min(systemRecentPausesLimit, len(stats.GC.RecentPauses))
@@ -894,7 +896,7 @@ func renderProcessDetails(stats *SystemStats, dimStyle *lipgloss.Style) []string
 		dimStyle.Render(fmt.Sprintf("PID: %d", stats.Process.PID)),
 		dimStyle.Render(fmt.Sprintf("ThreadCount: %d", stats.Process.ThreadCount)),
 		dimStyle.Render(fmt.Sprintf("FDCount: %d", stats.Process.FDCount)),
-		dimStyle.Render(fmt.Sprintf("RSS: %s", formatBytes(stats.Process.RSS))),
+		dimStyle.Render(fmt.Sprintf("RSS: %s", inspector.FormatBytes(stats.Process.RSS))),
 	}
 }
 
@@ -935,25 +937,6 @@ func formatMillicores(m float64) string {
 		return fmt.Sprintf("%.2f", m/millicoresPerCore)
 	}
 	return fmt.Sprintf("%.0fm", m)
-}
-
-// formatBytes converts a byte count into a readable string with a unit suffix.
-//
-// Takes b (uint64) which is the number of bytes to format.
-//
-// Returns string which is the formatted value with a unit such as "KiB",
-// "MiB", or "GiB".
-func formatBytes(b uint64) string {
-	const unit = 1024
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-	div, exp := uint64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
 // formatUptime formats a duration as a readable uptime string.

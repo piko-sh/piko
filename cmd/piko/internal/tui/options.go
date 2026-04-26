@@ -28,9 +28,6 @@ import (
 // Option configures the TUI by modifying its configuration and providers.
 type Option func(*tui_dto.Config, *tui_domain.Providers)
 
-// Config is the configuration for the TUI monitoring tool.
-type Config = TUIConfig
-
 // WithConfig applies settings from a Piko Config so that the TUI can be
 // configured via piko.yaml or environment variables.
 //
@@ -169,10 +166,10 @@ func WithTitle(title string) Option {
 // WithPanel adds a custom panel to the TUI.
 // Custom panels appear after the built-in panels.
 //
-// Takes p (Panel) which is the panel to add.
+// Takes p (tui_domain.Panel) which is the panel to add.
 //
 // Returns Option which configures the TUI to include the panel.
-func WithPanel(p Panel) Option {
+func WithPanel(p tui_domain.Panel) Option {
 	return func(_ *tui_dto.Config, providers *tui_domain.Providers) {
 		providers.Panels = append(providers.Panels, p)
 	}
@@ -180,10 +177,10 @@ func WithPanel(p Panel) Option {
 
 // WithMetricsProvider returns an option that adds a metrics provider.
 //
-// Takes p (MetricsProvider) which is the provider to add.
+// Takes p (tui_domain.MetricsProvider) which is the provider to add.
 //
 // Returns Option which registers the provider when applied.
-func WithMetricsProvider(p MetricsProvider) Option {
+func WithMetricsProvider(p tui_domain.MetricsProvider) Option {
 	return func(_ *tui_dto.Config, providers *tui_domain.Providers) {
 		providers.Metrics = append(providers.Metrics, p)
 	}
@@ -191,11 +188,11 @@ func WithMetricsProvider(p MetricsProvider) Option {
 
 // WithTracesProvider returns an option that adds a traces provider.
 //
-// Takes p (TracesProvider) which is the provider to add.
+// Takes p (tui_domain.TracesProvider) which is the provider to add.
 //
 // Returns Option which configures the providers to include the given traces
 // provider.
-func WithTracesProvider(p TracesProvider) Option {
+func WithTracesProvider(p tui_domain.TracesProvider) Option {
 	return func(_ *tui_dto.Config, providers *tui_domain.Providers) {
 		providers.Traces = append(providers.Traces, p)
 	}
@@ -203,10 +200,10 @@ func WithTracesProvider(p TracesProvider) Option {
 
 // WithResourceProvider adds a resource provider to the provider list.
 //
-// Takes p (ResourceProvider) which is the provider to add.
+// Takes p (tui_domain.ResourceProvider) which is the provider to add.
 //
 // Returns Option which appends the provider to the resources list.
-func WithResourceProvider(p ResourceProvider) Option {
+func WithResourceProvider(p tui_domain.ResourceProvider) Option {
 	return func(_ *tui_dto.Config, providers *tui_domain.Providers) {
 		providers.Resources = append(providers.Resources, p)
 	}
@@ -214,10 +211,10 @@ func WithResourceProvider(p ResourceProvider) Option {
 
 // WithHealthProvider adds a health provider to the list of providers.
 //
-// Takes p (HealthProvider) which is the health provider to add.
+// Takes p (tui_domain.HealthProvider) which is the health provider to add.
 //
 // Returns Option which configures the providers to include p.
-func WithHealthProvider(p HealthProvider) Option {
+func WithHealthProvider(p tui_domain.HealthProvider) Option {
 	return func(_ *tui_dto.Config, providers *tui_domain.Providers) {
 		providers.Health = append(providers.Health, p)
 	}
@@ -225,11 +222,11 @@ func WithHealthProvider(p HealthProvider) Option {
 
 // WithFDsProvider returns an option that adds a file descriptor provider.
 //
-// Takes p (FDsProvider) which is the provider to add.
+// Takes p (tui_domain.FDsProvider) which is the provider to add.
 //
 // Returns Option which adds the provider to the list of file descriptor
 // providers.
-func WithFDsProvider(p FDsProvider) Option {
+func WithFDsProvider(p tui_domain.FDsProvider) Option {
 	return func(_ *tui_dto.Config, providers *tui_domain.Providers) {
 		providers.FDs = append(providers.FDs, p)
 	}

@@ -233,32 +233,30 @@ func columnsToRow(columns []Column) Row {
 	return row
 }
 
-// truncateOrPad adjusts a string to match the given width.
+// truncateOrPad adjusts a string to match the given visible width.
 //
 // Takes s (string) which is the input string to adjust.
-// Takes width (int) which specifies the target width in characters.
+// Takes width (int) which specifies the target visible width in terminal cells.
 //
 // Returns string which is the adjusted string, cut short with an ellipsis if
 // too long or padded with spaces if too short.
 func truncateOrPad(s string, width int) string {
-	if len(s) > width {
-		if width <= ellipsisLength {
-			return s[:width]
-		}
-		return s[:width-ellipsisLength] + ellipsis
+	visible := TextWidth(s)
+	if visible > width {
+		return TruncateANSI(s, width)
 	}
-	return s + strings.Repeat(stringSpace, width-len(s))
+	return s + strings.Repeat(stringSpace, width-visible)
 }
 
-// align pads text to fit a given width using the chosen alignment.
+// align pads text to fit a given visible width using the chosen alignment.
 //
 // Takes s (string) which is the text to align.
-// Takes width (int) which is the total width to pad to.
+// Takes width (int) which is the total width in terminal cells to pad to.
 // Takes position (lipgloss.Position) which sets left, right, or centre alignment.
 //
 // Returns string which is the text padded to the given width.
 func align(s string, width int, position lipgloss.Position) string {
-	padding := width - len(s)
+	padding := width - TextWidth(s)
 	if padding <= 0 {
 		return s
 	}

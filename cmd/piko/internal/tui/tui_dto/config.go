@@ -50,42 +50,32 @@ const (
 // Config holds the configuration for the TUI monitoring tool.
 // This struct is populated by the public facade's With* options.
 type Config struct {
-	// Clock provides time operations for testing.
-	// If nil, defaults to the real system clock.
+	// Clock supplies the current time, allowing tests to inject a
+	// deterministic clock.
 	Clock clock.Clock
 
-	// Title is the text shown in the TUI header.
+	// Title is the window title displayed in the terminal interface.
 	Title string
 
-	// Theme selects the UI colour theme; valid values are "default" or "minimal".
+	// Theme names the colour scheme applied to the interface.
 	Theme string
 
-	// PikoEndpoint is the base URL of the Piko application, for example
-	// "http://localhost:8080". An empty value means no endpoint is configured.
+	// PikoEndpoint is the base URL for the Piko application.
 	PikoEndpoint string
 
-	// HealthEndpoint is the URL of the Piko health server, which runs on a
-	// separate port (default 9090) and exposes liveness and readiness probe
-	// endpoints (/live, /ready). Example: "http://localhost:9090".
+	// HealthEndpoint is the URL of the Piko health server used for probes.
 	HealthEndpoint string
 
-	// MonitoringEndpoint is the address of the Piko gRPC monitoring
-	// server, enabling database-agnostic remote monitoring via gRPC
-	// instead of direct database access.
-	//
-	// Example: "localhost:9091"
+	// MonitoringEndpoint is the gRPC monitoring server address.
 	MonitoringEndpoint string
 
-	// PrometheusURL is the URL of an external Prometheus server.
-	// Optional; only needed if not using PikoEndpoint for metrics.
+	// PrometheusURL is the optional Prometheus base URL for metric queries.
 	PrometheusURL string
 
-	// JaegerURL is the URL of an external Jaeger server for trace collection.
-	// This field is optional and only needed if not using PikoEndpoint for traces.
+	// JaegerURL is the optional Jaeger base URL for trace queries.
 	JaegerURL string
 
-	// RefreshInterval controls how often data is refreshed from providers.
-	// Zero means no automatic refresh.
+	// RefreshInterval controls how often the TUI re-polls its data sources.
 	RefreshInterval time.Duration
 }
 

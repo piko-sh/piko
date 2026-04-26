@@ -30,9 +30,9 @@ func TestDiagnosticsResult_AllPassed(t *testing.T) {
 
 	testCases := []struct {
 		name      string
-		connected bool
 		passed    int
 		failed    int
+		connected bool
 		want      bool
 	}{
 		{name: "connected with no failures", connected: true, passed: 3, failed: 0, want: true},

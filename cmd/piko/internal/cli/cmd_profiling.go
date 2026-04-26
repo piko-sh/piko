@@ -25,9 +25,11 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 	"piko.sh/piko/wdk/safeconv"
 	"piko.sh/piko/wdk/safedisk"
@@ -211,18 +213,18 @@ func printEnableResponse(cc *CommandContext, response *pb.EnableProfilingRespons
 		return p.PrintJSON(response)
 	}
 
-	p.PrintDetail([]DetailSection{
-		{Fields: []DetailField{
-			{Key: "Status", Value: "enabled", IsStatus: true},
-			{Key: "Port", Value: fmt.Sprintf("%d", response.GetPort())},
-			{Key: "Time Remaining", Value: remaining.String()},
-			{Key: "Expires At", Value: expiresAt.Format("2006-01-02 15:04:05")},
-			{Key: "Block Rate", Value: fmt.Sprintf("%d (samples events >= %dns)", response.GetBlockProfileRate(), response.GetBlockProfileRate())},
-			{Key: "Mutex Fraction", Value: fmt.Sprintf("%d (samples 1/%d of events)", response.GetMutexProfileFraction(), response.GetMutexProfileFraction())},
-			{Key: "Mem Profile Rate", Value: formatMemProfileRate(int(response.GetMemProfileRate()))},
+	p.PrintDetail([]inspector.DetailSection{
+		{Rows: []inspector.DetailRow{
+			{Label: "Status", Value: "enabled", IsStatus: true},
+			{Label: "Port", Value: strconv.FormatInt(safeconv.Int32ToInt64(response.GetPort()), 10)},
+			{Label: "Time Remaining", Value: remaining.String()},
+			{Label: "Expires At", Value: expiresAt.Format("2006-01-02 15:04:05")},
+			{Label: "Block Rate", Value: fmt.Sprintf("%d (samples events >= %dns)", response.GetBlockProfileRate(), response.GetBlockProfileRate())},
+			{Label: "Mutex Fraction", Value: fmt.Sprintf("%d (samples 1/%d of events)", response.GetMutexProfileFraction(), response.GetMutexProfileFraction())},
+			{Label: "Mem Profile Rate", Value: formatMemProfileRate(safeconv.Int32ToInt(response.GetMemProfileRate()))},
 		}},
-		{Title: "pprof HTTP server", Fields: []DetailField{
-			{Key: "URL", Value: response.GetPprofBaseUrl()},
+		{Heading: "pprof HTTP server", Rows: []inspector.DetailRow{
+			{Label: "URL", Value: response.GetPprofBaseUrl()},
 		}},
 	})
 
@@ -268,9 +270,9 @@ func profilingStatus(ctx context.Context, cc *CommandContext, _ []string) error 
 	}
 
 	if !response.GetEnabled() {
-		p.PrintDetail([]DetailSection{
-			{Fields: []DetailField{
-				{Key: "Status", Value: "disabled", IsStatus: true},
+		p.PrintDetail([]inspector.DetailSection{
+			{Rows: []inspector.DetailRow{
+				{Label: "Status", Value: "disabled", IsStatus: true},
 			}},
 		})
 		_, _ = fmt.Fprintln(cc.Stdout, "\nTip: Run 'piko profiling enable 30m' to start profiling.")
@@ -280,19 +282,19 @@ func profilingStatus(ctx context.Context, cc *CommandContext, _ []string) error 
 	expiresAt := time.UnixMilli(response.GetExpiresAtMs())
 	remaining := time.Duration(response.GetRemainingMs()) * time.Millisecond
 
-	p.PrintDetail([]DetailSection{
-		{Fields: []DetailField{
-			{Key: "Status", Value: "enabled", IsStatus: true},
-			{Key: "Port", Value: fmt.Sprintf("%d", response.GetPort())},
-			{Key: "Time Remaining", Value: remaining.Truncate(time.Second).String()},
-			{Key: "Expires At", Value: expiresAt.Format("2006-01-02 15:04:05")},
-			{Key: "Block Rate", Value: fmt.Sprintf("%d (samples events >= %dns)", response.GetBlockProfileRate(), response.GetBlockProfileRate())},
-			{Key: "Mutex Fraction", Value: fmt.Sprintf("%d (samples 1/%d of events)", response.GetMutexProfileFraction(), response.GetMutexProfileFraction())},
-			{Key: "Mem Profile Rate", Value: formatMemProfileRate(int(response.GetMemProfileRate()))},
-			{Key: "Available Profiles", Value: strings.Join(response.GetAvailableProfiles(), ", ")},
+	p.PrintDetail([]inspector.DetailSection{
+		{Rows: []inspector.DetailRow{
+			{Label: "Status", Value: "enabled", IsStatus: true},
+			{Label: "Port", Value: strconv.FormatInt(safeconv.Int32ToInt64(response.GetPort()), 10)},
+			{Label: "Time Remaining", Value: remaining.Truncate(time.Second).String()},
+			{Label: "Expires At", Value: expiresAt.Format("2006-01-02 15:04:05")},
+			{Label: "Block Rate", Value: fmt.Sprintf("%d (samples events >= %dns)", response.GetBlockProfileRate(), response.GetBlockProfileRate())},
+			{Label: "Mutex Fraction", Value: fmt.Sprintf("%d (samples 1/%d of events)", response.GetMutexProfileFraction(), response.GetMutexProfileFraction())},
+			{Label: "Mem Profile Rate", Value: formatMemProfileRate(safeconv.Int32ToInt(response.GetMemProfileRate()))},
+			{Label: "Available Profiles", Value: strings.Join(response.GetAvailableProfiles(), ", ")},
 		}},
-		{Title: "pprof HTTP server", Fields: []DetailField{
-			{Key: "URL", Value: response.GetPprofBaseUrl()},
+		{Heading: "pprof HTTP server", Rows: []inspector.DetailRow{
+			{Label: "URL", Value: response.GetPprofBaseUrl()},
 		}},
 	})
 
@@ -325,7 +327,7 @@ func profilingCapture(ctx context.Context, cc *CommandContext, arguments []strin
 	fs := flag.NewFlagSet("profiling capture", flag.ContinueOnError)
 	fs.SetOutput(cc.Stderr)
 
-	outputDir := fs.String("output", ".", "Directory to save profile files")
+	outputDirectory := fs.String("output", ".", "Directory to save profile files")
 
 	fs.Usage = profilingCaptureUsage(fs, cc)
 
@@ -353,7 +355,7 @@ func profilingCapture(ctx context.Context, cc *CommandContext, arguments []strin
 		return err
 	}
 
-	filePath, err := writeProfileFile(cc, profileType, profileData, *outputDir)
+	filePath, err := writeProfileFile(cc, profileType, profileData, *outputDirectory)
 	if err != nil {
 		return err
 	}
@@ -516,7 +518,7 @@ func readProfileStream(
 // Takes cc (*CommandContext) which provides the safedisk factory.
 // Takes profileType (string) which determines the file extension.
 // Takes profileData ([]byte) which is the raw profile bytes to write.
-// Takes outputDir (string) which is the target directory path.
+// Takes outputDirectory (string) which is the target directory path.
 //
 // Returns string which is the absolute path to the written file.
 // Returns error when the sandbox or file write fails.
@@ -524,7 +526,7 @@ func writeProfileFile(
 	cc *CommandContext,
 	profileType string,
 	profileData []byte,
-	outputDir string,
+	outputDirectory string,
 ) (string, error) {
 	timestamp := time.Now().Format("2006-01-02T15-04-05")
 	extension := ".pprof"
@@ -532,11 +534,11 @@ func writeProfileFile(
 		extension = ".trace"
 	}
 	filename := fmt.Sprintf("%s-%s%s", profileType, timestamp, extension)
-	filePath := filepath.Join(outputDir, filename)
+	filePath := filepath.Join(outputDirectory, filename)
 
-	sandbox, sandboxErr := cc.Factory.Create("profiling-capture", outputDir, safedisk.ModeReadWrite)
+	sandbox, sandboxErr := cc.Factory.Create("profiling-capture", outputDirectory, safedisk.ModeReadWrite)
 	if sandboxErr != nil {
-		return "", fmt.Errorf("creating sandbox for output directory %s: %w", outputDir, sandboxErr)
+		return "", fmt.Errorf("creating sandbox for output directory %s: %w", outputDirectory, sandboxErr)
 	}
 	defer func() { _ = sandbox.Close() }()
 

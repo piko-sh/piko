@@ -218,7 +218,7 @@ func (m *profileTUIModel) Init() tea.Cmd {
 // Returns tea.Cmd which is the next command to run.
 func (m *profileTUIModel) Update(incomingMessage tea.Msg) (tea.Model, tea.Cmd) {
 	switch message := incomingMessage.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if message.String() == "q" || message.String() == "ctrl+c" {
 			return m, tea.Quit
 		}

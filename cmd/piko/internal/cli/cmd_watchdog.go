@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 	"piko.sh/piko/wdk/safeconv"
 	"piko.sh/piko/wdk/safedisk"
@@ -46,25 +47,9 @@ const (
 	// applied as a buffer on top of the base request timeout.
 	watchdogDownloadTimeout = 60 * time.Second
 
-	// fmtDecimalInt is the printf verb used for plain decimal integer
-	// rendering across watchdog status / table output.
-	fmtDecimalInt = "%d"
-
 	// flagNameType is the shared --type flag name used by list, prune,
 	// download, and events subcommands.
 	flagNameType = "type"
-
-	// eventPriorityNormal is the int wire value for the Normal watchdog
-	// event priority, mirrored from the proto definition.
-	eventPriorityNormal = 1
-
-	// eventPriorityHigh is the int wire value for the High watchdog event
-	// priority.
-	eventPriorityHigh = 2
-
-	// eventPriorityCritical is the int wire value for the Critical watchdog
-	// event priority.
-	eventPriorityCritical = 3
 )
 
 // watchdogSubcommands maps subcommand names to their handler functions.
@@ -155,7 +140,7 @@ func watchdogList(ctx context.Context, cc *CommandContext, arguments []string) e
 
 	profiles := response.GetProfiles()
 	if *typeFilter != "" {
-		profiles = filterProfilesByType(profiles, *typeFilter)
+		profiles = inspector.FilterWatchdogProfilesByType(profiles, *typeFilter)
 	}
 
 	p := NewPrinter(cc.Stdout, cc.Opts.Output, cc.Opts.NoColour, cc.Opts.NoHeaders)
@@ -216,23 +201,6 @@ Examples:
 	}
 }
 
-// filterProfilesByType returns only profiles whose type matches the given
-// filter string (case-insensitive).
-//
-// Takes profiles ([]*pb.WatchdogProfileEntry) which is the full list.
-// Takes typeFilter (string) which is the type to match against.
-//
-// Returns []*pb.WatchdogProfileEntry which contains only matching profiles.
-func filterProfilesByType(profiles []*pb.WatchdogProfileEntry, typeFilter string) []*pb.WatchdogProfileEntry {
-	filtered := make([]*pb.WatchdogProfileEntry, 0, len(profiles))
-	for _, profile := range profiles {
-		if strings.EqualFold(profile.GetType(), typeFilter) {
-			filtered = append(filtered, profile)
-		}
-	}
-	return filtered
-}
-
 // watchdogDownload downloads a stored watchdog profile from the server and
 // writes it to a local file.
 //
@@ -247,7 +215,7 @@ func watchdogDownload(ctx context.Context, cc *CommandContext, arguments []strin
 	fs := flag.NewFlagSet("watchdog download", flag.ContinueOnError)
 	fs.SetOutput(cc.Stderr)
 
-	outputDir := fs.String("output", ".", "Directory to save downloaded profile")
+	outputDirectory := fs.String("output", ".", "Directory to save downloaded profile")
 	latest := fs.Bool("latest", false, "Download the latest profile of the given type")
 	typeFilter := fs.String(flagNameType, "", "Profile type for --latest (e.g. heap, goroutine)")
 	skipSidecar := fs.Bool("skip-sidecar", false, "Skip downloading the paired JSON sidecar metadata file")
@@ -275,14 +243,14 @@ func watchdogDownload(ctx context.Context, cc *CommandContext, arguments []strin
 		return err
 	}
 
-	filePath, err := writeWatchdogProfileFile(cc, filename, profileData, *outputDir)
+	filePath, err := writeWatchdogProfileFile(cc, filename, profileData, *outputDirectory)
 	if err != nil {
 		return err
 	}
 
 	sidecarPath := ""
 	if !*skipSidecar {
-		sidecarPath = downloadSidecarBestEffort(downloadCtx, cc, filename, *outputDir)
+		sidecarPath = downloadSidecarBestEffort(downloadCtx, cc, filename, *outputDirectory)
 	}
 
 	return displayDownloadResult(cc, filename, filePath, profileData, sidecarPath)
@@ -297,12 +265,12 @@ func watchdogDownload(ctx context.Context, cc *CommandContext, arguments []strin
 // Takes cc (*CommandContext) which provides the connection and stderr.
 // Takes profileFilename (string) which identifies the .pb.gz file whose
 // sidecar should be fetched.
-// Takes outputDir (string) which is the directory the sidecar is written
+// Takes outputDirectory (string) which is the directory the sidecar is written
 // into when present.
 //
 // Returns string which is the path of the saved sidecar, or empty when no
 // sidecar was downloaded.
-func downloadSidecarBestEffort(ctx context.Context, cc *CommandContext, profileFilename, outputDir string) string {
+func downloadSidecarBestEffort(ctx context.Context, cc *CommandContext, profileFilename, outputDirectory string) string {
 	response, err := cc.Conn.WatchdogClient().DownloadSidecar(ctx, &pb.DownloadSidecarRequest{
 		ProfileFilename: profileFilename,
 	})
@@ -315,7 +283,7 @@ func downloadSidecarBestEffort(ctx context.Context, cc *CommandContext, profileF
 	}
 
 	sidecarFilename := strings.TrimSuffix(profileFilename, ".pb.gz") + ".json"
-	sidecarPath, writeErr := writeWatchdogProfileFile(cc, sidecarFilename, response.GetData(), outputDir)
+	sidecarPath, writeErr := writeWatchdogProfileFile(cc, sidecarFilename, response.GetData(), outputDirectory)
 	if writeErr != nil {
 		_, _ = fmt.Fprintf(cc.Stderr, "warning: writing sidecar failed: %v\n", writeErr)
 		return ""
@@ -397,7 +365,7 @@ func resolveLatestFilename(ctx context.Context, cc *CommandContext, typeFilter s
 		return "", grpcError("listing profiles for --latest lookup", err)
 	}
 
-	profiles := filterProfilesByType(response.GetProfiles(), typeFilter)
+	profiles := inspector.FilterWatchdogProfilesByType(response.GetProfiles(), typeFilter)
 	if len(profiles) == 0 {
 		return "", fmt.Errorf("no %s profiles found on server", typeFilter)
 	}
@@ -456,7 +424,7 @@ func readWatchdogDownloadStream(
 // Takes cc (*CommandContext) which provides the safedisk factory.
 // Takes filename (string) which is the name of the profile file.
 // Takes profileData ([]byte) which is the raw profile bytes to write.
-// Takes outputDir (string) which is the target directory path.
+// Takes outputDirectory (string) which is the target directory path.
 //
 // Returns string which is the absolute path to the written file.
 // Returns error when the sandbox or file write fails.
@@ -464,13 +432,13 @@ func writeWatchdogProfileFile(
 	cc *CommandContext,
 	filename string,
 	profileData []byte,
-	outputDir string,
+	outputDirectory string,
 ) (string, error) {
-	filePath := filepath.Join(outputDir, filename)
+	filePath := filepath.Join(outputDirectory, filename)
 
-	sandbox, sandboxErr := cc.Factory.Create("watchdog-download", outputDir, safedisk.ModeReadWrite)
+	sandbox, sandboxErr := cc.Factory.Create("watchdog-download", outputDirectory, safedisk.ModeReadWrite)
 	if sandboxErr != nil {
-		return "", fmt.Errorf("creating sandbox for output directory %s: %w", outputDir, sandboxErr)
+		return "", fmt.Errorf("creating sandbox for output directory %s: %w", outputDirectory, sandboxErr)
 	}
 	defer func() { _ = sandbox.Close() }()
 
@@ -608,168 +576,15 @@ func watchdogStatus(ctx context.Context, cc *CommandContext, _ []string) error {
 		return p.PrintJSON(response)
 	}
 
-	p.PrintDetail([]DetailSection{
-		{Title: "Lifecycle", Fields: watchdogStatusCoreFields(response)},
-		{Title: "Thresholds", Fields: watchdogStatusThresholdFields(response)},
-		{Title: "Crash Loop Detection", Fields: watchdogStatusCrashLoopFields(response)},
-		{Title: "Continuous Profiling", Fields: watchdogStatusContinuousFields(response)},
-		{Title: "Contention Diagnostic", Fields: watchdogStatusContentionFields(response)},
+	p.PrintDetail([]inspector.DetailSection{
+		{Heading: "Lifecycle", Rows: inspector.BuildWatchdogStatusCoreRows(response)},
+		{Heading: "Thresholds", Rows: inspector.BuildWatchdogStatusThresholdRows(response)},
+		{Heading: "Crash Loop Detection", Rows: inspector.BuildWatchdogStatusCrashLoopRows(response)},
+		{Heading: "Continuous Profiling", Rows: inspector.BuildWatchdogStatusContinuousRows(response)},
+		{Heading: "Contention Diagnostic", Rows: inspector.BuildWatchdogStatusContentionRows(response)},
 	})
 
 	return nil
-}
-
-// watchdogStatusCoreFields builds the lifecycle DetailFields displayed at
-// the top of `piko watchdog status`. Splitting the section builders keeps
-// the top command function within the project's function-length budget.
-//
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
-//
-// Returns []DetailField rendered as the Lifecycle section.
-func watchdogStatusCoreFields(response *pb.GetWatchdogStatusResponse) []DetailField {
-	statusValue := "disabled"
-	if response.GetEnabled() {
-		statusValue = "enabled"
-	}
-	if response.GetStopped() {
-		statusValue = "stopped"
-	}
-
-	return []DetailField{
-		{Key: "Status", Value: statusValue, IsStatus: true},
-		{Key: "Check Interval", Value: formatDuration(response.GetCheckIntervalMs())},
-		{Key: "Cooldown", Value: formatDuration(response.GetCooldownMs())},
-		{Key: "Capture Window", Value: formatDuration(response.GetCaptureWindowMs())},
-		{Key: "Captures In Window", Value: fmt.Sprintf("%d / %d", response.GetCaptureWindowUsed(), response.GetMaxCapturesPerWindow())},
-		{Key: "Warnings In Window", Value: fmt.Sprintf("%d / %d", response.GetWarningWindowUsed(), response.GetMaxWarningsPerWindow())},
-		{Key: "Profile Directory", Value: response.GetProfileDirectory()},
-		{Key: "Warm-Up Remaining", Value: watchdogWarmUpRemaining(response)},
-	}
-}
-
-// watchdogStatusThresholdFields builds the threshold DetailFields covering
-// heap, goroutine, FD, and scheduler-latency configuration.
-//
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
-//
-// Returns []DetailField rendered as the Thresholds section.
-func watchdogStatusThresholdFields(response *pb.GetWatchdogStatusResponse) []DetailField {
-	return []DetailField{
-		{Key: "Heap Threshold", Value: formatBytes(response.GetHeapThresholdBytes())},
-		{Key: "Heap High-Water Mark", Value: formatBytes(response.GetHeapHighWater())},
-		{Key: "Goroutine Threshold", Value: fmt.Sprintf(fmtDecimalInt, response.GetGoroutineThreshold())},
-		{Key: "Goroutine Safety Ceiling", Value: fmt.Sprintf(fmtDecimalInt, response.GetGoroutineSafetyCeiling())},
-		{Key: "Goroutine Baseline", Value: fmt.Sprintf(fmtDecimalInt, response.GetGoroutineBaseline())},
-		{Key: "FD Pressure Threshold", Value: fmt.Sprintf("%.0f%%", response.GetFdPressureThresholdPercent()*100)},
-		{Key: "Scheduler Latency p99 Threshold", Value: formatDurationNanos(response.GetSchedulerLatencyP99ThresholdNs())},
-		{Key: "Max Profiles Per Type", Value: fmt.Sprintf(fmtDecimalInt, response.GetMaxProfilesPerType())},
-	}
-}
-
-// watchdogStatusCrashLoopFields builds the crash-loop detection DetailFields.
-//
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
-//
-// Returns []DetailField rendered as the Crash Loop Detection section.
-func watchdogStatusCrashLoopFields(response *pb.GetWatchdogStatusResponse) []DetailField {
-	return []DetailField{
-		{Key: "Crash Loop Window", Value: formatDuration(response.GetCrashLoopWindowMs())},
-		{Key: "Crash Loop Threshold", Value: fmt.Sprintf(fmtDecimalInt, response.GetCrashLoopThreshold())},
-	}
-}
-
-// watchdogStatusContinuousFields builds the continuous-profiling DetailFields.
-//
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
-//
-// Returns []DetailField rendered as the Continuous Profiling section.
-func watchdogStatusContinuousFields(response *pb.GetWatchdogStatusResponse) []DetailField {
-	continuousProfilingValue := "disabled"
-	if response.GetContinuousProfilingEnabled() {
-		continuousProfilingValue = "enabled"
-	}
-	return []DetailField{
-		{Key: "Continuous Profiling", Value: continuousProfilingValue, IsStatus: true},
-		{Key: "Continuous Profiling Interval", Value: formatDuration(response.GetContinuousProfilingIntervalMs())},
-		{Key: "Continuous Profiling Types", Value: strings.Join(response.GetContinuousProfilingTypes(), ", ")},
-		{Key: "Continuous Profiling Retention", Value: fmt.Sprintf(fmtDecimalInt, response.GetContinuousProfilingRetention())},
-	}
-}
-
-// watchdogStatusContentionFields builds the contention-diagnostic DetailFields.
-//
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
-//
-// Returns []DetailField rendered as the Contention Diagnostic section.
-func watchdogStatusContentionFields(response *pb.GetWatchdogStatusResponse) []DetailField {
-	contentionAutoFireValue := "manual"
-	if response.GetContentionDiagnosticAutoFire() {
-		contentionAutoFireValue = "auto-fire"
-	}
-	return []DetailField{
-		{Key: "Contention Diagnostic Mode", Value: contentionAutoFireValue, IsStatus: true},
-		{Key: "Contention Diagnostic Window", Value: formatDuration(response.GetContentionDiagnosticWindowMs())},
-		{Key: "Contention Diagnostic Cooldown", Value: formatDuration(response.GetContentionDiagnosticCooldownMs())},
-		{Key: "Contention Diagnostic Last Run", Value: formatOptionalTime(response.GetContentionDiagnosticLastRunMs())},
-	}
-}
-
-// formatDurationNanos turns a nanosecond integer (as carried in proto) into
-// a human-readable duration string. Zero values render as "disabled" so
-// the status output makes the disabled state explicit.
-//
-// Takes nanos (int64) which is the proto-encoded nanosecond duration.
-//
-// Returns string which is "disabled" when nanos<=0, otherwise the
-// formatted duration.
-func formatDurationNanos(nanos int64) string {
-	if nanos <= 0 {
-		return "disabled"
-	}
-	return time.Duration(nanos).String()
-}
-
-// formatOptionalTime renders a unix-millisecond timestamp as RFC 3339 time,
-// or "never" when the value is zero.
-//
-// Takes ms (int64) which is the unix-millisecond timestamp.
-//
-// Returns string which is "never" for the zero timestamp, otherwise the
-// formatted time.
-func formatOptionalTime(ms int64) string {
-	if ms <= 0 {
-		return "never"
-	}
-	return time.UnixMilli(ms).UTC().Format(time.RFC3339)
-}
-
-// watchdogWarmUpRemaining computes how much warm-up time remains, returning
-// "complete" if the warm-up period has elapsed.
-//
-// Takes response (*pb.GetWatchdogStatusResponse) which provides the warm-up
-// duration and server start time.
-//
-// Returns string which is the formatted remaining warm-up time or "complete".
-func watchdogWarmUpRemaining(response *pb.GetWatchdogStatusResponse) string {
-	warmUpDuration := time.Duration(response.GetWarmUpDurationMs()) * time.Millisecond
-	if warmUpDuration == 0 {
-		return "complete"
-	}
-
-	startedAt := time.UnixMilli(response.GetStartedAtMs())
-	warmUpEnd := startedAt.Add(warmUpDuration)
-	remaining := time.Until(warmUpEnd)
-
-	if remaining <= 0 {
-		return "complete"
-	}
-
-	return remaining.Truncate(time.Second).String()
 }
 
 // contentionDiagnosticResult captures the outcome of a contention-diagnostic
@@ -784,53 +599,9 @@ type contentionDiagnosticResult struct {
 	Started bool `json:"started"`
 }
 
-// historyEntryResult is the JSON-friendly view of a single startup-history
-// entry served by the inspector.
-type historyEntryResult struct {
-	// StartedAt is the wall-clock instant the watchdog began monitoring
-	// the process, formatted as RFC 3339.
-	StartedAt string `json:"startedAt"`
-
-	// StoppedAt is the clean-shutdown instant; empty when the process
-	// exited uncleanly.
-	StoppedAt string `json:"stoppedAt,omitempty"`
-
-	// Hostname is the host the run executed on.
-	Hostname string `json:"hostname"`
-
-	// Version is the build version reported by the run.
-	Version string `json:"version"`
-
-	// StopReason is the free-form classification recorded at stop time
-	// ("clean", "unclean", "panic"). Empty when the process is the
-	// current run.
-	StopReason string `json:"stopReason,omitempty"`
-
-	// GomemlimitBytes is the effective Go memory limit at start.
-	GomemlimitBytes int64 `json:"gomemlimitBytes,omitempty"`
-
-	// PID is the operating-system process identifier.
-	PID int32 `json:"pid"`
-}
-
-// eventResult is the JSON-friendly view of a single watchdog event.
-type eventResult struct {
-	// Fields contains the structured key-value attachments.
-	Fields map[string]string `json:"fields,omitempty"`
-
-	// EmittedAt is the wall-clock instant the event was emitted, RFC 3339.
-	EmittedAt string `json:"emittedAt"`
-
-	// EventType is the snake_case event identifier
-	// (e.g. "heap_threshold_exceeded").
-	EventType string `json:"eventType"`
-
-	// Message is the human-readable description.
-	Message string `json:"message"`
-
-	// Priority is 1=Normal, 2=High, 3=Critical.
-	Priority int32 `json:"priority"`
-}
+// eventResult is the CLI-side alias for inspector.WatchdogEventResult;
+// both renderers now consume the same JSON-friendly view.
+type eventResult = inspector.WatchdogEventResult
 
 // watchdogContentionDiagnostic runs the contention diagnostic via the
 // inspector and prints the outcome.
@@ -918,7 +689,7 @@ Flags:
 		return grpcError("getting watchdog startup history", err)
 	}
 
-	results := protoHistoryToResults(response.GetEntries())
+	results := inspector.BuildWatchdogHistoryEntries(response.GetEntries())
 
 	p := NewPrinter(cc.Stdout, cc.Opts.Output, cc.Opts.NoColour, cc.Opts.NoHeaders)
 	if p.IsJSON() {
@@ -931,64 +702,8 @@ Flags:
 	}
 
 	headers := []string{"PID", "STARTED", "STOPPED", "REASON", "HOST", "VERSION"}
-	p.PrintTable(headers, historyResultsToRows(results))
+	p.PrintTable(headers, inspector.BuildWatchdogHistoryRows(results))
 	return nil
-}
-
-// protoHistoryToResults converts the wire-form startup-history entries
-// into the JSON-friendly result struct used by both the table renderer
-// and JSON output mode.
-//
-// Takes entries ([]*pb.StartupHistoryEntry) which is the proto slice.
-//
-// Returns []historyEntryResult ready for table or JSON rendering.
-func protoHistoryToResults(entries []*pb.StartupHistoryEntry) []historyEntryResult {
-	results := make([]historyEntryResult, 0, len(entries))
-	for _, entry := range entries {
-		stoppedAt := ""
-		if entry.GetStoppedAtMs() > 0 {
-			stoppedAt = time.UnixMilli(entry.GetStoppedAtMs()).UTC().Format(time.RFC3339)
-		}
-		results = append(results, historyEntryResult{
-			StartedAt:       time.UnixMilli(entry.GetStartedAtMs()).UTC().Format(time.RFC3339),
-			StoppedAt:       stoppedAt,
-			Hostname:        entry.GetHostname(),
-			Version:         entry.GetVersion(),
-			StopReason:      entry.GetStopReason(),
-			PID:             entry.GetPid(),
-			GomemlimitBytes: entry.GetGomemlimitBytes(),
-		})
-	}
-	return results
-}
-
-// historyResultsToRows formats history entries as table rows, applying
-// fallbacks for empty StoppedAt and StopReason fields.
-//
-// Takes results ([]historyEntryResult) which is the input slice.
-//
-// Returns [][]string with one row per entry.
-func historyResultsToRows(results []historyEntryResult) [][]string {
-	rows := make([][]string, len(results))
-	for index, entry := range results {
-		stopped := entry.StoppedAt
-		if stopped == "" {
-			stopped = "(running or unclean)"
-		}
-		reason := entry.StopReason
-		if reason == "" {
-			reason = "-"
-		}
-		rows[index] = []string{
-			fmt.Sprintf(fmtDecimalInt, entry.PID),
-			entry.StartedAt,
-			stopped,
-			reason,
-			entry.Hostname,
-			entry.Version,
-		}
-	}
-	return rows
 }
 
 // watchdogEvents lists or streams watchdog events.
@@ -1104,7 +819,7 @@ func streamWatchdogEvents(ctx context.Context, cc *CommandContext, sinceMs int64
 // Returns error when JSON serialisation fails; nil for the tail/table
 // path which writes to stdout best-effort.
 func emitWatchdogStreamEvent(cc *CommandContext, p *Printer, event *pb.WatchdogEventMessage) error {
-	result := protoEventToResult(event)
+	result := inspector.BuildWatchdogEventResult(event)
 	if p.IsJSON() {
 		return p.PrintJSON(result)
 	}
@@ -1122,7 +837,7 @@ func emitWatchdogStreamEvent(cc *CommandContext, p *Printer, event *pb.WatchdogE
 func renderWatchdogEvents(cc *CommandContext, events []*pb.WatchdogEventMessage, _ bool) error {
 	results := make([]eventResult, len(events))
 	for index, event := range events {
-		results[index] = protoEventToResult(event)
+		results[index] = inspector.BuildWatchdogEventResult(event)
 	}
 
 	p := NewPrinter(cc.Stdout, cc.Opts.Output, cc.Opts.NoColour, cc.Opts.NoHeaders)
@@ -1140,7 +855,7 @@ func renderWatchdogEvents(cc *CommandContext, events []*pb.WatchdogEventMessage,
 	for index, event := range results {
 		rows[index] = []string{
 			event.EmittedAt,
-			eventPriorityName(event.Priority),
+			inspector.WatchdogEventPriorityLabel(event.Priority),
 			event.EventType,
 			event.Message,
 		}
@@ -1157,43 +872,8 @@ func renderWatchdogEvents(cc *CommandContext, events []*pb.WatchdogEventMessage,
 func renderEventLine(cc *CommandContext, event eventResult) {
 	_, _ = fmt.Fprintf(cc.Stdout, "%s [%s] %s: %s\n",
 		event.EmittedAt,
-		eventPriorityName(event.Priority),
+		inspector.WatchdogEventPriorityLabel(event.Priority),
 		event.EventType,
 		event.Message,
 	)
-}
-
-// protoEventToResult adapts a proto WatchdogEventMessage into the
-// JSON-rendered eventResult struct.
-//
-// Takes event (*pb.WatchdogEventMessage) which is the wire event.
-//
-// Returns eventResult populated from the proto fields.
-func protoEventToResult(event *pb.WatchdogEventMessage) eventResult {
-	return eventResult{
-		EmittedAt: time.UnixMilli(event.GetEmittedAtMs()).UTC().Format(time.RFC3339),
-		EventType: event.GetEventType(),
-		Priority:  event.GetPriority(),
-		Message:   event.GetMessage(),
-		Fields:    event.GetFields(),
-	}
-}
-
-// eventPriorityName maps the int priority encoded over the wire to a
-// human-readable label used in tail/table output.
-//
-// Takes priority (int32) which is the wire priority value.
-//
-// Returns string which is one of normal/high/critical/unknown.
-func eventPriorityName(priority int32) string {
-	switch priority {
-	case eventPriorityNormal:
-		return "normal"
-	case eventPriorityHigh:
-		return "high"
-	case eventPriorityCritical:
-		return "critical"
-	default:
-		return "unknown"
-	}
 }

@@ -20,6 +20,7 @@ package tui_domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"piko.sh/piko/cmd/piko/internal/tui/tui_dto"
+	"piko.sh/piko/internal/goroutine"
 )
 
 const (
@@ -64,6 +66,27 @@ type Service struct {
 	// fdsProviders holds the file descriptor providers for resource monitoring.
 	fdsProviders []FDsProvider
 
+	// watchdogProviders holds providers that surface runtime anomaly
+	// detector state, profiles, history, and live events. The first
+	// configured provider drives the watchdog panel set.
+	watchdogProviders []WatchdogProvider
+
+	// providersInspectors backs the Content -> Providers panel.
+	providersInspectors []ProvidersInspector
+
+	// dlqInspectors backs the Content -> DLQ panel.
+	dlqInspectors []DLQInspector
+
+	// rateLimiterInspectors backs the Telemetry -> Rate Limiter panel.
+	rateLimiterInspectors []RateLimiterInspector
+
+	// profilingInspectors backs the Runtime -> Profiling panel.
+	profilingInspectors []ProfilingInspector
+
+	// eventDispatcher fans live watchdog events to subscribed panels.
+	// Created when at least one watchdog provider is configured.
+	eventDispatcher *EventDispatcher
+
 	// customPanels holds panels provided by the user to add during setup.
 	customPanels []Panel
 
@@ -86,18 +109,23 @@ type Service struct {
 // Returns error when initialisation fails.
 func NewService(config *tui_dto.Config, providers *Providers) (*Service, error) {
 	s := &Service{
-		config:              config,
-		model:               nil,
-		metricsProviders:    providers.Metrics,
-		tracesProviders:     providers.Traces,
-		resourceProviders:   providers.Resources,
-		healthProviders:     providers.Health,
-		systemProviders:     providers.System,
-		fdsProviders:        providers.FDs,
-		customPanels:        providers.Panels,
-		refreshOrchestrator: nil,
-		program:             nil,
-		closeFuncs:          make([]func() error, 0),
+		config:                config,
+		model:                 nil,
+		metricsProviders:      providers.Metrics,
+		tracesProviders:       providers.Traces,
+		resourceProviders:     providers.Resources,
+		healthProviders:       providers.Health,
+		systemProviders:       providers.System,
+		fdsProviders:          providers.FDs,
+		watchdogProviders:     providers.Watchdog,
+		providersInspectors:   providers.ProvidersInfo,
+		dlqInspectors:         providers.DLQ,
+		rateLimiterInspectors: providers.RateLimiter,
+		profilingInspectors:   providers.Profiling,
+		customPanels:          providers.Panels,
+		refreshOrchestrator:   nil,
+		program:               nil,
+		closeFuncs:            make([]func() error, 0),
 	}
 
 	s.model = NewModel(config)
@@ -122,10 +150,16 @@ func NewService(config *tui_dto.Config, providers *Providers) (*Service, error) 
 func (s *Service) Run(ctx context.Context) error {
 	s.program = tea.NewProgram(s.model)
 
+	if s.eventDispatcher != nil {
+		s.eventDispatcher.SetProgram(s.program)
+		s.eventDispatcher.Start(ctx)
+	}
+
 	s.refreshOrchestrator.Start(ctx)
 
 	errCh := make(chan error, 1)
 	go func() {
+		defer goroutine.RecoverPanic(ctx, "tui.programRun")
 		_, err := s.program.Run()
 		errCh <- err
 	}()
@@ -133,10 +167,16 @@ func (s *Service) Run(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		s.refreshOrchestrator.Stop()
+		if s.eventDispatcher != nil {
+			s.eventDispatcher.Stop()
+		}
 		s.program.Quit()
 		return ctx.Err()
 	case err := <-errCh:
 		s.refreshOrchestrator.Stop()
+		if s.eventDispatcher != nil {
+			s.eventDispatcher.Stop()
+		}
 		if err != nil {
 			return fmt.Errorf("running TUI program: %w", err)
 		}
@@ -144,19 +184,22 @@ func (s *Service) Run(ctx context.Context) error {
 	}
 }
 
-// Close releases resources held by the service.
+// Close releases resources held by the service. Every registered close
+// function runs even when an earlier one fails so no resource is left
+// dangling; the joined error reports every failure to the caller.
 //
-// Returns error when cleanup fails.
+// Returns error when one or more close functions fail; the result is
+// the joined set of errors via errors.Join.
 func (s *Service) Close() error {
-	var firstErr error
+	errs := make([]error, 0, len(s.closeFuncs))
 
 	for _, closeFunction := range s.closeFuncs {
-		if err := closeFunction(); err != nil && firstErr == nil {
-			firstErr = err
+		if err := closeFunction(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	return firstErr
+	return errors.Join(errs...)
 }
 
 // registerProviders adds close functions for all provider types.
@@ -179,6 +222,21 @@ func (s *Service) registerProviders() {
 		s.registerNamedProvider(p.Name(), p.Close)
 	}
 	for _, p := range s.fdsProviders {
+		s.registerNamedProvider(p.Name(), p.Close)
+	}
+	for _, p := range s.watchdogProviders {
+		s.registerNamedProvider(p.Name(), p.Close)
+	}
+	for _, p := range s.providersInspectors {
+		s.registerNamedProvider(p.Name(), p.Close)
+	}
+	for _, p := range s.dlqInspectors {
+		s.registerNamedProvider(p.Name(), p.Close)
+	}
+	for _, p := range s.rateLimiterInspectors {
+		s.registerNamedProvider(p.Name(), p.Close)
+	}
+	for _, p := range s.profilingInspectors {
 		s.registerNamedProvider(p.Name(), p.Close)
 	}
 }
@@ -204,19 +262,110 @@ func (s *Service) registerNamedProvider(name string, closeFunction func() error)
 func (s *Service) initialisePanels() {
 	s.initialiseResourcePanels()
 	s.initialiseObservabilityPanels()
+	s.initialiseWatchdogPanels()
 	s.initialiseCustomPanels()
 	s.initialisePlaceholderIfNeeded()
+	s.initialiseGroups()
+}
+
+// initialiseGroups assembles the four PanelGroups from the panels
+// already added to the model and registers them with the GroupedView.
+//
+// Groups whose providers are missing report Visible() == false and are
+// filtered from the tab bar at render time.
+func (s *Service) initialiseGroups() {
+	if s.model == nil {
+		return
+	}
+	byID := make(map[string]Panel, len(s.model.panels))
+	for _, p := range s.model.panels {
+		if p == nil {
+			continue
+		}
+		byID[p.ID()] = p
+	}
+
+	groups := []PanelGroup{
+		NewContentGroup(ContentPanels{
+			Overview:     byID["content-overview"],
+			Registry:     byID["registry"],
+			Storage:      byID["storage"],
+			Orchestrator: byID["orchestrator"],
+		}),
+		NewTelemetryGroup(TelemetryPanels{
+			Overview:    byID["telemetry-overview"],
+			Health:      byID["health"],
+			Metrics:     byID["metrics"],
+			Traces:      byID["traces"],
+			Routes:      byID["routes"],
+			RateLimiter: byID["rate-limiter"],
+		}),
+		NewRuntimeGroup(RuntimePanels{
+			Overview:  byID["runtime-overview"],
+			System:    byID["system"],
+			Resources: byID["resources"],
+			Lifecycle: byID["lifecycle"],
+			Memory:    byID["memory"],
+			Process:   byID["process"],
+			Build:     byID["build"],
+			Profiling: byID["profiling"],
+			Providers: byID["providers"],
+			DLQ:       byID["dlq"],
+		}),
+		NewWatchdogGroup(WatchdogPanels{
+			Overview:   byID["watchdog-overview"],
+			Events:     byID["watchdog-events"],
+			Profiles:   byID["watchdog-profiles"],
+			History:    byID["watchdog-history"],
+			Diagnostic: byID["watchdog-diagnostic"],
+			Config:     byID["watchdog-config"],
+		}),
+	}
+	s.model.SetGroups(groups)
+}
+
+// initialiseWatchdogPanels adds the four watchdog panels (Overview,
+// Events, Profiles, History) when a watchdog provider is configured.
+// The event dispatcher is created here and started later in Run.
+func (s *Service) initialiseWatchdogPanels() {
+	if len(s.watchdogProviders) == 0 {
+		return
+	}
+	provider := s.watchdogProviders[0]
+	clk := s.config.GetClock()
+
+	s.eventDispatcher = NewEventDispatcher(provider, clk)
+
+	s.model.AddPanel(NewWatchdogOverviewPanel(provider, s.eventDispatcher, clk))
+	s.model.AddPanel(NewWatchdogEventsPanel(s.eventDispatcher, clk))
+	s.model.AddPanel(NewWatchdogProfilesPanel(provider, clk))
+	s.model.AddPanel(NewWatchdogHistoryPanel(provider, clk))
+	s.model.AddPanel(NewWatchdogConfigPanel(provider, clk))
+	s.model.AddPanel(NewWatchdogDiagnosticPanel(provider, clk))
 }
 
 // initialiseResourcePanels adds resource-related panels (Registry, Storage,
-// Orchestrator).
+// Orchestrator) plus the inspector-driven Content panels (Providers, DLQ).
 func (s *Service) initialiseResourcePanels() {
-	if len(s.resourceProviders) == 0 {
-		return
+	if len(s.resourceProviders) > 0 {
+		s.model.AddPanel(NewRegistryPanel())
+		s.model.AddPanel(NewStoragePanel())
+		s.model.AddPanel(NewOrchestratorPanel(s.config.GetClock()))
+		s.model.AddPanel(NewContentOverviewPanel(s.resourceProviders[0], s.config.GetClock()))
 	}
-	s.model.AddPanel(NewRegistryPanel())
-	s.model.AddPanel(NewStoragePanel())
-	s.model.AddPanel(NewOrchestratorPanel(s.config.GetClock()))
+	clk := s.config.GetClock()
+	if len(s.providersInspectors) > 0 {
+		s.model.AddPanel(NewProvidersPanel(s.providersInspectors[0], clk))
+	}
+	if len(s.dlqInspectors) > 0 {
+		s.model.AddPanel(NewDLQPanel(s.dlqInspectors[0], clk))
+	}
+	if len(s.rateLimiterInspectors) > 0 {
+		s.model.AddPanel(NewRateLimiterPanel(s.rateLimiterInspectors[0], clk))
+	}
+	if len(s.profilingInspectors) > 0 {
+		s.model.AddPanel(NewProfilingPanel(s.profilingInspectors[0], clk))
+	}
 }
 
 // initialiseObservabilityPanels adds panels to the model for each configured
@@ -231,7 +380,23 @@ func (s *Service) initialiseObservabilityPanels() {
 		s.model.AddPanel(NewRoutesPanel(s.tracesProviders[0], clk))
 	}
 	if len(s.systemProviders) > 0 {
-		s.model.AddPanel(NewSystemPanel(s.systemProviders[0], clk))
+		provider := s.systemProviders[0]
+		s.model.AddPanel(NewSystemPanel(provider, clk))
+		s.model.AddPanel(NewBuildPanel(provider, clk))
+		s.model.AddPanel(NewMemoryPanel(provider, clk))
+		s.model.AddPanel(NewProcessPanel(provider, clk))
+		s.model.AddPanel(NewRuntimeOverviewPanel(provider, clk))
+	}
+	var telemetryHealth HealthProvider
+	if len(s.healthProviders) > 0 {
+		telemetryHealth = s.healthProviders[0]
+	}
+	var telemetryTraces TracesProvider
+	if len(s.tracesProviders) > 0 {
+		telemetryTraces = s.tracesProviders[0]
+	}
+	if telemetryHealth != nil || telemetryTraces != nil {
+		s.model.AddPanel(NewTelemetryOverviewPanel(telemetryHealth, telemetryTraces, clk))
 	}
 	if len(s.fdsProviders) > 0 {
 		s.model.AddPanel(NewResourcesPanel(s.fdsProviders[0], clk))
@@ -333,3 +498,16 @@ func (p *placeholderPanel) SetFocused(focused bool) { p.focused = focused }
 //
 // Returns []KeyBinding which is always nil for placeholder panels.
 func (*placeholderPanel) KeyMap() []KeyBinding { return nil }
+
+// DetailView returns the empty string so the composer falls back to
+// its placeholder hint; the placeholder panel itself is already a
+// "nothing to see" body.
+//
+// Returns string which is always empty.
+func (*placeholderPanel) DetailView(_, _ int) string { return "" }
+
+// Selection returns the empty Selection because the placeholder panel
+// has no selectable rows.
+//
+// Returns Selection which is always the zero value.
+func (*placeholderPanel) Selection() Selection { return Selection{} }

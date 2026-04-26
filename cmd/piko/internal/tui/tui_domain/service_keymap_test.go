@@ -27,7 +27,7 @@ func TestGlobalKeyBindings(t *testing.T) {
 		t.Fatal("expected non-empty keybindings")
 	}
 
-	expectedCount := 7
+	expectedCount := 14
 	if len(bindings) != expectedCount {
 		t.Errorf("expected %d bindings, got %d", expectedCount, len(bindings))
 	}

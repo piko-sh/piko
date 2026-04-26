@@ -157,28 +157,6 @@ func TestOrchestratorPanel_ApplyFilters(t *testing.T) {
 	}
 }
 
-func TestFormatDuration(t *testing.T) {
-	testCases := []struct {
-		name     string
-		expected string
-		d        time.Duration
-	}{
-		{name: "seconds", d: 30 * time.Second, expected: "30s"},
-		{name: "minutes", d: 5 * time.Minute, expected: "5m"},
-		{name: "hours", d: 3 * time.Hour, expected: "3h"},
-		{name: "days", d: 48 * time.Hour, expected: "2d"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := formatDuration(tc.d)
-			if result != tc.expected {
-				t.Errorf("expected %q, got %q", tc.expected, result)
-			}
-		})
-	}
-}
-
 func TestOrchestratorPanel_View(t *testing.T) {
 	panel := NewOrchestratorPanel(newTestClock())
 	panel.SetSize(100, 24)

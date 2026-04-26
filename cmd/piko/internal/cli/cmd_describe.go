@@ -25,7 +25,10 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 	"piko.sh/piko/wdk/safeconv"
 )
@@ -121,87 +124,12 @@ func describeHealth(ctx context.Context, conn monitoringConnection, p *Printer, 
 		return p.PrintJSON(response)
 	}
 
-	sections := buildHealthDetailSections(p, response, filter)
+	sections := inspector.BuildHealthDetailSections(response, filter)
 	if len(sections) == 0 && filter != "" {
 		return fmt.Errorf("no health probe matching %q", filter)
 	}
 	p.PrintDetail(sections)
 	return nil
-}
-
-// buildHealthDetailSections creates detail sections for health probes.
-//
-// Takes p (*Printer) which provides status colouring.
-// Takes response (*pb.GetHealthResponse) which contains the health data.
-// Takes filter (string) which optionally restricts to a named probe.
-//
-// Returns []DetailSection which contains the filtered sections.
-func buildHealthDetailSections(p *Printer, response *pb.GetHealthResponse, filter string) []DetailSection {
-	probes := []struct {
-		status *pb.HealthStatus
-		name   string
-	}{
-		{name: "Liveness", status: response.GetLiveness()},
-		{name: "Readiness", status: response.GetReadiness()},
-	}
-
-	sections := make([]DetailSection, 0, len(probes))
-	for _, probe := range probes {
-		if !matchesFilter(probe.name, filter) {
-			continue
-		}
-		if probe.status == nil {
-			continue
-		}
-		sections = append(sections, healthStatusSection(p, probe.name, probe.status))
-	}
-	return sections
-}
-
-// healthStatusSection builds a DetailSection for a health probe.
-//
-// Takes p (*Printer) which provides colourised output formatting.
-// Takes name (string) which specifies the section title.
-// Takes status (*pb.HealthStatus) which contains the health probe data.
-//
-// Returns DetailSection which contains the formatted health status fields
-// and any dependency subsections.
-func healthStatusSection(p *Printer, name string, status *pb.HealthStatus) DetailSection {
-	section := DetailSection{
-		Title: name,
-		Fields: []DetailField{
-			{Key: "State", Value: p.ColourisedStatus(status.GetState()), IsStatus: true},
-			{Key: "Message", Value: status.GetMessage()},
-			{Key: "Duration", Value: status.GetDuration()},
-			{Key: "Timestamp", Value: formatTimestamp(status.GetTimestampMs())},
-			{Key: "Dependencies", Value: formatReady(status)},
-		},
-	}
-
-	for _, dependency := range status.GetDependencies() {
-		section.SubSections = append(section.SubSections, healthDependencySection(p, dependency))
-	}
-	return section
-}
-
-// healthDependencySection builds a DetailSection for a health dependency.
-//
-// Takes p (*Printer) which provides colourisation for status values.
-// Takes dependency (*pb.HealthStatus) which contains the dependency health data.
-//
-// Returns DetailSection which represents the formatted health dependency.
-func healthDependencySection(p *Printer, dependency *pb.HealthStatus) DetailSection {
-	section := DetailSection{
-		Title: dependency.GetName(),
-		Fields: []DetailField{
-			{Key: "State", Value: p.ColourisedStatus(dependency.GetState()), IsStatus: true},
-			{Key: "Duration", Value: dependency.GetDuration()},
-		},
-	}
-	if dependency.GetMessage() != "" {
-		section.Fields = append(section.Fields, DetailField{Key: "Message", Value: dependency.GetMessage()})
-	}
-	return section
 }
 
 // describeTrace displays all spans belonging to a specific trace.
@@ -244,6 +172,24 @@ func describeTrace(ctx context.Context, conn monitoringConnection, p *Printer, a
 	printTraceTable(p, traceID, traceSpans)
 	printSpanDetails(p, traceSpans)
 	return nil
+}
+
+// capitaliseFirstRune returns s with its leading rune upper-cased.
+// Walks runes (not bytes) so non-ASCII inputs are not split mid-byte.
+//
+// Takes s (string) which is the value to capitalise.
+//
+// Returns string with the first rune upper-cased, or s unchanged when
+// it is empty or the leading rune cannot be decoded.
+func capitaliseFirstRune(s string) string {
+	if s == "" {
+		return s
+	}
+	first, size := utf8.DecodeRuneInString(s)
+	if first == utf8.RuneError && size <= 1 {
+		return s
+	}
+	return string(unicode.ToUpper(first)) + s[size:]
 }
 
 // filterSpansByTraceID returns only the spans belonging to the given trace.
@@ -312,10 +258,10 @@ func printSpanDetails(p *Printer, spans []*pb.Span) {
 //
 // Takes s (*pb.Span) which is the span to extract details from.
 //
-// Returns []DetailSection which contains the formatted attribute and event
+// Returns []inspector.DetailSection which contains the formatted attribute and event
 // sections for the span.
-func buildSpanDetailSections(_ *Printer, s *pb.Span) []DetailSection {
-	var sections []DetailSection
+func buildSpanDetailSections(_ *Printer, s *pb.Span) []inspector.DetailSection {
+	var sections []inspector.DetailSection
 
 	attrs := s.GetAttributes()
 	if len(attrs) > 0 {
@@ -324,19 +270,19 @@ func buildSpanDetailSections(_ *Printer, s *pb.Span) []DetailSection {
 			attributeKeys = append(attributeKeys, k)
 		}
 		slices.Sort(attributeKeys)
-		fields := make([]DetailField, 0, len(attrs))
+		fields := make([]inspector.DetailRow, 0, len(attrs))
 		for _, k := range attributeKeys {
-			fields = append(fields, DetailField{Key: k, Value: attrs[k]})
+			fields = append(fields, inspector.DetailRow{Label: k, Value: attrs[k]})
 		}
-		sections = append(sections, DetailSection{
-			Title:  fmt.Sprintf("Span %s (%s)", truncate(s.GetSpanId(), describeTruncateLen), s.GetName()),
-			Fields: fields,
+		sections = append(sections, inspector.DetailSection{
+			Heading: fmt.Sprintf("Span %s (%s)", truncate(s.GetSpanId(), describeTruncateLen), s.GetName()),
+			Rows:    fields,
 		})
 	}
 
 	for _, e := range s.GetEvents() {
-		eventFields := []DetailField{
-			{Key: "Timestamp", Value: formatTimestamp(e.GetTimestampMs())},
+		eventFields := []inspector.DetailRow{
+			{Label: "Timestamp", Value: formatTimestamp(e.GetTimestampMs())},
 		}
 		eventAttrs := e.GetAttributes()
 		eventAttrKeys := make([]string, 0, len(eventAttrs))
@@ -345,11 +291,11 @@ func buildSpanDetailSections(_ *Printer, s *pb.Span) []DetailSection {
 		}
 		slices.Sort(eventAttrKeys)
 		for _, k := range eventAttrKeys {
-			eventFields = append(eventFields, DetailField{Key: k, Value: eventAttrs[k]})
+			eventFields = append(eventFields, inspector.DetailRow{Label: k, Value: eventAttrs[k]})
 		}
-		sections = append(sections, DetailSection{
-			Title:  fmt.Sprintf("Event: %s", e.GetName()),
-			Fields: eventFields,
+		sections = append(sections, inspector.DetailSection{
+			Heading: fmt.Sprintf("Event: %s", e.GetName()),
+			Rows:    eventFields,
 		})
 	}
 
@@ -366,8 +312,8 @@ type resourceDescriptor struct {
 	// for use in JSON output mode.
 	filterForJSON func(items any, filter string) any
 
-	// buildSections constructs DetailSection values from the items and filter.
-	buildSections func(items any, filter string) []DetailSection
+	// buildSections constructs inspector.DetailSection values from the items and filter.
+	buildSections func(items any, filter string) []inspector.DetailSection
 }
 
 // describeResourceItems implements the shared describe pattern: parse flags,
@@ -447,7 +393,7 @@ func describeTask(ctx context.Context, conn monitoringConnection, p *Printer, ar
 			filterForJSON: func(items any, filter string) any {
 				return filterTasks(items.([]*pb.TaskListItem), filter)
 			},
-			buildSections: func(items any, filter string) []DetailSection {
+			buildSections: func(items any, filter string) []inspector.DetailSection {
 				return buildTaskDetailSections(p, items.([]*pb.TaskListItem), filter)
 			},
 		},
@@ -476,31 +422,31 @@ func filterTasks(tasks []*pb.TaskListItem, filter string) []*pb.TaskListItem {
 // Takes tasks ([]*pb.TaskListItem) which contains the tasks to process.
 // Takes filter (string) which limits results to matching task IDs.
 //
-// Returns []DetailSection which contains the formatted task details.
-func buildTaskDetailSections(p *Printer, tasks []*pb.TaskListItem, filter string) []DetailSection {
-	sections := make([]DetailSection, 0)
+// Returns []inspector.DetailSection which contains the formatted task details.
+func buildTaskDetailSections(p *Printer, tasks []*pb.TaskListItem, filter string) []inspector.DetailSection {
+	sections := make([]inspector.DetailSection, 0)
 	for _, t := range tasks {
 		if !matchesFilter(t.GetId(), filter) {
 			continue
 		}
-		fields := []DetailField{
-			{Key: "ID", Value: t.GetId()},
-			{Key: "Workflow", Value: t.GetWorkflowId()},
-			{Key: "Executor", Value: t.GetExecutor()},
-			{Key: "Status", Value: p.ColourisedStatus(t.GetStatus()), IsStatus: true},
-			{Key: "Priority", Value: strconv.Itoa(int(t.GetPriority()))},
-			{Key: "Attempt", Value: strconv.Itoa(int(t.GetAttempt()))},
+		fields := []inspector.DetailRow{
+			{Label: "ID", Value: t.GetId()},
+			{Label: "Workflow", Value: t.GetWorkflowId()},
+			{Label: "Executor", Value: t.GetExecutor()},
+			{Label: "Status", Value: p.ColourisedStatus(t.GetStatus()), IsStatus: true},
+			{Label: "Priority", Value: strconv.Itoa(int(t.GetPriority()))},
+			{Label: "Attempt", Value: strconv.Itoa(int(t.GetAttempt()))},
 		}
 		if t.GetLastError() != "" {
-			fields = append(fields, DetailField{Key: "Last Error", Value: t.GetLastError()})
+			fields = append(fields, inspector.DetailRow{Label: "Last Error", Value: t.GetLastError()})
 		}
 		fields = append(fields,
-			DetailField{Key: "Created", Value: formatTimestamp(t.GetCreatedAt())},
-			DetailField{Key: "Updated", Value: formatTimestamp(t.GetUpdatedAt())},
+			inspector.DetailRow{Label: "Created", Value: formatTimestamp(t.GetCreatedAt())},
+			inspector.DetailRow{Label: "Updated", Value: formatTimestamp(t.GetUpdatedAt())},
 		)
-		sections = append(sections, DetailSection{
-			Title:  fmt.Sprintf("Task %s", t.GetId()),
-			Fields: fields,
+		sections = append(sections, inspector.DetailSection{
+			Heading: fmt.Sprintf("Task %s", t.GetId()),
+			Rows:    fields,
 		})
 	}
 	return sections
@@ -564,23 +510,23 @@ func filterWorkflows(workflows []*pb.WorkflowSummary, filter string) []*pb.Workf
 // Takes workflows ([]*pb.WorkflowSummary) which provides the workflow data.
 // Takes filter (string) which limits results to matching workflow IDs.
 //
-// Returns []DetailSection which contains the formatted workflow details.
-func buildWorkflowDetailSections(workflows []*pb.WorkflowSummary, filter string) []DetailSection {
-	sections := make([]DetailSection, 0)
+// Returns []inspector.DetailSection which contains the formatted workflow details.
+func buildWorkflowDetailSections(workflows []*pb.WorkflowSummary, filter string) []inspector.DetailSection {
+	sections := make([]inspector.DetailSection, 0)
 	for _, wf := range workflows {
 		if !matchesFilter(wf.GetWorkflowId(), filter) {
 			continue
 		}
-		sections = append(sections, DetailSection{
-			Title: fmt.Sprintf("Workflow %s", wf.GetWorkflowId()),
-			Fields: []DetailField{
-				{Key: "Workflow ID", Value: wf.GetWorkflowId()},
-				{Key: "Tasks", Value: strconv.FormatInt(wf.GetTaskCount(), 10)},
-				{Key: "Complete", Value: strconv.FormatInt(wf.GetCompleteCount(), 10)},
-				{Key: "Failed", Value: strconv.FormatInt(wf.GetFailedCount(), 10)},
-				{Key: "Active", Value: strconv.FormatInt(wf.GetActiveCount(), 10)},
-				{Key: "Created", Value: formatTimestamp(wf.GetCreatedAt())},
-				{Key: "Updated", Value: formatTimestamp(wf.GetUpdatedAt())},
+		sections = append(sections, inspector.DetailSection{
+			Heading: fmt.Sprintf("Workflow %s", wf.GetWorkflowId()),
+			Rows: []inspector.DetailRow{
+				{Label: "Workflow ID", Value: wf.GetWorkflowId()},
+				{Label: "Tasks", Value: strconv.FormatInt(wf.GetTaskCount(), 10)},
+				{Label: "Complete", Value: strconv.FormatInt(wf.GetCompleteCount(), 10)},
+				{Label: "Failed", Value: strconv.FormatInt(wf.GetFailedCount(), 10)},
+				{Label: "Active", Value: strconv.FormatInt(wf.GetActiveCount(), 10)},
+				{Label: "Created", Value: formatTimestamp(wf.GetCreatedAt())},
+				{Label: "Updated", Value: formatTimestamp(wf.GetUpdatedAt())},
 			},
 		})
 	}
@@ -611,7 +557,7 @@ func describeArtefact(ctx context.Context, conn monitoringConnection, p *Printer
 			filterForJSON: func(items any, filter string) any {
 				return filterArtefacts(items.([]*pb.ArtefactListItem), filter)
 			},
-			buildSections: func(items any, filter string) []DetailSection {
+			buildSections: func(items any, filter string) []inspector.DetailSection {
 				return buildArtefactDetailSections(p, items.([]*pb.ArtefactListItem), filter)
 			},
 		},
@@ -641,24 +587,24 @@ func filterArtefacts(artefacts []*pb.ArtefactListItem, filter string) []*pb.Arte
 // display.
 // Takes filter (string) which limits results to matching IDs or source paths.
 //
-// Returns []DetailSection which contains the formatted detail sections for
+// Returns []inspector.DetailSection which contains the formatted detail sections for
 // artefacts that match the filter.
-func buildArtefactDetailSections(p *Printer, artefacts []*pb.ArtefactListItem, filter string) []DetailSection {
-	sections := make([]DetailSection, 0)
+func buildArtefactDetailSections(p *Printer, artefacts []*pb.ArtefactListItem, filter string) []inspector.DetailSection {
+	sections := make([]inspector.DetailSection, 0)
 	for _, a := range artefacts {
 		if !matchesFilter(a.GetId(), filter) && !matchesFilter(a.GetSourcePath(), filter) {
 			continue
 		}
-		sections = append(sections, DetailSection{
-			Title: fmt.Sprintf("Artefact %s", a.GetId()),
-			Fields: []DetailField{
-				{Key: "ID", Value: a.GetId()},
-				{Key: "Source Path", Value: a.GetSourcePath()},
-				{Key: "Status", Value: p.ColourisedStatus(a.GetStatus()), IsStatus: true},
-				{Key: "Variants", Value: strconv.FormatInt(a.GetVariantCount(), 10)},
-				{Key: "Size", Value: formatBytes(safeconv.Int64ToUint64(a.GetTotalSize()))},
-				{Key: "Created", Value: formatTimestamp(a.GetCreatedAt())},
-				{Key: "Updated", Value: formatTimestamp(a.GetUpdatedAt())},
+		sections = append(sections, inspector.DetailSection{
+			Heading: fmt.Sprintf("Artefact %s", a.GetId()),
+			Rows: []inspector.DetailRow{
+				{Label: "ID", Value: a.GetId()},
+				{Label: "Source Path", Value: a.GetSourcePath()},
+				{Label: "Status", Value: p.ColourisedStatus(a.GetStatus()), IsStatus: true},
+				{Label: "Variants", Value: strconv.FormatInt(a.GetVariantCount(), 10)},
+				{Label: "Size", Value: formatBytes(safeconv.Int64ToUint64(a.GetTotalSize()))},
+				{Label: "Created", Value: formatTimestamp(a.GetCreatedAt())},
+				{Label: "Updated", Value: formatTimestamp(a.GetUpdatedAt())},
 			},
 		})
 	}
@@ -691,42 +637,12 @@ func describeDLQ(ctx context.Context, conn monitoringConnection, p *Printer, arg
 		return p.PrintJSON(response.GetSummaries())
 	}
 
-	sections := buildDLQDetailSections(response.GetSummaries(), filter)
+	sections := inspector.BuildDLQDetailSections(response.GetSummaries(), filter)
 	if len(sections) == 0 && filter != "" {
 		return fmt.Errorf("no dispatcher matching %q", filter)
 	}
 	p.PrintDetail(sections)
 	return nil
-}
-
-// buildDLQDetailSections creates detail sections for dispatchers.
-//
-// Takes summaries ([]*pb.DispatcherSummary) which contains the dispatcher data.
-// Takes filter (string) which limits results to matching dispatcher types.
-//
-// Returns []DetailSection which contains the formatted dispatcher details.
-func buildDLQDetailSections(summaries []*pb.DispatcherSummary, filter string) []DetailSection {
-	sections := make([]DetailSection, 0)
-	for _, s := range summaries {
-		if !matchesFilter(s.GetType(), filter) {
-			continue
-		}
-		sections = append(sections, DetailSection{
-			Title: fmt.Sprintf("Dispatcher %s", s.GetType()),
-			Fields: []DetailField{
-				{Key: "Type", Value: s.GetType()},
-				{Key: "Queued", Value: strconv.Itoa(int(s.GetQueuedItems()))},
-				{Key: "Retry Queue", Value: strconv.Itoa(int(s.GetRetryQueueSize()))},
-				{Key: "Dead Letter", Value: strconv.Itoa(int(s.GetDeadLetterCount()))},
-				{Key: "Total Processed", Value: strconv.FormatInt(s.GetTotalProcessed(), 10)},
-				{Key: "Total Successful", Value: strconv.FormatInt(s.GetTotalSuccessful(), 10)},
-				{Key: "Total Failed", Value: strconv.FormatInt(s.GetTotalFailed(), 10)},
-				{Key: "Total Retries", Value: strconv.FormatInt(s.GetTotalRetries(), 10)},
-				{Key: "Uptime", Value: formatDuration(s.GetUptimeMs())},
-			},
-		})
-	}
-	return sections
 }
 
 // describeOpenResources displays detailed open resource information.
@@ -770,17 +686,17 @@ func describeOpenResources(ctx context.Context, conn monitoringConnection, p *Pr
 // data to format.
 // Takes filter (string) which limits results to matching categories.
 //
-// Returns []DetailSection which contains the formatted sections for display.
-func buildResourceDetailSections(response *pb.GetFileDescriptorsResponse, filter string) []DetailSection {
-	sections := make([]DetailSection, 0)
+// Returns []inspector.DetailSection which contains the formatted sections for display.
+func buildResourceDetailSections(response *pb.GetFileDescriptorsResponse, filter string) []inspector.DetailSection {
+	sections := make([]inspector.DetailSection, 0)
 
 	if filter == "" {
-		sections = append(sections, DetailSection{
-			Title: "Summary",
-			Fields: []DetailField{
-				{Key: "Total", Value: strconv.Itoa(int(response.GetTotal()))},
-				{Key: "Categories", Value: strconv.Itoa(len(response.GetCategories()))},
-				{Key: "Timestamp", Value: formatTimestamp(response.GetTimestampMs())},
+		sections = append(sections, inspector.DetailSection{
+			Heading: "Summary",
+			Rows: []inspector.DetailRow{
+				{Label: "Total", Value: strconv.Itoa(int(response.GetTotal()))},
+				{Label: "Categories", Value: strconv.Itoa(len(response.GetCategories()))},
+				{Label: "Timestamp", Value: formatTimestamp(response.GetTimestampMs())},
 			},
 		})
 	}
@@ -790,19 +706,19 @@ func buildResourceDetailSections(response *pb.GetFileDescriptorsResponse, filter
 			continue
 		}
 
-		catSection := DetailSection{
-			Title: cat.GetCategory(),
-			Fields: []DetailField{
-				{Key: "Count", Value: strconv.Itoa(int(cat.GetCount()))},
+		catSection := inspector.DetailSection{
+			Heading: cat.GetCategory(),
+			Rows: []inspector.DetailRow{
+				{Label: "Count", Value: strconv.Itoa(int(cat.GetCount()))},
 			},
 		}
 
 		for _, fd := range cat.GetFds() {
-			catSection.SubSections = append(catSection.SubSections, DetailSection{
-				Title: fmt.Sprintf("fd %d", fd.GetFd()),
-				Fields: []DetailField{
-					{Key: "Target", Value: fd.GetTarget()},
-					{Key: "Age", Value: formatDuration(fd.GetAgeMs())},
+			catSection.SubSections = append(catSection.SubSections, inspector.DetailSection{
+				Heading: fmt.Sprintf("fd %d", fd.GetFd()),
+				Rows: []inspector.DetailRow{
+					{Label: "Target", Value: fd.GetTarget()},
+					{Label: "Age", Value: formatDuration(fd.GetAgeMs())},
 				},
 			})
 		}
@@ -834,47 +750,9 @@ func describeRateLimiter(ctx context.Context, conn monitoringConnection, p *Prin
 		return p.PrintJSON(response)
 	}
 
-	sections := buildRateLimiterDetailSections(response)
+	sections := inspector.BuildRateLimiterDetailSections(response)
 	p.PrintDetail(sections)
 	return nil
-}
-
-// buildRateLimiterDetailSections creates detail sections for the rate limiter.
-//
-// Takes response (*pb.GetRateLimiterStatusResponse) which provides
-// the rate limiter
-// status data to display.
-//
-// Returns []DetailSection which contains the formatted sections for display.
-func buildRateLimiterDetailSections(response *pb.GetRateLimiterStatusResponse) []DetailSection {
-	allowedDeniedRatio := "-"
-	total := response.GetTotalAllowed() + response.GetTotalDenied()
-	if total > 0 {
-		pct := float64(response.GetTotalAllowed()) / float64(total) * reportPercentageFactor
-		allowedDeniedRatio = fmt.Sprintf("%.1f%% allowed", pct)
-	}
-
-	return []DetailSection{
-		{
-			Title: "Rate Limiter",
-			Fields: []DetailField{
-				{Key: "Token Bucket Store", Value: response.GetTokenBucketStore()},
-				{Key: "Counter Store", Value: response.GetCounterStore()},
-				{Key: "Fail Policy", Value: response.GetFailPolicy()},
-				{Key: "Key Prefix", Value: response.GetKeyPrefix()},
-			},
-		},
-		{
-			Title: "Counters",
-			Fields: []DetailField{
-				{Key: "Total Checks", Value: strconv.FormatInt(response.GetTotalChecks(), 10)},
-				{Key: "Total Allowed", Value: strconv.FormatInt(response.GetTotalAllowed(), 10)},
-				{Key: "Total Denied", Value: strconv.FormatInt(response.GetTotalDenied(), 10)},
-				{Key: "Total Errors", Value: strconv.FormatInt(response.GetTotalErrors(), 10)},
-				{Key: "Allow Rate", Value: allowedDeniedRatio},
-			},
-		},
-	}
 }
 
 // describeProvider displays detailed information about a single provider.
@@ -920,41 +798,48 @@ func describeProvider(ctx context.Context, conn monitoringConnection, p *Printer
 		return p.PrintJSON(response)
 	}
 
-	sections := buildProviderDetailSections(response)
-	sections = appendSubResourceSections(ctx, conn, sections, resourceType, providerName)
+	sections := inspector.BuildProviderDetailSections(response)
+	sections = appendSubResourceSections(ctx, conn, p, sections, resourceType, providerName)
 	p.PrintDetail(sections)
 	return nil
 }
 
-// appendSubResourceSections fetches sub-resources for a provider and appends
-// them as a detail section if any are found.
+// appendSubResourceSections appends sub-resource detail to sections.
+//
+// Fetches sub-resources for the provider and adds them as a detail
+// section if any are found. When the underlying RPC fails the error is
+// surfaced as a warning on the printer's writer so the user knows the
+// listing was incomplete instead of the call silently returning only
+// the parent sections.
 //
 // Takes ctx (context.Context) which controls the request lifecycle.
 // Takes conn (monitoringConnection) which provides the gRPC client.
-// Takes sections ([]DetailSection) which holds the existing sections to extend.
+// Takes p (*Printer) which is used to emit warnings when the RPC fails.
+// Takes sections ([]inspector.DetailSection) which holds the existing sections to extend.
 // Takes resourceType (string) which identifies the provider's resource type.
 // Takes providerName (string) which identifies the provider by name.
 //
-// Returns []DetailSection which is the original sections with any sub-resource
+// Returns []inspector.DetailSection which is the original sections with any sub-resource
 // section appended.
-func appendSubResourceSections(ctx context.Context, conn monitoringConnection, sections []DetailSection, resourceType, providerName string) []DetailSection {
+func appendSubResourceSections(ctx context.Context, conn monitoringConnection, p *Printer, sections []inspector.DetailSection, resourceType, providerName string) []inspector.DetailSection {
 	subResp, err := conn.ProviderInfoClient().ListSubResources(ctx, &pb.ListSubResourcesRequest{
 		ResourceType: resourceType,
 		ProviderName: providerName,
 	})
-	if err != nil || len(subResp.GetRows()) == 0 {
+	if err != nil {
+		_, _ = fmt.Fprintf(p.w, "warning: could not list sub-resources for %s/%s: %v\n", resourceType, providerName, err)
+		return sections
+	}
+	if len(subResp.GetRows()) == 0 {
 		return sections
 	}
 
 	subFields := buildSubResourceFields(subResp)
-	subName := subResp.GetSubResourceName()
-	if len(subName) > 0 {
-		subName = strings.ToUpper(subName[:1]) + subName[1:]
-	}
+	subName := capitaliseFirstRune(subResp.GetSubResourceName())
 
-	return append(sections, DetailSection{
-		Title:  fmt.Sprintf("%s (%d)", subName, len(subResp.GetRows())),
-		Fields: subFields,
+	return append(sections, inspector.DetailSection{
+		Heading: fmt.Sprintf("%s (%d)", subName, len(subResp.GetRows())),
+		Rows:    subFields,
 	})
 }
 
@@ -964,9 +849,9 @@ func appendSubResourceSections(ctx context.Context, conn monitoringConnection, s
 // Takes response (*pb.ListSubResourcesResponse) which contains the sub-resource
 // data to format.
 //
-// Returns []DetailField which contains one field per sub-resource row.
-func buildSubResourceFields(response *pb.ListSubResourcesResponse) []DetailField {
-	fields := make([]DetailField, 0, len(response.GetRows()))
+// Returns []inspector.DetailRow which contains one field per sub-resource row.
+func buildSubResourceFields(response *pb.ListSubResourcesResponse) []inspector.DetailRow {
+	fields := make([]inspector.DetailRow, 0, len(response.GetRows()))
 	for _, row := range response.GetRows() {
 		var valueParts []string
 		for _, col := range response.GetColumns() {
@@ -981,8 +866,8 @@ func buildSubResourceFields(response *pb.ListSubResourcesResponse) []DetailField
 		if value == "" {
 			value = "-"
 		}
-		fields = append(fields, DetailField{
-			Key:   row.GetName(),
+		fields = append(fields, inspector.DetailRow{
+			Label: row.GetName(),
 			Value: value,
 		})
 	}
@@ -1037,35 +922,7 @@ func describeProviders(ctx context.Context, conn monitoringConnection, p *Printe
 		return p.PrintJSON(response)
 	}
 
-	sections := buildProviderDetailSections(response)
+	sections := inspector.BuildProviderDetailSections(response)
 	p.PrintDetail(sections)
 	return nil
-}
-
-// buildProviderDetailSections creates detail sections from a provider describe
-// response.
-//
-// Takes response (*pb.DescribeProviderResponse) which contains the provider detail
-// data.
-//
-// Returns []DetailSection which contains the formatted sections for display.
-func buildProviderDetailSections(response *pb.DescribeProviderResponse) []DetailSection {
-	pbSections := response.GetSections()
-	sections := make([]DetailSection, 0, len(pbSections))
-
-	for _, s := range pbSections {
-		fields := make([]DetailField, 0, len(s.GetEntries()))
-		for _, e := range s.GetEntries() {
-			fields = append(fields, DetailField{
-				Key:   e.GetKey(),
-				Value: e.GetValue(),
-			})
-		}
-		sections = append(sections, DetailSection{
-			Title:  s.GetTitle(),
-			Fields: fields,
-		})
-	}
-
-	return sections
 }

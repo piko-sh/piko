@@ -29,6 +29,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	"piko.sh/piko/wdk/clock"
 )
 
@@ -53,6 +54,11 @@ const (
 	// resourcesSummarySparklineWidth is the character width of the sparkline in the
 	// resources summary line.
 	resourcesSummarySparklineWidth = 20
+
+	// resourcesDetailMaxFDs caps how many file descriptors the detail
+	// pane renders for a single category before truncating; deeper
+	// drill-downs use the centre column's full list.
+	resourcesDetailMaxFDs = 10
 )
 
 var (
@@ -319,7 +325,7 @@ func (p *ResourcesPanel) renderSummaryLine() string {
 
 	if data != nil {
 		parts = append(parts, lipgloss.NewStyle().
-			Foreground(colorForeground).
+			Foreground(colourForeground).
 			Bold(true).
 			Render(fmt.Sprintf("%d file descriptors", data.Total)))
 
@@ -447,13 +453,13 @@ func (p *ResourcesPanel) renderFDRow(fd FDInfo, selected bool) string {
 // Returns string which is the formatted age with colour styling.
 func (*ResourcesPanel) formatAge(ageMs int64) string {
 	age := time.Duration(ageMs) * time.Millisecond
-	ageString := formatDuration(age)
+	ageString := inspector.FormatDuration(age)
 
-	style := lipgloss.NewStyle().Foreground(colorForegroundDim)
+	style := lipgloss.NewStyle().Foreground(colourForegroundDim)
 	if age > resourcesAgeErrorThreshold {
-		style = lipgloss.NewStyle().Foreground(colorError).Bold(true)
+		style = lipgloss.NewStyle().Foreground(colourError).Bold(true)
 	} else if age > resourcesAgeWarningThreshold {
-		style = lipgloss.NewStyle().Foreground(colorWarning)
+		style = lipgloss.NewStyle().Foreground(colourWarning)
 	}
 
 	return style.Render(fmt.Sprintf("%8s", ageString))
@@ -529,7 +535,7 @@ func (p *ResourcesPanel) updateFDCountHistory() {
 func (p *ResourcesPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return ResourcesRefreshMessage{Err: errors.New("no resources provider"), Data: nil}
+			return ResourcesRefreshMessage{Err: errNoResourcesProvider, Data: nil}
 		}
 
 		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,

@@ -29,76 +29,6 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-func TestBuildHealthDetailSections(t *testing.T) {
-	t.Parallel()
-
-	response := &pb.GetHealthResponse{
-		Liveness: &pb.HealthStatus{
-			Name:    "Liveness",
-			State:   "HEALTHY",
-			Message: "All good",
-			Dependencies: []*pb.HealthStatus{
-				{Name: "Database", State: "HEALTHY", Duration: "0.5ms"},
-				{Name: "Cache", State: "HEALTHY", Duration: "0.3ms"},
-			},
-		},
-		Readiness: &pb.HealthStatus{
-			Name:    "Readiness",
-			State:   "DEGRADED",
-			Message: "Issues found",
-			Dependencies: []*pb.HealthStatus{
-				{Name: "Database", State: "HEALTHY"},
-				{Name: "Queue", State: "UNHEALTHY", Message: "timeout"},
-			},
-		},
-	}
-
-	testCases := []struct {
-		name         string
-		filter       string
-		wantTitle    string
-		wantSections int
-		wantSubCount int
-	}{
-		{name: "no filter returns both", filter: "", wantSections: 2},
-		{name: "filter Liveness", filter: "Liveness", wantSections: 1, wantTitle: "Liveness", wantSubCount: 2},
-		{name: "filter Readiness", filter: "Readiness", wantSections: 1, wantTitle: "Readiness", wantSubCount: 2},
-		{name: "no match", filter: "nonexistent", wantSections: 0},
-		{name: "case insensitive", filter: "liveness", wantSections: 1, wantTitle: "Liveness"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			p := NewPrinter(&bytes.Buffer{}, "table", true, false)
-			sections := buildHealthDetailSections(p, response, tc.filter)
-			if len(sections) != tc.wantSections {
-				t.Errorf("got %d sections, want %d", len(sections), tc.wantSections)
-			}
-			if tc.wantTitle != "" && len(sections) > 0 && sections[0].Title != tc.wantTitle {
-				t.Errorf("first section title = %q, want %q", sections[0].Title, tc.wantTitle)
-			}
-			if tc.wantSubCount > 0 && len(sections) > 0 && len(sections[0].SubSections) != tc.wantSubCount {
-				t.Errorf("sub-sections = %d, want %d", len(sections[0].SubSections), tc.wantSubCount)
-			}
-		})
-	}
-}
-
-func TestBuildHealthDetailSections_NilProbe(t *testing.T) {
-	t.Parallel()
-
-	response := &pb.GetHealthResponse{
-		Liveness: &pb.HealthStatus{Name: "Liveness", State: "HEALTHY"},
-	}
-
-	p := NewPrinter(&bytes.Buffer{}, "table", true, false)
-	sections := buildHealthDetailSections(p, response, "")
-	if len(sections) != 1 {
-		t.Errorf("got %d sections, want 1 (nil readiness should be skipped)", len(sections))
-	}
-}
-
 func TestBuildTaskDetailSections(t *testing.T) {
 	t.Parallel()
 
@@ -145,8 +75,8 @@ func TestBuildTaskDetailSections_WithLastError(t *testing.T) {
 	}
 
 	hasLastError := false
-	for _, f := range sections[0].Fields {
-		if f.Key == "Last Error" && f.Value == errMessage {
+	for _, f := range sections[0].Rows {
+		if f.Label == "Last Error" && f.Value == errMessage {
 			hasLastError = true
 		}
 	}
@@ -215,87 +145,6 @@ func TestBuildArtefactDetailSections(t *testing.T) {
 	}
 }
 
-func TestBuildDLQDetailSections(t *testing.T) {
-	t.Parallel()
-
-	summaries := []*pb.DispatcherSummary{
-		{Type: "email", QueuedItems: 5, DeadLetterCount: 2, TotalProcessed: 100},
-		{Type: "sms", QueuedItems: 1, TotalProcessed: 50},
-	}
-
-	testCases := []struct {
-		name         string
-		filter       string
-		wantSections int
-	}{
-		{name: "no filter", filter: "", wantSections: 2},
-		{name: "filter email", filter: "email", wantSections: 1},
-		{name: "no match", filter: "xyz", wantSections: 0},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			sections := buildDLQDetailSections(summaries, tc.filter)
-			if len(sections) != tc.wantSections {
-				t.Errorf("got %d sections, want %d", len(sections), tc.wantSections)
-			}
-		})
-	}
-}
-
-func TestBuildRateLimiterDetailSections(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name     string
-		response *pb.GetRateLimiterStatusResponse
-		wantRate string
-	}{
-		{
-			name: "with traffic",
-			response: &pb.GetRateLimiterStatusResponse{
-				TokenBucketStore: "memory",
-				CounterStore:     "redis",
-				FailPolicy:       "deny",
-				TotalChecks:      100,
-				TotalAllowed:     90,
-				TotalDenied:      10,
-			},
-			wantRate: "90.0% allowed",
-		},
-		{
-			name: "no traffic",
-			response: &pb.GetRateLimiterStatusResponse{
-				TokenBucketStore: "memory",
-				FailPolicy:       "allow",
-			},
-			wantRate: "-",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			sections := buildRateLimiterDetailSections(tc.response)
-			if len(sections) != 2 {
-				t.Fatalf("got %d sections, want 2", len(sections))
-			}
-
-			counters := sections[1]
-			var gotRate string
-			for _, f := range counters.Fields {
-				if f.Key == "Allow Rate" {
-					gotRate = f.Value
-				}
-			}
-			if gotRate != tc.wantRate {
-				t.Errorf("Allow Rate = %q, want %q", gotRate, tc.wantRate)
-			}
-		})
-	}
-}
-
 func TestBuildResourceDetailSections(t *testing.T) {
 	t.Parallel()
 
@@ -320,8 +169,8 @@ func TestBuildResourceDetailSections(t *testing.T) {
 		if len(sections) != 3 {
 			t.Errorf("got %d sections, want 3 (summary + 2 categories)", len(sections))
 		}
-		if sections[0].Title != "Summary" {
-			t.Errorf("first section title = %q, want Summary", sections[0].Title)
+		if sections[0].Heading != "Summary" {
+			t.Errorf("first section title = %q, want Summary", sections[0].Heading)
 		}
 	})
 
@@ -1300,10 +1149,10 @@ func TestBuildSpanDetailSections(t *testing.T) {
 
 			var combined strings.Builder
 			for _, s := range sections {
-				combined.WriteString(s.Title)
+				combined.WriteString(s.Heading)
 				combined.WriteString(" ")
-				for _, f := range s.Fields {
-					combined.WriteString(f.Key)
+				for _, f := range s.Rows {
+					combined.WriteString(f.Label)
 					combined.WriteString(" ")
 					combined.WriteString(f.Value)
 					combined.WriteString(" ")

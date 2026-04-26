@@ -69,7 +69,51 @@ const (
 	// profileMetricsIntervalMs is the metrics emission interval
 	// in milliseconds for TUI mode.
 	profileMetricsIntervalMs = 200
+
+	// profileMaxBodyBytes caps the bytes accepted from a pprof or
+	// profiler-status HTTP body.
+	profileMaxBodyBytes = 256 * 1024 * 1024
 )
+
+// readAndDrainBody reads up to profileMaxBodyBytes from response.Body
+// using io.LimitReader, then drains and closes the body so the
+// underlying connection can be reused. Returns ErrProfileBodyTooLarge
+// when the cap is exactly hit (an indication the response was likely
+// truncated and should not be trusted).
+//
+// Takes body (io.ReadCloser) which is the HTTP response body; the
+// caller still owns Close (this function only drains, the deferred
+// Close in the caller still runs).
+//
+// Returns []byte with the body bytes (possibly truncated to the cap).
+// Returns error wrapping ErrProfileBodyTooLarge when the body is at
+// least profileMaxBodyBytes.
+func readAndDrainBody(body io.Reader) ([]byte, error) {
+	limited := io.LimitReader(body, profileMaxBodyBytes+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > profileMaxBodyBytes {
+		return nil, fmt.Errorf("%w: %d bytes received", ErrProfileBodyTooLarge, len(data))
+	}
+	return data, nil
+}
+
+// drainAndClose drains any remaining bytes on body and closes it so
+// the HTTP transport can reuse the underlying connection. Errors are
+// silently ignored because callers are typically already on an error
+// path.
+//
+// Takes body (io.ReadCloser) which is the HTTP response body to drain.
+func drainAndClose(body io.ReadCloser) {
+	_, _ = io.Copy(io.Discard, body)
+	_ = body.Close()
+}
+
+// ErrProfileBodyTooLarge is returned when an HTTP response from a
+// pprof or profiler-status endpoint exceeds profileMaxBodyBytes.
+var ErrProfileBodyTooLarge = errors.New("pprof response exceeded byte budget")
 
 // headerFlag implements flag.Value for repeatable --header flags.
 type headerFlag struct {
@@ -680,7 +724,7 @@ func fetchProfilerStatus(ctx context.Context, profilerRoot string) (*profiler.Se
 	if err != nil {
 		return nil, fmt.Errorf("GET profiler status: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response.Body)
 
 	if response.StatusCode == http.StatusNotFound {
 		return nil, nil
@@ -689,7 +733,7 @@ func fetchProfilerStatus(ctx context.Context, profilerRoot string) (*profiler.Se
 		return nil, fmt.Errorf("GET profiler status returned status %d", response.StatusCode)
 	}
 
-	body, err := io.ReadAll(response.Body)
+	body, err := readAndDrainBody(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading profiler status body: %w", err)
 	}
@@ -725,13 +769,13 @@ func fetchProfilerBinary(ctx context.Context, url string, timeout time.Duration)
 	if err != nil {
 		return nil, fmt.Errorf("GET %s: %w", url, err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response.Body)
 
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GET %s returned status %d", url, response.StatusCode)
 	}
 
-	data, err := io.ReadAll(response.Body)
+	data, err := readAndDrainBody(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response from %s: %w", url, err)
 	}
@@ -836,13 +880,13 @@ func fetchProfile(ctx context.Context, pprofBase, endpoint string, durationSecs 
 	if err != nil {
 		return nil, fmt.Errorf("GET %s: %w", fetchURL, err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response.Body)
 
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GET %s returned status %d", fetchURL, response.StatusCode)
 	}
 
-	data, err := io.ReadAll(response.Body)
+	data, err := readAndDrainBody(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response from %s: %w", fetchURL, err)
 	}
@@ -1142,7 +1186,7 @@ func fetchGoroutineCount(ctx context.Context, pprofBase string) int {
 	if err != nil {
 		return 0
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response.Body)
 
 	if response.StatusCode != http.StatusOK {
 		return 0
@@ -1185,14 +1229,14 @@ func snapshotGoroutines(ctx context.Context, stdout, stderr io.Writer, pprofBase
 		_, _ = fmt.Fprintf(stderr, "  Warning: could not snapshot goroutines: %v\n", err)
 		return
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response.Body)
 
 	if response.StatusCode != http.StatusOK {
 		_, _ = fmt.Fprintf(stderr, "  Warning: goroutine snapshot returned %d\n", response.StatusCode)
 		return
 	}
 
-	body, err := io.ReadAll(response.Body)
+	body, err := readAndDrainBody(response.Body)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "  Warning: could not read goroutine snapshot: %v\n", err)
 		return

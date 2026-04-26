@@ -223,7 +223,7 @@ func (m *SearchMixin) RenderHeader(content *strings.Builder, totalCount int) int
 
 	if m.searchQuery != "" {
 		filterInfo := lipgloss.NewStyle().
-			Foreground(colorInfo).
+			Foreground(colourInfo).
 			Render(fmt.Sprintf("Filter: %q (%d of %d)", m.searchQuery, len(m.filteredItems), totalCount))
 		content.WriteString(filterInfo)
 		content.WriteString(stringNewline)
@@ -337,7 +337,7 @@ func (m *StatusFilterMixin) RenderFilterStatus(content *strings.Builder) int {
 
 	filterText := fmt.Sprintf("Status: %s", m.filterStatus.String())
 	content.WriteString(lipgloss.NewStyle().
-		Foreground(colorForegroundDim).
+		Foreground(colourForegroundDim).
 		Italic(true).
 		Render(filterText))
 	content.WriteString(stringNewline)

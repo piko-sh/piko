@@ -27,6 +27,7 @@ import (
 
 	"piko.sh/piko/cmd/piko/internal/tui/tui_domain"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
+	"piko.sh/piko/wdk/safeconv"
 )
 
 var _ tui_domain.SystemProvider = (*SystemProvider)(nil)
@@ -151,9 +152,9 @@ func convertSystemStats(response *pb.GetSystemStatsResponse) *tui_domain.SystemS
 	return &tui_domain.SystemStats{
 		Timestamp:     time.UnixMilli(response.GetTimestampMs()),
 		Uptime:        time.Duration(response.GetUptimeMs()) * time.Millisecond,
-		NumCPU:        int(response.GetNumCpu()),
-		GOMAXPROCS:    int(response.GetGomaxprocs()),
-		NumGoroutines: int(response.GetNumGoroutines()),
+		NumCPU:        safeconv.Int32ToInt(response.GetNumCpu()),
+		GOMAXPROCS:    safeconv.Int32ToInt(response.GetGomaxprocs()),
+		NumGoroutines: safeconv.Int32ToInt(response.GetNumGoroutines()),
 		NumCGOCalls:   response.GetNumCgoCalls(),
 		CPUMillicores: response.GetCpuMillicores(),
 		Memory:        convertMemoryStats(response.GetMemory()),
@@ -246,8 +247,8 @@ func convertCacheStats(cache *pb.CacheInfo) tui_domain.SystemCacheStats {
 		return tui_domain.SystemCacheStats{}
 	}
 	return tui_domain.SystemCacheStats{
-		ComponentCacheSize: int(cache.GetComponentCacheSize()),
-		SVGCacheSize:       int(cache.GetSvgCacheSize()),
+		ComponentCacheSize: safeconv.Int32ToInt(cache.GetComponentCacheSize()),
+		SVGCacheSize:       safeconv.Int32ToInt(cache.GetSvgCacheSize()),
 	}
 }
 
@@ -259,9 +260,9 @@ func convertCacheStats(cache *pb.CacheInfo) tui_domain.SystemCacheStats {
 // information.
 func convertProcessInfo(process *pb.ProcessInfo) tui_domain.SystemProcessInfo {
 	return tui_domain.SystemProcessInfo{
-		PID:         int(process.GetPid()),
-		ThreadCount: int(process.GetThreadCount()),
-		FDCount:     int(process.GetFdCount()),
+		PID:         safeconv.Int32ToInt(process.GetPid()),
+		ThreadCount: safeconv.Int32ToInt(process.GetThreadCount()),
+		FDCount:     safeconv.Int32ToInt(process.GetFdCount()),
 		RSS:         process.GetRss(),
 	}
 }

@@ -729,3 +729,76 @@ func TestToUint64(t *testing.T) {
 		}
 	})
 }
+
+func TestInt32ToInt64(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    int32
+		expected int64
+	}{
+		{name: "zero", input: 0, expected: 0},
+		{name: "positive", input: 12345, expected: 12345},
+		{name: "negative", input: -42, expected: -42},
+		{name: "max int32", input: math.MaxInt32, expected: math.MaxInt32},
+		{name: "min int32", input: math.MinInt32, expected: math.MinInt32},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if result := safeconv.Int32ToInt64(tt.input); result != tt.expected {
+				t.Errorf("Int32ToInt64(%d) = %d, want %d", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestInt32ToInt(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    int32
+		expected int
+	}{
+		{name: "zero", input: 0, expected: 0},
+		{name: "positive", input: 99, expected: 99},
+		{name: "negative", input: -7, expected: -7},
+		{name: "max int32", input: math.MaxInt32, expected: math.MaxInt32},
+		{name: "min int32", input: math.MinInt32, expected: math.MinInt32},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if result := safeconv.Int32ToInt(tt.input); result != tt.expected {
+				t.Errorf("Int32ToInt(%d) = %d, want %d", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestUint32ToInt64(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    uint32
+		expected int64
+	}{
+		{name: "zero", input: 0, expected: 0},
+		{name: "positive", input: 7, expected: 7},
+		{name: "max uint32", input: math.MaxUint32, expected: math.MaxUint32},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if result := safeconv.Uint32ToInt64(tt.input); result != tt.expected {
+				t.Errorf("Uint32ToInt64(%d) = %d, want %d", tt.input, result, tt.expected)
+			}
+		})
+	}
+}

@@ -22,11 +22,12 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"time"
+	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	"piko.sh/piko/wdk/clock"
 )
 
@@ -54,9 +55,6 @@ const (
 
 	// workflowRowMinNameWidth is the minimum character width for workflow names.
 	workflowRowMinNameWidth = 30
-
-	// hoursPerDay is the number of hours in a day, used for duration formatting.
-	hoursPerDay = 24
 )
 
 var (
@@ -291,7 +289,7 @@ func (p *OrchestratorPanel) renderOrchestratorHeader(content *strings.Builder) i
 		usedLines += p.Search().RenderHeader(content, len(p.currentItems()))
 	}
 
-	modeStyle := lipgloss.NewStyle().Foreground(colorForegroundDim).Bold(true)
+	modeStyle := lipgloss.NewStyle().Foreground(colourForegroundDim).Bold(true)
 	modeText := "Tasks [Workflows]"
 	if p.viewMode == ViewModeTasks {
 		modeText = "[Tasks] Workflows"
@@ -367,7 +365,7 @@ func (p *OrchestratorPanel) renderTaskRow(task Resource, selected bool) string {
 	attempt := task.Metadata["attempt"]
 
 	elapsed := p.clock.Now().Sub(task.UpdatedAt)
-	timeString := formatDuration(elapsed)
+	timeString := inspector.FormatDuration(elapsed)
 
 	nameWidth := max(taskRowMinNameWidth, p.ContentWidth()-taskRowSuffixWidth)
 
@@ -376,8 +374,8 @@ func (p *OrchestratorPanel) renderTaskRow(task Resource, selected bool) string {
 	statusText := StatusStyle(task.Status).Render(fmt.Sprintf("%-8s", task.StatusText))
 
 	prioChar := "-"
-	if len(priority) > 0 {
-		prioChar = priority[:1]
+	if first, size := utf8.DecodeRuneInString(priority); size > 0 && first != utf8.RuneError {
+		prioChar = string(first)
 	}
 
 	return fmt.Sprintf("%s%s %s %s P:%s A:%s %s",
@@ -405,7 +403,7 @@ func (p *OrchestratorPanel) renderWorkflowRow(workflow Resource, selected bool) 
 
 	progressInfo := RenderDimText(fmt.Sprintf("%s/%s ✓%s ✗%s", completeCount, taskCount, completeCount, failedCount))
 	if progress != "" {
-		progressInfo += " " + lipgloss.NewStyle().Foreground(colorInfo).Render(progress)
+		progressInfo += " " + lipgloss.NewStyle().Foreground(colourInfo).Render(progress)
 	}
 
 	return fmt.Sprintf("%s%s %s %s", cursor, indicator, name, progressInfo)
@@ -535,23 +533,4 @@ func (*orchestratorRenderer) ExpandedLineCount(item Resource) int {
 		}
 	}
 	return count
-}
-
-// formatDuration formats a duration as a string that is easy to read.
-//
-// Takes d (time.Duration) which is the duration to format.
-//
-// Returns string which shows the duration using the largest fitting unit
-// (seconds, minutes, hours, or days).
-func formatDuration(d time.Duration) string {
-	switch {
-	case d < time.Minute:
-		return fmt.Sprintf("%ds", int(d.Seconds()))
-	case d < time.Hour:
-		return fmt.Sprintf("%dm", int(d.Minutes()))
-	case d < hoursPerDay*time.Hour:
-		return fmt.Sprintf("%dh", int(d.Hours()))
-	default:
-		return fmt.Sprintf("%dd", int(d.Hours()/hoursPerDay))
-	}
 }

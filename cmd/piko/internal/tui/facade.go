@@ -32,87 +32,6 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// Re-export domain types for use in custom panels and providers.
-type (
-	// Panel is a discrete UI section that can be focused and rendered.
-	Panel = tui_domain.Panel
-
-	// KeyBinding describes a key and its action for help display.
-	KeyBinding = tui_domain.KeyBinding
-
-	// Provider is the base interface for all data providers.
-	Provider = tui_domain.Provider
-
-	// RefreshableProvider supports periodic data refresh.
-	RefreshableProvider = tui_domain.RefreshableProvider
-
-	// MetricsProvider fetches metrics data.
-	MetricsProvider = tui_domain.MetricsProvider
-
-	// TracesProvider fetches trace data.
-	TracesProvider = tui_domain.TracesProvider
-
-	// ResourceProvider fetches application resource data.
-	ResourceProvider = tui_domain.ResourceProvider
-
-	// HealthProvider fetches health check data.
-	HealthProvider = tui_domain.HealthProvider
-
-	// SystemProvider fetches system stats data.
-	SystemProvider = tui_domain.SystemProvider
-
-	// FDsProvider fetches file descriptor information.
-	FDsProvider = tui_domain.FDsProvider
-
-	// SystemStats holds runtime system statistics.
-	SystemStats = tui_domain.SystemStats
-
-	// MetricValue represents a single metric data point.
-	MetricValue = tui_domain.MetricValue
-
-	// MetricSeries represents a time series of metric values.
-	MetricSeries = tui_domain.MetricSeries
-
-	// Span represents a single trace span.
-	Span = tui_domain.Span
-
-	// SpanStatus represents the status of a trace span.
-	SpanStatus = tui_domain.SpanStatus
-
-	// Resource represents a generic application resource.
-	Resource = tui_domain.Resource
-
-	// ResourceStatus represents the health status of a resource.
-	ResourceStatus = tui_domain.ResourceStatus
-)
-
-const (
-	// SpanStatusUnset is the default span status indicating no status has been set.
-	SpanStatusUnset = tui_domain.SpanStatusUnset
-
-	// SpanStatusOK is the status code for a successful span operation.
-	SpanStatusOK = tui_domain.SpanStatusOK
-
-	// SpanStatusError indicates that the operation ended with an error.
-	SpanStatusError = tui_domain.SpanStatusError
-
-	// ResourceStatusUnknown represents an unknown or uninitialized resource status.
-	ResourceStatusUnknown = tui_domain.ResourceStatusUnknown
-
-	// ResourceStatusHealthy represents a resource that is operating normally.
-	ResourceStatusHealthy = tui_domain.ResourceStatusHealthy
-
-	// ResourceStatusDegraded indicates a resource is operating with reduced
-	// capability or performance.
-	ResourceStatusDegraded = tui_domain.ResourceStatusDegraded
-
-	// ResourceStatusUnhealthy indicates the resource is not functioning correctly.
-	ResourceStatusUnhealthy = tui_domain.ResourceStatusUnhealthy
-
-	// ResourceStatusPending is the status for resources awaiting processing.
-	ResourceStatusPending = tui_domain.ResourceStatusPending
-)
-
 // TUI provides the main entry point to the terminal monitoring interface.
 // It implements io.Closer and MCPServerPort.
 type TUI struct {
@@ -263,6 +182,11 @@ func initialiseProviders(tuiConfig *tui_dto.Config, providers *tui_domain.Provid
 	providers.Health = append(providers.Health, grpcProviders.Health...)
 	providers.System = append(providers.System, grpcProviders.System...)
 	providers.FDs = append(providers.FDs, grpcProviders.FDs...)
+	providers.Watchdog = append(providers.Watchdog, grpcProviders.Watchdog...)
+	providers.ProvidersInfo = append(providers.ProvidersInfo, grpcProviders.ProvidersInfo...)
+	providers.DLQ = append(providers.DLQ, grpcProviders.DLQ...)
+	providers.RateLimiter = append(providers.RateLimiter, grpcProviders.RateLimiter...)
+	providers.Profiling = append(providers.Profiling, grpcProviders.Profiling...)
 	l.Debug("Using gRPC monitoring providers", logger.String("endpoint", tuiConfig.MonitoringEndpoint))
 }
 
@@ -298,8 +222,8 @@ func buildConfigSearchPaths(configPath, homeDir string) []string {
 // Takes paths ([]string) which lists the config file paths to try.
 // Takes o (*loadConfigOptions) which provides optional sandbox access.
 //
-// Returns TUIConfig which is the loaded or default configuration.
-func searchAndLoadConfig(paths []string, o *loadConfigOptions) TUIConfig {
+// Returns Config which is the loaded or default configuration.
+func searchAndLoadConfig(paths []string, o *loadConfigOptions) Config {
 	readFile := configFileReader(o)
 
 	for _, path := range paths {
@@ -314,7 +238,7 @@ func searchAndLoadConfig(paths []string, o *loadConfigOptions) TUIConfig {
 		return pikoConfig.TUI
 	}
 
-	return TUIConfig{
+	return Config{
 		Endpoint:        "http://localhost:8080",
 		RefreshInterval: "2s",
 		Theme:           "default",
@@ -342,8 +266,8 @@ func configFileReader(o *loadConfigOptions) func(string) ([]byte, error) {
 // applyConfigEnvOverrides applies PIKO_TUI_* environment variable overrides
 // to the given TUI configuration.
 //
-// Takes tuiConfig (*TUIConfig) which is the configuration to modify in place.
-func applyConfigEnvOverrides(tuiConfig *TUIConfig) {
+// Takes tuiConfig (*Config) which is the configuration to modify in place.
+func applyConfigEnvOverrides(tuiConfig *Config) {
 	if v := os.Getenv("PIKO_TUI_ENDPOINT"); v != "" {
 		tuiConfig.Endpoint = v
 	}

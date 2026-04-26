@@ -126,7 +126,7 @@ func RenderCursorStyled(selected, focused bool, config CursorConfig) string {
 
 	indent := strings.Repeat(" ", config.ActiveIndent)
 	if focused {
-		return indent + lipgloss.NewStyle().Foreground(colorPrimary).Render(SymbolCursorActive)
+		return indent + lipgloss.NewStyle().Foreground(colourPrimary).Render(SymbolCursorActive)
 	}
 	return indent + SymbolCursorActive
 }

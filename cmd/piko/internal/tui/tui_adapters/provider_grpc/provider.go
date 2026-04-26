@@ -39,6 +39,15 @@ const (
 
 	// defaultRefreshInterval is the default interval between data refreshes.
 	defaultRefreshInterval = 2 * time.Second
+
+	// defaultMaxRecvMsgSize is the maximum size of a single gRPC response
+	// message accepted by the client.
+	//
+	// Default gRPC is 4 MiB which is too small for profile capture chunks
+	// (capped at 32 MiB at the streaming layer). 64 MiB matches the
+	// watchdog download cap and gives generous headroom for trace and
+	// describe responses.
+	defaultMaxRecvMsgSize = 64 * 1024 * 1024
 )
 
 // Config holds the settings for the gRPC provider.
@@ -134,7 +143,10 @@ func NewConnection(address string, opts ...Option) (*Connection, error) {
 		grpc.WithConnectParams(grpc.ConnectParams{
 			Backoff: backoff.DefaultConfig,
 		}),
-		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
+		grpc.WithDefaultCallOptions(
+			grpc.WaitForReady(true),
+			grpc.MaxCallRecvMsgSize(defaultMaxRecvMsgSize),
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating gRPC client for %s: %w", config.Address, err)
@@ -328,6 +340,21 @@ func NewProviders(address string, opts ...Option) (*tui_domain.Providers, error)
 		},
 		FDs: []tui_domain.FDsProvider{
 			NewFDsProvider(conn, config.RefreshInterval),
+		},
+		Watchdog: []tui_domain.WatchdogProvider{
+			NewWatchdogProvider(conn, config.RefreshInterval),
+		},
+		ProvidersInfo: []tui_domain.ProvidersInspector{
+			NewProvidersInspector(conn),
+		},
+		DLQ: []tui_domain.DLQInspector{
+			NewDLQInspector(conn),
+		},
+		RateLimiter: []tui_domain.RateLimiterInspector{
+			NewRateLimiterInspector(conn),
+		},
+		Profiling: []tui_domain.ProfilingInspector{
+			NewProfilingInspector(conn),
 		},
 		Panels: nil,
 	}, nil

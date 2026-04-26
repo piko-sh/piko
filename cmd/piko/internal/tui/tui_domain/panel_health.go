@@ -392,7 +392,7 @@ func (p *HealthPanel) renderHealthHeader(content *strings.Builder) int {
 
 	if !lastRefresh.IsZero() {
 		header := lipgloss.NewStyle().
-			Foreground(colorForegroundDim).
+			Foreground(colourForegroundDim).
 			Render(fmt.Sprintf("Last check: %s", lastRefresh.Format("15:04:05")))
 		content.WriteString(header)
 		content.WriteString("\n\n")
@@ -505,7 +505,7 @@ func (p *HealthPanel) renderProbeHeader(item healthDisplayItem, selected bool) s
 
 	titleStyle := lipgloss.NewStyle().Bold(true)
 	if selected && p.Focused() {
-		titleStyle = titleStyle.Foreground(colorPrimary)
+		titleStyle = titleStyle.Foreground(colourPrimary)
 	}
 
 	stateText := RenderDimText(item.probeStatus.State.String())
@@ -571,7 +571,7 @@ func (*HealthPanel) renderDependencyDetails(ctx *ScrollContext, dependency *Heal
 		ctx.WriteLineIfVisible(func() string {
 			return fmt.Sprintf("        %s",
 				lipgloss.NewStyle().
-					Foreground(colorForegroundDim).
+					Foreground(colourForegroundDim).
 					Italic(true).
 					Render(dependency.Message))
 		})
@@ -633,7 +633,7 @@ func (p *HealthPanel) updateHealthHistory() {
 func (p *HealthPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return HealthRefreshMessage{Liveness: nil, Readiness: nil, Err: errors.New("no health provider")}
+			return HealthRefreshMessage{Liveness: nil, Readiness: nil, Err: errNoHealthProvider}
 		}
 
 		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
@@ -690,7 +690,7 @@ func (r *healthRenderer) RenderExpanded(item healthDisplayItem, _ int) []string 
 	if dependency.Message != "" && dependency.State != HealthStateHealthy {
 		lines = append(lines, fmt.Sprintf("        %s",
 			lipgloss.NewStyle().
-				Foreground(colorForegroundDim).
+				Foreground(colourForegroundDim).
 				Italic(true).
 				Render(dependency.Message)))
 	}
@@ -796,22 +796,6 @@ func healthStateIndicator(state HealthState) string {
 	case HealthStateUnhealthy:
 		return statusUnhealthyStyle.Render(SymbolStatusFilled)
 	default:
-		return lipgloss.NewStyle().Foreground(colorForegroundDim).Render(SymbolStatusEmpty)
-	}
-}
-
-// healthStateToValue converts a health state to a number for sparkline display.
-//
-// Takes state (HealthState) which is the health state to convert.
-//
-// Returns float64 which is the numeric weight for the given state.
-func healthStateToValue(state HealthState) float64 {
-	switch state {
-	case HealthStateHealthy:
-		return healthWeightHealthy
-	case HealthStateDegraded:
-		return healthWeightDegraded
-	default:
-		return healthWeightOther
+		return lipgloss.NewStyle().Foreground(colourForegroundDim).Render(SymbolStatusEmpty)
 	}
 }

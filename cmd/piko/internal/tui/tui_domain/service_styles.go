@@ -18,7 +18,11 @@
 
 package tui_domain
 
-import "charm.land/lipgloss/v2"
+import (
+	"image/color"
+
+	"charm.land/lipgloss/v2"
+)
 
 const (
 	// statusIndicatorDot is the dot symbol used to show health status.
@@ -44,136 +48,164 @@ const (
 )
 
 var (
-	// colorPrimary is the main colour for focused and selected items.
-	colorPrimary = lipgloss.Color("39")
+	// colourPrimary is the main colour for focused and selected items.
+	colourPrimary = lipgloss.Color("39")
 
-	// colorAccent is the accent colour for highlights and emphasis.
-	colorAccent = lipgloss.Color("214")
+	// colourAccent is the accent colour for highlights and emphasis.
+	colourAccent = lipgloss.Color("214")
 
-	// colorSuccess is the ANSI colour for successful status indicators.
-	colorSuccess = lipgloss.Color("42")
+	// colourSuccess is the ANSI colour for successful status indicators.
+	colourSuccess = lipgloss.Color("42")
 
-	// colorWarning is the colour used for warning indicators (orange/amber).
-	colorWarning = lipgloss.Color("214")
+	// colourWarning is the colour used for warning indicators (orange/amber).
+	colourWarning = lipgloss.Color("214")
 
-	// colorError is the colour used for error states and error text.
-	colorError = lipgloss.Color("196")
+	// colourError is the colour used for error states and error text.
+	colourError = lipgloss.Color("196")
 
-	// colorInfo is the colour used for informational text and status messages.
-	colorInfo = lipgloss.Color("39")
+	// colourInfo is the colour used for informational text and status messages.
+	colourInfo = lipgloss.Color("39")
 
-	// colorForeground is the standard text colour for normal content.
-	colorForeground = lipgloss.Color("252")
+	// colourForeground is the standard text colour for normal content.
+	colourForeground = lipgloss.Color("252")
 
-	// colorForegroundDim is a muted foreground colour for secondary text.
-	colorForegroundDim = lipgloss.Color("240")
+	// colourForegroundDim is a muted foreground colour for secondary text.
+	colourForegroundDim = lipgloss.Color("240")
 
-	// colorBackground is the background colour for styled elements.
-	colorBackground = lipgloss.Color("235")
+	// colourBackground is the background colour for styled elements.
+	colourBackground = lipgloss.Color("235")
 
-	// colorBorder is the border colour for UI elements.
-	colorBorder = lipgloss.Color("238")
+	// colourBorder is the border colour for UI elements.
+	colourBorder = lipgloss.Color("238")
 
-	// colorBorderFocused is the border colour for focused elements.
-	colorBorderFocused = lipgloss.Color("39")
+	// colourBorderFocused is the border colour for focused elements.
+	colourBorderFocused = lipgloss.Color("39")
 )
 
 var (
 	// titleStyle defines the Lip Gloss style for the main title text.
 	titleStyle = lipgloss.NewStyle().
-
-			Foreground(colorPrimary).
-
+			Foreground(colourPrimary).
 			Bold(true).
-
 			Padding(0, 1)
 
 	// statusBarStyle defines the Lip Gloss style for the bottom status bar.
 	statusBarStyle = lipgloss.NewStyle().
-
-			Foreground(colorForegroundDim).
-
-			Background(colorBackground).
-
+			Foreground(colourForegroundDim).
+			Background(colourBackground).
 			Padding(0, 1)
 
 	// panelStyle defines the Lip Gloss style for unfocused panel borders.
 	panelStyle = lipgloss.NewStyle().
-
 			Border(lipgloss.RoundedBorder()).
-
-			BorderForeground(colorBorder).
-
+			BorderForeground(colourBorder).
 			Padding(0, 1)
 
 	// panelFocusedStyle defines the Lip Gloss style for focused panel borders.
 	panelFocusedStyle = lipgloss.NewStyle().
-
 				Border(lipgloss.RoundedBorder()).
-
-				BorderForeground(colorBorderFocused).
-
+				BorderForeground(colourBorderFocused).
 				Padding(0, 1)
 
 	// panelTitleStyle defines the Lip Gloss style for panel heading text.
 	panelTitleStyle = lipgloss.NewStyle().
-
-			Foreground(colorPrimary).
-
+			Foreground(colourPrimary).
 			Bold(true).
-
 			Padding(0, 1)
 
 	// navItemStyle defines the Lip Gloss style for inactive navigation items.
 	navItemStyle = lipgloss.NewStyle().
-
-			Foreground(colorForegroundDim).
-
+			Foreground(colourForegroundDim).
 			Padding(0, 1)
 
 	// navItemActiveStyle defines the Lip Gloss style for the selected navigation item.
 	navItemActiveStyle = lipgloss.NewStyle().
-
-				Foreground(colorPrimary).
-
+				Foreground(colourPrimary).
 				Bold(true).
-
 				Padding(0, 1)
 
 	// navItemHotkeyStyle defines the Lip Gloss style for hotkey characters in navigation labels.
 	navItemHotkeyStyle = lipgloss.NewStyle().
-
-				Foreground(colorAccent).
-
+				Foreground(colourAccent).
 				Bold(true)
 
 	// statusHealthyStyle defines the Lip Gloss style for healthy status indicators.
 	statusHealthyStyle = lipgloss.NewStyle().
-
-				Foreground(colorSuccess)
+				Foreground(colourSuccess)
 
 	// statusDegradedStyle defines the Lip Gloss style for degraded status indicators.
 	statusDegradedStyle = lipgloss.NewStyle().
-
-				Foreground(colorWarning)
+				Foreground(colourWarning)
 
 	// statusUnhealthyStyle defines the Lip Gloss style for unhealthy status indicators.
 	statusUnhealthyStyle = lipgloss.NewStyle().
-
-				Foreground(colorError)
+				Foreground(colourError)
 
 	// statusUnknownStyle defines the Lip Gloss style for unknown status indicators.
 	statusUnknownStyle = lipgloss.NewStyle().
-
-				Foreground(colorForegroundDim)
+				Foreground(colourForegroundDim)
 
 	// statusPendingStyle defines the Lip Gloss style for pending status indicators.
 	statusPendingStyle = lipgloss.NewStyle().
-
-				Foreground(colorInfo)
+				Foreground(colourInfo)
 
 	// helpSeparatorStyle defines the Lip Gloss style for separators in the help bar.
 	helpSeparatorStyle = lipgloss.NewStyle().
-
-				Foreground(colorBorder)
+				Foreground(colourBorder)
 )
+
+// applyThemeToLegacyGlobals rebinds the package-level colour and style
+// variables from the supplied theme.
+//
+// Existing panels that read the legacy globals directly therefore inherit
+// theme switches without per-panel migration. Callers (typically
+// Model.SetTheme) invoke this every time the active theme changes.
+//
+// Takes theme (*Theme) which is the new theme. Nil theme is a no-op.
+func applyThemeToLegacyGlobals(theme *Theme) {
+	if theme == nil {
+		return
+	}
+
+	colourPrimary = paletteColour(theme.Palette.Primary)
+	colourAccent = paletteColour(theme.Palette.Accent)
+	colourSuccess = paletteColour(theme.Palette.Success)
+	colourWarning = paletteColour(theme.Palette.Warning)
+	colourError = paletteColour(theme.Palette.Danger)
+	colourInfo = paletteColour(theme.Palette.Info)
+	colourForeground = paletteColour(theme.Palette.Foreground)
+	colourForegroundDim = paletteColour(theme.Palette.ForegroundDim)
+	colourBackground = paletteColour(theme.Palette.SurfaceHigh)
+	colourBorder = paletteColour(theme.Palette.Border)
+	colourBorderFocused = paletteColour(theme.Palette.BorderFocused)
+
+	titleStyle = theme.Title
+	statusBarStyle = theme.StatusBar
+	panelStyle = theme.Panel
+	panelFocusedStyle = theme.PanelFocused
+	panelTitleStyle = theme.PanelTitle
+	navItemStyle = theme.Tab
+	navItemActiveStyle = theme.TabActive
+	navItemHotkeyStyle = theme.TabHotkey
+	statusHealthyStyle = theme.StatusHealthy
+	statusDegradedStyle = theme.StatusDegraded
+	statusUnhealthyStyle = theme.StatusUnhealthy
+	statusUnknownStyle = theme.StatusUnknown
+	statusPendingStyle = theme.StatusPending
+	helpSeparatorStyle = theme.StatusSep
+}
+
+// paletteColour returns the palette colour as a color.Color suitable for
+// assignment into the legacy globals. The legacy globals are inferred to
+// the return type of lipgloss.Color(), which is color.Color, so the
+// signatures align.
+//
+// Takes c (color.Color) which is the palette colour.
+//
+// Returns color.Color (potentially nil -> no colour).
+func paletteColour(c color.Color) color.Color {
+	if c == nil {
+		return lipgloss.NoColor{}
+	}
+	return c
+}
