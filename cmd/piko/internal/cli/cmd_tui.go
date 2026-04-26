@@ -32,11 +32,11 @@ import (
 //
 // Takes ctx (context.Context) which controls the lifetime of the TUI
 // session.
-// Takes cc (*CommandContext) which provides CLI options including
-// the monitoring endpoint.
+// Takes cc (*CommandContext) which provides CLI options including the
+// monitoring endpoint.
 //
-// Returns error when the TUI fails to initialise or encounters a
-// fatal error during execution.
+// Returns error when the TUI fails to initialise or encounters a fatal
+// error during execution.
 func runTUICmd(ctx context.Context, cc *CommandContext, _ []string) error {
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

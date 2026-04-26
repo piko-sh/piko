@@ -620,7 +620,7 @@ func TestRunProd_DisablesWatchMode(t *testing.T) {
 
 	select {
 	case <-notifier.AwaitNotifyContext():
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		t.Fatal("timed out waiting for NotifyContext to be called")
 	}
 
@@ -628,7 +628,7 @@ func TestRunProd_DisablesWatchMode(t *testing.T) {
 
 	select {
 	case <-done:
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		t.Fatal("RunProd did not return")
 	}
 

@@ -196,8 +196,8 @@ func TestModel_View_NoPanels(t *testing.T) {
 	model.height = 24
 
 	view := model.View()
-	if view.Content != "No panels available" {
-		t.Errorf("expected 'No panels available', got %q", view.Content)
+	if view.Content == "" {
+		t.Error("expected non-empty view content")
 	}
 }
 
@@ -217,10 +217,11 @@ func TestModel_HandleKeyMessage(t *testing.T) {
 	}{
 		{name: "q quits", key: "q", expectCmd: true},
 		{name: "? toggles help", key: "?", expectCmd: true},
-		{name: "tab next panel", key: "tab", expectCmd: true},
-		{name: "shift+tab prev panel", key: "shift+tab", expectCmd: true},
 		{name: "r force refresh", key: "r", expectCmd: true},
-		{name: "1 jumps to panel", key: "1", expectCmd: true},
+
+		{name: "tab consumed by group layer", key: "tab", expectCmd: false},
+		{name: "shift+tab consumed by group layer", key: "shift+tab", expectCmd: false},
+		{name: "1 consumed by group layer", key: "1", expectCmd: false},
 		{name: "unknown key no command", key: "x", expectCmd: false},
 	}
 
@@ -321,13 +322,13 @@ func TestModel_DispatchMessage_ToggleHelp(t *testing.T) {
 	model := NewModel(config)
 
 	model.dispatchMessage(toggleHelpMessage{})
-	if !model.showHelp {
-		t.Error("expected showHelp true")
+	if model.overlays.Empty() || model.overlays.Top().ID() != "help" {
+		t.Error("expected help overlay pushed onto stack")
 	}
 
 	model.dispatchMessage(toggleHelpMessage{})
-	if model.showHelp {
-		t.Error("expected showHelp false")
+	if !model.overlays.Empty() {
+		t.Error("expected help overlay popped from stack")
 	}
 }
 

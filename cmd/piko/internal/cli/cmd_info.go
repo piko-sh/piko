@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 	"piko.sh/piko/wdk/safeconv"
 )
@@ -196,7 +196,7 @@ func infoSystemOverview(response *pb.GetSystemStatsResponse, p *Printer) {
 	rows := [][]string{{
 		formatDuration(response.GetUptimeMs()),
 		cpuString,
-		strconv.FormatInt(int64(response.GetNumGoroutines()), 10),
+		strconv.FormatInt(safeconv.Int32ToInt64(response.GetNumGoroutines()), 10),
 		strconv.FormatInt(response.GetNumCgoCalls(), 10),
 	}}
 	p.PrintResource(systemOverviewColumns, rows)
@@ -212,15 +212,9 @@ func infoBuildOverview(response *pb.GetSystemStatsResponse, p *Printer) {
 		return
 	}
 
-	commit := build.GetCommit()
-	const commitHashLen = 8
-	if len(commit) > commitHashLen {
-		commit = commit[:commitHashLen]
-	}
-
 	rows := [][]string{{
 		build.GetVersion(),
-		commit,
+		inspector.ShortCommitHash(build.GetCommit()),
 		build.GetGoVersion(),
 		build.GetOs() + "/" + build.GetArch(),
 	}}
@@ -256,8 +250,8 @@ func infoMemoryOverview(response *pb.GetSystemStatsResponse, p *Printer) {
 	}
 
 	rows := [][]string{{
-		formatBytes(mem.GetHeapAlloc()),
-		formatBytes(mem.GetSys()),
+		inspector.FormatBytes(mem.GetHeapAlloc()),
+		inspector.FormatBytes(mem.GetSys()),
 		strconv.FormatUint(mem.GetLiveObjects(), 10),
 		strconv.FormatUint(mem.GetHeapObjects(), 10),
 	}}
@@ -276,9 +270,9 @@ func infoGCOverview(response *pb.GetSystemStatsResponse, p *Printer) {
 
 	rows := [][]string{{
 		strconv.FormatUint(uint64(gc.GetNumGc()), 10),
-		formatNanos(safeconv.Uint64ToInt64(gc.GetLastPauseNs())),
-		fmt.Sprintf("%.4f%%", gc.GetGcCpuFraction()*100),
-		formatBytes(gc.GetNextGc()),
+		inspector.FormatNanosAsDuration(safeconv.Uint64ToInt64(gc.GetLastPauseNs())),
+		inspector.FormatGCCPUFraction(gc.GetGcCpuFraction()),
+		inspector.FormatBytes(gc.GetNextGc()),
 	}}
 	p.PrintResource(gcOverviewColumns, rows)
 }
@@ -295,10 +289,10 @@ func infoProcessOverview(response *pb.GetSystemStatsResponse, p *Printer) {
 	}
 
 	rows := [][]string{{
-		strconv.FormatInt(int64(proc.GetPid()), 10),
-		strconv.FormatInt(int64(proc.GetThreadCount()), 10),
-		strconv.FormatInt(int64(proc.GetFdCount()), 10),
-		formatBytes(proc.GetRss()),
+		strconv.FormatInt(safeconv.Int32ToInt64(proc.GetPid()), 10),
+		strconv.FormatInt(safeconv.Int32ToInt64(proc.GetThreadCount()), 10),
+		strconv.FormatInt(safeconv.Int32ToInt64(proc.GetFdCount()), 10),
+		inspector.FormatBytes(proc.GetRss()),
 		proc.GetHostname(),
 	}}
 	p.PrintResource(processOverviewColumns, rows)
@@ -314,9 +308,9 @@ func infoSystem(response *pb.GetSystemStatsResponse, p *Printer) {
 		{"Uptime", formatDuration(response.GetUptimeMs())},
 		{"System Uptime", formatDuration(response.GetSystemUptimeMs())},
 		{"CPU Millicores", fmt.Sprintf("%.1f", response.GetCpuMillicores())},
-		{"Num CPUs", strconv.FormatInt(int64(response.GetNumCpu()), 10)},
-		{"GOMAXPROCS", strconv.FormatInt(int64(response.GetGomaxprocs()), 10)},
-		{"Goroutines", strconv.FormatInt(int64(response.GetNumGoroutines()), 10)},
+		{"Num CPUs", strconv.FormatInt(safeconv.Int32ToInt64(response.GetNumCpu()), 10)},
+		{"GOMAXPROCS", strconv.FormatInt(safeconv.Int32ToInt64(response.GetGomaxprocs()), 10)},
+		{"Goroutines", strconv.FormatInt(safeconv.Int32ToInt64(response.GetNumGoroutines()), 10)},
 		{"CGO Calls", strconv.FormatInt(response.GetNumCgoCalls(), 10)},
 		{"Cgroup Path", response.GetCgroupPath()},
 		{"Monitoring Address", response.GetMonitoringListenAddr()},
@@ -334,20 +328,7 @@ func infoBuild(response *pb.GetSystemStatsResponse, p *Printer) {
 	if build == nil {
 		return
 	}
-
-	rows := [][]string{
-		{"Version", build.GetVersion()},
-		{"Commit", build.GetCommit()},
-		{"Go Version", build.GetGoVersion()},
-		{"OS", build.GetOs()},
-		{"Arch", build.GetArch()},
-		{"Build Time", build.GetBuildTime()},
-		{"Module", build.GetModulePath()},
-		{"Module Version", build.GetModuleVersion()},
-		{"VCS Modified", strconv.FormatBool(build.GetVcsModified())},
-		{"VCS Time", build.GetVcsTime()},
-	}
-	p.PrintResource(infoDetailColumns, rows)
+	p.PrintResource(infoDetailColumns, detailRowsToTable(inspector.BuildBuildDetailRows(build)))
 }
 
 // infoRuntime prints runtime information from the system stats response.
@@ -359,13 +340,7 @@ func infoRuntime(response *pb.GetSystemStatsResponse, p *Printer) {
 	if rt == nil {
 		return
 	}
-
-	rows := [][]string{
-		{"GOGC", rt.GetGogc()},
-		{"GOMEMLIMIT", rt.GetGomemlimit()},
-		{"Compiler", rt.GetCompiler()},
-	}
-	p.PrintResource(infoDetailColumns, rows)
+	p.PrintResource(infoDetailColumns, detailRowsToTable(inspector.BuildRuntimeDetailRows(rt)))
 }
 
 // infoMemory prints memory statistics from a system stats response.
@@ -377,32 +352,7 @@ func infoMemory(response *pb.GetSystemStatsResponse, p *Printer) {
 	if mem == nil {
 		return
 	}
-
-	rows := [][]string{
-		{"Alloc", formatBytes(mem.GetAlloc())},
-		{"Total Alloc", formatBytes(mem.GetTotalAlloc())},
-		{"Sys", formatBytes(mem.GetSys())},
-		{"Heap Alloc", formatBytes(mem.GetHeapAlloc())},
-		{"Heap Sys", formatBytes(mem.GetHeapSys())},
-		{"Heap Idle", formatBytes(mem.GetHeapIdle())},
-		{"Heap In Use", formatBytes(mem.GetHeapInuse())},
-		{"Heap Objects", strconv.FormatUint(mem.GetHeapObjects(), 10)},
-		{"Heap Released", formatBytes(mem.GetHeapReleased())},
-		{"Stack In Use", formatBytes(mem.GetStackInuse())},
-		{"Stack Sys", formatBytes(mem.GetStackSys())},
-		{"MSpan In Use", formatBytes(mem.GetMspanInuse())},
-		{"MSpan Sys", formatBytes(mem.GetMspanSys())},
-		{"MCache In Use", formatBytes(mem.GetMcacheInuse())},
-		{"MCache Sys", formatBytes(mem.GetMcacheSys())},
-		{"GC Sys", formatBytes(mem.GetGcSys())},
-		{"Other Sys", formatBytes(mem.GetOtherSys())},
-		{"BuckHash Sys", formatBytes(mem.GetBuckhashSys())},
-		{"Lookups", strconv.FormatUint(mem.GetLookups(), 10)},
-		{"Mallocs", strconv.FormatUint(mem.GetMallocs(), 10)},
-		{"Frees", strconv.FormatUint(mem.GetFrees(), 10)},
-		{"Live Objects", strconv.FormatUint(mem.GetLiveObjects(), 10)},
-	}
-	p.PrintResource(infoDetailColumns, rows)
+	p.PrintResource(infoDetailColumns, detailRowsToTable(inspector.BuildMemoryDetailRows(mem)))
 }
 
 // infoGC prints garbage collection statistics from the system stats response.
@@ -415,26 +365,7 @@ func infoGC(response *pb.GetSystemStatsResponse, p *Printer) {
 	if gc == nil {
 		return
 	}
-
-	rows := [][]string{
-		{"Cycles", strconv.FormatUint(uint64(gc.GetNumGc()), 10)},
-		{"Forced Cycles", strconv.FormatUint(uint64(gc.GetNumForcedGc()), 10)},
-		{"Last Pause", formatNanos(safeconv.Uint64ToInt64(gc.GetLastPauseNs()))},
-		{"Total Pause", formatNanos(safeconv.Uint64ToInt64(gc.GetPauseTotalNs()))},
-		{"CPU Fraction", fmt.Sprintf("%.4f%%", gc.GetGcCpuFraction()*100)},
-		{"Next GC", formatBytes(gc.GetNextGc())},
-		{"Last GC", formatTimestamp(gc.GetLastGcNs() / 1_000_000_000)},
-	}
-
-	if pauses := gc.GetRecentPauses(); len(pauses) > 0 {
-		parts := make([]string, len(pauses))
-		for i, nanoseconds := range pauses {
-			parts[i] = formatNanos(safeconv.Uint64ToInt64(nanoseconds))
-		}
-		rows = append(rows, []string{"Recent Pauses", strings.Join(parts, ", ")})
-	}
-
-	p.PrintResource(infoDetailColumns, rows)
+	p.PrintResource(infoDetailColumns, detailRowsToTable(inspector.BuildGCDetailRows(gc)))
 }
 
 // infoProcess prints process information from the system stats response.
@@ -446,24 +377,21 @@ func infoProcess(response *pb.GetSystemStatsResponse, p *Printer) {
 	if proc == nil {
 		return
 	}
+	p.PrintResource(infoDetailColumns, detailRowsToTable(inspector.BuildProcessDetailRows(proc)))
+}
 
-	rows := [][]string{
-		{"PID", strconv.FormatInt(int64(proc.GetPid()), 10)},
-		{"PPID", strconv.FormatInt(int64(proc.GetPpid()), 10)},
-		{"UID", strconv.FormatInt(int64(proc.GetUid()), 10)},
-		{"GID", strconv.FormatInt(int64(proc.GetGid()), 10)},
-		{"Threads", strconv.FormatInt(int64(proc.GetThreadCount()), 10)},
-		{"File Descriptors", strconv.FormatInt(int64(proc.GetFdCount()), 10)},
-		{"Max Open Files (Soft)", strconv.FormatInt(proc.GetMaxOpenFilesSoft(), 10)},
-		{"Max Open Files (Hard)", strconv.FormatInt(proc.GetMaxOpenFilesHard(), 10)},
-		{"RSS", formatBytes(proc.GetRss())},
-		{"I/O Read Bytes", formatBytes(proc.GetIoReadBytes())},
-		{"I/O Write Bytes", formatBytes(proc.GetIoWriteBytes())},
-		{"I/O Read Total", formatBytes(proc.GetIoRchar())},
-		{"I/O Write Total", formatBytes(proc.GetIoWchar())},
-		{"Hostname", proc.GetHostname()},
-		{"Executable", proc.GetExecutable()},
-		{"CWD", proc.GetCwd()},
+// detailRowsToTable converts a slice of inspector.DetailRow into the
+// two-column [][]string layout expected by Printer.PrintResource. The
+// helper exists so each info<X> function can lift its rows from the
+// shared inspector package without restating the conversion.
+//
+// Takes rows ([]inspector.DetailRow) which is the inspector row set.
+//
+// Returns [][]string ready to pass to PrintResource.
+func detailRowsToTable(rows []inspector.DetailRow) [][]string {
+	out := make([][]string, len(rows))
+	for i, row := range rows {
+		out[i] = []string{row.Label, row.Value}
 	}
-	p.PrintResource(infoDetailColumns, rows)
+	return out
 }

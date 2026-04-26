@@ -23,13 +23,20 @@ package tui_domain
 // Returns []KeyBinding which contains the global keyboard shortcuts.
 func GlobalKeyBindings() []KeyBinding {
 	return []KeyBinding{
-		{Key: "q", Description: "Quit"},
-		{Key: "Ctrl+C", Description: "Quit"},
+		{Key: "F1-F4", Description: "Switch group (Content / Telemetry / Runtime / Watchdog)"},
+		{Key: "Alt+←/→", Description: "Cycle group tabs"},
+		{Key: "Alt+↑/↓", Description: "Move menu cursor (auto-commit)"},
+		{Key: "1-9", Description: "Jump to menu item by hotkey"},
+		{Key: "↑/↓ or j/k", Description: "Navigate focused pane"},
+		{Key: "Tab / Shift+Tab", Description: "Cycle pane focus (menu / centre / detail)"},
+		{Key: "[", Description: "Toggle left menu visibility"},
+		{Key: "]", Description: "Toggle right detail visibility"},
+		{Key: ":", Description: "Open command palette"},
+		{Key: "/", Description: "Filter / search active pane"},
+		{Key: "Enter", Description: "Commit menu cursor"},
 		{Key: "?", Description: "Toggle help"},
-		{Key: "Tab", Description: "Next panel"},
-		{Key: "Shift+Tab", Description: "Previous panel"},
-		{Key: "1-9", Description: "Jump to panel"},
 		{Key: "r", Description: "Force refresh"},
+		{Key: "q / Ctrl+C", Description: "Quit"},
 	}
 }
 

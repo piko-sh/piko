@@ -27,6 +27,7 @@ import (
 
 	"piko.sh/piko/cmd/piko/internal/tui/tui_domain"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
+	"piko.sh/piko/wdk/safeconv"
 )
 
 var _ tui_domain.FDsProvider = (*FDsProvider)(nil)
@@ -147,7 +148,7 @@ func convertFDsData(response *pb.GetFileDescriptorsResponse) *tui_domain.FDsData
 		fds := make([]tui_domain.FDInfo, 0, len(cat.GetFds()))
 		for _, fd := range cat.GetFds() {
 			fds = append(fds, tui_domain.FDInfo{
-				FD:        int(fd.GetFd()),
+				FD:        safeconv.Int32ToInt(fd.GetFd()),
 				Category:  fd.GetCategory(),
 				Target:    fd.GetTarget(),
 				FirstSeen: fd.GetFirstSeenMs(),
@@ -157,14 +158,14 @@ func convertFDsData(response *pb.GetFileDescriptorsResponse) *tui_domain.FDsData
 
 		categories = append(categories, tui_domain.FDCategory{
 			Category: cat.GetCategory(),
-			Count:    int(cat.GetCount()),
+			Count:    safeconv.Int32ToInt(cat.GetCount()),
 			FDs:      fds,
 		})
 	}
 
 	return &tui_domain.FDsData{
 		Categories: categories,
-		Total:      int(response.GetTotal()),
+		Total:      safeconv.Int32ToInt(response.GetTotal()),
 		Timestamp:  response.GetTimestampMs(),
 	}
 }

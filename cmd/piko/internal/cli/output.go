@@ -19,7 +19,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"image/color"
@@ -33,6 +32,9 @@ import (
 	"charm.land/lipgloss/v2"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+
+	"piko.sh/piko/cmd/piko/internal/inspector"
+	"piko.sh/piko/internal/json"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
@@ -43,8 +45,13 @@ const (
 	// outputIndent is the two-space indent used in formatted output.
 	outputIndent = "  "
 
-	// outputSecondsPerMinute is the number of seconds in a minute.
-	outputSecondsPerMinute = 60
+	// maxDetailSectionDepth caps recursion through nested detail
+	// sections.
+	maxDetailSectionDepth = 32
+
+	// maxHealthDependencyDepth caps recursion through nested health
+	// dependency trees.
+	maxHealthDependencyDepth = 32
 )
 
 var (
@@ -81,31 +88,6 @@ type Column struct {
 
 	// WideOnly indicates the column is only shown with -o wide.
 	WideOnly bool
-}
-
-// DetailSection represents a labelled group of key-value fields for describe
-// output.
-type DetailSection struct {
-	// Title is the section header.
-	Title string
-
-	// Fields are the key-value pairs in this section.
-	Fields []DetailField
-
-	// SubSections are nested sections.
-	SubSections []DetailSection
-}
-
-// DetailField represents a single key-value pair in describe output.
-type DetailField struct {
-	// Key is the field label.
-	Key string
-
-	// Value is the field value.
-	Value string
-
-	// IsStatus indicates the value should be colourised as a status.
-	IsStatus bool
 }
 
 // Printer writes structured data in table, wide, or JSON format.
@@ -150,9 +132,13 @@ func NewPrinter(w io.Writer, format string, noColour, noHeaders bool) *Printer {
 //
 // Returns error when JSON marshalling fails.
 func (p *Printer) PrintJSON(data any) error {
-	enc := json.NewEncoder(p.w)
-	enc.SetIndent("", "  ")
-	return enc.Encode(data)
+	encoded, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+	encoded = append(encoded, '\n')
+	_, err = p.w.Write(encoded)
+	return err
 }
 
 // PrintTable writes data as a formatted table with ANSI-aware column alignment.
@@ -245,8 +231,8 @@ func (p *Printer) PrintResource(columns []Column, rows [][]string) {
 // PrintDetail writes sections in kubectl-style key-value format to the
 // printer's configured writer.
 //
-// Takes sections ([]DetailSection) which contains the labelled field groups.
-func (p *Printer) PrintDetail(sections []DetailSection) {
+// Takes sections ([]inspector.DetailSection) which contains the labelled field groups.
+func (p *Printer) PrintDetail(sections []inspector.DetailSection) {
 	for i, section := range sections {
 		if i > 0 {
 			_, _ = fmt.Fprintln(p.w)
@@ -284,16 +270,23 @@ func (p *Printer) writeRow(cells []string, colWidths []int) {
 }
 
 // printSection recursively renders a detail section with indentation.
+// Recursion is bounded by maxDetailSectionDepth so server-controlled
+// SubSections cannot exhaust the call stack.
 //
-// Takes section (DetailSection) which is the section to render.
+// Takes section (inspector.DetailSection) which is the section to render.
 // Takes depth (int) which controls the indentation level.
-func (p *Printer) printSection(section DetailSection, depth int) {
-	indent := strings.Repeat("  ", depth)
-	if section.Title != "" {
-		_, _ = fmt.Fprintf(p.w, "%s%s:\n", indent, section.Title)
+func (p *Printer) printSection(section inspector.DetailSection, depth int) {
+	if depth > maxDetailSectionDepth {
+		_, _ = fmt.Fprintf(p.w, "%s... (further sections truncated at depth %d)\n",
+			strings.Repeat(outputIndent, depth), maxDetailSectionDepth)
+		return
+	}
+	indent := strings.Repeat(outputIndent, depth)
+	if section.Heading != "" {
+		_, _ = fmt.Fprintf(p.w, "%s%s:\n", indent, section.Heading)
 	}
 
-	p.printFields(section.Fields, indent)
+	p.printFields(section.Rows, indent)
 
 	for _, sub := range section.SubSections {
 		p.printSection(sub, depth+1)
@@ -302,16 +295,16 @@ func (p *Printer) printSection(section DetailSection, depth int) {
 
 // printFields renders aligned key-value pairs at the given indentation.
 //
-// Takes fields ([]DetailField) which contains the key-value pairs.
+// Takes fields ([]inspector.DetailRow) which contains the key-value pairs.
 // Takes indent (string) which is the prefix whitespace.
-func (p *Printer) printFields(fields []DetailField, indent string) {
+func (p *Printer) printFields(fields []inspector.DetailRow, indent string) {
 	maxLen := maxFieldKeyLength(fields)
 	for _, f := range fields {
 		value := f.Value
 		if f.IsStatus {
 			value = p.ColourisedStatus(value)
 		}
-		_, _ = fmt.Fprintf(p.w, "%s  %-*s  %s\n", indent, maxLen+1, f.Key+":", value)
+		_, _ = fmt.Fprintf(p.w, "%s  %-*s  %s\n", indent, maxLen+1, f.Label+":", value)
 	}
 }
 
@@ -344,14 +337,14 @@ func visibleWidth(s string) int {
 
 // maxFieldKeyLength returns the length of the longest key in a field slice.
 //
-// Takes fields ([]DetailField) which contains the fields to measure.
+// Takes fields ([]inspector.DetailRow) which contains the fields to measure.
 //
 // Returns int which is the maximum key length.
-func maxFieldKeyLength(fields []DetailField) int {
+func maxFieldKeyLength(fields []inspector.DetailRow) int {
 	maxLen := 0
 	for _, f := range fields {
-		if len(f.Key) > maxLen {
-			maxLen = len(f.Key)
+		if len(f.Label) > maxLen {
+			maxLen = len(f.Label)
 		}
 	}
 	return maxLen
@@ -432,6 +425,10 @@ func computeColumnWidths(headers []string, rows [][]string) []int {
 
 // matchesFilter reports whether name matches the filter string. It performs
 // case-insensitive exact match first, then prefix match.
+//
+// The inspector package keeps an identical implementation (matchesFilter)
+// for its own callers; both forms must stay in sync. The CLI keeps its own
+// copy because inspector.matchesFilter is unexported.
 //
 // Takes name (string) which is the value to test.
 // Takes filter (string) which is the filter to match against. Empty matches
@@ -565,67 +562,37 @@ func validateOutputFormat(format, command string, allowed []string) error {
 }
 
 // formatTimestamp converts a Unix timestamp in seconds to a human-readable
-// string.
+// string. Delegates to inspector.FormatUnixSeconds so the CLI shares the
+// inspector's hyphen-glyph-for-zero rendering.
 //
 // Takes ts (int64) which is the Unix timestamp in seconds.
 //
 // Returns string which is the formatted date and time, or "-" if ts is zero.
 func formatTimestamp(ts int64) string {
-	if ts == 0 {
-		return outputDash
-	}
-	return time.Unix(ts, 0).Format("2006-01-02 15:04:05")
+	return inspector.FormatUnixSeconds(ts)
 }
 
-// formatDuration formats a millisecond duration for display.
+// formatDuration formats a millisecond duration for display. Delegates to
+// inspector.FormatMilliseconds so the CLI uses the same "500ms / 1.5s /
+// 5m30s / 2h15m" layout as the rest of the project.
 //
 // Takes ms (int64) which is the duration in milliseconds.
 //
-// Returns string which is the human-readable duration in ms, seconds, minutes,
-// or hours depending on the magnitude.
+// Returns string which is the human-readable duration.
 func formatDuration(ms int64) string {
-	d := time.Duration(ms) * time.Millisecond
-	if d < time.Second {
-		return fmt.Sprintf("%dms", ms)
-	}
-	if d < time.Minute {
-		return fmt.Sprintf("%.1fs", d.Seconds())
-	}
-	totalSeconds := int64(d.Seconds())
-	if d < time.Hour {
-		m := totalSeconds / outputSecondsPerMinute
-		s := totalSeconds % outputSecondsPerMinute
-		return fmt.Sprintf("%dm%ds", m, s)
-	}
-	totalMinutes := totalSeconds / outputSecondsPerMinute
-	h := totalMinutes / outputSecondsPerMinute
-	m := totalMinutes % outputSecondsPerMinute
-	return fmt.Sprintf("%dh%dm", h, m)
+	return inspector.FormatMilliseconds(ms)
 }
 
-// formatBytes formats a byte count for display.
+// formatBytes formats a byte count for display. Delegates to
+// inspector.FormatBytes so the CLI shares the inspector's IEC unit ladder
+// (B / KiB / MiB / GiB / TiB).
 //
 // Takes n (uint64) which is the number of bytes to format.
 //
-// Returns string which is the human-readable size with appropriate unit
-// (B, KiB, MiB, or GiB).
+// Returns string which is the human-readable size with the appropriate
+// unit suffix.
 func formatBytes(n uint64) string {
-	const (
-		kb = 1024
-		mb = 1024 * kb
-		gb = 1024 * mb
-	)
-
-	switch {
-	case n >= gb:
-		return fmt.Sprintf("%.1f GiB", float64(n)/float64(gb))
-	case n >= mb:
-		return fmt.Sprintf("%.1f MiB", float64(n)/float64(mb))
-	case n >= kb:
-		return fmt.Sprintf("%.1f KiB", float64(n)/float64(kb))
-	default:
-		return fmt.Sprintf("%d B", n)
-	}
+	return inspector.FormatBytes(n)
 }
 
 // formatNanos formats nanoseconds as a human-readable duration.
@@ -647,14 +614,20 @@ func formatNanos(nanoseconds int64) string {
 	return fmt.Sprintf("%.2fs", d.Seconds())
 }
 
-// printHealthTree recursively prints a health status tree with indentation.
-// This is used by the watch command for streaming output.
+// printHealthTree recursively prints a health status tree with
+// indentation. Recursion is bounded by maxHealthDependencyDepth so a
+// hostile server cannot exhaust the call stack.
 //
 // Takes w (io.Writer) which receives the formatted output.
 // Takes p (*Printer) which provides colourised status formatting.
 // Takes status (*pb.HealthStatus) which is the health status node to print.
 // Takes depth (int) which controls the indentation level.
 func printHealthTree(w io.Writer, p *Printer, status *pb.HealthStatus, depth int) {
+	if depth > maxHealthDependencyDepth {
+		_, _ = fmt.Fprintf(w, "%s... (further dependencies truncated at depth %d)\n",
+			strings.Repeat(outputIndent, depth), maxHealthDependencyDepth)
+		return
+	}
 	indent := strings.Repeat(outputIndent, depth)
 	state := p.ColourisedStatus(status.GetState())
 

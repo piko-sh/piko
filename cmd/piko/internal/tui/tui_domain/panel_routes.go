@@ -503,7 +503,7 @@ func (p *RoutesPanel) renderRouteLine(route RouteStats, selected, expanded bool)
 // Takes route (RouteStats) which holds the route data to display.
 func (p *RoutesPanel) renderExpandedRouteDetails(ctx *ScrollContext, route RouteStats) {
 	indent := "      "
-	dimStyle := lipgloss.NewStyle().Foreground(colorForegroundDim)
+	dimStyle := lipgloss.NewStyle().Foreground(colourForegroundDim)
 
 	ctx.WriteLineIfVisible(func() string {
 		text := fmt.Sprintf("Latency: p50=%.0fms  p90=%.0fms  p95=%.0fms  p99=%.0fms",
@@ -578,7 +578,7 @@ func (*RoutesPanel) renderSpanLine(span Span, indent string, dimStyle *lipgloss.
 func (p *RoutesPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return RoutesRefreshMessage{Err: errors.New("no traces provider"), Routes: nil, TotalCount: 0, TotalErrors: 0}
+			return RoutesRefreshMessage{Err: errNoTracesProvider, Routes: nil, TotalCount: 0, TotalErrors: 0}
 		}
 
 		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
@@ -625,7 +625,7 @@ func (r *routesRenderer) RenderRow(route RouteStats, _ int, selected, _ bool, _ 
 // error count, and recent request lines.
 func (r *routesRenderer) RenderExpanded(route RouteStats, _ int) []string {
 	indent := "      "
-	dimStyle := lipgloss.NewStyle().Foreground(colorForegroundDim)
+	dimStyle := lipgloss.NewStyle().Foreground(colourForegroundDim)
 	var lines []string
 
 	text := fmt.Sprintf("Latency: p50=%.0fms  p90=%.0fms  p95=%.0fms  p99=%.0fms",

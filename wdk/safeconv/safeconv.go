@@ -461,6 +461,37 @@ func Int32ToUint32(n int32) uint32 {
 	return uint32(n) //nolint:gosec // bounds checked above
 }
 
+// Int32ToInt64 widens an int32 to int64. The conversion is always safe
+// because int64 can represent every int32 value, but the helper exists
+// so call sites read consistently with the rest of the safeconv usage.
+//
+// Takes n (int32) which is the value to widen.
+//
+// Returns int64 carrying the same numeric value as n.
+func Int32ToInt64(n int32) int64 {
+	return int64(n)
+}
+
+// Int32ToInt widens an int32 to int. The conversion is always safe on
+// every platform Go supports because int is at least 32 bits.
+//
+// Takes n (int32) which is the value to widen.
+//
+// Returns int carrying the same numeric value as n.
+func Int32ToInt(n int32) int {
+	return int(n)
+}
+
+// Uint32ToInt64 widens a uint32 to int64. The conversion is always
+// safe because int64 covers the full uint32 range.
+//
+// Takes n (uint32) which is the value to widen.
+//
+// Returns int64 carrying the same numeric value as n.
+func Uint32ToInt64(n uint32) int64 {
+	return int64(n)
+}
+
 // Int16ToByte converts an int16 to a byte, clamping to [0, 255].
 // Values below 0 become 0, values above 255 become 255.
 //

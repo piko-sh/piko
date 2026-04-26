@@ -472,6 +472,26 @@ type Panel interface {
 	//
 	// Returns []KeyBinding which contains the panel's keybindings.
 	KeyMap() []KeyBinding
+
+	// DetailView renders the right-hand detail body for the panel.
+	//
+	// Panels with no per-row detail return the empty string; the
+	// composer falls back to a placeholder hint in that case. The
+	// returned string must be sized to (width, height).
+	//
+	// Takes width (int) and height (int) for the inner content area.
+	//
+	// Returns string with the rendered detail body, or "" to opt out.
+	DetailView(width, height int) string
+
+	// Selection returns what is currently selected in the panel.
+	//
+	// The composer hands this to other panels for cross-panel
+	// coordination (e.g. trace -> route navigation). Panels with no
+	// selectable rows return Selection{}.
+	//
+	// Returns Selection describing the focused row, or empty.
+	Selection() Selection
 }
 
 // KeyBinding describes a keyboard shortcut and its action for display in help.

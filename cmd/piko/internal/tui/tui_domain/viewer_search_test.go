@@ -230,8 +230,8 @@ func TestStatusFilterMixin_MatchesFilter(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name   string
 		filter *ResourceStatus
+		name   string
 		status ResourceStatus
 		want   bool
 	}{

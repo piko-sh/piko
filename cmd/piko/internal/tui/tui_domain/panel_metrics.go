@@ -368,7 +368,7 @@ func (p *MetricsPanel) renderMetricLine(m metricDisplay, selected, expanded bool
 	spark := Sparkline(m.values, &config)
 
 	current := formatMetricValue(m.current, m.unit)
-	current = lipgloss.NewStyle().Foreground(colorForeground).Render(current)
+	current = lipgloss.NewStyle().Foreground(colourForeground).Render(current)
 
 	return fmt.Sprintf("%s%s %s %s %s", cursor, expandChar, name, spark, current)
 }
@@ -500,7 +500,7 @@ func (p *MetricsPanel) buildDisplayMetricsFromHistory(newMetrics []metricDisplay
 func (p *MetricsPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return MetricsRefreshMessage{Err: errors.New("no metrics provider"), Metrics: nil}
+			return MetricsRefreshMessage{Err: errNoMetricsProvider, Metrics: nil}
 		}
 
 		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,

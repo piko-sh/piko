@@ -20,7 +20,6 @@ package cli
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -30,6 +29,9 @@ import (
 	"charm.land/lipgloss/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"piko.sh/piko/cmd/piko/internal/inspector"
+	"piko.sh/piko/internal/json"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
@@ -411,18 +413,18 @@ func TestPrinter_PrintDetail(t *testing.T) {
 	var buffer bytes.Buffer
 	p := NewPrinter(&buffer, "table", true, false)
 
-	sections := []DetailSection{
+	sections := []inspector.DetailSection{
 		{
-			Title: "Component",
-			Fields: []DetailField{
-				{Key: "State", Value: "HEALTHY"},
-				{Key: "Message", Value: "All good"},
+			Heading: "Component",
+			Rows: []inspector.DetailRow{
+				{Label: "State", Value: "HEALTHY"},
+				{Label: "Message", Value: "All good"},
 			},
-			SubSections: []DetailSection{
+			SubSections: []inspector.DetailSection{
 				{
-					Title: "Database",
-					Fields: []DetailField{
-						{Key: "State", Value: "HEALTHY"},
+					Heading: "Database",
+					Rows: []inspector.DetailRow{
+						{Label: "State", Value: "HEALTHY"},
 					},
 				},
 			},

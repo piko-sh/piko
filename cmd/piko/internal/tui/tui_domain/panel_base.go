@@ -55,6 +55,11 @@ type BasePanel struct {
 	// title is the text shown in the panel header.
 	title string
 
+	// titleSuffix is appended to the title in RenderFrame so panels
+	// can surface live status (e.g. scroll position) without changing
+	// the stable panel title.
+	titleSuffix string
+
 	// keyBindings holds the key bindings for this panel.
 	keyBindings []KeyBinding
 
@@ -64,10 +69,12 @@ type BasePanel struct {
 	// height is the panel height in lines.
 	height int
 
-	// cursor is the zero-based position of the selected item in the list.
+	// cursor is the zero-based position of the selected item in the
+	// list.
 	cursor int
 
-	// scrollOffset is the current vertical scroll position for scrollable content.
+	// scrollOffset is the current vertical scroll position for
+	// scrollable content.
 	scrollOffset int
 
 	// focused indicates whether the panel has focus.
@@ -92,6 +99,14 @@ func NewBasePanel(id, title string) BasePanel {
 		scrollOffset: 0,
 		focused:      false,
 	}
+}
+
+// SetTitleSuffix replaces the dim suffix appended to the panel title in
+// RenderFrame. Pass an empty string to clear it.
+//
+// Takes suffix (string) which is the new title suffix.
+func (p *BasePanel) SetTitleSuffix(suffix string) {
+	p.titleSuffix = suffix
 }
 
 // ID returns the panel identifier.
@@ -151,7 +166,7 @@ func (p *BasePanel) Height() int {
 // Returns int which is the usable height in lines, or zero if the panel is
 // too small.
 func (p *BasePanel) ContentHeight() int {
-	return max(0, p.height-4)
+	return max(0, p.height-PanelChromeHeight)
 }
 
 // ContentWidth returns the width available for content, after accounting for
@@ -159,7 +174,7 @@ func (p *BasePanel) ContentHeight() int {
 //
 // Returns int which is the usable width inside the panel.
 func (p *BasePanel) ContentWidth() int {
-	return max(0, p.width-4)
+	return max(0, p.width-PanelChromeWidth)
 }
 
 // Cursor returns the current cursor position.
@@ -210,6 +225,31 @@ func (p *BasePanel) SetKeyMap(bindings []KeyBinding) {
 // Returns tea.Cmd which is nil by default.
 func (*BasePanel) Init() tea.Cmd {
 	return nil
+}
+
+// DetailView is the default implementation of Panel.DetailView.
+//
+// It returns the empty string so the composer falls back to its
+// placeholder. Panels that produce real detail content shadow this
+// method with their own implementation.
+//
+// Takes width (int) and height (int) which are ignored by the
+// default; concrete implementations use them.
+//
+// Returns string which is always "" for the default.
+func (*BasePanel) DetailView(_, _ int) string {
+	return ""
+}
+
+// Selection is the default implementation of Panel.Selection.
+//
+// It returns the empty Selection so panels without selectable rows can
+// embed BasePanel without adding boilerplate. Panels with row
+// selection shadow this method.
+//
+// Returns Selection which is the zero value.
+func (*BasePanel) Selection() Selection {
+	return Selection{}
 }
 
 // HandleNavigation handles common navigation keys for cursor movement.
@@ -266,6 +306,10 @@ func (p *BasePanel) RenderFrame(content string) string {
 	}
 
 	title := panelTitleStyle.Render(p.title)
+	if p.titleSuffix != "" {
+		dim := lipgloss.NewStyle().Foreground(colourForegroundDim)
+		title += " " + dim.Render(p.titleSuffix)
+	}
 
 	full := lipgloss.JoinVertical(lipgloss.Left, title, content)
 
@@ -357,36 +401,31 @@ func StatusStyle(status ResourceStatus) lipgloss.Style {
 	}
 }
 
-// TruncateString shortens a string to fit within a given width, adding an
-// ellipsis if needed.
+// TruncateString shortens a string to fit within a given visible width,
+// adding an ellipsis if needed. The width is measured in terminal cells, not
+// bytes, so multi-byte UTF-8 sequences and embedded ANSI escapes are handled
+// correctly.
 //
 // Takes s (string) which is the string to shorten.
-// Takes maxWidth (int) which is the maximum number of characters allowed.
+// Takes maxWidth (int) which is the maximum number of terminal cells allowed.
 //
 // Returns string which is the shortened string with an ellipsis, or the
 // original string if it fits within maxWidth.
 func TruncateString(s string, maxWidth int) string {
-	if len(s) <= maxWidth {
-		return s
-	}
-	if maxWidth <= ellipsisLength {
-		return s[:maxWidth]
-	}
-	return s[:maxWidth-ellipsisLength] + ellipsis
+	return TruncateANSI(s, maxWidth)
 }
 
-// PadRight pads a string to the given width with spaces on the right.
+// PadRight pads a string to the given visible width with spaces on the right.
+// The width is measured in terminal cells; multi-byte UTF-8 sequences and
+// embedded ANSI escapes are handled correctly.
 //
 // Takes s (string) which is the string to pad.
-// Takes width (int) which is the target width in characters.
+// Takes width (int) which is the target width in terminal cells.
 //
 // Returns string which is the padded string. If the input is longer than the
 // target width, it is cut short to fit.
 func PadRight(s string, width int) string {
-	if len(s) >= width {
-		return s[:width]
-	}
-	return s + lipgloss.NewStyle().Width(width-len(s)).Render("")
+	return PadRightANSI(s, width)
 }
 
 // RenderMetadataRow renders a metadata key-value row with styling and
@@ -410,11 +449,11 @@ func RenderMetadataRow(key, value string, config MetadataRowConfig) string {
 	if widthAdj == 0 {
 		widthAdj = metadataDefaultWidthAdj
 	}
-	content := fmt.Sprintf("%s: %s", key, TruncateString(value, config.ContentWidth-len(key)-widthAdj))
+	content := fmt.Sprintf("%s: %s", key, TruncateString(value, config.ContentWidth-TextWidth(key)-widthAdj))
 
-	style := lipgloss.NewStyle().Foreground(colorForegroundDim)
+	style := lipgloss.NewStyle().Foreground(colourForegroundDim)
 	if config.Selected && config.Focused {
-		style = style.Foreground(colorForeground)
+		style = style.Foreground(colourForeground)
 	}
 
 	return cursor + style.Render(content)
@@ -429,12 +468,12 @@ func RenderMetadataRow(key, value string, config MetadataRowConfig) string {
 // Returns string which contains the cursor with the correct indent and style.
 func buildMetadataCursor(indentSpaces int, selected, focused bool) string {
 	if !selected {
-		return strings.Repeat(" ", indentSpaces)
+		return strings.Repeat(SingleSpace, indentSpaces)
 	}
 
 	selectedIndent := max(0, indentSpaces-metadataSelectedOffset)
 	if focused {
-		return strings.Repeat(" ", selectedIndent) + lipgloss.NewStyle().Foreground(colorPrimary).Render("▸ ")
+		return strings.Repeat(SingleSpace, selectedIndent) + lipgloss.NewStyle().Foreground(colourPrimary).Render("▸ ")
 	}
-	return strings.Repeat(" ", selectedIndent) + "▸ "
+	return strings.Repeat(SingleSpace, selectedIndent) + "▸ "
 }

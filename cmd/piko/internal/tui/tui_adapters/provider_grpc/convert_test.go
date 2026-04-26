@@ -567,36 +567,6 @@ func TestMapPriority(t *testing.T) {
 	}
 }
 
-func TestFormatBytes(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name  string
-		want  string
-		input int64
-	}{
-		{name: "zero bytes", input: 0, want: "0 B"},
-		{name: "small bytes", input: 512, want: "512 B"},
-		{name: "exactly 1 KB", input: 1024, want: "1.0 KB"},
-		{name: "fractional KB", input: 1536, want: "1.5 KB"},
-		{name: "exactly 1 MB", input: 1024 * 1024, want: "1.0 MB"},
-		{name: "exactly 1 GB", input: 1024 * 1024 * 1024, want: "1.0 GB"},
-		{name: "2.5 GB", input: int64(2.5 * 1024 * 1024 * 1024), want: "2.5 GB"},
-		{name: "just under 1 KB", input: 1023, want: "1023 B"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := formatBytes(tc.input)
-			if got != tc.want {
-				t.Errorf("formatBytes(%d): got %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
 func TestConvertFDsData(t *testing.T) {
 	t.Parallel()
 

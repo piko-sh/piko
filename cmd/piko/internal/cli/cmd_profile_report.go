@@ -20,17 +20,17 @@ package cli
 
 import (
 	"bytes"
-	"cmp"
 	"fmt"
 	"io"
 	"path/filepath"
 	"regexp"
-	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/pprof/profile"
 
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -44,19 +44,6 @@ const (
 
 // reportPercentiles lists the percentile values used in load test reports.
 var reportPercentiles = []float64{50, 66, 75, 80, 90, 95, 98, 99, 100} //nolint:revive // percentile thresholds
-
-// reportEntry holds the aggregated flat and cumulative values for a single
-// row in a profile report.
-type reportEntry struct {
-	// label is the display name - either a function name or file:line.
-	label string
-
-	// flat is the value directly attributable to this location.
-	flat int64
-
-	// cum is the cumulative value (flat + all callees).
-	cum int64
-}
 
 // profileReportConfig controls how a single report section is generated.
 type profileReportConfig struct {
@@ -77,22 +64,6 @@ type profileReportConfig struct {
 	// byLine groups results by source file and line number when true.
 	// When false, results are grouped by function name.
 	byLine bool
-}
-
-// profileKey identifies a unique location in the aggregation
-// maps.
-type profileKey struct {
-	// functionName is the fully qualified function name at this
-	// location.
-	functionName string
-
-	// fileName is the source file path, populated only when
-	// grouping by line.
-	fileName string
-
-	// line is the source line number, populated only when
-	// grouping by line.
-	line int64
 }
 
 // generateProfileReport parses the given pprof data and writes a
@@ -116,157 +87,18 @@ func generateProfileReport(w io.Writer, data []byte, reportConfig profileReportC
 	}
 
 	sampleType := prof.SampleType[reportConfig.sampleIndex]
-	entries := aggregateProfile(prof, reportConfig)
-	writeReportSection(w, reportConfig.sectionTitle, sampleType, entries, reportConfig.topN, totalRequests)
-	return nil
-}
+	summary, err := inspector.AggregateProfile(prof, inspector.ProfileAggOpts{
+		FocusRegex:  reportConfig.focusRegex,
+		SampleIndex: reportConfig.sampleIndex,
 
-// sampleMatchesFocus returns true when at least one location
-// in the sample matches the focus regex, or when no focus
-// regex is set.
-//
-// Takes s (*profile.Sample) which is the sample to check.
-// Takes focusRegex (*regexp.Regexp) which is the optional
-// filter; nil means all samples match.
-//
-// Returns bool which is true when the sample matches.
-func sampleMatchesFocus(s *profile.Sample, focusRegex *regexp.Regexp) bool {
-	if focusRegex == nil {
-		return true
-	}
-	for _, location := range s.Location {
-		for _, line := range location.Line {
-			if line.Function != nil && focusRegex.MatchString(line.Function.Name) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// accumulateSample adds a single sample's contribution to the
-// flat and cumulative aggregation maps.
-//
-// Takes s (*profile.Sample) which is the sample to
-// accumulate.
-// Takes sampleIndex (int) which selects which value column
-// to use.
-// Takes byLine (bool) which, when true, groups by source
-// file and line rather than function name alone.
-// Takes flatMap (map[profileKey]int64) which accumulates
-// values directly attributable to each location.
-// Takes cumMap (map[profileKey]int64) which accumulates
-// cumulative values including callees.
-func accumulateSample(
-	s *profile.Sample,
-	sampleIndex int,
-	byLine bool,
-	flatMap, cumMap map[profileKey]int64,
-) {
-	value := s.Value[sampleIndex]
-	seen := make(map[profileKey]bool)
-
-	for i, location := range s.Location {
-		for _, line := range location.Line {
-			if line.Function == nil {
-				continue
-			}
-
-			k := profileKey{functionName: line.Function.Name}
-			if byLine {
-				k.fileName = line.Function.Filename
-				k.line = line.Line
-			}
-
-			if i == 0 {
-				flatMap[k] += value
-			}
-			if !seen[k] {
-				cumMap[k] += value
-				seen[k] = true
-			}
-		}
-	}
-}
-
-// profileKeyLabel returns the display label for a profile key.
-//
-// Takes k (profileKey) which identifies the location.
-// Takes byLine (bool) which, when true, includes the file
-// path and line number in the label.
-//
-// Returns string which is the formatted display label.
-func profileKeyLabel(k profileKey, byLine bool) string {
-	if byLine && k.fileName != "" {
-		return fmt.Sprintf("%s %s:%d", k.functionName, k.fileName, k.line)
-	}
-	return k.functionName
-}
-
-// buildReportEntries converts the flat/cum aggregation maps
-// into a sorted slice of report entries.
-//
-// Takes flatMap (map[profileKey]int64) which holds flat
-// values per location.
-// Takes cumMap (map[profileKey]int64) which holds cumulative
-// values per location.
-// Takes byLine (bool) which controls label formatting.
-//
-// Returns []reportEntry which is the entries sorted by flat
-// value descending.
-func buildReportEntries(flatMap, cumMap map[profileKey]int64, byLine bool) []reportEntry {
-	entries := make([]reportEntry, 0, len(flatMap)+len(cumMap))
-	for k, flat := range flatMap {
-		entries = append(entries, reportEntry{
-			label: profileKeyLabel(k, byLine),
-			flat:  flat,
-			cum:   cumMap[k],
-		})
-	}
-	for k, cum := range cumMap {
-		if _, hasFlatEntry := flatMap[k]; hasFlatEntry {
-			continue
-		}
-		entries = append(entries, reportEntry{
-			label: profileKeyLabel(k, byLine),
-			flat:  0,
-			cum:   cum,
-		})
-	}
-
-	slices.SortFunc(entries, func(a, b reportEntry) int {
-		if c := cmp.Compare(b.flat, a.flat); c != 0 {
-			return c
-		}
-		return cmp.Compare(b.cum, a.cum)
+		TopN:   0,
+		ByLine: reportConfig.byLine,
 	})
-	return entries
-}
-
-// aggregateProfile walks all samples and aggregates flat/cum values
-// by the grouping key determined by reportConfig.byLine.
-//
-// Takes prof (*profile.Profile) which is the parsed pprof data.
-// Takes reportConfig (profileReportConfig) which controls grouping and
-// filtering.
-//
-// Returns []reportEntry which contains the aggregated entries sorted
-// by flat value descending.
-func aggregateProfile(prof *profile.Profile, reportConfig profileReportConfig) []reportEntry {
-	flatMap := make(map[profileKey]int64)
-	cumMap := make(map[profileKey]int64)
-
-	for _, s := range prof.Sample {
-		if s.Value[reportConfig.sampleIndex] == 0 {
-			continue
-		}
-		if !sampleMatchesFocus(s, reportConfig.focusRegex) {
-			continue
-		}
-		accumulateSample(s, reportConfig.sampleIndex, reportConfig.byLine, flatMap, cumMap)
+	if err != nil {
+		return fmt.Errorf("aggregating profile: %w", err)
 	}
-
-	return buildReportEntries(flatMap, cumMap, reportConfig.byLine)
+	writeReportSection(w, reportConfig.sectionTitle, sampleType, summary.Entries, reportConfig.topN, totalRequests)
+	return nil
 }
 
 // writeReportSection writes a formatted table of profile entries to w.
@@ -274,11 +106,11 @@ func aggregateProfile(prof *profile.Profile, reportConfig profileReportConfig) [
 // Takes w (io.Writer) which receives the formatted output.
 // Takes title (string) which is the section heading.
 // Takes st (*profile.ValueType) which describes the sample type.
-// Takes entries ([]reportEntry) which holds the aggregated data.
+// Takes entries ([]inspector.ProfileEntry) which holds the aggregated data.
 // Takes topN (int) which limits output to the top N entries.
 // Takes totalRequests (int64) which enables a per-request column
 // when positive.
-func writeReportSection(w io.Writer, title string, st *profile.ValueType, entries []reportEntry, topN int, totalRequests int64) {
+func writeReportSection(w io.Writer, title string, st *profile.ValueType, entries []inspector.ProfileEntry, topN int, totalRequests int64) {
 	_, _ = fmt.Fprint(w, reportSeparator)
 	_, _ = fmt.Fprintf(w, "PROFILE:   %s\n", title)
 	_, _ = fmt.Fprint(w, reportSeparator)
@@ -292,7 +124,7 @@ func writeReportSection(w io.Writer, title string, st *profile.ValueType, entrie
 
 	var total int64
 	for _, e := range entries {
-		total += e.flat
+		total += e.Flat
 	}
 
 	if topN > 0 && topN < len(entries) {
@@ -312,25 +144,25 @@ func writeReportSection(w io.Writer, title string, st *profile.ValueType, entrie
 
 	var cumFlat int64
 	for _, e := range entries {
-		cumFlat += e.flat
+		cumFlat += e.Flat
 
-		flatPct := pct(e.flat, total)
+		flatPct := pct(e.Flat, total)
 		sumPct := pct(cumFlat, total)
-		cumPct := pct(e.cum, total)
+		cumPct := pct(e.Cum, total)
 
 		if showPerReq {
-			perReq := float64(e.flat) / float64(totalRequests)
+			perReq := float64(e.Flat) / float64(totalRequests)
 			_, _ = fmt.Fprintf(w, "%12s %5.2f%% %5.2f%% %8.2f %12s %5.2f%%  %s\n",
-				format(e.flat), flatPct, sumPct,
+				format(e.Flat), flatPct, sumPct,
 				perReq,
-				format(e.cum), cumPct,
-				e.label,
+				format(e.Cum), cumPct,
+				e.Label,
 			)
 		} else {
 			_, _ = fmt.Fprintf(w, "%12s %5.2f%% %5.2f%% %12s %5.2f%%  %s\n",
-				format(e.flat), flatPct, sumPct,
-				format(e.cum), cumPct,
-				e.label,
+				format(e.Flat), flatPct, sumPct,
+				format(e.Cum), cumPct,
+				e.Label,
 			)
 		}
 	}
@@ -426,7 +258,7 @@ func profileFormatDuration(nanoseconds int64) string {
 //
 // Returns string which is the decimal representation.
 func profileFormatCount(n int64) string {
-	return fmt.Sprintf("%d", n)
+	return strconv.FormatInt(n, 10)
 }
 
 // writeProfileStats writes a companion .stats file alongside a .pprof

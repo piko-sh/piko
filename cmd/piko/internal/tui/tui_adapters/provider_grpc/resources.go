@@ -20,15 +20,18 @@ package provider_grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"sync"
 	"time"
 
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	"piko.sh/piko/cmd/piko/internal/tui/tui_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/logger"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
+	"piko.sh/piko/wdk/safeconv"
 )
 
 var _ tui_domain.ResourceProvider = (*ResourceProvider)(nil)
@@ -202,31 +205,33 @@ func (p *ResourceProvider) Refresh(ctx context.Context) error {
 
 	GRPCCallCount.Add(ctx, 1)
 
-	taskSummary, tasks, workflows, err := p.fetchOrchestratorData(ctx)
-	if err != nil {
+	taskSummary, tasks, workflows, orchestratorErr := p.fetchOrchestratorData(ctx)
+	if orchestratorErr != nil {
 		GRPCCallErrorCount.Add(ctx, 1)
-		l.Debug("Failed to fetch orchestrator data", logger.Error(err))
+		l.Warn("Failed to fetch orchestrator data", logger.Error(orchestratorErr))
 	}
 
-	artefactSummary, artefacts, err := p.fetchRegistryData(ctx)
-	if err != nil {
+	artefactSummary, artefacts, registryErr := p.fetchRegistryData(ctx)
+	if registryErr != nil {
 		GRPCCallErrorCount.Add(ctx, 1)
-		l.Debug("Failed to fetch registry data", logger.Error(err))
+		l.Warn("Failed to fetch registry data", logger.Error(registryErr))
 	}
 
 	summary := make(map[string]map[tui_domain.ResourceStatus]int)
 	maps.Copy(summary, taskSummary)
 	maps.Copy(summary, artefactSummary)
 
+	combined := errors.Join(orchestratorErr, registryErr)
+
 	p.mu.Lock()
 	p.tasks = tasks
 	p.workflows = workflows
 	p.artefacts = artefacts
 	p.summary = summary
-	p.lastError = nil
+	p.lastError = combined
 	p.mu.Unlock()
 
-	return nil
+	return combined
 }
 
 // Kinds returns the resource kinds this provider supports.
@@ -311,7 +316,7 @@ func (p *ResourceProvider) fetchOrchestratorData(ctx context.Context) (
 	summary[kindOrchestratorTask] = make(map[tui_domain.ResourceStatus]int)
 	for _, item := range taskSummaryResp.GetSummaries() {
 		status := mapTaskStatus(item.GetStatus())
-		summary[kindOrchestratorTask][status] = int(item.GetCount())
+		summary[kindOrchestratorTask][status] = safeconv.Int64ToInt(item.GetCount())
 	}
 
 	tasksResp, err := p.conn.orchestratorClient.ListRecentTasks(ctx, &pb.ListRecentTasksRequest{
@@ -361,7 +366,7 @@ func (p *ResourceProvider) fetchRegistryData(ctx context.Context) (
 	summary[kindRegistryArtefact] = make(map[tui_domain.ResourceStatus]int)
 	for _, item := range artefactSummaryResp.GetSummaries() {
 		status := mapArtefactStatus(item.GetStatus())
-		summary[kindRegistryArtefact][status] = int(item.GetCount())
+		summary[kindRegistryArtefact][status] = safeconv.Int64ToInt(item.GetCount())
 	}
 
 	variantSummaryResp, err := p.conn.registryClient.GetVariantSummary(ctx, &pb.GetVariantSummaryRequest{})
@@ -372,7 +377,7 @@ func (p *ResourceProvider) fetchRegistryData(ctx context.Context) (
 	summary[kindRegistryVariant] = make(map[tui_domain.ResourceStatus]int)
 	for _, item := range variantSummaryResp.GetSummaries() {
 		status := mapArtefactStatus(item.GetStatus())
-		summary[kindRegistryVariant][status] = int(item.GetCount())
+		summary[kindRegistryVariant][status] = safeconv.Int64ToInt(item.GetCount())
 	}
 
 	artefactsResp, err := p.conn.registryClient.ListRecentArtefacts(ctx, &pb.ListRecentArtefactsRequest{
@@ -504,7 +509,7 @@ func convertArtefact(artefact *pb.ArtefactListItem) tui_domain.Resource {
 		StatusText: artefact.GetStatus(),
 		Metadata: map[string]string{
 			metadataKeyVariantCount: fmt.Sprintf(intFormat, artefact.GetVariantCount()),
-			metadataKeyTotalSize:    formatBytes(artefact.GetTotalSize()),
+			metadataKeyTotalSize:    inspector.FormatBytes(safeconv.Int64ToUint64(artefact.GetTotalSize())),
 			metadataKeySourcePath:   artefact.GetSourcePath(),
 		},
 		Children:  nil,
@@ -566,30 +571,5 @@ func mapPriority(priority int32) string {
 		return "High"
 	default:
 		return fmt.Sprintf("P%d", priority)
-	}
-}
-
-// formatBytes formats a byte count as a human-readable string.
-//
-// Takes bytes (int64) which is the byte count to format.
-//
-// Returns string which is the formatted size with appropriate unit
-// (B, KB, MB, or GB).
-func formatBytes(bytes int64) string {
-	const (
-		kb = 1024
-		mb = kb * 1024
-		gb = mb * 1024
-	)
-
-	switch {
-	case bytes >= gb:
-		return fmt.Sprintf("%.1f GB", float64(bytes)/float64(gb))
-	case bytes >= mb:
-		return fmt.Sprintf("%.1f MB", float64(bytes)/float64(mb))
-	case bytes >= kb:
-		return fmt.Sprintf("%.1f KB", float64(bytes)/float64(kb))
-	default:
-		return fmt.Sprintf("%d B", bytes)
 	}
 }

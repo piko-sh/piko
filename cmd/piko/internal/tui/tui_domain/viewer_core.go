@@ -19,6 +19,7 @@
 package tui_domain
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
@@ -49,6 +50,10 @@ type AssetViewer[T any] struct {
 
 	// navMode specifies the current navigation mode for the viewer.
 	navMode NavigationMode
+
+	// lastHeaderLines records how many rows the most recent View call
+	// reserved for the panel header (search box, error banners).
+	lastHeaderLines int
 }
 
 // AssetViewerConfig holds settings for creating an AssetViewer.
@@ -361,11 +366,12 @@ func (v *AssetViewer[T]) HandleNavigation(message tea.KeyPressMsg) bool {
 	lineCount := v.CalculateLineCount()
 	positions := v.NavigablePositions()
 
+	visibleHeight := max(1, v.ContentHeight()-v.lastHeaderLines)
 	newCursor, newOffset, handled := HandleNavigationKey(
 		message,
 		v.cursor,
 		v.scrollOffset,
-		v.ContentHeight(),
+		visibleHeight,
 		positions,
 		lineCount,
 	)
@@ -549,6 +555,7 @@ func (v *AssetViewer[T]) RenderViewWith(width, height int, callbacks ViewCallbac
 
 	var content strings.Builder
 	usedLines := callbacks.RenderHeader(&content)
+	v.lastHeaderLines = usedLines
 
 	displayItems := v.GetDisplayItems()
 	if len(displayItems) == 0 {
@@ -562,7 +569,27 @@ func (v *AssetViewer[T]) RenderViewWith(width, height int, callbacks ViewCallbac
 	if callbacks.TrimTrailingNewline {
 		result = strings.TrimSuffix(result, stringNewline)
 	}
+
+	v.updateScrollSuffix(usedLines)
 	return v.RenderFrame(result)
+}
+
+// updateScrollSuffix sets the panel title's suffix to a compact scroll
+// position label when the rendered content overflows the visible area.
+// Cleared when there is no overflow.
+//
+// Takes headerLines (int) which is the height already consumed by the
+// panel header so the visible item area is computed correctly.
+func (v *AssetViewer[T]) updateScrollSuffix(headerLines int) {
+	totalLines := v.CalculateLineCount()
+	visibleHeight := v.ContentHeight() - headerLines
+	if visibleHeight <= 0 || totalLines <= visibleHeight {
+		v.SetTitleSuffix("")
+		return
+	}
+	first := v.scrollOffset + 1
+	last := min(v.scrollOffset+visibleHeight, totalLines)
+	v.SetTitleSuffix(fmt.Sprintf("· %d-%d / %d", first, last, totalLines))
 }
 
 // View renders the full panel view.
@@ -588,6 +615,7 @@ func (v *AssetViewer[T]) View(width, height int) string {
 
 	var content strings.Builder
 	headerLines := v.RenderHeader(&content)
+	v.lastHeaderLines = headerLines
 
 	displayItems := v.GetDisplayItems()
 	if len(displayItems) == 0 {
@@ -598,6 +626,7 @@ func (v *AssetViewer[T]) View(width, height int) string {
 	}
 
 	v.RenderItems(&content, headerLines)
+	v.updateScrollSuffix(headerLines)
 	return v.RenderFrame(strings.TrimSuffix(content.String(), stringNewline))
 }
 

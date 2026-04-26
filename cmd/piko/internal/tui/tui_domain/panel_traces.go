@@ -29,6 +29,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"piko.sh/piko/cmd/piko/internal/inspector"
 	"piko.sh/piko/wdk/clock"
 )
 
@@ -426,7 +427,7 @@ func (p *TracesPanel) setItemsUnlocked(items []Span) {
 func (p *TracesPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return TracesRefreshMessage{Err: errors.New("no traces provider"), Spans: nil}
+			return TracesRefreshMessage{Err: errNoTracesProvider, Spans: nil}
 		}
 
 		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
@@ -470,7 +471,7 @@ func (p *TracesPanel) renderHeader() string {
 
 	if errorsOnly {
 		parts = append(parts, lipgloss.NewStyle().
-			Foreground(colorError).
+			Foreground(colourError).
 			Render("[Errors Only]"))
 	}
 
@@ -489,7 +490,7 @@ func (p *TracesPanel) renderHeader() string {
 // Returns string which is the styled header row.
 func (p *TracesPanel) renderTableHeader() string {
 	headerStyle := lipgloss.NewStyle().
-		Foreground(colorForegroundDim).
+		Foreground(colourForegroundDim).
 		Bold(true)
 
 	nameW, serviceW := p.calculateColumnWidths()
@@ -529,18 +530,18 @@ func (p *TracesPanel) renderSpanLine(span Span, index int) string {
 	if index == p.Cursor() {
 		cursor = cursorArrow
 		if p.Focused() {
-			cursor = lipgloss.NewStyle().Foreground(colorPrimary).Render(cursorArrow)
+			cursor = lipgloss.NewStyle().Foreground(colourPrimary).Render(cursorArrow)
 		}
 	}
 
 	var statusIcon string
 	switch span.Status {
 	case SpanStatusOK:
-		statusIcon = lipgloss.NewStyle().Foreground(colorSuccess).Render(SymbolStatusFilled)
+		statusIcon = lipgloss.NewStyle().Foreground(colourSuccess).Render(SymbolStatusFilled)
 	case SpanStatusError:
-		statusIcon = lipgloss.NewStyle().Foreground(colorError).Render(SymbolStatusFilled)
+		statusIcon = lipgloss.NewStyle().Foreground(colourError).Render(SymbolStatusFilled)
 	default:
-		statusIcon = lipgloss.NewStyle().Foreground(colorForegroundDim).Render(SymbolStatusEmpty)
+		statusIcon = lipgloss.NewStyle().Foreground(colourForegroundDim).Render(SymbolStatusEmpty)
 	}
 
 	nameW, serviceW := p.calculateColumnWidths()
@@ -558,13 +559,13 @@ func (p *TracesPanel) renderSpanLine(span Span, index int) string {
 	service = PadRight(service, serviceW)
 	service = RenderDimText(service)
 
-	duration := formatDuration(span.Duration)
-	durationStyle := lipgloss.NewStyle().Foreground(colorForeground)
+	duration := inspector.FormatDuration(span.Duration)
+	durationStyle := lipgloss.NewStyle().Foreground(colourForeground)
 	if span.Duration > tracesSlowThreshold {
-		durationStyle = durationStyle.Foreground(colorWarning)
+		durationStyle = durationStyle.Foreground(colourWarning)
 	}
 	if span.Duration > 1*time.Second {
-		durationStyle = durationStyle.Foreground(colorError)
+		durationStyle = durationStyle.Foreground(colourError)
 	}
 	duration = durationStyle.Render(fmt.Sprintf("%10s", duration))
 

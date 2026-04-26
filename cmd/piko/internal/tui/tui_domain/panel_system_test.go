@@ -72,28 +72,6 @@ func TestFormatMillicores(t *testing.T) {
 	}
 }
 
-func TestFormatBytes(t *testing.T) {
-	testCases := []struct {
-		name     string
-		contains string
-		b        uint64
-	}{
-		{name: "bytes", b: 500, contains: "500 B"},
-		{name: "kilobytes", b: 1024, contains: "KiB"},
-		{name: "megabytes", b: 1024 * 1024, contains: "MiB"},
-		{name: "gigabytes", b: 1024 * 1024 * 1024, contains: "GiB"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := formatBytes(tc.b)
-			if !strings.Contains(result, tc.contains) {
-				t.Errorf("expected result to contain %q, got %q", tc.contains, result)
-			}
-		})
-	}
-}
-
 func TestFormatUptime(t *testing.T) {
 	testCases := []struct {
 		name     string

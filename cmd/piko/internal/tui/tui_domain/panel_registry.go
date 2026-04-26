@@ -552,7 +552,7 @@ func (p *RegistryPanel) renderResourceRow(resource Resource, selected bool) stri
 	if selected {
 		cursor = resourcesCursorIndent + cursorArrow
 		if p.Focused() {
-			cursor = resourcesCursorIndent + lipgloss.NewStyle().Foreground(colorPrimary).Render(cursorArrow)
+			cursor = resourcesCursorIndent + lipgloss.NewStyle().Foreground(colourPrimary).Render(cursorArrow)
 		}
 	}
 
@@ -698,33 +698,4 @@ func determineKindOverallStatus(counts map[ResourceStatus]int) ResourceStatus {
 	default:
 		return ResourceStatusUnknown
 	}
-}
-
-// buildKindCountString builds the count summary string for a resource kind.
-//
-// Takes counts (map[ResourceStatus]int) which maps each resource status to its
-// count.
-//
-// Returns string which is a styled summary showing the total count and a
-// breakdown of unhealthy, degraded, and pending resources.
-func buildKindCountString(counts map[ResourceStatus]int) string {
-	healthy := counts[ResourceStatusHealthy]
-	degraded := counts[ResourceStatusDegraded]
-	unhealthy := counts[ResourceStatusUnhealthy]
-	pending := counts[ResourceStatusPending]
-	unknown := counts[ResourceStatusUnknown]
-	total := healthy + degraded + unhealthy + pending + unknown
-
-	countString := fmt.Sprintf("(%d", total)
-	if unhealthy > 0 {
-		countString += fmt.Sprintf(" | %s%d", statusUnhealthyStyle.Render("✗"), unhealthy)
-	}
-	if degraded > 0 {
-		countString += fmt.Sprintf(" | %s%d", statusDegradedStyle.Render("⚠"), degraded)
-	}
-	if pending > 0 {
-		countString += fmt.Sprintf(" | %s%d", statusPendingStyle.Render("◌"), pending)
-	}
-	countString += ")"
-	return countString
 }

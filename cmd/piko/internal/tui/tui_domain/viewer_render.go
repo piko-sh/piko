@@ -331,7 +331,7 @@ func RenderCursorWithIndent(selected, focused bool, inactiveIndent, activeIndent
 		return inactiveIndent
 	}
 	if focused {
-		return activeIndent + lipgloss.NewStyle().Foreground(colorPrimary).Render(cursorIndicator)
+		return activeIndent + lipgloss.NewStyle().Foreground(colourPrimary).Render(cursorIndicator)
 	}
 	return activeIndent + cursorIndicator
 }
@@ -348,7 +348,7 @@ func RenderExpandIndicator(expanded bool) string {
 	if expanded {
 		indicator = SymbolExpanded
 	}
-	return lipgloss.NewStyle().Foreground(colorForegroundDim).Render(indicator)
+	return lipgloss.NewStyle().Foreground(colourForegroundDim).Render(indicator)
 }
 
 // RenderName formats an item name for display with optional bold styling.
@@ -377,7 +377,7 @@ func RenderName(name string, maxWidth int, selected, focused bool) string {
 //
 // Returns string which is the styled text with dim colour applied.
 func RenderDimText(text string) string {
-	return lipgloss.NewStyle().Foreground(colorForegroundDim).Render(text)
+	return lipgloss.NewStyle().Foreground(colourForegroundDim).Render(text)
 }
 
 // RenderItalicDimText renders text with dim colour and italic styling.
@@ -387,7 +387,7 @@ func RenderDimText(text string) string {
 // Returns string which is the styled text.
 func RenderItalicDimText(text string) string {
 	return lipgloss.NewStyle().
-		Foreground(colorForegroundDim).
+		Foreground(colourForegroundDim).
 		Italic(true).
 		Render(text)
 }
@@ -398,7 +398,7 @@ func RenderItalicDimText(text string) string {
 //
 // Returns string which is the text styled with the error colour.
 func RenderErrorText(text string) string {
-	return lipgloss.NewStyle().Foreground(colorError).Render(text)
+	return lipgloss.NewStyle().Foreground(colourError).Render(text)
 }
 
 // RenderInfoText applies the info colour style to the given text.
@@ -407,7 +407,7 @@ func RenderErrorText(text string) string {
 //
 // Returns string which is the text with the info colour applied.
 func RenderInfoText(text string) string {
-	return lipgloss.NewStyle().Foreground(colorInfo).Render(text)
+	return lipgloss.NewStyle().Foreground(colourInfo).Render(text)
 }
 
 // RenderEmptyState renders a standard empty state message.
@@ -421,7 +421,7 @@ func RenderEmptyState(content *strings.Builder, hasFilter bool, itemName string)
 		message = "No " + itemName + " match filter"
 	}
 	content.WriteString(lipgloss.NewStyle().
-		Foreground(colorForegroundDim).
+		Foreground(colourForegroundDim).
 		Render(message))
 }
 
@@ -431,7 +431,7 @@ func RenderEmptyState(content *strings.Builder, hasFilter bool, itemName string)
 // Takes err (error) which provides the error to display.
 func RenderErrorState(content *strings.Builder, err error) {
 	content.WriteString(lipgloss.NewStyle().
-		Foreground(colorError).
+		Foreground(colourError).
 		Render("Error: " + err.Error()))
 	content.WriteString(stringNewline)
 }

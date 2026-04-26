@@ -348,6 +348,22 @@ type Providers struct {
 	// FDs holds providers that track open file descriptors.
 	FDs []FDsProvider
 
+	// Watchdog holds providers that surface runtime anomaly-detector
+	// state, profiles, history, and live events.
+	Watchdog []WatchdogProvider
+
+	// ProvidersInfo holds the inspector port for `piko get providers`.
+	ProvidersInfo []ProvidersInspector
+
+	// DLQ holds the inspector port for `piko get dlq`.
+	DLQ []DLQInspector
+
+	// RateLimiter holds the inspector port for `piko get ratelimiter`.
+	RateLimiter []RateLimiterInspector
+
+	// Profiling holds the inspector port for `piko profile`.
+	Profiling []ProfilingInspector
+
 	// Panels holds custom panels to display in the terminal interface.
 	Panels []Panel
 }
