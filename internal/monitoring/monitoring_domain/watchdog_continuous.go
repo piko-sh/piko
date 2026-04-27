@@ -72,11 +72,25 @@ func (w *Watchdog) captureRoutineProfiles(ctx context.Context) {
 	}
 
 	for _, profileType := range w.config.ContinuousProfilingTypes {
+		if w.heapProfilingDisabled && requiresMemProfileRate(profileType) {
+			continue
+		}
 		w.goSafely(&w.captureWG, func() {
 			defer goroutine.RecoverPanic(ctx, "monitoring.watchdogRoutineCapture."+profileType)
 			w.captureAndStoreRoutineProfile(ctx, profileType)
 		})
 	}
+}
+
+// requiresMemProfileRate reports whether a profile type is empty when the
+// runtime allocation sampler is disabled.
+//
+// Takes profileType (string) which identifies the pprof profile type.
+//
+// Returns bool which is true when the profile depends on
+// runtime.MemProfileRate sampling (heap and allocs).
+func requiresMemProfileRate(profileType string) bool {
+	return profileType == profileTypeHeap || profileType == "allocs"
 }
 
 // captureAndStoreRoutineProfile is the routine-mode counterpart to

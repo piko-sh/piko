@@ -52,6 +52,10 @@ const (
 	// GOMEMLIMIT is not set.
 	WatchdogEventGomemlimitNotConfigured WatchdogEventType = "gomemlimit_not_configured"
 
+	// WatchdogEventMemProfileRateDisabled is emitted at startup when
+	// runtime.MemProfileRate is zero, disarming heap and allocs captures.
+	WatchdogEventMemProfileRateDisabled WatchdogEventType = "memprofilerate_disabled"
+
 	// WatchdogEventRSSThresholdExceeded is emitted when RSS approaches the
 	// cgroup memory limit.
 	WatchdogEventRSSThresholdExceeded WatchdogEventType = "rss_threshold_exceeded"
@@ -411,5 +415,19 @@ func NewGomemlimitNotConfiguredEvent() WatchdogEvent {
 		Message: "GOMEMLIMIT is not configured; the watchdog will use the absolute heap " +
 			"threshold. In containerised environments, use piko.WithAutoMemoryLimit for " +
 			"accurate OOM-aware monitoring",
+	}
+}
+
+// NewMemProfileRateDisabledEvent creates the startup event emitted when
+// runtime.MemProfileRate is zero.
+//
+// Returns WatchdogEvent which describes the disabled sampling configuration.
+func NewMemProfileRateDisabledEvent() WatchdogEvent {
+	return WatchdogEvent{
+		EventType: WatchdogEventMemProfileRateDisabled,
+		Priority:  WatchdogPriorityHigh,
+		Message: "runtime.MemProfileRate is 0; heap and allocs captures are disarmed. " +
+			"Set piko.WithProfilingMemProfileRate (default 524288) to re-enable " +
+			"heap-based watchdog rules",
 	}
 }

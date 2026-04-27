@@ -50,6 +50,10 @@ const (
 //
 // Safe for concurrent use; acquires the watchdog's mutex for state updates.
 func (w *Watchdog) evaluateHeap(ctx context.Context, now time.Time, stats *SystemStats) {
+	if w.heapProfilingDisabled {
+		return
+	}
+
 	ctx, l := logger_domain.From(ctx, log)
 	heapAlloc := stats.Memory.HeapAlloc
 
@@ -231,6 +235,10 @@ func (w *Watchdog) evaluateGCPressure(ctx context.Context, now time.Time, stats 
 // Takes stats (*SystemStats) which contains the current system metrics
 // including RSS and cgroup memory limit.
 func (w *Watchdog) evaluateRSS(ctx context.Context, now time.Time, stats *SystemStats) {
+	if w.heapProfilingDisabled {
+		return
+	}
+
 	ctx, l := logger_domain.From(ctx, log)
 	rss := stats.Process.RSS
 
