@@ -52,6 +52,23 @@ type GenerateFromSourcesResponse struct {
 	Success bool `json:"success"`
 }
 
+// ScriptArtefact is a compiled client-side JavaScript module.
+//
+// Surfaced via DynamicRenderResponse.Scripts. The path is the artefact
+// ID without any URL prefix (e.g. "pk-js/pages/index.js"); consumers
+// prefix with their asset route (typically "/_piko/assets/") when
+// constructing import maps or HTML.
+type ScriptArtefact struct {
+	// Path is the artefact ID (e.g. "pk-js/pages/index.js").
+	//
+	// Joining this with the consumer's asset serve prefix yields the URL
+	// the compiled JS expects in its `import` statements.
+	Path string `json:"path"`
+
+	// Content is the compiled ES module source ready for execution.
+	Content string `json:"content"`
+}
+
 // GeneratedArtefact represents a single generated file from the code
 // generation process.
 type GeneratedArtefact struct {
@@ -138,6 +155,17 @@ type ManifestPartialEntry struct {
 
 	// PropsTypeName is the name of the Props type, if any.
 	PropsTypeName string `json:"propsTypeName,omitempty"`
+
+	// JSArtefactID is the client-side JavaScript artefact ID for this
+	// partial, when it has a <script> block. Pages aggregate transitively-
+	// referenced partial IDs into ManifestPageEntry.JSArtefactIDs; this
+	// field exposes the per-partial value for tooling that walks the
+	// partial graph directly.
+	JSArtefactID string `json:"jsArtefactId,omitempty"`
+
+	// StyleBlock contains the aggregated CSS for this partial and its
+	// nested partials.
+	StyleBlock string `json:"styleBlock,omitempty"`
 
 	// HasProps indicates whether the partial accepts props.
 	HasProps bool `json:"hasProps,omitempty"`

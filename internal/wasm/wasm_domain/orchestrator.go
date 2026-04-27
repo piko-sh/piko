@@ -36,6 +36,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/sfcparser"
@@ -604,7 +605,7 @@ func (o *Orchestrator) DynamicRender(ctx context.Context, request *wasm_dto.Dyna
 		return errResp, nil
 	}
 
-	return o.dynamicRenderHTML(ctx, interpResp)
+	return o.dynamicRenderHTML(ctx, interpResp, genResp, request.RequestURL)
 }
 
 // GetStdlibData retrieves the stdlib data under lock.
@@ -721,17 +722,32 @@ func (o *Orchestrator) dynamicRenderInterpret(
 	return interpResp, nil
 }
 
-// dynamicRenderHTML renders the interpreted AST to HTML.
+// dynamicRenderHTML renders the interpreted AST to HTML and assembles the
+// full response, including any compiled client-side JavaScript artefacts
+// captured during code generation and the matched page's CSS.
 //
 // Takes interpResp (*wasm_dto.InterpretResponse) which contains the AST and
 // metadata from the interpretation phase.
+// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which provides the
+// generated artefacts; ArtefactTypeJS entries are surfaced verbatim under
+// DynamicRenderResponse.Scripts and the matched page's StyleBlock becomes
+// resp.CSS.
+// Takes requestURL (string) which identifies the page whose CSS should be
+// used; matched against the manifest's route patterns.
 //
-// Returns *wasm_dto.DynamicRenderResponse which contains the rendered HTML and
-// CSS, or error details if rendering failed.
+// Returns *wasm_dto.DynamicRenderResponse which contains the rendered HTML,
+// CSS, scripts, and runtime-import URLs, or error details if rendering
+// failed.
 // Returns error when an unexpected failure occurs.
-func (o *Orchestrator) dynamicRenderHTML(ctx context.Context, interpResp *wasm_dto.InterpretResponse) (*wasm_dto.DynamicRenderResponse, error) {
+func (o *Orchestrator) dynamicRenderHTML(
+	ctx context.Context,
+	interpResp *wasm_dto.InterpretResponse,
+	genResp *wasm_dto.GenerateFromSourcesResponse,
+	requestURL string,
+) (*wasm_dto.DynamicRenderResponse, error) {
 	o.log(logLevelDebug, "DynamicRender: Phase 3 - Rendering HTML...")
-	html, css, renderErr := o.renderASTToHTML(ctx, interpResp.AST, interpResp.Metadata)
+	styleBlock := findPageStyleBlock(genResp, requestURL)
+	html, renderErr := o.renderASTToHTML(ctx, interpResp.AST, interpResp.Metadata, styleBlock)
 	if renderErr != nil {
 		dynamicRenderErrorCount.Add(ctx, 1)
 		return &wasm_dto.DynamicRenderResponse{
@@ -742,42 +758,53 @@ func (o *Orchestrator) dynamicRenderHTML(ctx context.Context, interpResp *wasm_d
 	}
 
 	return &wasm_dto.DynamicRenderResponse{
-		Success:     true,
-		HTML:        html,
-		CSS:         css,
-		Diagnostics: interpResp.Diagnostics,
+		Success:        true,
+		HTML:           html,
+		CSS:            styleBlock,
+		Scripts:        collectScriptArtefacts(genResp),
+		RuntimeImports: defaultRuntimeImports,
+		Diagnostics:    interpResp.Diagnostics,
 	}, nil
 }
 
 // renderASTToHTML converts a template AST to HTML using the WASM renderer.
+// CSS is propagated through the renderer for any in-AST styling logic but
+// the dynamic-render path treats styleBlock as the source of truth, so the
+// renderer's CSS echo is intentionally not returned.
 //
 // Takes ctx (context.Context) which is the request context.
 // Takes astNode (*ast_domain.TemplateAST) which is the template AST to render.
 // Takes metadata (*templater_dto.InternalMetadata) which contains template
 // metadata.
+// Takes styleBlock (string) which is the CSS to apply during rendering.
 //
-// Returns html (string) which is the rendered HTML.
-// Returns css (string) which is the extracted CSS.
+// Returns html (string) which is the rendered HTML body markup (no document
+// wrapper).
 // Returns err (error) when rendering fails.
-func (o *Orchestrator) renderASTToHTML(ctx context.Context, astNode *ast_domain.TemplateAST, metadata *templater_dto.InternalMetadata) (html, css string, err error) {
+func (o *Orchestrator) renderASTToHTML(
+	ctx context.Context,
+	astNode *ast_domain.TemplateAST,
+	metadata *templater_dto.InternalMetadata,
+	styleBlock string,
+) (string, error) {
 	if o.renderer == nil {
-		return "", "", errRendererNotConfigured
+		return "", errRendererNotConfigured
 	}
 
 	response, err := o.renderer.RenderFromAST(ctx, &wasm_dto.RenderFromASTRequest{
 		AST:      astNode,
 		Metadata: metadata,
-		CSS:      "",
+		CSS:      styleBlock,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("rendering AST to HTML: %w", err)
+		return "", fmt.Errorf("rendering AST to HTML: %w", err)
 	}
 
 	if !response.Success {
-		return "", "", fmt.Errorf("%s", response.Error)
+		return "", errors.New(response.Error)
 	}
 
-	return response.HTML, response.CSS, nil
+	return response.HTML, nil
 }
 
 // log writes a message to the console at the given level.
@@ -1233,11 +1260,20 @@ func lookupPackagePath(manifest *wasm_dto.GeneratedManifest, sourcePath string) 
 //   - {param} matches a single non-empty path segment
 //   - {param*} matches all remaining path segments (catch-all, must be last)
 //
+// The URL's query string and fragment are stripped before comparison so
+// that `/?sort=name` and `/#section` both match the pattern `/`. Without
+// this, a page-level link click that sends e.g. `/?sort=department` would
+// fail to match its own page route, and dynamicRender would fall back to
+// findFirstPageArtefact (no styles, wrong page).
+//
 // Takes pattern (string) which is the route pattern to match against.
 // Takes url (string) which is the URL to check.
 //
 // Returns bool which is true if the URL matches the pattern.
 func matchesRoute(pattern, url string) bool {
+	if i := strings.IndexAny(url, "?#"); i >= 0 {
+		url = url[:i]
+	}
 	pattern = strings.TrimSuffix(pattern, "/")
 	url = strings.TrimSuffix(url, "/")
 
@@ -1554,4 +1590,76 @@ func parseErrorStringToDiagnostics(errMessage, filePath string) []wasm_dto.Diagn
 			Code: "",
 		},
 	}
+}
+
+// collectScriptArtefacts pulls every JavaScript artefact out of a generator
+// response so the dynamic-render path can surface them to the consumer.
+//
+// The generator returns a mixed bag (Go code, manifests, register files,
+// CSS) so we filter to ArtefactTypeJS. The returned slice preserves
+// generator order, which keeps responses deterministic for golden tests.
+//
+// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which carries every
+// artefact captured during generation.
+//
+// Returns []wasm_dto.ScriptArtefact where each entry is one compiled ES
+// module. Returns nil when genResp is nil or no JS artefacts were emitted;
+// JSON-omitempty hides the field from the response in that case.
+func collectScriptArtefacts(genResp *wasm_dto.GenerateFromSourcesResponse) []wasm_dto.ScriptArtefact {
+	if genResp == nil || len(genResp.Artefacts) == 0 {
+		return nil
+	}
+
+	scripts := make([]wasm_dto.ScriptArtefact, 0, len(genResp.Artefacts))
+	for _, artefact := range genResp.Artefacts {
+		if artefact.Type != wasm_dto.ArtefactTypeJS {
+			continue
+		}
+		scripts = append(scripts, wasm_dto.ScriptArtefact{
+			Path:    artefact.Path,
+			Content: artefact.Content,
+		})
+	}
+	if len(scripts) == 0 {
+		return nil
+	}
+	return scripts
+}
+
+// defaultRuntimeImports lists the framework-runtime URLs.
+//
+// The dynamic-render path echoes this list in every response so
+// consumers can pre-resolve the imports (typically by fetching the
+// framework bundles from the parent daemon and adding entries to an
+// importmap) without having to scan emitted JS for `import` statements.
+// Sourced from the exported constants in generator_domain so any future
+// path change ripples through automatically.
+var defaultRuntimeImports = []string{
+	generator_domain.PKFrameworkURL,
+	generator_domain.PKComponentsURL,
+	generator_domain.PKActionsGenURL,
+}
+
+// findPageStyleBlock returns the aggregated CSS for the page that matches
+// requestURL. The block already includes CSS from every transitively
+// referenced partial (the manifest builder collapses them at generation
+// time), so it can be used verbatim as the page's <style> contents.
+//
+// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which carries the
+// manifest produced this run.
+// Takes requestURL (string) which is matched against each page entry's
+// route patterns.
+//
+// Returns string which is the matched page's StyleBlock, or empty when no
+// page matches or the manifest is absent.
+func findPageStyleBlock(genResp *wasm_dto.GenerateFromSourcesResponse, requestURL string) string {
+	if genResp == nil || genResp.Manifest == nil {
+		return ""
+	}
+	for _, pageEntry := range genResp.Manifest.Pages {
+		if pageMatchesURL(pageEntry.RoutePatterns, requestURL) {
+			return pageEntry.StyleBlock
+		}
+	}
+	return ""
 }

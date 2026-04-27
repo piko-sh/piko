@@ -283,13 +283,13 @@ func (p *ProvidersPanel) renderItems(content *strings.Builder, displayItems []in
 // Takes selected (bool) which is true when the cursor sits on this row.
 //
 // Returns string which is the rendered row.
-func (p *ProvidersPanel) renderRow(e ProviderEntry, selected bool) string {
+func (p *ProvidersPanel) renderRow(entry ProviderEntry, selected bool) string {
 	cursor := RenderCursor(selected, p.Focused())
 	star := "  "
-	if e.IsDefault {
+	if entry.IsDefault {
 		star = "* "
 	}
-	label := fmt.Sprintf("%s/%s", e.ResourceType, e.Name)
+	label := fmt.Sprintf("%s/%s", entry.ResourceType, entry.Name)
 	return cursor + star + RenderName(label, max(0, p.ContentWidth()-6), selected, p.Focused())
 }
 
@@ -527,16 +527,16 @@ func (p *ProvidersPanel) overviewBody() inspector.DetailBody {
 // Takes derr (error) which is the latest describe error, may be nil.
 //
 // Returns inspector.DetailBody describing the cache-miss state.
-func providerEntryDetail(e ProviderEntry, derr error) inspector.DetailBody {
+func providerEntryDetail(entry ProviderEntry, derr error) inspector.DetailBody {
 	const providerEntryFixedRows = 3
-	rows := make([]inspector.DetailRow, 0, providerEntryFixedRows+len(e.Values))
+	rows := make([]inspector.DetailRow, 0, providerEntryFixedRows+len(entry.Values))
 	rows = append(rows,
-		inspector.DetailRow{Label: "Type", Value: e.ResourceType},
-		inspector.DetailRow{Label: "Name", Value: e.Name},
-		inspector.DetailRow{Label: "Default", Value: boolLabel(e.IsDefault)},
+		inspector.DetailRow{Label: "Type", Value: entry.ResourceType},
+		inspector.DetailRow{Label: "Name", Value: entry.Name},
+		inspector.DetailRow{Label: "Default", Value: boolLabel(entry.IsDefault)},
 	)
-	for _, k := range sortedStringKeys(e.Values) {
-		rows = append(rows, inspector.DetailRow{Label: k, Value: e.Values[k]})
+	for _, k := range sortedStringKeys(entry.Values) {
+		rows = append(rows, inspector.DetailRow{Label: k, Value: entry.Values[k]})
 	}
 	sections := []inspector.DetailSection{{Heading: "Summary", Rows: rows}}
 	if derr != nil {
@@ -545,7 +545,7 @@ func providerEntryDetail(e ProviderEntry, derr error) inspector.DetailBody {
 		sections = append(sections, inspector.DetailSection{Heading: "Detail", Rows: []inspector.DetailRow{{Label: "Status", Value: "loading..."}}})
 	}
 	return inspector.DetailBody{
-		Title:    e.ResourceType + "/" + e.Name,
+		Title:    entry.ResourceType + "/" + entry.Name,
 		Subtitle: "press r to refresh detail",
 		Sections: sections,
 	}
@@ -662,7 +662,7 @@ func providerSubResourceFocusSection(r ProviderSubResource) inspector.DetailSect
 // subResourceSummary collapses a sub-resource's values into a single
 // space-delimited "k=v" line for compact list display.
 //
-// Takes subs (map[string]string) which is the sub-resource's key/value pairs.
+// Takes values (map[string]string) which is the sub-resource's key/value pairs.
 //
 // Returns string which is the joined "k=v" line, or empty when no values.
 func subResourceSummary(values map[string]string) string {
@@ -682,7 +682,7 @@ func subResourceSummary(values map[string]string) string {
 // Takes entry (ProviderEntry) which is the entry to key.
 //
 // Returns string which is the cache key in the form "type/name".
-func providerKey(e ProviderEntry) string { return e.ResourceType + "/" + e.Name }
+func providerKey(entry ProviderEntry) string { return entry.ResourceType + "/" + entry.Name }
 
 // sortedStringKeys returns the sorted keys of a string-keyed map.
 //
@@ -716,8 +716,8 @@ func boolLabel(b bool) string {
 // Takes selected (bool) which is true when the cursor sits on this row.
 //
 // Returns string which is the rendered row.
-func (r *providersRenderer) RenderRow(item ProviderEntry, _ int, selected, _ bool, _ int) string {
-	return r.panel.renderRow(item, selected)
+func (r *providersRenderer) RenderRow(entry ProviderEntry, _ int, selected, _ bool, _ int) string {
+	return r.panel.renderRow(entry, selected)
 }
 
 // RenderExpanded returns no expanded lines; provider rows are not expandable.
@@ -730,7 +730,7 @@ func (*providersRenderer) RenderExpanded(_ ProviderEntry, _ int) []string { retu
 // Takes entry (ProviderEntry) which is the row to identify.
 //
 // Returns string which is the "type/name" identifier.
-func (*providersRenderer) GetID(item ProviderEntry) string { return providerKey(item) }
+func (*providersRenderer) GetID(entry ProviderEntry) string { return providerKey(entry) }
 
 // MatchesFilter reports whether an entry matches the supplied search query.
 //
@@ -738,10 +738,10 @@ func (*providersRenderer) GetID(item ProviderEntry) string { return providerKey(
 // Takes query (string) which is the search query.
 //
 // Returns bool which is true when the resource type or name contains query.
-func (*providersRenderer) MatchesFilter(item ProviderEntry, q string) bool {
-	q = strings.ToLower(q)
-	return strings.Contains(strings.ToLower(item.ResourceType), q) ||
-		strings.Contains(strings.ToLower(item.Name), q)
+func (*providersRenderer) MatchesFilter(entry ProviderEntry, query string) bool {
+	query = strings.ToLower(query)
+	return strings.Contains(strings.ToLower(entry.ResourceType), query) ||
+		strings.Contains(strings.ToLower(entry.Name), query)
 }
 
 // IsExpandable reports whether the entry can be expanded; always false here.

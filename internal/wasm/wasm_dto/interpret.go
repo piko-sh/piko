@@ -42,15 +42,39 @@ type DynamicRenderRequest struct {
 }
 
 // DynamicRenderResponse contains the results of a dynamic render operation.
+//
+// Consumers compose a complete HTML document from these fields. HTML/CSS/JS
+// are returned strictly separately so consumers can re-route imports
+// (importmap rewrites, blob URLs, etc.) without parsing emitted markup.
 type DynamicRenderResponse struct {
 	// Error contains the error message if Success is false.
 	Error string `json:"error,omitempty"`
 
-	// HTML contains the rendered HTML output.
+	// HTML contains the rendered AST body markup. When the dynamic-render
+	// pipeline composes its own document wrapper, only the body content
+	// is returned here so consumers wrap as needed.
 	HTML string `json:"html,omitempty"`
 
-	// CSS contains any CSS extracted from the templates.
+	// CSS contains the page's aggregated style block (page + all
+	// transitively-rendered partials and components).
 	CSS string `json:"css,omitempty"`
+
+	// Scripts contains compiled client-side JavaScript modules.
+	//
+	// Each entry is a ScriptArtefact whose Path is the artefact ID
+	// without URL prefix; the consumer wraps each Content in a Blob URL
+	// (or fetches it via its own asset route) and exposes the mapping
+	// via a <script type="importmap"> so the modules' absolute import
+	// statements resolve. Modules cover the rendered page and any
+	// partials or components it transitively references.
+	Scripts []ScriptArtefact `json:"scripts,omitempty"`
+
+	// RuntimeImports lists the framework-runtime URLs that compiled
+	// component JavaScript imports. Consumers must make these URLs
+	// resolvable inside the rendering context (typically by fetching
+	// the framework bundles from the parent server, blob-wrapping them,
+	// and adding entries to the same importmap used for Scripts).
+	RuntimeImports []string `json:"runtimeImports,omitempty"`
 
 	// Diagnostics contains any warnings or errors encountered during render.
 	Diagnostics []Diagnostic `json:"diagnostics,omitempty"`

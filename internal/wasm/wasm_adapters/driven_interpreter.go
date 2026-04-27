@@ -316,6 +316,9 @@ func buildMockRequestData(ctx context.Context, requestURL string) *templater_dto
 		if parsedURL, err := url.Parse(requestURL); err == nil {
 			builder.WithURL(parsedURL)
 			builder.WithHost(parsedURL.Host)
+			for key, values := range parsedURL.Query() {
+				builder.AddQueryParam(key, values)
+			}
 		}
 	}
 

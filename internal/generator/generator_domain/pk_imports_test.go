@@ -84,16 +84,16 @@ func Test_prepareSourceWithImports(t *testing.T) {
 				return
 			}
 
-			assert.Contains(t, result, pkActionsGenPath, "result should contain action import from generated file")
+			assert.Contains(t, result, PKActionsGenURL, "result should contain action import from generated file")
 			assert.Contains(t, result, "import { action }", "result should import action")
 
 			if len(tt.wantFrameworkImport) > 0 {
-				assert.Contains(t, result, pkFrameworkPath, "result should contain framework import")
+				assert.Contains(t, result, PKFrameworkURL, "result should contain framework import")
 				for _, id := range tt.wantFrameworkImport {
 					assert.Contains(t, result, id, "import should contain %s", id)
 				}
 			} else {
-				assert.NotContains(t, result, pkFrameworkPath, "result should not contain framework import when no bare identifiers used")
+				assert.NotContains(t, result, PKFrameworkURL, "result should not contain framework import when no bare identifiers used")
 			}
 
 			assert.True(t, strings.HasSuffix(result, tt.source), "original source should be preserved")

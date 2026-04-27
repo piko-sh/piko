@@ -259,33 +259,67 @@ type Lexer struct {
 //
 // Returns *Lexer which is ready to produce tokens via Next().
 func NewLexer(source []byte) *Lexer {
-	newlineCount := bytes.Count(source, []byte{lineFeed})
-	offsets := make([]int, 0, newlineCount)
+	l := &Lexer{}
+	l.Init(source)
+	return l
+}
 
-	for i, b := range source {
+// Init prepares an already-allocated Lexer to tokenise source from the
+// start.
+//
+// This is the value-type entry point: callers can stack-allocate a Lexer
+// (`var l Lexer; l.Init(data)`) instead of going through NewLexer's heap
+// allocation. The newline index is precomputed during Init.
+//
+// Takes source ([]byte) which is the HTML content to tokenise.
+func (l *Lexer) Init(source []byte) {
+	offsets := buildNewlineIndex(source)
+	l.initAt(source, offsets, 0)
+}
+
+// buildNewlineIndex precomputes the byte offsets of every line-feed in
+// source so PositionAt can resolve line/column in O(log n).
+//
+// Takes source ([]byte) which is the content to scan.
+//
+// Returns []int which is the sorted list of newline byte offsets, or nil
+// when source contains no newlines.
+func buildNewlineIndex(source []byte) []int {
+	count := bytes.Count(source, []byte{lineFeed})
+	if count == 0 {
+		return nil
+	}
+	offsets := make([]int, 0, count)
+	for index, b := range source {
 		if b == lineFeed {
-			offsets = append(offsets, i)
+			offsets = append(offsets, index)
 		}
 	}
+	return offsets
+}
 
-	return &Lexer{
-		source:              source,
-		cursor:              0,
-		newlineOffsets:      offsets,
-		insideTag:           false,
-		rawTextTag:          rawTextNone,
-		currentLine:         1,
-		currentColumn:       1,
-		lastNewlinePos:      -1,
-		tokenStartOffset:    0,
-		tokenEndOffset:      0,
-		tokenLine:           1,
-		tokenColumn:         1,
-		text:                nil,
-		attributeValue:      nil,
-		attributeValueStart: -1,
-		err:                 nil,
+// computeLineColumn converts a byte offset to a 1-based (line, column)
+// position using a precomputed newline-offset index. Column is measured in
+// Unicode runes.
+//
+// Takes source ([]byte) which is the full source buffer.
+// Takes newlineOffsets ([]int) which is the precomputed sorted list of
+// line-feed byte offsets.
+// Takes offset (int) which is the byte offset to convert; assumed to be in
+// range and on a rune boundary.
+//
+// Returns line (int) which is the 1-based line number.
+// Returns column (int) which is the 1-based column in runes.
+func computeLineColumn(source []byte, newlineOffsets []int, offset int) (line, column int) {
+	lineIndex := sort.SearchInts(newlineOffsets, offset)
+	line = lineIndex + 1
+
+	columnStartOffset := 0
+	if lineIndex > 0 {
+		columnStartOffset = newlineOffsets[lineIndex-1] + 1
 	}
+	column = utf8.RuneCount(source[columnStartOffset:offset]) + 1
+	return line, column
 }
 
 // Next advances the lexer to the next token and returns its type. Token data
@@ -378,22 +412,10 @@ func (l *Lexer) PositionAt(offset int) (line int, column int) {
 	if offset < 0 {
 		offset = 0
 	}
-
 	if offset > len(l.source) {
 		offset = len(l.source)
 	}
-
-	lineIndex := sort.SearchInts(l.newlineOffsets, offset)
-	line = lineIndex + 1
-
-	columnStartOffset := 0
-	if lineIndex > 0 {
-		columnStartOffset = l.newlineOffsets[lineIndex-1] + 1
-	}
-
-	column = utf8.RuneCount(l.source[columnStartOffset:offset]) + 1
-
-	return line, column
+	return computeLineColumn(l.source, l.newlineOffsets, offset)
 }
 
 // SourceBytes returns the full source buffer. This allows consumers to slice
@@ -410,6 +432,55 @@ func (l *Lexer) SourceBytes() []byte {
 // error has occurred.
 func (l *Lexer) Err() error {
 	return l.err
+}
+
+// ResumeAfterRawText repositions the lexer past a raw-text closing tag.
+//
+// Takes endOffset (int) which is the byte offset immediately after the
+// closing tag (i.e. the position where normal tokenisation should resume).
+func (l *Lexer) ResumeAfterRawText(endOffset int) {
+	if endOffset < 0 {
+		endOffset = 0
+	}
+	if endOffset > len(l.source) {
+		endOffset = len(l.source)
+	}
+	for endOffset < len(l.source) && !utf8.RuneStart(l.source[endOffset]) {
+		endOffset++
+	}
+	l.initAt(l.source, l.newlineOffsets, endOffset)
+}
+
+// initAt sets every Lexer field to its initial value at the given byte
+// offset, reusing a precomputed newline-offset index. All mode flags,
+// token buffers, and per-token state default to their zero values, so
+// adding a new field to Lexer is automatically safe; no field-by-field
+// reset is needed elsewhere.
+//
+// Takes source ([]byte) which is the HTML content to tokenise.
+// Takes newlineOffsets ([]int) which is the precomputed sorted list of
+// line-feed byte offsets in source.
+// Takes offset (int) which is the cursor position to start at.
+func (l *Lexer) initAt(source []byte, newlineOffsets []int, offset int) {
+	line, column := computeLineColumn(source, newlineOffsets, offset)
+	lastNewlinePos := -1
+	if i := sort.SearchInts(newlineOffsets, offset); i > 0 {
+		lastNewlinePos = newlineOffsets[i-1]
+	}
+
+	*l = Lexer{
+		source:              source,
+		newlineOffsets:      newlineOffsets,
+		cursor:              offset,
+		currentLine:         line,
+		currentColumn:       column,
+		lastNewlinePos:      lastNewlinePos,
+		tokenStartOffset:    offset,
+		tokenEndOffset:      offset,
+		tokenLine:           line,
+		tokenColumn:         column,
+		attributeValueStart: -1,
+	}
 }
 
 // resetTokenState clears per-token fields before producing a new token.
@@ -552,6 +623,11 @@ func (l *Lexer) nextInsideTag() TokenType {
 // nextRawText handles the state where the lexer is inside a raw text element
 // and must consume content until the matching closing tag.
 //
+// All raw-text elements (script, style, textarea, title, xmp, iframe) share
+// opaque scanning: only `</tagname` followed by a valid HTML5 end-tag
+// boundary character ends the block. plaintext is special: it has no
+// closing tag and consumes to EOF.
+//
 // Returns TokenType which indicates the kind of token produced.
 func (l *Lexer) nextRawText() TokenType {
 	l.recordTokenPosition()
@@ -566,11 +642,7 @@ func (l *Lexer) nextRawText() TokenType {
 		return TextToken
 	}
 
-	if l.rawTextTag == rawTextScript {
-		return l.parseScriptContent(contentStart)
-	}
-
-	return l.parseGenericRawText(contentStart)
+	return l.parseRawText(contentStart)
 }
 
 // nextContent handles the default state: scanning text and detecting tag
@@ -657,19 +729,6 @@ func (l *Lexer) emitText(textStart int) TokenType {
 func (l *Lexer) emitRawText(contentStart int) TokenType {
 	l.text = l.source[contentStart:l.cursor]
 	l.rawTextTag = rawTextNone
-	l.finaliseToken()
-
-	return TextToken
-}
-
-// emitRawTextAtCursor is like emitRawText but used when rawTextTag has
-// already been cleared by a sub-handler.
-//
-// Takes contentStart (int) which specifies the byte offset where the raw text began.
-//
-// Returns TokenType which is always TextToken.
-func (l *Lexer) emitRawTextAtCursor(contentStart int) TokenType {
-	l.text = l.source[contentStart:l.cursor]
 	l.finaliseToken()
 
 	return TextToken

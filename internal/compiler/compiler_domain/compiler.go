@@ -142,6 +142,11 @@ type sfcCompilationContext struct {
 	// jsDependencies holds JavaScript import paths that need registry
 	// registration.
 	jsDependencies []compiler_dto.JSDependency
+
+	// diagnostics collects non-fatal issues encountered during
+	// compilation; these flow into CompiledArtefact.Diagnostics so
+	// callers can surface them to the user.
+	diagnostics []compiler_dto.CompilationDiagnostic
 }
 
 // recordCompilationMetrics records timing and size metrics for SFC compilation.
@@ -504,7 +509,19 @@ func (cc *sfcCompilationContext) insertStaticCSS(ctx context.Context) {
 	if cc.stylesDefault == "" {
 		return
 	}
-	_ = InsertStaticCSS(ctx, cc.jsAST, cc.stylesDefault, cc.className)
+	if err := InsertStaticCSS(ctx, cc.jsAST, cc.stylesDefault, cc.className); err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("InsertStaticCSS failed; component CSS will be dropped",
+			logger_domain.String("class", cc.className),
+			logger_domain.String("source", cc.sourceFilename),
+			logger_domain.Error(err),
+		)
+		cc.diagnostics = append(cc.diagnostics, compiler_dto.CompilationDiagnostic{
+			Severity:         "warning",
+			Message:          fmt.Sprintf("component %s: failed to insert static CSS, styling dropped: %v", cc.className, err),
+			SourceIdentifier: cc.sourceFilename,
+		})
+	}
 }
 
 // finaliseAST completes AST processing by rewriting it, adding custom element
@@ -560,11 +577,12 @@ func (cc *sfcCompilationContext) buildArtefact(ctx context.Context) *compiler_dt
 		TagName:          cc.tagName,
 		ScaffoldHTML:     cc.scaffoldHTML,
 		BaseJSPath:       mainJSFileName,
-		SourceIdentifier: "",
+		SourceIdentifier: cc.sourceFilename,
 		Files: map[string]string{
 			mainJSFileName: mainJS,
 		},
 		JSDependencies: cc.jsDependencies,
+		Diagnostics:    cc.diagnostics,
 	}
 }
 
