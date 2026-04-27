@@ -90,7 +90,8 @@ func ParseTimeline(content string) (string, error) {
 		return "[]", nil
 	}
 
-	lexer := htmllexer.NewLexer([]byte(content))
+	var lexer htmllexer.Lexer
+	lexer.Init([]byte(content))
 
 	var (
 		actions     []timelineAction
@@ -107,7 +108,7 @@ func ParseTimeline(content string) (string, error) {
 
 		case htmllexer.StartTagToken, htmllexer.StartTagVoidToken:
 			tagName := string(bytes.ToLower(lexer.Text()))
-			attrs := readAttributes(lexer)
+			attrs := readAttributes(&lexer)
 			a, err := parseTimelineTag(tagName, attrs, &currentTime, &insideAt)
 			if err != nil {
 				return "", err

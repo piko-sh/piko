@@ -1130,6 +1130,78 @@ func main() {
 			},
 		},
 		{
+			name: "57b - Script body with </script> in JS comment plus unclosed <!-- does not swallow following style block",
+			input: `<script lang="ts">
+// docs: ` + "`" + `<script type="module">…</script>` + "`" + ` is fine
+const tokens = ['<!--', 'comment.html'];
+const more = "no closer here";
+</script>
+<style>
+.box { color: red; }
+</style>`,
+			expected: sfcparser.ParseResult{
+				Scripts: []sfcparser.Script{
+					{
+						Content: `
+// docs: ` + "`" + `<script type="module">…</script>` + "`" + ` is fine
+const tokens = ['<!--', 'comment.html'];
+const more = "no closer here";
+`,
+						Attributes: map[string]string{"lang": "ts"},
+					},
+				},
+				Styles: []sfcparser.Style{
+					{
+						Content:    "\n.box { color: red; }\n",
+						Attributes: map[string]string{},
+					},
+				},
+				I18nBlocks: []sfcparser.I18nBlock{},
+			},
+		},
+		{
+			name: "57c - Script with </script> in comment then <!-- preserves following blocks",
+			input: `<template>
+	<div>hello</div>
+</template>
+<script>
+// example: <script type="module"></script>
+const a = '<!--';
+const b = '<script type="module">';
+</script>
+<style>
+.x { color: blue; }
+</style>
+<i18n lang="en">{"k": "v"}</i18n>`,
+			expected: sfcparser.ParseResult{
+				Template: `
+	<div>hello</div>
+`,
+				Scripts: []sfcparser.Script{
+					{
+						Content: `
+// example: <script type="module"></script>
+const a = '<!--';
+const b = '<script type="module">';
+`,
+						Attributes: map[string]string{},
+					},
+				},
+				Styles: []sfcparser.Style{
+					{
+						Content:    "\n.x { color: blue; }\n",
+						Attributes: map[string]string{},
+					},
+				},
+				I18nBlocks: []sfcparser.I18nBlock{
+					{
+						Content:    `{"k": "v"}`,
+						Attributes: map[string]string{"lang": "en"},
+					},
+				},
+			},
+		},
+		{
 			name: "58 - Template containing i18n tag",
 			input: `<template>
 	<div>

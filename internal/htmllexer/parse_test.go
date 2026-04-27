@@ -338,14 +338,14 @@ func TestRawTextElements(t *testing.T) {
 	}
 }
 
-func TestScriptCommentNesting(t *testing.T) {
+func TestRawTextOpaque(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    string
 		expected []expectedToken
 	}{
 		{
-			name:  "script with html comment",
+			name:  "script with html-comment-like sequence and no inner closing tag",
 			input: "<script><!--comment--></script>",
 			expected: []expectedToken{
 				{tokenType: StartTagToken, text: "script"},
@@ -356,13 +356,119 @@ func TestScriptCommentNesting(t *testing.T) {
 			},
 		},
 		{
-			name:  "script with nested script in comment",
+			name:  "script first inner </script> closes the block regardless of preceding <!--",
 			input: "<script><!--<script></script>--></script>",
 			expected: []expectedToken{
 				{tokenType: StartTagToken, text: "script"},
 				{tokenType: StartTagCloseToken},
-				{tokenType: TextToken, text: "<!--<script></script>-->"},
+				{tokenType: TextToken, text: "<!--<script>"},
 				{tokenType: EndTagToken, text: "script"},
+				{tokenType: TextToken, text: "-->"},
+				{tokenType: EndTagToken, text: "script"},
+				{tokenType: ErrorToken},
+			},
+		},
+		{
+			name:  "script with unclosed <!-- does not consume the closing </script>",
+			input: "<script>const a = '<!--';</script>",
+			expected: []expectedToken{
+				{tokenType: StartTagToken, text: "script"},
+				{tokenType: StartTagCloseToken},
+				{tokenType: TextToken, text: "const a = '<!--';"},
+				{tokenType: EndTagToken, text: "script"},
+				{tokenType: ErrorToken},
+			},
+		},
+		{
+			name:  "style with <!-- literal in CSS string",
+			input: "<style>.x::before { content: '<!-- not a comment'; }</style>",
+			expected: []expectedToken{
+				{tokenType: StartTagToken, text: "style"},
+				{tokenType: StartTagCloseToken},
+				{tokenType: TextToken, text: ".x::before { content: '<!-- not a comment'; }"},
+				{tokenType: EndTagToken, text: "style"},
+				{tokenType: ErrorToken},
+			},
+		},
+		{
+			name:  "textarea preserves <!-- as user-visible text",
+			input: "<textarea><!-- visible to user --></textarea>",
+			expected: []expectedToken{
+				{tokenType: StartTagToken, text: "textarea"},
+				{tokenType: StartTagCloseToken},
+				{tokenType: TextToken, text: "<!-- visible to user -->"},
+				{tokenType: EndTagToken, text: "textarea"},
+				{tokenType: ErrorToken},
+			},
+		},
+		{
+			name:  "title preserves bare angle brackets",
+			input: "<title>1 < 2 > 3</title>",
+			expected: []expectedToken{
+				{tokenType: StartTagToken, text: "title"},
+				{tokenType: StartTagCloseToken},
+				{tokenType: TextToken, text: "1 < 2 > 3"},
+				{tokenType: EndTagToken, text: "title"},
+				{tokenType: ErrorToken},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assertTokenSequence(t, tc.input, tc.expected)
+		})
+	}
+}
+
+func TestRawTextEndTagBoundary(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected []expectedToken
+	}{
+		{
+			name:  "script not closed by </scripttype>",
+			input: "<script></scripttype></script>",
+			expected: []expectedToken{
+				{tokenType: StartTagToken, text: "script"},
+				{tokenType: StartTagCloseToken},
+				{tokenType: TextToken, text: "</scripttype>"},
+				{tokenType: EndTagToken, text: "script"},
+				{tokenType: ErrorToken},
+			},
+		},
+		{
+			name:  "style not closed by </styles>",
+			input: "<style></styles></style>",
+			expected: []expectedToken{
+				{tokenType: StartTagToken, text: "style"},
+				{tokenType: StartTagCloseToken},
+				{tokenType: TextToken, text: "</styles>"},
+				{tokenType: EndTagToken, text: "style"},
+				{tokenType: ErrorToken},
+			},
+		},
+		{
+			name:  "script closed by </script with trailing whitespace",
+			input: "<script>x</script\t>",
+			expected: []expectedToken{
+				{tokenType: StartTagToken, text: "script"},
+				{tokenType: StartTagCloseToken},
+				{tokenType: TextToken, text: "x"},
+				{tokenType: EndTagToken, text: "script"},
+				{tokenType: ErrorToken},
+			},
+		},
+		{
+
+			name:  "script closed by </script/ self-closing-style",
+			input: "<script>x</script/>",
+			expected: []expectedToken{
+				{tokenType: StartTagToken, text: "script"},
+				{tokenType: StartTagCloseToken},
+				{tokenType: TextToken, text: "x"},
+				{tokenType: EndTagToken, text: "script/"},
 				{tokenType: ErrorToken},
 			},
 		},

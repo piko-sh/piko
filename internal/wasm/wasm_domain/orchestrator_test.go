@@ -1098,7 +1098,8 @@ func TestOrchestrator_DynamicRender_Success(t *testing.T) {
 							PackagePath:   "test/pages/p",
 							RoutePatterns: map[string]string{"en": "/"},
 							CachePolicy:   nil,
-							StyleBlock:    "",
+
+							StyleBlock:    "p { color: blue; }",
 							JSArtefactIDs: nil,
 							HasGetData:    false,
 							HasRender:     false,
@@ -1132,17 +1133,131 @@ func TestOrchestrator_DynamicRender_Success(t *testing.T) {
 	assert.True(t, response.Success)
 	assert.Equal(t, "<p>rendered</p>", response.HTML)
 	assert.Equal(t, "p { color: blue; }", response.CSS)
+	assert.Equal(t, defaultRuntimeImports, response.RuntimeImports,
+		"every successful dynamic render must echo the framework runtime URLs")
+}
+
+func TestOrchestrator_DynamicRender_PopulatesScripts(t *testing.T) {
+	t.Parallel()
+
+	renderer := &stubRenderPort{
+		renderFunc: nil,
+		renderASTFunc: func(_ context.Context, _ *wasm_dto.RenderFromASTRequest) (*wasm_dto.RenderFromASTResponse, error) {
+			return &wasm_dto.RenderFromASTResponse{Success: true, HTML: "<p>ok</p>"}, nil
+		},
+	}
+	o := NewOrchestrator(
+		WithGenerator(&stubGeneratorPort{
+			response: &wasm_dto.GenerateFromSourcesResponse{
+				Success: true,
+				Artefacts: []wasm_dto.GeneratedArtefact{
+					{Path: "dist/page.go", Content: "package main", Type: wasm_dto.ArtefactTypePage, SourcePath: "p.pk"},
+					{Path: "pk-js/pages/index.js", Content: "console.log('boot');", Type: wasm_dto.ArtefactTypeJS, SourcePath: "p.pk"},
+					{Path: "pk-js/components/c.js", Content: "class C extends PPElement {}", Type: wasm_dto.ArtefactTypeJS, SourcePath: "c.pkc"},
+				},
+				Manifest: &wasm_dto.GeneratedManifest{
+					Pages: map[string]wasm_dto.ManifestPageEntry{
+						"p": {
+							SourcePath:    "p.pk",
+							PackagePath:   "test/pages/p",
+							RoutePatterns: map[string]string{"en": "/"},
+							StyleBlock:    "p { color: red; }",
+						},
+					},
+				},
+			},
+		}),
+		WithInterpreter(&stubInterpreterPort{
+			response: &wasm_dto.InterpretResponse{
+				Success: true, AST: &ast_domain.TemplateAST{}, Metadata: &templater_dto.InternalMetadata{},
+			},
+		}),
+		WithRenderer(renderer),
+		WithConsole(&noOpConsole{}),
+	)
+	response, err := o.DynamicRender(t.Context(), &wasm_dto.DynamicRenderRequest{
+		Sources:    map[string]string{"p.pk": "<template></template>"},
+		ModuleName: "test",
+		RequestURL: "/",
+	})
+	require.NoError(t, err)
+	require.True(t, response.Success)
+
+	scriptPaths := make(map[string]string, len(response.Scripts))
+	for _, script := range response.Scripts {
+		scriptPaths[script.Path] = script.Content
+	}
+	assert.Equal(t, "console.log('boot');", scriptPaths["pk-js/pages/index.js"])
+	assert.Equal(t, "class C extends PPElement {}", scriptPaths["pk-js/components/c.js"])
+	assert.NotContains(t, scriptPaths, "dist/page.go", "non-JS artefacts must be filtered out")
+	assert.Equal(t, "p { color: red; }", response.CSS)
+}
+
+func TestOrchestrator_DynamicRender_OmitsScriptsWhenNoneEmitted(t *testing.T) {
+	t.Parallel()
+
+	renderer := &stubRenderPort{
+		renderASTFunc: func(_ context.Context, _ *wasm_dto.RenderFromASTRequest) (*wasm_dto.RenderFromASTResponse, error) {
+			return &wasm_dto.RenderFromASTResponse{Success: true, HTML: "<p/>"}, nil
+		},
+	}
+	o := NewOrchestrator(
+		WithGenerator(&stubGeneratorPort{
+			response: &wasm_dto.GenerateFromSourcesResponse{
+				Success: true,
+				Artefacts: []wasm_dto.GeneratedArtefact{
+					{Path: "dist/page.go", Content: "package main", Type: wasm_dto.ArtefactTypePage, SourcePath: "p.pk"},
+				},
+				Manifest: &wasm_dto.GeneratedManifest{Pages: map[string]wasm_dto.ManifestPageEntry{
+					"p": {SourcePath: "p.pk", PackagePath: "test/pages/p", RoutePatterns: map[string]string{"en": "/"}},
+				}},
+			},
+		}),
+		WithInterpreter(&stubInterpreterPort{
+			response: &wasm_dto.InterpretResponse{
+				Success: true, AST: &ast_domain.TemplateAST{}, Metadata: &templater_dto.InternalMetadata{},
+			},
+		}),
+		WithRenderer(renderer),
+		WithConsole(&noOpConsole{}),
+	)
+	response, err := o.DynamicRender(t.Context(), &wasm_dto.DynamicRenderRequest{
+		Sources: map[string]string{"p.pk": "x"}, ModuleName: "test", RequestURL: "/",
+	})
+	require.NoError(t, err)
+	require.True(t, response.Success)
+	assert.Nil(t, response.Scripts, "omitempty must hide an empty script list")
+}
+
+func TestCollectScriptArtefacts_NilSafety(t *testing.T) {
+	t.Parallel()
+
+	assert.Nil(t, collectScriptArtefacts(nil))
+	assert.Nil(t, collectScriptArtefacts(&wasm_dto.GenerateFromSourcesResponse{}))
+}
+
+func TestFindPageStyleBlock_FallsBackToEmpty(t *testing.T) {
+	t.Parallel()
+
+	assert.Empty(t, findPageStyleBlock(nil, "/"))
+	assert.Empty(t, findPageStyleBlock(&wasm_dto.GenerateFromSourcesResponse{}, "/"))
+	assert.Empty(t, findPageStyleBlock(&wasm_dto.GenerateFromSourcesResponse{
+		Manifest: &wasm_dto.GeneratedManifest{
+			Pages: map[string]wasm_dto.ManifestPageEntry{
+				"p": {RoutePatterns: map[string]string{"en": "/other"}, StyleBlock: "x"},
+			},
+		},
+	}, "/no-match"), "non-matching URL should yield empty CSS")
 }
 
 func TestOrchestrator_RenderASTToHTML_NoRenderer(t *testing.T) {
 	t.Parallel()
 
 	o := NewOrchestrator()
-	html, css, err := o.renderASTToHTML(t.Context(), &ast_domain.TemplateAST{}, &templater_dto.InternalMetadata{})
+	html, err := o.renderASTToHTML(t.Context(), &ast_domain.TemplateAST{}, &templater_dto.InternalMetadata{}, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "renderer not configured")
 	assert.Empty(t, html)
-	assert.Empty(t, css)
 }
 
 func TestBuildImportMap(t *testing.T) {

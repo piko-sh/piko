@@ -320,13 +320,26 @@ func (l *Lexer) parseBogusComment() TokenType {
 	return CommentToken
 }
 
-// parseGenericRawText consumes raw text content for non-script elements
-// until the matching closing tag.
+// parseRawText consumes raw text content until the matching closing tag.
+//
+// Raw-text mode is opaque: only `</tagname` followed by an HTML5 end-tag
+// boundary character (whitespace, `>`, or `/`) ends the block. Sequences
+// that look meaningful in normal HTML (`<!--`, `<![CDATA[`, nested
+// `<tagname>` openings) are treated as plain bytes, because no embedded
+// language we support (JavaScript, TypeScript, Go, CSS, plain text) uses
+// HTML-style comments or CDATA sections.
+//
+// This deliberately diverges from HTML5's "script data escaped" state,
+// which would let `<!-- ... </script> ... -->` keep the script open.
+// That legacy behaviour exists for 1990s "hide JS from old browsers"
+// patterns and has no modern callers; treating script content as opaque
+// matches every script language's lexer and matches HTML5 RAWTEXT
+// semantics for `<style>`, `<textarea>`, and `<title>`.
 //
 // Takes contentStart (int) which specifies the byte offset where the raw text content began.
 //
 // Returns TokenType which indicates the kind of token produced.
-func (l *Lexer) parseGenericRawText(contentStart int) TokenType {
+func (l *Lexer) parseRawText(contentStart int) TokenType {
 	closingTag := rawTextTagNames[l.rawTextTag]
 
 	for !l.atEnd() {
@@ -355,137 +368,10 @@ func (l *Lexer) parseGenericRawText(contentStart int) TokenType {
 	return l.emitRawText(contentStart)
 }
 
-// parseScriptContent consumes content inside a <script> element, handling
-// the HTML5 spec's special rules for <!-- comments within scripts.
-//
-// Inside a script, <!-- starts a comment region where nested <script> tags
-// are tracked. The closing </script> tag only ends the script element when
-// it appears outside a nested script opened by <!-- comment rules. The
-// comment region ends when --> is encountered.
-//
-// Takes contentStart (int) which specifies the byte offset where the script content began.
-//
-// Returns TokenType which indicates the kind of token produced.
-func (l *Lexer) parseScriptContent(contentStart int) TokenType {
-	for !l.atEnd() {
-		if l.isClosingTagForRawText(rawTextTagNames[rawTextScript]) {
-			if contentStart == l.cursor {
-				l.rawTextTag = rawTextNone
-
-				return l.nextContent()
-			}
-
-			return l.emitRawText(contentStart)
-		}
-
-		if l.matchesCommentOpen() {
-			l.advanceCursor(commentOpenLength)
-			l.parseScriptCommentRegion()
-
-			if token, done := l.resolvePostScriptComment(contentStart); done {
-				return token
-			}
-
-			continue
-		}
-
-		l.advanceOne()
-	}
-
-	if contentStart == l.cursor {
-		l.rawTextTag = rawTextNone
-		l.finaliseToken()
-
-		return ErrorToken
-	}
-
-	return l.emitRawText(contentStart)
-}
-
-// resolvePostScriptComment checks whether the script comment region
-// ended the script element entirely, and if so returns the
-// appropriate token.
-//
-// Takes contentStart (int) which is the byte offset where the script
-// content began.
-//
-// Returns TokenType which is the token to emit when done is true.
-// Returns bool which reports whether the caller should return the
-// token.
-func (l *Lexer) resolvePostScriptComment(contentStart int) (TokenType, bool) {
-	if l.rawTextTag != rawTextNone {
-		return 0, false
-	}
-	if contentStart == l.cursor {
-		return l.nextContent(), true
-	}
-	return l.emitRawTextAtCursor(contentStart), true
-}
-
-// parseScriptCommentRegion processes the interior of a <!-- comment inside a
-// <script> element.
-//
-// When the outer </script> is found inside the comment without a nested
-// script being open, sets rawTextTag to rawTextNone.
-func (l *Lexer) parseScriptCommentRegion() {
-	nestedScriptOpen := false
-
-	for !l.atEnd() {
-		if l.matchesCommentClose() {
-			l.advanceCursor(commentCloseLength)
-
-			return
-		}
-
-		if l.isNestedScriptOpen() {
-			nestedScriptOpen = true
-			l.advanceOne()
-
-			continue
-		}
-
-		if l.isClosingTagForRawText(rawTextTagNames[rawTextScript]) {
-			if nestedScriptOpen {
-				nestedScriptOpen = false
-				l.advanceOne()
-
-				continue
-			}
-
-			l.rawTextTag = rawTextNone
-
-			return
-		}
-
-		l.advanceOne()
-	}
-}
-
-// isNestedScriptOpen checks whether the cursor is at a <script start tag
-// opening inside a <!-- comment region.
-//
-// Returns bool which indicates true when the cursor is at a nested <script opening.
-func (l *Lexer) isNestedScriptOpen() bool {
-	if l.peek(0) != angleBracketOpen {
-		return false
-	}
-
-	if l.peek(1) == forwardSlash {
-		return false
-	}
-
-	remaining := l.source[l.cursor+1:]
-	scriptTag := rawTextTagNames[rawTextScript]
-
-	if len(remaining) < len(scriptTag) {
-		return false
-	}
-
-	return bytes.EqualFold(remaining[:len(scriptTag)], scriptTag)
-}
-
 // isClosingTagForRawText checks whether the cursor is at a closing tag that
-// matches the given tag name (case-insensitive).
+// matches the given tag name (case-insensitive) and is followed by an HTML5
+// end-tag boundary character: whitespace, `>`, or `/`. The boundary check
+// prevents false matches like `</scripttype>` ending a `<script>` block.
 //
 // Takes tagName ([]byte) which specifies the expected tag name to match against.
 //
@@ -504,17 +390,24 @@ func (l *Lexer) isClosingTagForRawText(tagName []byte) bool {
 		return false
 	}
 
-	return bytes.EqualFold(remaining[:len(tagName)], tagName)
+	if !bytes.EqualFold(remaining[:len(tagName)], tagName) {
+		return false
+	}
+
+	if len(remaining) == len(tagName) {
+		return true
+	}
+	return isEndTagBoundary(remaining[len(tagName)])
 }
 
-// matchesCommentOpen checks whether the cursor is at a <!-- sequence.
+// isEndTagBoundary reports whether the given byte is a valid HTML5 end-tag
+// boundary character: whitespace (per isHTMLWhitespace), `>`, or `/`.
 //
-// Returns bool which indicates true when the cursor is at the <!-- sequence.
-func (l *Lexer) matchesCommentOpen() bool {
-	return l.peek(0) == angleBracketOpen &&
-		l.peek(1) == exclamationMark &&
-		l.peek(2) == hyphenMinus &&
-		l.peek(commentOpenLength-1) == hyphenMinus
+// Takes b (byte) which is the byte that follows a tag name.
+//
+// Returns bool which indicates true when b is a valid end-tag terminator.
+func isEndTagBoundary(b byte) bool {
+	return b == angleBracketClose || b == forwardSlash || isHTMLWhitespace(b)
 }
 
 // matchesCommentClose checks whether the cursor is at a --> sequence.

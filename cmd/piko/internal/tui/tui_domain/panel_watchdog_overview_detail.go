@@ -144,13 +144,13 @@ func (p *WatchdogOverviewPanel) buildDetailBody() inspector.DetailBody {
 // Takes fetched (time.Time) which is when the snapshot was fetched.
 //
 // Returns inspector.DetailBody describing the budget summary.
-func overviewBudgetDetailBody(s *WatchdogStatus, events []WatchdogEvent, lastErr error, fetched time.Time) inspector.DetailBody {
+func overviewBudgetDetailBody(status *WatchdogStatus, events []WatchdogEvent, lastErr error, fetched time.Time) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Enabled", Value: yesNo(s.Enabled)},
-		{Label: "Capture", Value: formatGauge(s.CaptureBudget)},
-		{Label: "Warning", Value: formatGauge(s.WarningBudget)},
-		{Label: "Heap", Value: formatGauge(s.HeapBudget)},
-		{Label: "Goroutines", Value: formatGauge(s.Goroutines)},
+		{Label: "Enabled", Value: yesNo(status.Enabled)},
+		{Label: "Capture", Value: formatGauge(status.CaptureBudget)},
+		{Label: "Warning", Value: formatGauge(status.WarningBudget)},
+		{Label: "Heap", Value: formatGauge(status.HeapBudget)},
+		{Label: "Goroutines", Value: formatGauge(status.Goroutines)},
 		{Label: "Events seen", Value: fmt.Sprintf(FormatPercentInt, len(events))},
 	}
 	if !fetched.IsZero() {
@@ -161,7 +161,7 @@ func overviewBudgetDetailBody(s *WatchdogStatus, events []WatchdogEvent, lastErr
 	}
 	return inspector.DetailBody{
 		Title:    "Watchdog overview",
-		Subtitle: yesNo(s.Enabled),
+		Subtitle: yesNo(status.Enabled),
 		Sections: []inspector.DetailSection{{Heading: "Budgets", Rows: rows}},
 	}
 }
@@ -172,16 +172,16 @@ func overviewBudgetDetailBody(s *WatchdogStatus, events []WatchdogEvent, lastErr
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
 // Returns inspector.DetailBody describing the lifecycle section.
-func overviewLifecycleDetailBody(s *WatchdogStatus) inspector.DetailBody {
+func overviewLifecycleDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Enabled", Value: yesNo(s.Enabled)},
-		{Label: "Stopped", Value: yesNo(s.Stopped)},
-		{Label: "Started", Value: formatTimeOrDash(s.StartedAt)},
-		{Label: "Warm-up remaining", Value: s.WarmUpRemaining.String()},
-		{Label: "Check interval", Value: s.CheckInterval.String()},
-		{Label: "Cooldown", Value: s.Cooldown.String()},
-		{Label: "Capture window", Value: s.CaptureWindow.String()},
-		{Label: "Profile directory", Value: defaultDash(s.ProfileDirectory)},
+		{Label: "Enabled", Value: yesNo(status.Enabled)},
+		{Label: "Stopped", Value: yesNo(status.Stopped)},
+		{Label: "Started", Value: formatTimeOrDash(status.StartedAt)},
+		{Label: "Warm-up remaining", Value: status.WarmUpRemaining.String()},
+		{Label: "Check interval", Value: status.CheckInterval.String()},
+		{Label: "Cooldown", Value: status.Cooldown.String()},
+		{Label: "Capture window", Value: status.CaptureWindow.String()},
+		{Label: "Profile directory", Value: defaultDash(status.ProfileDirectory)},
 	}
 	return inspector.DetailBody{
 		Title:    "Lifecycle",
@@ -194,17 +194,17 @@ func overviewLifecycleDetailBody(s *WatchdogStatus) inspector.DetailBody {
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
 // Returns inspector.DetailBody describing the capture-budget section.
-func overviewCaptureDetailBody(s *WatchdogStatus) inspector.DetailBody {
+func overviewCaptureDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Capture budget", Value: formatGauge(s.CaptureBudget)},
-		{Label: "Warning budget", Value: formatGauge(s.WarningBudget)},
-		{Label: "Capture window", Value: s.CaptureWindow.String()},
-		{Label: "Cooldown", Value: s.Cooldown.String()},
-		{Label: "Max profiles per type", Value: fmt.Sprintf(FormatPercentInt, s.MaxProfilesPerType)},
+		{Label: "Capture budget", Value: formatGauge(status.CaptureBudget)},
+		{Label: "Warning budget", Value: formatGauge(status.WarningBudget)},
+		{Label: "Capture window", Value: status.CaptureWindow.String()},
+		{Label: "Cooldown", Value: status.Cooldown.String()},
+		{Label: "Max profiles per type", Value: fmt.Sprintf(FormatPercentInt, status.MaxProfilesPerType)},
 	}
 	return inspector.DetailBody{
 		Title:    "Capture budget",
-		Subtitle: formatGauge(s.CaptureBudget),
+		Subtitle: formatGauge(status.CaptureBudget),
 		Sections: []inspector.DetailSection{{Heading: "Capture limits", Rows: rows}},
 	}
 }
@@ -214,13 +214,13 @@ func overviewCaptureDetailBody(s *WatchdogStatus) inspector.DetailBody {
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
 // Returns inspector.DetailBody describing the heap-budget section.
-func overviewHeapDetailBody(s *WatchdogStatus) inspector.DetailBody {
+func overviewHeapDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Heap budget", Value: formatGauge(s.HeapBudget)},
+		{Label: "Heap budget", Value: formatGauge(status.HeapBudget)},
 	}
 	return inspector.DetailBody{
 		Title:    "Heap",
-		Subtitle: formatGauge(s.HeapBudget),
+		Subtitle: formatGauge(status.HeapBudget),
 		Sections: []inspector.DetailSection{{Heading: "Heap budget", Rows: rows}},
 	}
 }
@@ -231,15 +231,15 @@ func overviewHeapDetailBody(s *WatchdogStatus) inspector.DetailBody {
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
 // Returns inspector.DetailBody describing the goroutine-guards section.
-func overviewGoroutinesDetailBody(s *WatchdogStatus) inspector.DetailBody {
+func overviewGoroutinesDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Goroutines", Value: formatGauge(s.Goroutines)},
-		{Label: "Baseline", Value: fmt.Sprintf(FormatPercentInt, s.GoroutineBaseline)},
-		{Label: "Safety ceiling", Value: fmt.Sprintf(FormatPercentInt, s.GoroutineSafetyCeiling)},
+		{Label: "Goroutines", Value: formatGauge(status.Goroutines)},
+		{Label: "Baseline", Value: fmt.Sprintf(FormatPercentInt, status.GoroutineBaseline)},
+		{Label: "Safety ceiling", Value: fmt.Sprintf(FormatPercentInt, status.GoroutineSafetyCeiling)},
 	}
 	return inspector.DetailBody{
 		Title:    "Goroutines",
-		Subtitle: formatGauge(s.Goroutines),
+		Subtitle: formatGauge(status.Goroutines),
 		Sections: []inspector.DetailSection{{Heading: "Goroutine guards", Rows: rows}},
 	}
 }
@@ -250,10 +250,10 @@ func overviewGoroutinesDetailBody(s *WatchdogStatus) inspector.DetailBody {
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
 // Returns inspector.DetailBody describing the GC-pressure section.
-func overviewGCDetailBody(s *WatchdogStatus) inspector.DetailBody {
+func overviewGCDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "FD threshold", Value: fmt.Sprintf("%.0f%%", s.FDPressureThresholdPercent*percentageScale)},
-		{Label: "Scheduler p99", Value: s.SchedulerLatencyP99Threshold.String()},
+		{Label: "FD threshold", Value: fmt.Sprintf("%.0f%%", status.FDPressureThresholdPercent*percentageScale)},
+		{Label: "Scheduler p99", Value: status.SchedulerLatencyP99Threshold.String()},
 	}
 	return inspector.DetailBody{
 		Title:    "GC pressure",
@@ -267,9 +267,9 @@ func overviewGCDetailBody(s *WatchdogStatus) inspector.DetailBody {
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
 // Returns inspector.DetailBody describing the file-descriptor section.
-func overviewFDDetailBody(s *WatchdogStatus) inspector.DetailBody {
+func overviewFDDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Threshold", Value: fmt.Sprintf("%.0f%%", s.FDPressureThresholdPercent*percentageScale)},
+		{Label: "Threshold", Value: fmt.Sprintf("%.0f%%", status.FDPressureThresholdPercent*percentageScale)},
 	}
 	return inspector.DetailBody{
 		Title:    "File descriptors",
@@ -283,9 +283,9 @@ func overviewFDDetailBody(s *WatchdogStatus) inspector.DetailBody {
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
 // Returns inspector.DetailBody describing the scheduler-latency section.
-func overviewSchedulerDetailBody(s *WatchdogStatus) inspector.DetailBody {
+func overviewSchedulerDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "p99 threshold", Value: s.SchedulerLatencyP99Threshold.String()},
+		{Label: "p99 threshold", Value: status.SchedulerLatencyP99Threshold.String()},
 	}
 	return inspector.DetailBody{
 		Title:    "Scheduler latency",
@@ -299,18 +299,18 @@ func overviewSchedulerDetailBody(s *WatchdogStatus) inspector.DetailBody {
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
 // Returns inspector.DetailBody describing the continuous-profiling section.
-func overviewContinuousDetailBody(s *WatchdogStatus) inspector.DetailBody {
+func overviewContinuousDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Enabled", Value: yesNo(s.ContinuousProfilingEnabled)},
-		{Label: "Interval", Value: s.ContinuousProfilingInterval.String()},
-		{Label: "Retention", Value: fmt.Sprintf("%d profiles", s.ContinuousProfilingRetention)},
+		{Label: "Enabled", Value: yesNo(status.ContinuousProfilingEnabled)},
+		{Label: "Interval", Value: status.ContinuousProfilingInterval.String()},
+		{Label: "Retention", Value: fmt.Sprintf("%d profiles", status.ContinuousProfilingRetention)},
 	}
-	if len(s.ContinuousProfilingTypes) > 0 {
-		rows = append(rows, inspector.DetailRow{Label: "Types", Value: strings.Join(s.ContinuousProfilingTypes, ", ")})
+	if len(status.ContinuousProfilingTypes) > 0 {
+		rows = append(rows, inspector.DetailRow{Label: "Types", Value: strings.Join(status.ContinuousProfilingTypes, ", ")})
 	}
 	return inspector.DetailBody{
 		Title:    "Continuous profiling",
-		Subtitle: yesNo(s.ContinuousProfilingEnabled),
+		Subtitle: yesNo(status.ContinuousProfilingEnabled),
 		Sections: []inspector.DetailSection{{Heading: "Configuration", Rows: rows}},
 	}
 }

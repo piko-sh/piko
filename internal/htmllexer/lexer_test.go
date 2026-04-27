@@ -683,3 +683,217 @@ func assertTokenSequence(t *testing.T, input string, expected []expectedToken) {
 		}
 	}
 }
+
+func TestResumeAfterRawText_Clamps(t *testing.T) {
+	source := []byte("<div>hello</div>")
+	lexer := NewLexer(source)
+
+	lexer.ResumeAfterRawText(-1)
+	if lexer.cursor != 0 {
+		t.Errorf("negative offset must clamp to 0, got %d", lexer.cursor)
+	}
+
+	lexer.ResumeAfterRawText(1 << 20)
+	if lexer.cursor != len(source) {
+		t.Errorf("oversize offset must clamp to len(source)=%d, got %d", len(source), lexer.cursor)
+	}
+}
+
+func TestResumeAfterRawText_AdvancesPastMidRune(t *testing.T) {
+	source := []byte("<p>é</p>")
+	lexer := NewLexer(source)
+
+	midRuneOffset := 4
+	if RuneStart := source[midRuneOffset] & 0xC0; RuneStart != 0x80 {
+		t.Fatalf("expected continuation byte at offset %d, got 0x%X", midRuneOffset, source[midRuneOffset])
+	}
+	lexer.ResumeAfterRawText(midRuneOffset)
+	if lexer.cursor == midRuneOffset {
+		t.Errorf("ResumeAfterRawText into a continuation byte must advance to next rune start, got cursor %d", lexer.cursor)
+	}
+}
+
+func TestResumeAfterRawText_ResetsTagState(t *testing.T) {
+	source := []byte("<script>var x = 1;</script><p>after</p>")
+	lexer := NewLexer(source)
+
+	lexer.Next()
+	lexer.Next()
+	endOfScript := bytesIndex(source, []byte("</script>"))
+	if endOfScript < 0 {
+		t.Fatal("setup failure: </script> not found")
+	}
+	lexer.ResumeAfterRawText(endOfScript + len("</script>"))
+	if lexer.insideTag {
+		t.Error("ResumeAfterRawText must clear insideTag")
+	}
+	if lexer.rawTextTag != rawTextNone {
+		t.Error("ResumeAfterRawText must clear rawTextTag")
+	}
+
+	tt := lexer.Next()
+	if tt != StartTagToken {
+		t.Fatalf("expected StartTagToken after ResumeAfterRawText, got %v", tt)
+	}
+	if string(lexer.Text()) != "p" {
+		t.Errorf("unexpected tag name after ResumeAfterRawText: %q", lexer.Text())
+	}
+}
+
+func bytesIndex(haystack, needle []byte) int {
+	if len(needle) == 0 {
+		return 0
+	}
+loop:
+	for index := 0; index+len(needle) <= len(haystack); index++ {
+		for needleIndex, needleByte := range needle {
+			if haystack[index+needleIndex] != needleByte {
+				continue loop
+			}
+		}
+		return index
+	}
+	return -1
+}
+
+func TestResumeAfterRawText_TokenEquivalence(t *testing.T) {
+	type capturedToken struct {
+		ttype TokenType
+		start int
+		end   int
+		text  string
+	}
+
+	collect := func(l *Lexer) []capturedToken {
+		var out []capturedToken
+		for {
+			tt := l.Next()
+			if tt == ErrorToken {
+				return out
+			}
+			out = append(out, capturedToken{tt, l.TokenStart(), l.TokenEnd(), string(l.Text())})
+		}
+	}
+
+	cases := []struct {
+		name   string
+		source string
+		marker string
+	}{
+		{
+			name:   "plain html",
+			source: "<div>before</div><span>after</span>",
+			marker: "</div>",
+		},
+		{
+			name:   "after script body",
+			source: "<script>var x = 1;</script><p>hi</p>",
+			marker: "</script>",
+		},
+		{
+			name:   "after style body",
+			source: "<style>.x{color:red}</style><p>hi</p>",
+			marker: "</style>",
+		},
+		{
+			name:   "across multibyte content",
+			source: "<p>café</p><span>after</span>",
+			marker: "</p>",
+		},
+		{
+			name:   "across multiple newlines",
+			source: "<p>line1\nline2\nline3</p>\n<span>x</span>",
+			marker: "</p>",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			source := []byte(tc.source)
+			boundary := bytesIndex(source, []byte(tc.marker)) + len(tc.marker)
+			if boundary <= 0 {
+				t.Fatalf("setup failure: marker %q not found", tc.marker)
+			}
+
+			fullStream := collect(NewLexer(source))
+
+			resumed := NewLexer(source)
+			resumed.ResumeAfterRawText(boundary)
+			resumedStream := collect(resumed)
+
+			var fullSuffix []capturedToken
+			for _, tok := range fullStream {
+				if tok.start >= boundary {
+					fullSuffix = append(fullSuffix, tok)
+				}
+			}
+
+			if len(fullSuffix) != len(resumedStream) {
+				t.Fatalf("token count mismatch past boundary %d: full=%d resumed=%d\nfull: %+v\nresumed: %+v",
+					boundary, len(fullSuffix), len(resumedStream), fullSuffix, resumedStream)
+			}
+			for i := range fullSuffix {
+				if fullSuffix[i] != resumedStream[i] {
+					t.Errorf("token %d differs:\n  full:    %+v\n  resumed: %+v", i, fullSuffix[i], resumedStream[i])
+				}
+			}
+		})
+	}
+}
+
+func TestResumeAfterRawText_ZeroValueSafe(t *testing.T) {
+	source := []byte("<p>x</p><div>y</div>")
+	lexer := NewLexer(source)
+	lexer.Next()
+	lexer.Next()
+	lexer.Next()
+
+	lexer.ResumeAfterRawText(len("<p>x</p>"))
+
+	if lexer.err != nil {
+		t.Errorf("err must be nil after resume, got %v", lexer.err)
+	}
+	if lexer.text != nil {
+		t.Errorf("text must be nil after resume, got %q", lexer.text)
+	}
+	if lexer.attributeValue != nil {
+		t.Errorf("attributeValue must be nil after resume, got %q", lexer.attributeValue)
+	}
+	if lexer.attributeValueStart != -1 {
+		t.Errorf("attributeValueStart must be -1 after resume, got %d", lexer.attributeValueStart)
+	}
+	if lexer.insideTag {
+		t.Error("insideTag must be false after resume")
+	}
+	if lexer.rawTextTag != rawTextNone {
+		t.Errorf("rawTextTag must be rawTextNone after resume, got %v", lexer.rawTextTag)
+	}
+
+	tt := lexer.Next()
+	if tt != StartTagToken || string(lexer.Text()) != "div" {
+		t.Errorf("expected <div> StartTagToken, got %v / %q", tt, lexer.Text())
+	}
+}
+
+func TestLexer_ZeroAllocPerLexPass(t *testing.T) {
+	source := []byte(`<div class="c"><p>hello</p><script>const x = 1;</script></div>`)
+
+	allocs := testing.AllocsPerRun(100, func() {
+		var lexer Lexer
+		lexer.Init(source)
+		for lexer.Next() != ErrorToken {
+		}
+	})
+	if allocs != 0 {
+		t.Errorf("value-type Lexer must be zero-alloc on newline-free input, got %v allocs", allocs)
+	}
+
+	heapAllocs := testing.AllocsPerRun(100, func() {
+		l := NewLexer(source)
+		for l.Next() != ErrorToken {
+		}
+	})
+	if heapAllocs != 0 {
+		t.Errorf("NewLexer must inline + stack-allocate on newline-free input, got %v allocs", heapAllocs)
+	}
+}

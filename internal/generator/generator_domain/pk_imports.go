@@ -23,11 +23,22 @@ import (
 )
 
 const (
-	// pkFrameworkPath is the import path for the PK runtime framework.
-	pkFrameworkPath = "/_piko/dist/ppframework.core.es.js"
+	// PKFrameworkURL is the import path for the PK runtime core framework.
+	//
+	// Exported so consumers (e.g. the WASM playground) can construct an
+	// importmap that rewrites this to an in-browser Blob URL without
+	// parsing JS.
+	PKFrameworkURL = "/_piko/dist/ppframework.core.es.js"
 
-	// pkActionsGenPath is the import path for the generated actions file.
-	pkActionsGenPath = "/_piko/assets/pk-js/pk/actions.gen.js"
+	// PKComponentsURL is the import path for the PK components
+	// extension. Compiled component classes import PPElement, dom, and
+	// makeReactive from this module.
+	PKComponentsURL = "/_piko/dist/ppframework.components.es.js"
+
+	// PKActionsGenURL is the import path for the auto-generated actions
+	// file. Always emitted; contains the empty `action` namespace by
+	// default.
+	PKActionsGenURL = "/_piko/assets/pk-js/pk/actions.gen.js"
 )
 
 var (
@@ -101,7 +112,7 @@ func buildImportStatement(identifiers []string) string {
 	ast := newJSASTBuilder()
 	var result string
 
-	actionImport := ast.newImport([]string{"action"}, pkActionsGenPath)
+	actionImport := ast.newImport([]string{"action"}, PKActionsGenURL)
 	result += ast.renderStmt(actionImport) + "\n"
 
 	var frameworkIdentifiers []string
@@ -112,7 +123,7 @@ func buildImportStatement(identifiers []string) string {
 	}
 
 	if len(frameworkIdentifiers) > 0 {
-		frameworkImport := ast.newImport(frameworkIdentifiers, pkFrameworkPath)
+		frameworkImport := ast.newImport(frameworkIdentifiers, PKFrameworkURL)
 		result += ast.renderStmt(frameworkImport) + "\n"
 	}
 

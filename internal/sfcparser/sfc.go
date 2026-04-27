@@ -47,14 +47,16 @@ const (
 
 // parser processes HTML tokens and builds a structured parse result.
 type parser struct {
-	// lexer tokenises HTML input for parsing.
-	lexer *htmllexer.Lexer
-
 	// result holds the parsed template, script, and style blocks.
 	result *ParseResult
 
 	// tagHandlers maps tag names to their handler functions.
 	tagHandlers map[string]func(Location) error
+
+	// lexer tokenises HTML input for parsing. Held by value so it lives
+	// inside the parser's heap allocation rather than as a separate
+	// allocation.
+	lexer htmllexer.Lexer
 }
 
 // initialiseTagHandlers sets up the map of tag handlers for the parser.
@@ -373,19 +375,19 @@ func (*parser) determineSearchRange(searchBytes, nextStartTag []byte) []byte {
 	return searchBytes
 }
 
-// advanceLexerPastBlock moves the lexer forward until it has passed the content
-// block, keeping the lexer in sync with the parsed content.
+// advanceLexerPastBlock repositions the lexer past a raw-text block.
+//
+// Because the byte-search in findRawTextEndOffset has already located
+// the true end of the block, we resume the lexer there directly rather
+// than token-walking through it: a script body often contains characters
+// the HTML lexer would mis-interpret (an unclosed `<!--` literal in a
+// JavaScript string, for example, would otherwise consume the rest of
+// the file as a single HTML comment and swallow the next block).
 //
 // Takes contentEndOffset (int) which specifies the end position of the content.
 func (p *parser) advanceLexerPastBlock(contentEndOffset int) {
 	fullBlockEndOffset := p.findBlockEndOffset(contentEndOffset)
-
-	for p.lexer.TokenEnd() < fullBlockEndOffset {
-		token := p.lexer.Next()
-		if token == htmllexer.ErrorToken {
-			break
-		}
-	}
+	p.lexer.ResumeAfterRawText(fullBlockEndOffset)
 }
 
 // findBlockEndOffset finds the end of the full block, including the closing
@@ -500,7 +502,6 @@ func (p *parser) consumeAndDiscardContent(parentTagName string) {
 // Returns error when parsing fails.
 func Parse(data []byte) (*ParseResult, error) {
 	p := &parser{
-		lexer:       htmllexer.NewLexer(data),
 		tagHandlers: nil,
 		result: &ParseResult{
 			Template:                "",
@@ -512,6 +513,7 @@ func Parse(data []byte) (*ParseResult, error) {
 			TemplateContentLocation: Location{},
 		},
 	}
+	p.lexer.Init(data)
 	p.initialiseTagHandlers()
 	return p.parse()
 }

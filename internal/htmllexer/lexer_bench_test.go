@@ -108,3 +108,81 @@ func BenchmarkLex_ManyAttributes(b *testing.B) {
 		drainLexer(NewLexer(data))
 	}
 }
+
+func BenchmarkLex_ScriptBody(b *testing.B) {
+	fragment := `<script>const greet = (name) => "hello " + name; const list = [1, 2, 3];</script>`
+	data := []byte(strings.Repeat(fragment, 50))
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		drainLexer(NewLexer(data))
+	}
+}
+
+func BenchmarkLex_ScriptBodyWithCommentLikeBytes(b *testing.B) {
+	fragment := `<script>const a = '<!--'; const b = "<!-- not a comment -->"; const c = '<script>';</script>`
+	data := []byte(strings.Repeat(fragment, 50))
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		drainLexer(NewLexer(data))
+	}
+}
+
+func BenchmarkLex_StyleBody(b *testing.B) {
+	fragment := `<style>.x { color: red; } .y::before { content: '<!--'; }</style>`
+	data := []byte(strings.Repeat(fragment, 50))
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		drainLexer(NewLexer(data))
+	}
+}
+
+func BenchmarkLex_TextareaBody(b *testing.B) {
+	fragment := `<textarea>line one with <!-- visible comment --> and bare < and > characters</textarea>`
+	data := []byte(strings.Repeat(fragment, 50))
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		drainLexer(NewLexer(data))
+	}
+}
+
+func BenchmarkLex_SimpleHTML_ValueType(b *testing.B) {
+	fragment := `<div class="c"><p>hello</p></div>`
+	data := []byte(strings.Repeat(fragment, 50))
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		var lexer Lexer
+		lexer.Init(data)
+		for lexer.Next() != ErrorToken {
+		}
+	}
+}
+
+func BenchmarkLex_ScriptBody_ValueType(b *testing.B) {
+	fragment := `<script>const greet = (name) => "hello " + name; const list = [1, 2, 3];</script>`
+	data := []byte(strings.Repeat(fragment, 50))
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		var lexer Lexer
+		lexer.Init(data)
+		for lexer.Next() != ErrorToken {
+		}
+	}
+}

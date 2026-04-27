@@ -173,9 +173,6 @@ type ParseOptions struct {
 // high-performance HTML lexer to tokenise the input and build a tree structure,
 // keeping directive expressions as raw strings at this stage.
 type Parser struct {
-	// lexer breaks the HTML input into tokens for parsing.
-	lexer *htmllexer.Lexer
-
 	// tree holds the template AST being built during parsing.
 	tree *TemplateAST
 
@@ -187,6 +184,9 @@ type Parser struct {
 
 	// nodeStack holds the stack of parent nodes during parsing.
 	nodeStack []*TemplateNode
+
+	// lexer breaks the HTML input into tokens for parsing.
+	lexer htmllexer.Lexer
 
 	// startLine is the line number where parsing begins.
 	startLine int
@@ -900,7 +900,6 @@ func ParseWithOptions(ctx context.Context, raw string, sourcePath string, startL
 	}
 
 	p := &Parser{
-		lexer: htmllexer.NewLexer([]byte(raw)),
 		tree: &TemplateAST{
 			SourcePath:        &sourcePath,
 			ExpiresAtUnixNano: nil,
@@ -918,6 +917,7 @@ func ParseWithOptions(ctx context.Context, raw string, sourcePath string, startL
 		startCol:   location.Column,
 		opts:       opts,
 	}
+	p.lexer.Init([]byte(raw))
 
 	err := p.run()
 	if err != nil && !errors.Is(err, io.EOF) {

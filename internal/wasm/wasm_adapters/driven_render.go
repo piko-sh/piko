@@ -162,7 +162,7 @@ func (a *RenderAdapter) RenderFromAST(
 		Template:               request.AST,
 		Metadata:               request.Metadata,
 		Styling:                request.CSS,
-		IncludeDocumentWrapper: true,
+		IncludeDocumentWrapper: false,
 	})
 	if err != nil {
 		return &wasm_dto.RenderFromASTResponse{

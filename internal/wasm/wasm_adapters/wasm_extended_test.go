@@ -379,47 +379,6 @@ func TestInMemoryRegisterEmitter(t *testing.T) {
 	})
 }
 
-func TestInMemoryPKJSEmitter(t *testing.T) {
-	t.Parallel()
-
-	t.Run("EmitJS stores artefact", func(t *testing.T) {
-		t.Parallel()
-
-		emitter := NewInMemoryPKJSEmitter()
-
-		artefactID, err := emitter.EmitJS(context.Background(), "console.log('hello');", "pages/index", "", "", false)
-		require.NoError(t, err)
-		assert.Equal(t, "pk-js/pages/index.js", artefactID)
-	})
-
-	t.Run("GetArtefacts returns all emitted artefacts", func(t *testing.T) {
-		t.Parallel()
-
-		emitter := NewInMemoryPKJSEmitter()
-
-		_, _ = emitter.EmitJS(context.Background(), "code1", "pages/index", "", "", false)
-		_, _ = emitter.EmitJS(context.Background(), "code2", "pages/about", "", "", false)
-
-		artefacts := emitter.GetArtefacts()
-		assert.Len(t, artefacts, 2)
-		assert.Equal(t, "code1", artefacts["pk-js/pages/index.js"])
-		assert.Equal(t, "code2", artefacts["pk-js/pages/about.js"])
-	})
-
-	t.Run("GetArtefacts returns copy", func(t *testing.T) {
-		t.Parallel()
-
-		emitter := NewInMemoryPKJSEmitter()
-		_, _ = emitter.EmitJS(context.Background(), "code", "pages/index", "", "", false)
-
-		artefacts := emitter.GetArtefacts()
-		artefacts["injected"] = "injected"
-
-		artefactsAgain := emitter.GetArtefacts()
-		assert.Len(t, artefactsAgain, 1)
-	})
-}
-
 func TestInMemoryManifestEmitter(t *testing.T) {
 	t.Parallel()
 

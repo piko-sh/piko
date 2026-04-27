@@ -20,17 +20,49 @@ package wasm_adapters
 
 import (
 	"context"
+	"encoding/binary"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"maps"
+	"path"
+	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/cespare/xxhash/v2"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/seo/seo_dto"
 )
+
+const (
+	// pkJSTranspileCacheCap caps the long-lived transpile cache between
+	// Generate runs. Entries beyond this count are evicted at the next
+	// Sweep; transpile re-runs cost ~ms so the cap keeps WASM memory
+	// bounded without hurting keystroke-rate cache hit rate.
+	pkJSTranspileCacheCap = 256
+
+	// pkJSEmitterComponent identifies the in-memory PKJS emitter for
+	// safecall panic logging; see goroutine.SafeCall1.
+	pkJSEmitterComponent = "wasm_adapters.InMemoryPKJSEmitter.Transpile"
+
+	// pkJSCacheVersion participates in every cache key so a deliberate
+	// bump invalidates every long-lived entry across an upgrade. Bump
+	// when TransformPKSource semantics or the JSTranspiler import-rewrite
+	// rules change so a hot-reloaded WASM module never serves stale
+	// output.
+	pkJSCacheVersion = "v2"
+)
+
+// errPKJSPathInvalid is returned by EmitJS / Put when the caller-supplied
+// page path is empty after normalisation, contains a parent-directory
+// segment, or otherwise resolves outside the artefact namespace.
+var errPKJSPathInvalid = errors.New("invalid PKJS artefact path")
 
 var (
 	_ generator_domain.CollectionEmitterPort = (*NoOpCollectionEmitter)(nil)
@@ -242,14 +274,35 @@ func (*NoOpSEOService) GenerateArtefacts(_ context.Context, _ *seo_dto.ProjectVi
 	return nil
 }
 
-// InMemoryPKJSEmitter implements PKJSEmitterPort using an in-memory map.
-// It captures emitted JavaScript artefacts for later retrieval.
+// InMemoryPKJSEmitter implements PKJSEmitterPort by transforming and
+// transpiling client-side TypeScript in memory. It mirrors DiskPKJSEmitter's
+// compile pipeline (TransformPKSource then JSTranspiler.Transpile) without
+// writing to a filesystem, and exposes the captured JavaScript via
+// GetArtefacts so the WASM response surface can include it.
 type InMemoryPKJSEmitter struct {
-	// artefacts maps artefact IDs to their JavaScript content.
+	// transpiler converts TypeScript source code to JavaScript using
+	// esbuild's parser/printer. Reused across EmitJS calls.
+	transpiler *generator_domain.JSTranspiler
+
+	// artefacts maps artefact IDs to their compiled JavaScript content.
+	// Reset at the start of each Generate so a response only carries the
+	// JS produced for that run.
 	artefacts map[string]string
 
-	// mu protects concurrent access to artefacts.
-	mu sync.RWMutex
+	// transpileCache memoises transpile output keyed by a content hash
+	// of (transformed source + moduleName + filename + cache version).
+	// Long-lived across Generate calls; eviction happens in Sweep.
+	transpileCache map[string]string
+
+	// producedThisRun records every content-hash hit in EmitJS during
+	// the current Generate so Sweep can drop cache entries that didn't
+	// participate this run.
+	producedThisRun map[string]struct{}
+
+	// mu serialises every public method end-to-end so per-run state
+	// (artefacts, producedThisRun) cannot be observed mid-mutation by a
+	// concurrent caller.
+	mu sync.Mutex
 }
 
 // NewInMemoryPKJSEmitter creates a new in-memory PKJS emitter.
@@ -257,50 +310,263 @@ type InMemoryPKJSEmitter struct {
 // Returns *InMemoryPKJSEmitter which captures emitted JavaScript.
 func NewInMemoryPKJSEmitter() *InMemoryPKJSEmitter {
 	return &InMemoryPKJSEmitter{
-		artefacts: make(map[string]string),
+		transpiler:      generator_domain.NewJSTranspiler(),
+		artefacts:       make(map[string]string),
+		transpileCache:  make(map[string]string),
+		producedThisRun: make(map[string]struct{}),
 	}
 }
 
-// EmitJS stores JavaScript content in memory and returns an
-// artefact ID.
+// EmitJS transforms PK source and stores the transpiled JavaScript.
 //
-// Takes source (string) which is the JavaScript source code.
-// Takes pagePath (string) which is the page path for the artefact
-// ID.
+// Transforms client-side PK source via TransformPKSource, transpiles the
+// result to ES module JavaScript, and stores it under a pk-js/<path>.js
+// artefact ID. The WASM build produces JavaScript byte-identical to the
+// disk build for equivalent inputs. Empty or whitespace-only source
+// returns ("", nil) without storing anything.
 //
-// Returns string which is the generated artefact ID.
-// Returns error which is always nil.
+// Takes source (string) which is the raw client-script TypeScript extracted
+// by the annotator from a .pkc <script> block.
+// Takes pagePath (string) which identifies the page or partial. Cleaned via
+// path.Clean and rejected if it escapes the artefact namespace.
+// Takes moduleName (string) which is the Go module name; used by the
+// transpiler to rewrite "@/" import aliases.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Returns string which is the artefact ID ("pk-js/<cleanPath>.js"), or empty
+// when source is whitespace-only.
+// Returns error when the path is invalid or transpilation fails or panics.
+//
+// Concurrency: Safe for concurrent use; the entire body runs under the
+// emitter mutex.
 func (e *InMemoryPKJSEmitter) EmitJS(
-	_ context.Context,
+	ctx context.Context,
 	source string,
 	pagePath string,
-	_ string,
+	moduleName string,
 	_ string,
 	_ bool,
-) (artefactID string, err error) {
+) (string, error) {
+	if strings.TrimSpace(source) == "" {
+		return "", nil
+	}
+
+	cleanPath, err := normalisePKJSPath(pagePath)
+	if err != nil {
+		return "", err
+	}
+
+	componentName := strings.TrimPrefix(cleanPath, "partials/")
+	if componentName == cleanPath {
+		componentName = ""
+	}
+
+	transformedSource := generator_domain.TransformPKSource(source, componentName)
+	filename := filepath.Base(cleanPath) + ".ts"
+	cacheKey := pkJSCacheKey(transformedSource, moduleName, filename)
+	artefactID := path.Join("pk-js", cleanPath) + ".js"
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	artefactID = "pk-js/" + pagePath + ".js"
-	e.artefacts[artefactID] = source
+	if cached, hit := e.transpileCache[cacheKey]; hit {
+		e.producedThisRun[cacheKey] = struct{}{}
+		e.artefacts[artefactID] = cached
+		return artefactID, nil
+	}
+
+	code, err := goroutine.SafeCall1(ctx, pkJSEmitterComponent, func() (string, error) {
+		result, transpileErr := e.transpiler.Transpile(ctx, transformedSource, generator_domain.TranspileOptions{
+			Filename:   filename,
+			Minify:     false,
+			ModuleName: moduleName,
+		})
+		if transpileErr != nil {
+			return "", transpileErr
+		}
+		return result.Code, nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("transpiling PK JS for %s: %w", pagePath, err)
+	}
+
+	e.transpileCache[cacheKey] = code
+	e.producedThisRun[cacheKey] = struct{}{}
+	e.artefacts[artefactID] = code
 	return artefactID, nil
 }
 
-// GetArtefacts returns all emitted JavaScript artefacts.
+// pkJSCacheKey derives a 64-bit content hash for the transpile cache.
+//
+// moduleName is required because RewriteImportRecords embeds it into
+// rewritten "@/" alias paths; filename keeps transpile error messages
+// and source-map metadata accurate; pkJSCacheVersion gives us a
+// kill-switch for stale entries after upgrade. xxhash collisions only
+// cost a redundant transpile, not a correctness or security bug.
+//
+// Takes transformedSource (string) which is the post-transform TypeScript fed
+// to the transpiler.
+// Takes moduleName (string) which the transpiler embeds into rewritten "@/"
+// alias paths.
+// Takes filename (string) which the transpiler uses for error messages and
+// source-map metadata.
+//
+// Returns string which is the hex-encoded 64-bit cache key.
+func pkJSCacheKey(transformedSource, moduleName, filename string) string {
+	h := xxhash.New()
+	_, _ = h.WriteString(pkJSCacheVersion)
+	_, _ = h.WriteString("\x00")
+	_, _ = h.WriteString(transformedSource)
+	_, _ = h.WriteString("\x00")
+	_, _ = h.WriteString(moduleName)
+	_, _ = h.WriteString("\x00")
+	_, _ = h.WriteString(filename)
+	var digest [8]byte
+	binary.BigEndian.PutUint64(digest[:], h.Sum64())
+	return hex.EncodeToString(digest[:])
+}
+
+// normalisePKJSPath cleans the caller-supplied page path.
+//
+// Rejects values that would escape the artefact namespace. The rules
+// match the safedisk-sandboxed disk path: no parent-directory segments,
+// no absolute paths, no empty result.
+//
+// Takes pagePath (string) which is the caller-supplied page path.
+//
+// Returns string which is the cleaned path with the .pk suffix stripped.
+// Returns error which wraps errPKJSPathInvalid when the path is unusable as an
+// artefact ID.
+func normalisePKJSPath(pagePath string) (string, error) {
+	if pagePath == "" {
+		return "", fmt.Errorf("%w: empty page path", errPKJSPathInvalid)
+	}
+	withoutSuffix := strings.TrimSuffix(pagePath, ".pk")
+	cleaned := path.Clean(withoutSuffix)
+	if cleaned == "." || cleaned == "/" || cleaned == "" {
+		return "", fmt.Errorf("%w: %q", errPKJSPathInvalid, pagePath)
+	}
+	if strings.HasPrefix(cleaned, "/") {
+		return "", fmt.Errorf("%w: absolute path %q", errPKJSPathInvalid, pagePath)
+	}
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", fmt.Errorf("%w: parent traversal in %q", errPKJSPathInvalid, pagePath)
+	}
+	return cleaned, nil
+}
+
+// GetArtefacts returns a copy of all emitted JavaScript artefacts.
+//
+// The returned map is a snapshot so the caller can iterate without
+// holding the emitter lock.
 //
 // Returns map[string]string which maps artefact IDs to JavaScript content.
 //
-// Safe for concurrent use. Returns a copy of the internal map.
+// Concurrency: Safe for concurrent use; copies under the emitter mutex.
 func (e *InMemoryPKJSEmitter) GetArtefacts() map[string]string {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
 	result := make(map[string]string, len(e.artefacts))
 	maps.Copy(result, e.artefacts)
 	return result
+}
+
+// Reset clears per-run state.
+//
+// Leaves the long-lived transpile cache untouched. The GeneratorAdapter
+// calls Reset at the start of each Generate.
+//
+// Concurrency: Safe for concurrent use; mutates under the emitter mutex.
+func (e *InMemoryPKJSEmitter) Reset() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	clear(e.artefacts)
+	clear(e.producedThisRun)
+}
+
+// Put stores pre-compiled JavaScript verbatim.
+//
+// Bypasses TransformPKSource and the transpile cache. This is the entry
+// point for .pkc client-side components, which go through the SFC
+// compiler rather than the partial-style transform that EmitJS applies
+// to inline <script> blocks inside .pk pages and partials. Empty content
+// is a no-op.
+//
+// Takes artefactID (string) which is the relative artefact path (e.g.
+// "pk-js/components/pp-counter.js") cleaned and validated before storage.
+// Takes content (string) which is the pre-compiled JavaScript.
+//
+// Returns error which wraps errPKJSPathInvalid when artefactID is empty,
+// absolute, or contains a parent-directory segment after cleaning.
+//
+// Concurrency: Safe for concurrent use; mutates under the emitter mutex.
+func (e *InMemoryPKJSEmitter) Put(artefactID, content string) error {
+	if content == "" {
+		return nil
+	}
+	cleaned, err := normalisePutArtefactID(artefactID)
+	if err != nil {
+		return err
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.artefacts[cleaned] = content
+	return nil
+}
+
+// normalisePutArtefactID validates an artefact ID supplied to Put.
+//
+// The ID is expected to be a forward-slash relative path (e.g.
+// "pk-js/components/pp-counter.js"). Empty, absolute, or
+// parent-traversal inputs are rejected with errPKJSPathInvalid.
+//
+// Takes artefactID (string) which is the candidate artefact ID.
+//
+// Returns string which is the cleaned, validated artefact ID.
+// Returns error which wraps errPKJSPathInvalid for unusable inputs.
+func normalisePutArtefactID(artefactID string) (string, error) {
+	if artefactID == "" {
+		return "", fmt.Errorf("%w: empty artefact id", errPKJSPathInvalid)
+	}
+	cleaned := path.Clean(artefactID)
+	if cleaned == "." || cleaned == "/" {
+		return "", fmt.Errorf("%w: %q", errPKJSPathInvalid, artefactID)
+	}
+	if strings.HasPrefix(cleaned, "/") {
+		return "", fmt.Errorf("%w: absolute artefact id %q", errPKJSPathInvalid, artefactID)
+	}
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", fmt.Errorf("%w: parent traversal in %q", errPKJSPathInvalid, artefactID)
+	}
+	return cleaned, nil
+}
+
+// Sweep prunes the transpile cache after a Generate run.
+//
+// Evicts cache entries whose source hashes were not consumed during the
+// current Generate, then trims any remaining excess to keep the cache
+// under pkJSTranspileCacheCap. producedThisRun is cleared so the next
+// EmitJS pass starts from a clean tracking set even if the caller
+// forgets to call Reset.
+//
+// Concurrency: Safe for concurrent use; mutates under the emitter mutex.
+func (e *InMemoryPKJSEmitter) Sweep() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	for key := range e.transpileCache {
+		if _, used := e.producedThisRun[key]; !used {
+			delete(e.transpileCache, key)
+		}
+	}
+	clear(e.producedThisRun)
+
+	for len(e.transpileCache) > pkJSTranspileCacheCap {
+		for key := range e.transpileCache {
+			delete(e.transpileCache, key)
+			break
+		}
+	}
 }
 
 // InMemoryManifestEmitter implements ManifestEmitterPort using an in-memory

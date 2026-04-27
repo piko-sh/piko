@@ -829,8 +829,16 @@ func (s *generatorService) generateActionSource(
 
 // emitActionsJS transpiles the TypeScript actions file to JavaScript.
 //
-// Takes actionsGenTSPath (string) which is the path to the TypeScript file.
-// Takes outputDir (string) which is the directory for the emitted JavaScript.
+// In disk mode the source is read from the sandbox where generateActionSource
+// just wrote it. In in-memory mode (WASM) the sandbox is nil but compiled
+// component JS still imports from /_piko/assets/pk-js/pk/actions.gen.js, so
+// we feed the static empty stub straight into the emitter, equivalent to
+// the disk path's "no actions discovered" branch.
+//
+// Takes actionsGenTSPath (string) which is the path to the TypeScript file
+// (used only in disk mode).
+// Takes outputDir (string) which is the directory for the emitted JavaScript
+// (used only in disk mode).
 //
 // Returns error when the JavaScript emission fails.
 func (s *generatorService) emitActionsJS(
@@ -838,16 +846,23 @@ func (s *generatorService) emitActionsJS(
 	actionsGenTSPath, outputDir string,
 ) error {
 	ctx, l := logger_domain.From(ctx, log)
-	if s.baseSandbox == nil {
-		return nil
-	}
-	relPath, _ := filepath.Rel(s.baseDir, actionsGenTSPath)
-	tsSource, err := s.baseSandbox.ReadFile(relPath)
-	if err != nil || len(tsSource) == 0 {
+	if s.pkJSEmitter == nil {
 		return nil
 	}
 
-	if _, err := s.pkJSEmitter.EmitJS(ctx, string(tsSource), "pk/actions.gen", s.resolver.GetModuleName(), outputDir, false); err != nil {
+	var tsSource string
+	if s.baseSandbox == nil {
+		tsSource = emptyActionsStub
+	} else {
+		relPath, _ := filepath.Rel(s.baseDir, actionsGenTSPath)
+		raw, err := s.baseSandbox.ReadFile(relPath)
+		if err != nil || len(raw) == 0 {
+			return nil
+		}
+		tsSource = string(raw)
+	}
+
+	if _, err := s.pkJSEmitter.EmitJS(ctx, tsSource, "pk/actions.gen", s.resolver.GetModuleName(), outputDir, false); err != nil {
 		return fmt.Errorf("failed to emit actions JavaScript: %w", err)
 	}
 	l.Internal("Emitted actions JavaScript for browser consumption")

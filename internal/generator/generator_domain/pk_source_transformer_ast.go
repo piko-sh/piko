@@ -80,7 +80,7 @@ type pkTransformBuilder struct {
 //
 // Returns parsejs.IStmt which is the import statement for the PK framework.
 func (b *pkTransformBuilder) buildImportStmt(identifiers []string) parsejs.IStmt {
-	return b.ast.newImport(identifiers, pkFrameworkPath)
+	return b.ast.newImport(identifiers, PKFrameworkURL)
 }
 
 // buildInstancesDecl creates a const declaration for the instances WeakMap.
@@ -262,7 +262,7 @@ func (b *pkTransformBuilder) renderExportFunc(statement parsejs.IStmt) string {
 // Returns parsejs.IStmt which is the import statement for action from the
 // generated actions file.
 func (b *pkTransformBuilder) buildActionImportStmt() parsejs.IStmt {
-	return b.ast.newImport([]string{"action"}, pkActionsGenPath)
+	return b.ast.newImport([]string{"action"}, PKActionsGenURL)
 }
 
 // buildEagerInit generates a self-invoking block that eagerly creates the

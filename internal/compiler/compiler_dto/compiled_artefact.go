@@ -39,6 +39,25 @@ type CompiledArtefact struct {
 	// registration. These are imports that used the @/ alias and were changed
 	// to served paths.
 	JSDependencies []JSDependency
+
+	// Diagnostics carries non-fatal issues surfaced during compilation.
+	Diagnostics []CompilationDiagnostic
+}
+
+// CompilationDiagnostic is a non-fatal compile-time issue.
+//
+// The message is suitable for surfacing directly to the playground or
+// developer logs and avoids leaking framework error chains.
+type CompilationDiagnostic struct {
+	// Severity is "error", "warning", or "info".
+	Severity string
+
+	// Message is the human-readable description.
+	Message string
+
+	// SourceIdentifier echoes CompiledArtefact.SourceIdentifier so
+	// downstream filters can route the diagnostic.
+	SourceIdentifier string
 }
 
 // JSDependency represents a JavaScript file that a component imports.

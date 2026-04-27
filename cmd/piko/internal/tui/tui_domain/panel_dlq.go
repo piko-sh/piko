@@ -276,9 +276,9 @@ func (p *DLQPanel) renderItems(content *strings.Builder, displayItems []int, hea
 // Takes selected (bool) which is true when the cursor sits on this row.
 //
 // Returns string which is the rendered row.
-func (p *DLQPanel) renderRow(s DispatcherSummary, selected bool) string {
+func (p *DLQPanel) renderRow(summary DispatcherSummary, selected bool) string {
 	cursor := RenderCursor(selected, p.Focused())
-	label := fmt.Sprintf("%-12s queued=%d  dlq=%d  failed=%d", s.Type, s.QueuedItems, s.DeadLetterCount, s.TotalFailed)
+	label := fmt.Sprintf("%-12s queued=%d  dlq=%d  failed=%d", summary.Type, summary.QueuedItems, summary.DeadLetterCount, summary.TotalFailed)
 	return cursor + " " + RenderName(label, max(0, p.ContentWidth()-3), selected, p.Focused())
 }
 
@@ -567,8 +567,8 @@ func (p *DLQPanel) overviewBody() inspector.DetailBody {
 // Takes selected (bool) which is true when the cursor sits on this row.
 //
 // Returns string which is the rendered row.
-func (r *dlqRenderer) RenderRow(item DispatcherSummary, _ int, selected, _ bool, _ int) string {
-	return r.panel.renderRow(item, selected)
+func (r *dlqRenderer) RenderRow(summary DispatcherSummary, _ int, selected, _ bool, _ int) string {
+	return r.panel.renderRow(summary, selected)
 }
 
 // RenderExpanded returns no expanded lines; dispatcher rows are not expandable.
@@ -581,7 +581,7 @@ func (*dlqRenderer) RenderExpanded(_ DispatcherSummary, _ int) []string { return
 // Takes summary (DispatcherSummary) which is the row to identify.
 //
 // Returns string which is the dispatcher type used as the unique id.
-func (*dlqRenderer) GetID(item DispatcherSummary) string { return item.Type }
+func (*dlqRenderer) GetID(summary DispatcherSummary) string { return summary.Type }
 
 // MatchesFilter reports whether a summary matches the supplied search query.
 //
@@ -589,8 +589,8 @@ func (*dlqRenderer) GetID(item DispatcherSummary) string { return item.Type }
 // Takes query (string) which is the search query.
 //
 // Returns bool which is true when the dispatcher type contains query.
-func (*dlqRenderer) MatchesFilter(item DispatcherSummary, q string) bool {
-	return strings.Contains(strings.ToLower(item.Type), strings.ToLower(q))
+func (*dlqRenderer) MatchesFilter(summary DispatcherSummary, query string) bool {
+	return strings.Contains(strings.ToLower(summary.Type), strings.ToLower(query))
 }
 
 // IsExpandable reports whether the row can be expanded; always false here.
