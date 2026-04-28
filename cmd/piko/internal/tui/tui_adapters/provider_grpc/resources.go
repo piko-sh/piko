@@ -207,14 +207,22 @@ func (p *ResourceProvider) Refresh(ctx context.Context) error {
 
 	taskSummary, tasks, workflows, orchestratorErr := p.fetchOrchestratorData(ctx)
 	if orchestratorErr != nil {
-		GRPCCallErrorCount.Add(ctx, 1)
-		l.Warn("Failed to fetch orchestrator data", logger.Error(orchestratorErr))
+		if tui_domain.IsServiceUnavailable(orchestratorErr) {
+			l.Debug("Orchestrator service not exposed by server", logger.Error(orchestratorErr))
+		} else {
+			GRPCCallErrorCount.Add(ctx, 1)
+			l.Warn("Failed to fetch orchestrator data", logger.Error(orchestratorErr))
+		}
 	}
 
 	artefactSummary, artefacts, registryErr := p.fetchRegistryData(ctx)
 	if registryErr != nil {
-		GRPCCallErrorCount.Add(ctx, 1)
-		l.Warn("Failed to fetch registry data", logger.Error(registryErr))
+		if tui_domain.IsServiceUnavailable(registryErr) {
+			l.Debug("Registry service not exposed by server", logger.Error(registryErr))
+		} else {
+			GRPCCallErrorCount.Add(ctx, 1)
+			l.Warn("Failed to fetch registry data", logger.Error(registryErr))
+		}
 	}
 
 	summary := make(map[string]map[tui_domain.ResourceStatus]int)
@@ -231,7 +239,32 @@ func (p *ResourceProvider) Refresh(ctx context.Context) error {
 	p.lastError = combined
 	p.mu.Unlock()
 
+	if combined == nil || onlyServiceUnavailable(orchestratorErr, registryErr) {
+		return nil
+	}
 	return combined
+}
+
+// onlyServiceUnavailable reports whether every non-nil error in errs is an
+// ErrServiceUnavailable.
+//
+// Takes errs (...error) which is the set of errors to inspect.
+//
+// Returns bool which is true when at least one error is non-nil and every
+// non-nil error wraps ErrServiceUnavailable; false when errs is empty, all
+// nil, or any error is of a different kind.
+func onlyServiceUnavailable(errs ...error) bool {
+	hasAny := false
+	for _, err := range errs {
+		if err == nil {
+			continue
+		}
+		if !tui_domain.IsServiceUnavailable(err) {
+			return false
+		}
+		hasAny = true
+	}
+	return hasAny
 }
 
 // Kinds returns the resource kinds this provider supports.
@@ -310,7 +343,7 @@ func (p *ResourceProvider) fetchOrchestratorData(ctx context.Context) (
 
 	taskSummaryResp, err := p.conn.orchestratorClient.GetTaskSummary(ctx, &pb.GetTaskSummaryRequest{})
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("fetching task summary: %w", err)
+		return nil, nil, nil, fmt.Errorf("fetching task summary: %w", translateRPCError(err))
 	}
 
 	summary[kindOrchestratorTask] = make(map[tui_domain.ResourceStatus]int)
@@ -323,7 +356,7 @@ func (p *ResourceProvider) fetchOrchestratorData(ctx context.Context) (
 		Limit: defaultRecentTasksLimit,
 	})
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("fetching recent tasks: %w", err)
+		return nil, nil, nil, fmt.Errorf("fetching recent tasks: %w", translateRPCError(err))
 	}
 
 	for _, task := range tasksResp.GetTasks() {
@@ -334,7 +367,7 @@ func (p *ResourceProvider) fetchOrchestratorData(ctx context.Context) (
 		Limit: defaultWorkflowSummaryLimit,
 	})
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("fetching workflow summary: %w", err)
+		return nil, nil, nil, fmt.Errorf("fetching workflow summary: %w", translateRPCError(err))
 	}
 
 	for _, workflow := range workflowsResp.GetSummaries() {
@@ -360,7 +393,7 @@ func (p *ResourceProvider) fetchRegistryData(ctx context.Context) (
 
 	artefactSummaryResp, err := p.conn.registryClient.GetArtefactSummary(ctx, &pb.GetArtefactSummaryRequest{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetching artefact summary: %w", err)
+		return nil, nil, fmt.Errorf("fetching artefact summary: %w", translateRPCError(err))
 	}
 
 	summary[kindRegistryArtefact] = make(map[tui_domain.ResourceStatus]int)
@@ -371,7 +404,7 @@ func (p *ResourceProvider) fetchRegistryData(ctx context.Context) (
 
 	variantSummaryResp, err := p.conn.registryClient.GetVariantSummary(ctx, &pb.GetVariantSummaryRequest{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetching variant summary: %w", err)
+		return nil, nil, fmt.Errorf("fetching variant summary: %w", translateRPCError(err))
 	}
 
 	summary[kindRegistryVariant] = make(map[tui_domain.ResourceStatus]int)
@@ -384,7 +417,7 @@ func (p *ResourceProvider) fetchRegistryData(ctx context.Context) (
 		Limit: defaultRecentArtefactsLimit,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetching recent artefacts: %w", err)
+		return nil, nil, fmt.Errorf("fetching recent artefacts: %w", translateRPCError(err))
 	}
 
 	pbArtefacts := artefactsResp.GetArtefacts()
