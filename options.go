@@ -1866,6 +1866,23 @@ type WatchdogProfileUploader = monitoring_domain.WatchdogProfileUploader
 // WatchdogEvent describes a notable runtime event detected by the watchdog.
 type WatchdogEvent = monitoring_domain.WatchdogEvent
 
+// WatchdogEventType identifies the category of a watchdog event.
+type WatchdogEventType = monitoring_domain.WatchdogEventType
+
+// WatchdogEventPriority indicates the urgency of a watchdog event.
+type WatchdogEventPriority = monitoring_domain.WatchdogEventPriority
+
+const (
+	// WatchdogPriorityNormal is informational; safe to ignore in alerting.
+	WatchdogPriorityNormal = monitoring_domain.WatchdogPriorityNormal
+
+	// WatchdogPriorityHigh warrants prompt investigation.
+	WatchdogPriorityHigh = monitoring_domain.WatchdogPriorityHigh
+
+	// WatchdogPriorityCritical indicates imminent system instability.
+	WatchdogPriorityCritical = monitoring_domain.WatchdogPriorityCritical
+)
+
 // WithWatchdogNotifier sets the notification delivery mechanism for watchdog
 // events. When set, the watchdog sends notifications to external systems when
 // thresholds are breached or errors occur.
