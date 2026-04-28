@@ -321,7 +321,13 @@ function morphChildren(fromEl, toEl, isParentPreserved, options) {
     }
     const fromMatch = findFromMatch(toChild, state, getNodeKey2);
     if (fromMatch) {
+      const cursorWasMatch = fromChild === fromMatch;
       const morphedNode = morphNode(fromMatch, toChild, isParentPreserved, options);
+      if (cursorWasMatch) {
+        fromChild = morphedNode.nextSibling;
+        advanceFromPointer();
+        continue;
+      }
       advanceFromPointer();
       if (fromChild !== morphedNode) {
         fromEl.insertBefore(morphedNode, fromChild);
@@ -6244,6 +6250,13 @@ function loadWidgetScripts(doc2) {
     document.dispatchEvent(new Event("piko:widgetinit"));
   }
 }
+function navigationNodeKey(node) {
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return null;
+  }
+  const el = node;
+  return el.dataset.stableId ?? el.getAttribute("p-key") ?? (el.id || null);
+}
 function scrollToAnchor(hash) {
   if (!hash || hash === "#") {
     return;
@@ -6266,7 +6279,10 @@ function handleScrollPosition(scrollOptions) {
 function performDOMUpdate(deps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions) {
   _runPageCleanup();
   getGlobalPageContext().clear();
-  oldAppRoot.innerHTML = newAppRoot.innerHTML;
+  fragmentMorpher(oldAppRoot, newAppRoot, {
+    childrenOnly: true,
+    getNodeKey: navigationNodeKey
+  });
   handleScrollPosition(scrollOptions);
   deps.bindDOM(oldAppRoot);
   deps.moduleLoader.loadFromDocument(parsedDocument);

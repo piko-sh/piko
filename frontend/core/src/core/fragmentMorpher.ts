@@ -677,7 +677,6 @@ function morphChildren(fromEl: HTMLElement, toEl: HTMLElement, isParentPreserved
 
     let fromChild = fromEl.firstChild;
 
-    /** Advances the fromChild pointer past insignificant nodes. */
     const advanceFromPointer = () => {
         while (fromChild && !isSignificantNode(fromChild)) {
             fromChild = fromChild.nextSibling;
@@ -692,7 +691,14 @@ function morphChildren(fromEl: HTMLElement, toEl: HTMLElement, isParentPreserved
         const fromMatch = findFromMatch(toChild, state, getNodeKey);
 
         if (fromMatch) {
+            const cursorWasMatch = fromChild === fromMatch;
             const morphedNode = morphNode(fromMatch, toChild, isParentPreserved, options);
+
+            if (cursorWasMatch) {
+                fromChild = morphedNode.nextSibling;
+                advanceFromPointer();
+                continue;
+            }
 
             advanceFromPointer();
             if (fromChild !== morphedNode) {
