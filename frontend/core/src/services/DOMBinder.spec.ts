@@ -57,7 +57,7 @@ describe('DOMBinder', () => {
             domBinder.bindLinks(root);
             link.click();
 
-            expect(callbacks.onNavigate).toHaveBeenCalledWith('/test-page', expect.any(MouseEvent));
+            expect(callbacks.onNavigate).toHaveBeenCalledWith('/test-page', expect.any(MouseEvent), {morph: undefined});
         });
 
         it('should prevent default on piko:a clicks', () => {
@@ -84,6 +84,32 @@ describe('DOMBinder', () => {
             link.click();
 
             expect(callbacks.onNavigate).not.toHaveBeenCalled();
+        });
+
+        it('should forward morph="none" through onNavigate options', () => {
+            const link = document.createElement('a');
+            link.setAttribute('piko:a', '');
+            link.setAttribute('href', '/legacy');
+            link.setAttribute('morph', 'none');
+            root.appendChild(link);
+
+            domBinder.bindLinks(root);
+            link.click();
+
+            expect(callbacks.onNavigate).toHaveBeenCalledWith('/legacy', expect.any(MouseEvent), {morph: 'none'});
+        });
+
+        it('should forward an arbitrary morph value through onNavigate options', () => {
+            const link = document.createElement('a');
+            link.setAttribute('piko:a', '');
+            link.setAttribute('href', '/custom');
+            link.setAttribute('morph', 'aggressive');
+            root.appendChild(link);
+
+            domBinder.bindLinks(root);
+            link.click();
+
+            expect(callbacks.onNavigate).toHaveBeenCalledWith('/custom', expect.any(MouseEvent), {morph: 'aggressive'});
         });
 
         it('should rebind links without duplicating handlers', () => {
@@ -530,7 +556,7 @@ describe('DOMBinder', () => {
                 domBinder.bindLinks(root);
                 link.click();
 
-                expect(callbacks.onNavigate).toHaveBeenCalledWith('/about', expect.any(MouseEvent));
+                expect(callbacks.onNavigate).toHaveBeenCalledWith('/about', expect.any(MouseEvent), {morph: undefined});
             });
 
             it('should use SPA navigation for absolute HTTP URLs', () => {
@@ -542,7 +568,7 @@ describe('DOMBinder', () => {
                 domBinder.bindLinks(root);
                 link.click();
 
-                expect(callbacks.onNavigate).toHaveBeenCalledWith('https://example.com/page', expect.any(MouseEvent));
+                expect(callbacks.onNavigate).toHaveBeenCalledWith('https://example.com/page', expect.any(MouseEvent), {morph: undefined});
             });
 
             it('should use SPA navigation for fragment-only URLs', () => {
@@ -554,7 +580,7 @@ describe('DOMBinder', () => {
                 domBinder.bindLinks(root);
                 link.click();
 
-                expect(callbacks.onNavigate).toHaveBeenCalledWith('#section', expect.any(MouseEvent));
+                expect(callbacks.onNavigate).toHaveBeenCalledWith('#section', expect.any(MouseEvent), {morph: undefined});
             });
         });
     });

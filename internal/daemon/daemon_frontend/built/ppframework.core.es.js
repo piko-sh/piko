@@ -4778,7 +4778,8 @@ function createDOMBinder(helperRegistry, callbacks) {
       return;
     }
     event.preventDefault();
-    callbacks.onNavigate(href, event);
+    const morph = linkEl?.getAttribute("morph") ?? void 0;
+    callbacks.onNavigate(href, event, { morph });
   };
   function bindLinks(rootElement) {
     rootElement.querySelectorAll("a").forEach((linkEl) => {
@@ -5725,7 +5726,8 @@ function buildScrollOptions(ctx, options, windowOps) {
   const hash = new URL(ctx.targetUrl, windowOps.getLocationOrigin()).hash;
   return {
     restoreScrollY: ctx.isPopNavigation ? options.restoreScrollY : void 0,
-    hash: !ctx.isPopNavigation || options.restoreScrollY === void 0 ? hash : void 0
+    hash: !ctx.isPopNavigation || options.restoreScrollY === void 0 ? hash : void 0,
+    morph: options.morph
   };
 }
 async function performNavigation(state, deps, targetUrl, event, options) {
@@ -6279,10 +6281,14 @@ function handleScrollPosition(scrollOptions) {
 function performDOMUpdate(deps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions) {
   _runPageCleanup();
   getGlobalPageContext().clear();
-  fragmentMorpher(oldAppRoot, newAppRoot, {
-    childrenOnly: true,
-    getNodeKey: navigationNodeKey
-  });
+  if (scrollOptions.morph === "none") {
+    oldAppRoot.innerHTML = newAppRoot.innerHTML;
+  } else {
+    fragmentMorpher(oldAppRoot, newAppRoot, {
+      childrenOnly: true,
+      getNodeKey: navigationNodeKey
+    });
+  }
   handleScrollPosition(scrollOptions);
   deps.bindDOM(oldAppRoot);
   deps.moduleLoader.loadFromDocument(parsedDocument);
@@ -6361,8 +6367,8 @@ function initFrameworkServices(services, options, instance) {
     afterNavigate: options.afterNavigate
   });
   services.domBinder = createDOMBinder(services.helperRegistry, {
-    onNavigate: (url, _event) => {
-      void instance.navigateTo(url);
+    onNavigate: (url, _event, linkOptions) => {
+      void instance.navigateTo(url, void 0, { morph: linkOptions.morph });
     },
     onOpenModal: (opts) => {
       void services.modalManager.openIfAvailable({

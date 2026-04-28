@@ -35,6 +35,13 @@ export interface NavigateOptions {
     isPopState?: boolean;
     /** Scroll position to restore (used by popstate navigation). */
     restoreScrollY?: number;
+    /**
+     * DOM update strategy for this navigation. Values:
+     *  - `"none"`: replace `#app` via `innerHTML` (full DOM rebuild, no state preservation).
+     *  - any other value, or omitted: use `fragmentMorpher` (default; preserves scroll, focus,
+     *    `<details>` open state, video playback, and other stateful subtrees with stable keys).
+     */
+    morph?: string;
     /** Callback invoked before navigation begins. */
     beforeNavigate?: (url: string) => void;
     /** Callback invoked after navigation completes. */
@@ -50,13 +57,15 @@ export interface HistoryState {
 }
 
 /**
- * Options passed to onPageLoad for scroll restoration.
+ * Options passed to onPageLoad for scroll restoration and DOM update strategy.
  */
 export interface PageLoadScrollOptions {
     /** Scroll position to restore for back/forward navigation. */
     restoreScrollY?: number;
     /** Hash/anchor to scroll to for new navigation. */
     hash?: string;
+    /** DOM update strategy: `"none"` for innerHTML swap, otherwise morph. */
+    morph?: string;
 }
 
 /**
@@ -342,7 +351,8 @@ function buildScrollOptions(
     const hash = new URL(ctx.targetUrl, windowOps.getLocationOrigin()).hash;
     return {
         restoreScrollY: ctx.isPopNavigation ? options.restoreScrollY : undefined,
-        hash: (!ctx.isPopNavigation || options.restoreScrollY === undefined) ? hash : undefined
+        hash: (!ctx.isPopNavigation || options.restoreScrollY === undefined) ? hash : undefined,
+        morph: options.morph
     };
 }
 

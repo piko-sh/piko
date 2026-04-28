@@ -328,7 +328,7 @@ interface FrameworkServices {
  *
  * Matches data-stable-id, then p-key, then id. Mirrors RemoteRenderer so that
  * full-page navigations and server-driven fragment patches use the same
- * identity rules — preserving scroll, focus, and stateful subtrees across
+ * identity rules, preserving scroll, focus, and stateful subtrees across
  * navigation when keys agree.
  */
 function navigationNodeKey(node: Node): NodeKey {
@@ -402,10 +402,14 @@ function performDOMUpdate(
 
     getGlobalPageContext().clear();
 
-    fragmentMorpher(oldAppRoot as HTMLElement, newAppRoot, {
-        childrenOnly: true,
-        getNodeKey: navigationNodeKey
-    });
+    if (scrollOptions.morph === 'none') {
+        oldAppRoot.innerHTML = newAppRoot.innerHTML;
+    } else {
+        fragmentMorpher(oldAppRoot as HTMLElement, newAppRoot, {
+            childrenOnly: true,
+            getNodeKey: navigationNodeKey
+        });
+    }
 
     handleScrollPosition(scrollOptions);
 
@@ -549,8 +553,8 @@ function initFrameworkServices(
     });
 
     services.domBinder = createDOMBinder(services.helperRegistry, {
-        onNavigate: (url, _event) => {
-            void instance.navigateTo(url);
+        onNavigate: (url, _event, linkOptions) => {
+            void instance.navigateTo(url, undefined, {morph: linkOptions.morph});
         },
         onOpenModal: (opts: OpenModalOptions) => {
             void services.modalManager.openIfAvailable({

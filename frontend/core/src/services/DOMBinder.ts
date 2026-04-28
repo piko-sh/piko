@@ -119,14 +119,24 @@ export interface OpenModalOptions {
     element: HTMLElement;
 }
 
+/** Per-link options resolved from attributes on a `piko:a` anchor at click time. */
+export interface NavigateLinkOptions {
+    /**
+     * Value of the `morph` attribute on the anchor, if present.
+     * `"none"` selects the legacy `innerHTML` swap; any other value (or omission) uses the morph.
+     */
+    morph?: string;
+}
+
 /** Callbacks invoked by the DOMBinder for navigation and modal events. */
 export interface DOMBinderCallbacks {
     /**
      * Called when a piko:a link is clicked.
      * @param url - The navigation URL.
      * @param event - The mouse event.
+     * @param options - Per-link options resolved from attributes on the anchor.
      */
-    onNavigate: (url: string, event: MouseEvent) => void;
+    onNavigate: (url: string, event: MouseEvent, options: NavigateLinkOptions) => void;
 
     /**
      * Called when a modal should be opened.
@@ -808,7 +818,8 @@ export function createDOMBinder(helperRegistry: HelperRegistry, callbacks: DOMBi
         }
 
         event.preventDefault();
-        callbacks.onNavigate(href, event);
+        const morph = linkEl?.getAttribute('morph') ?? undefined;
+        callbacks.onNavigate(href, event, {morph});
     };
 
     /**

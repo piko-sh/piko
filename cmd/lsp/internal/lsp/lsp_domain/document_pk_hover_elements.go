@@ -117,6 +117,7 @@ var (
 			},
 			OptionalAttrs: []pikoAttrDoc{
 				{Name: "lang", Type: attributeTypeString, Description: "Override the target locale"},
+				{Name: "morph", Type: attributeTypeString, Description: "Set to \"none\" to disable DOM morphing on navigation. Default morphs the DOM to preserve scroll, focus, and other stateful subtrees."},
 			},
 			Example:      `<piko:a href="/about">About Us</piko:a>`,
 			DocumentsURL: "/docs/api/tags/piko-a",
