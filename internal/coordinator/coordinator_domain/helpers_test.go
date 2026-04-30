@@ -90,9 +90,9 @@ func TestConstants(t *testing.T) {
 		assert.Equal(t, 10*time.Second, defaultCacheWriteTimeout)
 	})
 
-	t.Run("defaultMaxBuildWaitDuration is 30 seconds", func(t *testing.T) {
+	t.Run("defaultMaxBuildWaitDuration is 5 minutes", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, 30*time.Second, defaultMaxBuildWaitDuration)
+		assert.Equal(t, 5*time.Minute, defaultMaxBuildWaitDuration)
 	})
 
 	t.Run("hashingFileReadWorkers is 16", func(t *testing.T) {

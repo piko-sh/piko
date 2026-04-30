@@ -494,7 +494,7 @@ func WithDebounceDuration(d time.Duration) CoordinatorOption {
 }
 
 // WithMaxBuildWaitDuration sets the maximum time a caller waits for a build
-// result before timing out, defaulting to 30 seconds and worth increasing
+// result before timing out, defaulting to 5 minutes and worth increasing
 // for integration tests under heavy system load.
 //
 // Takes d (time.Duration) which sets the maximum wait time. Values of zero or

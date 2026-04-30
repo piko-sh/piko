@@ -34,7 +34,7 @@ import (
 // defaultMaxBuildWaitDuration is the default longest time a caller will wait
 // for a build result before timing out. This stops goroutines from waiting
 // forever when debouncing replaces their build request with a newer one.
-const defaultMaxBuildWaitDuration = 30 * time.Second
+const defaultMaxBuildWaitDuration = 5 * time.Minute
 
 // GetOrBuildProject is the primary synchronous, blocking method for consumers
 // that need a build result to proceed.
