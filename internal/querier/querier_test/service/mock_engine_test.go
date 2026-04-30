@@ -870,6 +870,8 @@ func parseParameterContext(context string) querier_dto.ParameterContext {
 		return querier_dto.ParameterContextLimit
 	case "offset":
 		return querier_dto.ParameterContextOffset
+	case "like":
+		return querier_dto.ParameterContextLike
 	default:
 		return querier_dto.ParameterContextUnknown
 	}

@@ -1,0 +1,11 @@
+{
+  "description": "When multiple catalogue tables hold the column the subquery parameter references, the catalogue fallback must refuse to guess and let the genuine Q001/Q002-style diagnostic stand.",
+  "expectedDiagnosticCount": 1,
+  "diagnostics": [
+    {
+      "code": "Q004",
+      "severity": "warning",
+      "messageContains": "unknown column"
+    }
+  ]
+}

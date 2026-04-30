@@ -1,0 +1,4 @@
+{
+  "description": "Parameters in subquery WHERE clauses (IN-subquery) should resolve via catalogue fallback when the inner table is not in the outer scope. After the fix, the parameter is typed as int4 with no diagnostics.",
+  "expectedDiagnosticCount": 0
+}

@@ -77,6 +77,12 @@ func (p *parser) handleParameterInExpression() {
 
 	context, columnRef := p.resolveComparisonContext(paramPosition)
 
+	if context == querier_dto.ParameterContextUnknown {
+		if likeContext, likeColumn := p.resolveLikeContext(paramPosition); likeContext != querier_dto.ParameterContextUnknown {
+			context, columnRef = likeContext, likeColumn
+		}
+	}
+
 	var castType *querier_dto.SQLType
 	if context == querier_dto.ParameterContextUnknown {
 		context, columnRef, castType = p.detectParameterContext(paramPosition)

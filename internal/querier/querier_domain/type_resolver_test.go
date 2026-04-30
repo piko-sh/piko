@@ -303,7 +303,7 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 		wantDiagnostics int
 	}{
 		{
-			name: "column reference parameter infers type from scope",
+			name: "column reference parameter infers type from scope and uses column name",
 			rawParams: []querier_dto.RawParameterReference{
 				{
 					Number: 1,
@@ -317,7 +317,7 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 			wantParams: []querier_dto.QueryParameter{
 				{
 					Number:  1,
-					Name:    "p1",
+					Name:    "id",
 					SQLType: querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger},
 				},
 			},
@@ -365,7 +365,7 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 			wantParams: []querier_dto.QueryParameter{
 				{
 					Number:  1,
-					Name:    "p1",
+					Name:    "id",
 					SQLType: querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger},
 				},
 			},
@@ -435,7 +435,7 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 			wantParams: []querier_dto.QueryParameter{
 				{
 					Number: 1,
-					Name:   "p1",
+					Name:   "limit",
 					SQLType: querier_dto.SQLType{
 						EngineName: querier_dto.CanonicalInt4,
 						Category:   querier_dto.TypeCategoryInteger,
@@ -454,7 +454,7 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 			wantParams: []querier_dto.QueryParameter{
 				{
 					Number: 1,
-					Name:   "p1",
+					Name:   "offset",
 					SQLType: querier_dto.SQLType{
 						EngineName: querier_dto.CanonicalInt4,
 						Category:   querier_dto.TypeCategoryInteger,
@@ -463,7 +463,7 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 			},
 		},
 		{
-			name: "nullable column reference makes parameter nullable",
+			name: "nullable column reference makes parameter nullable and uses column name",
 			rawParams: []querier_dto.RawParameterReference{
 				{
 					Number: 1,
@@ -477,14 +477,14 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 			wantParams: []querier_dto.QueryParameter{
 				{
 					Number:   1,
-					Name:     "p1",
+					Name:     "email",
 					SQLType:  querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText},
 					Nullable: true,
 				},
 			},
 		},
 		{
-			name: "unresolvable column reference produces diagnostic",
+			name: "unresolvable column reference still uses column name and produces diagnostic",
 			rawParams: []querier_dto.RawParameterReference{
 				{
 					Number: 1,
@@ -498,7 +498,7 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 			wantParams: []querier_dto.QueryParameter{
 				{
 					Number:  1,
-					Name:    "p1",
+					Name:    "id",
 					SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
 				},
 			},
@@ -681,6 +681,64 @@ func TestResolveParameterName(t *testing.T) {
 			directiveNameMap: map[string]*querier_dto.ParameterDirective{},
 			want:             "from_sql",
 		},
+		{
+			name: "column reference name used when no explicit name or directive",
+			raw: querier_dto.RawParameterReference{
+				Number: 1,
+				ColumnReference: &querier_dto.ColumnReference{
+					ColumnName: "user_id",
+				},
+				Context: querier_dto.ParameterContextComparison,
+			},
+			directiveNumberMap: map[int]*querier_dto.ParameterDirective{},
+			directiveNameMap:   map[string]*querier_dto.ParameterDirective{},
+			want:               "user_id",
+		},
+		{
+			name: "directive number overrides column reference name",
+			raw: querier_dto.RawParameterReference{
+				Number: 1,
+				ColumnReference: &querier_dto.ColumnReference{
+					ColumnName: "user_id",
+				},
+				Context: querier_dto.ParameterContextComparison,
+			},
+			directiveNumberMap: map[int]*querier_dto.ParameterDirective{
+				1: {Number: 1, Name: "actor"},
+			},
+			directiveNameMap: map[string]*querier_dto.ParameterDirective{},
+			want:             "actor",
+		},
+		{
+			name: "limit context defaults to limit",
+			raw: querier_dto.RawParameterReference{
+				Number:  1,
+				Context: querier_dto.ParameterContextLimit,
+			},
+			directiveNumberMap: map[int]*querier_dto.ParameterDirective{},
+			directiveNameMap:   map[string]*querier_dto.ParameterDirective{},
+			want:               "limit",
+		},
+		{
+			name: "offset context defaults to offset",
+			raw: querier_dto.RawParameterReference{
+				Number:  1,
+				Context: querier_dto.ParameterContextOffset,
+			},
+			directiveNumberMap: map[int]*querier_dto.ParameterDirective{},
+			directiveNameMap:   map[string]*querier_dto.ParameterDirective{},
+			want:               "offset",
+		},
+		{
+			name: "function argument context falls through to pN when no column reference",
+			raw: querier_dto.RawParameterReference{
+				Number:  3,
+				Context: querier_dto.ParameterContextFunctionArgument,
+			},
+			directiveNumberMap: map[int]*querier_dto.ParameterDirective{},
+			directiveNameMap:   map[string]*querier_dto.ParameterDirective{},
+			want:               "p3",
+		},
 	}
 
 	for _, tt := range tests {
@@ -691,6 +749,348 @@ func TestResolveParameterName(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestDisambiguateParameterNames(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    []querier_dto.QueryParameter
+		expected []string
+	}{
+		{
+			name:     "empty slice",
+			input:    nil,
+			expected: []string{},
+		},
+		{
+			name: "single parameter is left untouched",
+			input: []querier_dto.QueryParameter{
+				{Number: 1, Name: "id"},
+			},
+			expected: []string{"id"},
+		},
+		{
+			name: "distinct names are left untouched",
+			input: []querier_dto.QueryParameter{
+				{Number: 1, Name: "id"},
+				{Number: 2, Name: "email"},
+				{Number: 3, Name: "limit"},
+			},
+			expected: []string{"id", "email", "limit"},
+		},
+		{
+			name: "two duplicates: first keeps bare name, second gets _2 suffix",
+			input: []querier_dto.QueryParameter{
+				{Number: 1, Name: "id"},
+				{Number: 2, Name: "id"},
+			},
+			expected: []string{"id", "id_2"},
+		},
+		{
+			name: "three duplicates produce _2 and _3 suffixes",
+			input: []querier_dto.QueryParameter{
+				{Number: 1, Name: "id"},
+				{Number: 2, Name: "id"},
+				{Number: 3, Name: "id"},
+			},
+			expected: []string{"id", "id_2", "id_3"},
+		},
+		{
+			name: "interleaved duplicates suffix only the colliders",
+			input: []querier_dto.QueryParameter{
+				{Number: 1, Name: "id"},
+				{Number: 2, Name: "email"},
+				{Number: 3, Name: "id"},
+				{Number: 4, Name: "email"},
+				{Number: 5, Name: "id"},
+			},
+			expected: []string{"id", "email", "id_2", "email_2", "id_3"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			parameters := append([]querier_dto.QueryParameter(nil), tt.input...)
+			disambiguateParameterNames(parameters)
+			actual := make([]string, len(parameters))
+			for i := range parameters {
+				actual[i] = parameters[i].Name
+			}
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}
+
+func TestFindColumnInCatalogue(t *testing.T) {
+	t.Parallel()
+
+	intCol := func(name string, nullable bool) querier_dto.Column {
+		return querier_dto.Column{
+			Name:     name,
+			SQLType:  querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger},
+			Nullable: nullable,
+		}
+	}
+	textCol := func(name string, nullable bool) querier_dto.Column {
+		return querier_dto.Column{
+			Name:     name,
+			SQLType:  querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText},
+			Nullable: nullable,
+		}
+	}
+
+	t.Run("nil catalogue returns false", func(t *testing.T) {
+		t.Parallel()
+		resolver := &typeResolver{}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "id"})
+		assert.False(t, ok)
+	})
+
+	t.Run("nil reference returns false", func(t *testing.T) {
+		t.Parallel()
+		resolver := &typeResolver{catalogue: newTestCatalogue("public")}
+		_, ok := resolver.findColumnInCatalogue(nil)
+		assert.False(t, ok)
+	})
+
+	t.Run("empty column name returns false", func(t *testing.T) {
+		t.Parallel()
+		resolver := &typeResolver{catalogue: newTestCatalogue("public")}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{})
+		assert.False(t, ok)
+	})
+
+	t.Run("empty schemas return false", func(t *testing.T) {
+		t.Parallel()
+		resolver := &typeResolver{catalogue: newTestCatalogue("public")}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "id"})
+		assert.False(t, ok)
+	})
+
+	t.Run("single match returns column type and nullability", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["users"] = newTestTable("users", intCol("id", false), textCol("name", false))
+		resolver := &typeResolver{catalogue: catalogue}
+		match, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "name"})
+		require.True(t, ok)
+		assert.Equal(t, "text", match.sqlType.EngineName)
+		assert.False(t, match.nullable)
+	})
+
+	t.Run("nullable column propagates the flag", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["users"] = newTestTable("users", textCol("email", true))
+		resolver := &typeResolver{catalogue: catalogue}
+		match, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "email"})
+		require.True(t, ok)
+		assert.True(t, match.nullable)
+	})
+
+	t.Run("ambiguous match across tables returns false", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["users"] = newTestTable("users", intCol("id", false))
+		catalogue.Schemas["public"].Tables["orders"] = newTestTable("orders", intCol("id", false))
+		resolver := &typeResolver{catalogue: catalogue}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "id"})
+		assert.False(t, ok)
+	})
+
+	t.Run("table alias narrows the search", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["users"] = newTestTable("users", textCol("email", false))
+		catalogue.Schemas["public"].Tables["accounts"] = newTestTable("accounts", textCol("email", true))
+		resolver := &typeResolver{catalogue: catalogue}
+		match, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{
+			TableAlias: "users",
+			ColumnName: "email",
+		})
+		require.True(t, ok)
+		assert.False(t, match.nullable, "should pick users.email, not accounts.email")
+	})
+
+	t.Run("table alias not matching any table returns false", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["users"] = newTestTable("users", textCol("email", false))
+		resolver := &typeResolver{catalogue: catalogue}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{
+			TableAlias: "ghost",
+			ColumnName: "email",
+		})
+		assert.False(t, ok)
+	})
+
+	t.Run("column name match is case insensitive", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["users"] = newTestTable("users", textCol("Email", false))
+		resolver := &typeResolver{catalogue: catalogue}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "EMAIL"})
+		assert.True(t, ok)
+	})
+
+	t.Run("table alias match is case insensitive", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["Users"] = newTestTable("Users", textCol("email", false))
+		resolver := &typeResolver{catalogue: catalogue}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{
+			TableAlias: "USERS",
+			ColumnName: "email",
+		})
+		assert.True(t, ok)
+	})
+
+	t.Run("ambiguity short-circuits on the second match", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		for i, name := range []string{"a", "b", "c", "d", "e"} {
+			catalogue.Schemas["public"].Tables[name] = newTestTable(name, intCol("id", i%2 == 0))
+		}
+		resolver := &typeResolver{catalogue: catalogue}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "id"})
+		assert.False(t, ok, "five tables share id; lookup must reject as ambiguous")
+	})
+
+	t.Run("nil schema entry is skipped", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["empty"] = nil
+		catalogue.Schemas["public"].Tables["users"] = newTestTable("users", intCol("id", false))
+		resolver := &typeResolver{catalogue: catalogue}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "id"})
+		assert.True(t, ok)
+	})
+
+	t.Run("nil table entry is skipped", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["ghost"] = nil
+		catalogue.Schemas["public"].Tables["users"] = newTestTable("users", intCol("id", false))
+		resolver := &typeResolver{catalogue: catalogue}
+		_, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "id"})
+		assert.True(t, ok)
+	})
+}
+
+func TestTableMatchesAlias(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		tableName  string
+		alias      string
+		wantResult bool
+	}{
+		{name: "exact match", tableName: "users", alias: "users", wantResult: true},
+		{name: "case-insensitive match", tableName: "Users", alias: "USERS", wantResult: true},
+		{name: "different name", tableName: "users", alias: "accounts", wantResult: false},
+		{name: "empty alias does not match", tableName: "users", alias: "", wantResult: false},
+		{name: "empty table name does not match non-empty alias", tableName: "", alias: "users", wantResult: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			table := &querier_dto.Table{Name: tt.tableName}
+			assert.Equal(t, tt.wantResult, tableMatchesAlias(table, tt.alias))
+		})
+	}
+}
+
+func TestResolveLikeParameterType(t *testing.T) {
+	t.Parallel()
+
+	wantText := querier_dto.SQLType{Category: querier_dto.TypeCategoryText}
+
+	t.Run("nil column reference returns text without error", func(t *testing.T) {
+		t.Parallel()
+		resolver := newTestTypeResolver()
+		raw := querier_dto.RawParameterReference{
+			Number:  1,
+			Context: querier_dto.ParameterContextLike,
+		}
+		sqlType, nullable, err := resolver.resolveLikeParameterType(raw, setupTypeResolverScope())
+		require.NoError(t, err)
+		assert.Equal(t, wantText, sqlType)
+		assert.False(t, nullable)
+	})
+
+	t.Run("empty column name returns text without error", func(t *testing.T) {
+		t.Parallel()
+		resolver := newTestTypeResolver()
+		raw := querier_dto.RawParameterReference{
+			Number:          1,
+			Context:         querier_dto.ParameterContextLike,
+			ColumnReference: &querier_dto.ColumnReference{ColumnName: ""},
+		}
+		sqlType, nullable, err := resolver.resolveLikeParameterType(raw, setupTypeResolverScope())
+		require.NoError(t, err)
+		assert.Equal(t, wantText, sqlType)
+		assert.False(t, nullable)
+	})
+
+	t.Run("scope hit returns text and clears the resolution error", func(t *testing.T) {
+		t.Parallel()
+		resolver := newTestTypeResolver()
+		raw := querier_dto.RawParameterReference{
+			Number:          1,
+			Context:         querier_dto.ParameterContextLike,
+			ColumnReference: &querier_dto.ColumnReference{TableAlias: "users", ColumnName: "name"},
+		}
+		sqlType, nullable, err := resolver.resolveLikeParameterType(raw, setupTypeResolverScope())
+		require.NoError(t, err)
+		assert.Equal(t, wantText, sqlType)
+		assert.False(t, nullable)
+	})
+
+	t.Run("catalogue fallback resolves a column missing from scope", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["accounts"] = newTestTable(
+			"accounts",
+			querier_dto.Column{
+				Name:     "label",
+				SQLType:  querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText},
+				Nullable: true,
+			},
+		)
+		engine := &mockEngine{}
+		resolver := newTypeResolver(catalogue, newFunctionResolver(&querier_dto.FunctionCatalogue{
+			Functions: make(map[string][]*querier_dto.FunctionSignature),
+		}, catalogue, engine), engine)
+
+		raw := querier_dto.RawParameterReference{
+			Number:          1,
+			Context:         querier_dto.ParameterContextLike,
+			ColumnReference: &querier_dto.ColumnReference{ColumnName: "label"},
+		}
+		sqlType, nullable, err := resolver.resolveLikeParameterType(raw, setupTypeResolverScope())
+		require.NoError(t, err)
+		assert.Equal(t, wantText, sqlType)
+		assert.False(t, nullable, "LIKE parameter nullability is not column-derived")
+	})
+
+	t.Run("unresolved column surfaces the underlying error", func(t *testing.T) {
+		t.Parallel()
+		resolver := newTestTypeResolver()
+		raw := querier_dto.RawParameterReference{
+			Number:          1,
+			Context:         querier_dto.ParameterContextLike,
+			ColumnReference: &querier_dto.ColumnReference{TableAlias: "ghost", ColumnName: "missing"},
+		}
+		sqlType, nullable, err := resolver.resolveLikeParameterType(raw, setupTypeResolverScope())
+		require.Error(t, err)
+		assert.Equal(t, wantText, sqlType, "type stays text even when the column cannot be resolved")
+		assert.False(t, nullable)
+	})
 }
 
 func TestApplyDirectiveKind(t *testing.T) {

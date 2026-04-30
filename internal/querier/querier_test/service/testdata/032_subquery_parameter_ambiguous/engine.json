@@ -1,0 +1,62 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "text": { "category": "text", "engineName": "text" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE orders ( id int4 PRIMARY KEY, total int4 NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "orders",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "total", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "CREATE TABLE accounts ( id int4 PRIMARY KEY, email text NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "accounts",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "email", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "CREATE TABLE customers ( id int4 PRIMARY KEY, email text NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "customers",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "email", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, total FROM orders WHERE id IN (SELECT id FROM customers WHERE email = $1)",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "id", "tableAlias": "orders", "columnName": "id" },
+          { "name": "total", "tableAlias": "orders", "columnName": "total" }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "", "columnName": "email" } }
+        ],
+        "fromTables": [
+          { "name": "orders" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

@@ -1287,6 +1287,108 @@ func TestAnalyseQuery_Select(t *testing.T) {
 	}
 }
 
+func TestAnalyseQuery_LikeParameterContext(t *testing.T) {
+	t.Parallel()
+
+	catalogue := newPostgresCatalogue()
+
+	tests := []struct {
+		name       string
+		sql        string
+		assertions func(t *testing.T, a *querier_dto.RawQueryAnalysis)
+	}{
+		{
+			name: "LIKE pattern with direct column LHS",
+			sql:  "SELECT id FROM users WHERE name LIKE $1",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "ILIKE classifies as Like context",
+			sql:  "SELECT id FROM users WHERE email ILIKE $1",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "email", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "NOT LIKE binds to LHS column",
+			sql:  "SELECT id FROM users WHERE name NOT LIKE $1",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE pattern wrapped in concat picks LHS column",
+			sql:  "SELECT id FROM users WHERE name LIKE ('%' || $1 || '%')",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE with function-wrapped column picks the column",
+			sql:  "SELECT id FROM users WHERE LOWER(name) LIKE $1",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE with table-qualified LHS preserves the alias",
+			sql:  "SELECT id FROM users u WHERE u.email LIKE $1",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "u", a.ParameterReferences[0].ColumnReference.TableAlias)
+				assert.Equal(t, "email", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "two LIKE patterns on different columns each bind to their own LHS",
+			sql:  "SELECT id FROM users WHERE name LIKE $1 OR email LIKE $2",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 2)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[1].Context)
+				require.NotNil(t, a.ParameterReferences[1].ColumnReference)
+				assert.Equal(t, "email", a.ParameterReferences[1].ColumnReference.ColumnName)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			analysis := analyseQuery(t, catalogue, tt.sql)
+			tt.assertions(t, analysis)
+		})
+	}
+}
+
 func TestAnalyseQuery_Insert(t *testing.T) {
 	t.Parallel()
 

@@ -381,6 +381,9 @@ func TestWebhookCollector_TimerFlush(t *testing.T) {
 	if err := wc.Flush(context.Background()); err != nil {
 		t.Fatalf("Flush returned error: %v", err)
 	}
+	if err := wc.Close(context.Background()); err != nil {
+		t.Fatalf("Close returned error: %v", err)
+	}
 
 	mu.Lock()
 	count := len(received)
@@ -388,10 +391,6 @@ func TestWebhookCollector_TimerFlush(t *testing.T) {
 
 	if count == 0 {
 		t.Error("expected timer-based flush to send events")
-	}
-
-	if err := wc.Close(context.Background()); err != nil {
-		t.Fatalf("Close returned error: %v", err)
 	}
 }
 

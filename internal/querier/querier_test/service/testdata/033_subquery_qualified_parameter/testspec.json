@@ -1,0 +1,4 @@
+{
+  "description": "Table-qualified parameters in subquery WHERE clauses (e.g. user_profiles.user_id = $1) resolve via catalogue when the qualifier names a table that is not in the outer scope.",
+  "expectedDiagnosticCount": 0
+}

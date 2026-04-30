@@ -79,7 +79,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "rowid",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,

@@ -8,7 +8,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "key_name",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -126,7 +126,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "key_name",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -150,7 +150,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p2",
+        "Name": "value",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,

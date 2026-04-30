@@ -8,20 +8,20 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "status",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "text",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 4
         },
         "Number": 1,
         "Nullable": false,
@@ -32,7 +32,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p2",
+        "Name": "total_amount",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,

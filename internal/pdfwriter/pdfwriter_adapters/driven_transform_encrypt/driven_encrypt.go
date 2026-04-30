@@ -31,6 +31,7 @@ import (
 	"hash"
 	"io"
 
+	"golang.org/x/text/secure/precis"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters/pdfparse"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_dto"
@@ -127,27 +128,47 @@ const (
 	// output used to determine the next hash function in algorithm 2.B.
 	algorithm2BHashPrefixLen = 16
 
-	// algorithm2BHashModulus is the modulus applied to the byte sum of the
-	// hash prefix to select between SHA-256 (0), SHA-384 (1), and SHA-512 (2).
+	// algorithm2BHashModulus selects the next hash function in algorithm 2.B.
 	algorithm2BHashModulus = 3
 
-	// algorithm2BMinRounds is the minimum number of rounds before the
-	// termination condition in algorithm 2.B is evaluated.
-	algorithm2BMinRounds = 63
+	// algorithm2BMaxRounds caps Algorithm 2.B's outer loop as a defence
+	// against pathological inputs that would otherwise loop unbounded. The
+	// spec terminates with overwhelming probability well before 1024
+	// iterations; qpdf carries the same safety net.
+	algorithm2BMaxRounds = 1024
+
+	// algorithm2BMinRounds is the minimum 1-based round number before the
+	// termination condition in algorithm 2.B is evaluated. The PDF spec
+	// uses 1-based round counting (round 1 is the first AES iteration).
+	algorithm2BMinRounds = 64
+
+	// algorithm2BRoundOffset is the offset subtracted from the 1-based round
+	// number in the algorithm 2.B termination condition: terminate when the
+	// last byte of E is <= round_number - algorithm2BRoundOffset.
+	algorithm2BRoundOffset = 32
 
 	// algorithm2BOutputLen is the length of the final hash output in bytes
-	// returned by algorithm 2.B, and also the round offset subtracted from
-	// the round number in the termination condition.
+	// returned by algorithm 2.B.
 	algorithm2BOutputLen = 32
 
 	// defaultMaxObjectNestingDepth caps recursion when encrypting nested PDF
 	// dictionaries and arrays.
 	defaultMaxObjectNestingDepth = 256
+
+	// passwordMaxBytes is the maximum byte length passed to Algorithm 2.B
+	// per ISO 32000-2 section 7.6.4.3.2; longer prepared passwords are
+	// truncated. Truncation is by bytes, not runes, to match qpdf and
+	// other reference readers.
+	passwordMaxBytes = 127
 )
 
 // ErrObjectNestingTooDeep is returned when a PDF object's nested
 // dictionary/array structure exceeds the configured depth limit.
 var ErrObjectNestingTooDeep = errors.New("encrypt: PDF object nesting exceeds depth limit")
+
+// ErrAlgorithm2BNotConverging is returned when Algorithm 2.B fails to
+// reach its termination condition within algorithm2BMaxRounds rounds.
+var ErrAlgorithm2BNotConverging = errors.New("encrypt: algorithm 2.B exceeded round limit without terminating")
 
 // EncryptTransformer applies AES-256 encryption to PDF documents per
 // ISO 32000-2 section 7.6.
@@ -273,12 +294,21 @@ func (t *EncryptTransformer) Transform(ctx context.Context, pdf []byte, options 
 		return nil, fmt.Errorf("encrypt: generating file key: %w", err)
 	}
 
-	uValue, ueValue, err := t.computeUserValues(fileKey, []byte(opts.UserPassword))
+	userPassword, err := preparePassword(opts.UserPassword)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt: preparing user password: %w", err)
+	}
+	ownerPassword, err := preparePassword(opts.OwnerPassword)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt: preparing owner password: %w", err)
+	}
+
+	uValue, ueValue, err := t.computeUserValues(fileKey, userPassword)
 	if err != nil {
 		return nil, fmt.Errorf("encrypt: computing U/UE: %w", err)
 	}
 
-	oValue, oeValue, err := t.computeOwnerValues(fileKey, []byte(opts.OwnerPassword), uValue)
+	oValue, oeValue, err := t.computeOwnerValues(fileKey, ownerPassword, uValue)
 	if err != nil {
 		return nil, fmt.Errorf("encrypt: computing O/OE: %w", err)
 	}
@@ -393,6 +423,37 @@ func (t *EncryptTransformer) generateFileKey() ([]byte, error) {
 	return key, nil
 }
 
+// preparePassword normalises and truncates a password for use in PDF 2.0
+// revision 6 encryption per ISO 32000-2 section 7.6.4.3.2.
+//
+// The PRECIS OpaqueString profile applies SASLprep-style Unicode
+// normalisation and rejects disallowed code points, which keeps generated
+// PDFs interoperable with conformant readers (qpdf, Acrobat). The result
+// is encoded as UTF-8 and truncated to passwordMaxBytes; truncation is by
+// bytes (not runes) so a multi-byte rune sitting on the boundary is
+// dropped, matching the qpdf reference implementation. Empty passwords
+// bypass PRECIS preparation: the spec permits them (open without prompt)
+// and PRECIS treats the empty string as invalid input.
+//
+// Takes password (string) which is the caller-supplied password.
+//
+// Returns []byte which is the prepared, byte-truncated password.
+// Returns error when PRECIS preparation rejects the input.
+func preparePassword(password string) ([]byte, error) {
+	if password == "" {
+		return []byte{}, nil
+	}
+	prepared, err := precis.OpaqueString.String(password)
+	if err != nil {
+		return nil, fmt.Errorf("preparing password: %w", err)
+	}
+	bytesOut := []byte(prepared)
+	if len(bytesOut) > passwordMaxBytes {
+		bytesOut = bytesOut[:passwordMaxBytes]
+	}
+	return bytesOut, nil
+}
+
 // algorithm2B implements the ISO 32000-2 section 7.6.4.3.4 "Algorithm 2.B"
 // hash computation used by revision 6 encryption. It takes a SHA-256 hash as
 // input and iteratively applies AES-128-CBC encryption followed by SHA-256,
@@ -401,15 +462,18 @@ func (t *EncryptTransformer) generateFileKey() ([]byte, error) {
 //
 // Takes input ([]byte) which is the initial data to hash (password + salt, or
 // password + salt + U for owner values).
-// Takes password ([]byte) which is the truncated UTF-8 password (max 127 bytes).
+// Takes password ([]byte) which is the prepared UTF-8 password (max 127 bytes
+// per ISO 32000-2 section 7.6.4.3.2).
 // Takes userKey ([]byte) which is the 48-byte /U value for owner password
 // computations, or nil for user password computations.
 //
 // Returns []byte which is the 32-byte hash result.
-func algorithm2B(input, password, userKey []byte) []byte {
+// Returns error when AES cipher construction fails or the round limit is
+// exceeded without convergence.
+func algorithm2B(input, password, userKey []byte) ([]byte, error) {
 	k := sha256Hash(input)
 
-	for round := 0; ; round++ {
+	for round := 1; round <= algorithm2BMaxRounds; round++ {
 		single := make([]byte, 0, len(password)+len(k)+len(userKey))
 		single = append(single, password...)
 		single = append(single, k...)
@@ -420,7 +484,10 @@ func algorithm2B(input, password, userKey []byte) []byte {
 			k1 = append(k1, single...)
 		}
 
-		block, _ := aes.NewCipher(k[:16])
+		block, err := aes.NewCipher(k[:16])
+		if err != nil {
+			return nil, fmt.Errorf("creating AES cipher in algorithm 2.B: %w", err)
+		}
 		mode := cipher.NewCBCEncrypter(block, k[16:32])
 		encrypted := make([]byte, len(k1))
 		mode.CryptBlocks(encrypted, k1)
@@ -430,26 +497,43 @@ func algorithm2B(input, password, userKey []byte) []byte {
 			byteSum += int(b)
 		}
 
-		var hasher hash.Hash
-		switch byteSum % algorithm2BHashModulus {
-		case 0:
-			hasher = sha256.New()
-		case 1:
-			hasher = sha512.New384()
-		case 2:
-			hasher = sha512.New()
+		hasher, err := hasherForByteSum(byteSum % algorithm2BHashModulus)
+		if err != nil {
+			return nil, err
 		}
 
 		_, _ = hasher.Write(encrypted)
 		k = hasher.Sum(nil)
 
 		lastByte := encrypted[len(encrypted)-1]
-		if round >= algorithm2BMinRounds && int(lastByte) <= (round-algorithm2BOutputLen) {
-			break
+		if round >= algorithm2BMinRounds && int(lastByte) <= (round-algorithm2BRoundOffset) {
+			return k[:algorithm2BOutputLen], nil
 		}
 	}
 
-	return k[:algorithm2BOutputLen]
+	return nil, ErrAlgorithm2BNotConverging
+}
+
+// hasherForByteSum returns the algorithm 2.B hash function selected by the
+// modulo-3 residue of the first 16 bytes of E. The spec defines the
+// selection as the big-endian integer mod 3; summing the bytes mod 3 is
+// equivalent because 256 mod 3 == 1.
+//
+// Takes residue (int) which must be 0, 1, or 2.
+//
+// Returns hash.Hash which is the selected hasher.
+// Returns error when residue is outside {0, 1, 2}.
+func hasherForByteSum(residue int) (hash.Hash, error) {
+	switch residue {
+	case 0:
+		return sha256.New(), nil
+	case 1:
+		return sha512.New384(), nil
+	case 2:
+		return sha512.New(), nil
+	default:
+		return nil, fmt.Errorf("encrypt: unexpected algorithm 2.B residue %d", residue)
+	}
 }
 
 // sha256Hash returns the SHA-256 digest of data.
@@ -490,7 +574,10 @@ func (t *EncryptTransformer) computeUserValues(fileKey, userPassword []byte) (uV
 	validationInput := make([]byte, 0, len(userPassword)+saltLength)
 	validationInput = append(validationInput, userPassword...)
 	validationInput = append(validationInput, validationSalt...)
-	validationHash := algorithm2B(validationInput, userPassword, nil)
+	validationHash, err := algorithm2B(validationInput, userPassword, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("computing user validation hash: %w", err)
+	}
 
 	uValue = make([]byte, 0, uValueLength)
 	uValue = append(uValue, validationHash...)
@@ -500,7 +587,10 @@ func (t *EncryptTransformer) computeUserValues(fileKey, userPassword []byte) (uV
 	keyInput := make([]byte, 0, len(userPassword)+saltLength)
 	keyInput = append(keyInput, userPassword...)
 	keyInput = append(keyInput, keySalt...)
-	keyHash := algorithm2B(keyInput, userPassword, nil)
+	keyHash, err := algorithm2B(keyInput, userPassword, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("computing user key hash: %w", err)
+	}
 	ueValue, err = aes256CBCEncryptZeroIV(keyHash, fileKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("encrypting UE: %w", err)
@@ -539,7 +629,10 @@ func (t *EncryptTransformer) computeOwnerValues(fileKey, ownerPassword, uBytes [
 	validationInput = append(validationInput, ownerPassword...)
 	validationInput = append(validationInput, validationSalt...)
 	validationInput = append(validationInput, uBytes...)
-	validationHash := algorithm2B(validationInput, ownerPassword, uBytes)
+	validationHash, err := algorithm2B(validationInput, ownerPassword, uBytes)
+	if err != nil {
+		return nil, nil, fmt.Errorf("computing owner validation hash: %w", err)
+	}
 
 	oValue = make([]byte, 0, uValueLength)
 	oValue = append(oValue, validationHash...)
@@ -550,7 +643,10 @@ func (t *EncryptTransformer) computeOwnerValues(fileKey, ownerPassword, uBytes [
 	keyInput = append(keyInput, ownerPassword...)
 	keyInput = append(keyInput, keySalt...)
 	keyInput = append(keyInput, uBytes...)
-	keyHash := algorithm2B(keyInput, ownerPassword, uBytes)
+	keyHash, err := algorithm2B(keyInput, ownerPassword, uBytes)
+	if err != nil {
+		return nil, nil, fmt.Errorf("computing owner key hash: %w", err)
+	}
 
 	oeValue, err = aes256CBCEncryptZeroIV(keyHash, fileKey)
 	if err != nil {

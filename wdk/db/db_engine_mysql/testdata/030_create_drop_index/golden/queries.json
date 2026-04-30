@@ -8,7 +8,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "category",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,

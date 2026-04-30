@@ -145,7 +145,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "id",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
