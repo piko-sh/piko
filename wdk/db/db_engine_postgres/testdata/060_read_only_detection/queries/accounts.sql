@@ -1,17 +1,13 @@
--- piko.name: GetAccount
--- piko.command: one
+-- piko.query(name: GetAccount, command: one)
 SELECT id, name, balance FROM accounts WHERE id = $1;
 
--- piko.name: LockAccount
--- piko.command: one
+-- piko.query(name: LockAccount, command: one)
 SELECT id, name, balance FROM accounts WHERE id = $1 FOR UPDATE;
 
--- piko.name: CreateAccount
--- piko.command: one
+-- piko.query(name: CreateAccount, command: one)
 INSERT INTO accounts (name, balance) VALUES ($1, $2) RETURNING id;
 
--- piko.name: ArchiveAccount
--- piko.command: exec
+-- piko.query(name: ArchiveAccount, command: exec)
 WITH deleted AS (
     DELETE FROM accounts WHERE id = $1 RETURNING id
 )

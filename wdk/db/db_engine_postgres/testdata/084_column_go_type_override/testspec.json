@@ -1,0 +1,3 @@
+{
+  "description": "Query-level piko.column with `go_type:` replaces the inferred Go destination type with an imported custom type. The generated row struct field uses uuid.UUID and the file imports the package."
+}

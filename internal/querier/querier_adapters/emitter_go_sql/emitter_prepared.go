@@ -28,8 +28,11 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// EmitPrepared generates the PreparedDBTX wrapper with eager preparation of static
-// queries and lazy caching of dynamic query variants.
+// EmitPrepared generates the PreparedDBTX wrapper.
+//
+// Static queries are eagerly prepared once and reused, while dynamic query variants
+// (sortable ORDER BY, runtime builder) are run unprepared so the statement cache stays
+// bounded to the fixed static set.
 //
 // Takes packageName (string) which is the Go package name for the generated file.
 // Takes queries ([]*querier_dto.AnalysedQuery) which are the queries to prepare.
@@ -40,6 +43,7 @@ func (*SQLEmitter) EmitPrepared(packageName string, queries []*querier_dto.Analy
 	tracker := emitter_shared.NewImportTracker()
 	tracker.AddImport("context")
 	tracker.AddImport("database/sql")
+	tracker.AddImport("errors")
 	tracker.AddImport("fmt")
 	tracker.AddImport("sync")
 
@@ -58,6 +62,8 @@ func (*SQLEmitter) EmitPrepared(packageName string, queries []*querier_dto.Analy
 		buildPreparedQueryContext(),
 		buildPreparedQueryRowContext(),
 		buildPreparedBeginTx(),
+		buildPreparedPingContext(),
+		buildPreparedUnderlyingDB(),
 		buildPreparedClose(),
 	}
 
@@ -81,6 +87,10 @@ func (*SQLEmitter) EmitPrepared(packageName string, queries []*querier_dto.Analy
 // Returns bool which is true when the query SQL is fixed.
 func isStaticQuery(query *querier_dto.AnalysedQuery) bool {
 	if query.IsDynamic || query.DynamicRuntime {
+		return false
+	}
+
+	if query.Command == querier_dto.QueryCommandCopyFrom {
 		return false
 	}
 	for i := range query.Parameters {
@@ -245,61 +255,53 @@ func buildCloseStmtsRange(mapIdent string) *ast.RangeStmt {
 	}
 }
 
-// buildGetOrPrepareMethod generates the getOrPrepare method that checks the cache with a
-// read lock, then falls back to double-check locking with PrepareContext for cache
-// misses.
+// buildGetOrPrepareMethod generates the cachedStatement method that returns the prepared
+// statement for a query when it is one of the eagerly-prepared static queries, or nil
+// when the query is dynamic (sortable ORDER BY, runtime builder) and must run unprepared.
 //
-// Returns *ast.FuncDecl which is the getOrPrepare method declaration.
+// Returns *ast.FuncDecl which is the cachedStatement method declaration.
 func buildGetOrPrepareMethod() *ast.FuncDecl {
 	return &ast.FuncDecl{
 		Recv: preparedReceiver(),
-		Name: goastutil.CachedIdent("getOrPrepare"),
+		Name: goastutil.CachedIdent(identCachedStatementMethod),
 		Type: &ast.FuncType{
 			Params: goastutil.FieldList(
-				goastutil.Field(emitter_shared.IdentCtx, goastutil.SelectorExpr(emitter_shared.IdentContext, emitter_shared.IdentContextType)),
 				goastutil.Field(emitter_shared.IdentQuery, goastutil.CachedIdent(emitter_shared.IdentString)),
 			),
 			Results: goastutil.FieldList(
 				goastutil.Field("", goastutil.StarExpr(goastutil.SelectorExpr(identSQL, identSQLStmt))),
-				goastutil.Field("", goastutil.CachedIdent(emitter_shared.IdentError)),
 			),
 		},
 		Body: goastutil.BlockStmt(buildGetOrPrepareBody()...),
 	}
 }
 
-// buildGetOrPrepareBody constructs the statement list for the getOrPrepare method body,
-// implementing double-check locking for statement caching.
+// buildGetOrPrepareBody constructs the statement list for the cachedStatement method
+// body.
+//
+// Only the fixed set of static queries is ever cached: Prepare eagerly prepares them and
+// stores them in the map, and nothing else is ever added. A dynamic query (whose SQL text
+// varies per call) is therefore absent from the map and the lookup returns nil, so the
+// caller runs it unprepared. This keeps the statement map bounded to the known static set
+// rather than growing without bound as callers issue an unbounded variety of dynamic SQL
+// strings (which would otherwise exhaust process memory and the server's
+// prepared-statement slots). The read lock guards only against a concurrent Close
+// swapping the map.
 //
 // Returns []ast.Stmt which contains the method body statements.
 func buildGetOrPrepareBody() []ast.Stmt {
 	return []ast.Stmt{
 		muMethodCall("RLock"),
-		buildStmtsMapLookup(),
-		muMethodCall("RUnlock"),
-		&ast.IfStmt{
-			Cond: goastutil.CachedIdent("ok"),
-			Body: goastutil.BlockStmt(returnStatementNil()),
-		},
-		muMethodCall("Lock"),
 		&ast.DeferStmt{Call: goastutil.CallExpr(
 			goastutil.SelectorExprFrom(
 				goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), identPreparedMu),
-				"Unlock",
+				"RUnlock",
 			),
 		)},
-		buildDoubleCheckLookup(),
-		buildPrepareContextCall(),
-		&ast.IfStmt{
-			Cond: &ast.BinaryExpr{
-				X: goastutil.CachedIdent(emitter_shared.IdentErr), Op: token.NEQ, Y: goastutil.CachedIdent(emitter_shared.IdentNil),
-			},
-			Body: goastutil.BlockStmt(
-				goastutil.ReturnStmt(goastutil.CachedIdent(emitter_shared.IdentNil), goastutil.CachedIdent(emitter_shared.IdentErr)),
-			),
-		},
-		buildStmtsMapAssign(),
-		returnStatementNil(),
+		goastutil.ReturnStmt(&ast.IndexExpr{
+			X:     goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), identPreparedStmts),
+			Index: goastutil.CachedIdent(emitter_shared.IdentQuery),
+		}),
 	}
 }
 
@@ -315,78 +317,6 @@ func muMethodCall(method string) *ast.ExprStmt {
 			method,
 		),
 	)}
-}
-
-// buildStmtsMapLookup constructs the statement, ok := prepared.stmts[query] map lookup
-// assignment.
-//
-// Returns *ast.AssignStmt which is the map lookup statement.
-func buildStmtsMapLookup() *ast.AssignStmt {
-	return goastutil.DefineStmtMulti(
-		[]string{identStatement, "ok"},
-		&ast.IndexExpr{
-			X:     goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), identPreparedStmts),
-			Index: goastutil.CachedIdent(emitter_shared.IdentQuery),
-		},
-	)
-}
-
-// buildDoubleCheckLookup constructs the second map lookup under the write lock for the
-// double-check locking pattern.
-//
-// Returns *ast.IfStmt which is the double-check if statement.
-func buildDoubleCheckLookup() *ast.IfStmt {
-	return goastutil.IfStmt(
-		&ast.AssignStmt{
-			Lhs: []ast.Expr{goastutil.CachedIdent(identStatement), goastutil.CachedIdent("ok")},
-			Tok: token.ASSIGN,
-			Rhs: []ast.Expr{&ast.IndexExpr{
-				X:     goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), identPreparedStmts),
-				Index: goastutil.CachedIdent(emitter_shared.IdentQuery),
-			}},
-		},
-		goastutil.CachedIdent("ok"),
-		goastutil.BlockStmt(returnStatementNil()),
-	)
-}
-
-// buildPrepareContextCall constructs the prepared.db.PrepareContext(ctx, query) call
-// assignment for cache misses.
-//
-// Returns *ast.AssignStmt which is the prepare call assignment.
-func buildPrepareContextCall() *ast.AssignStmt {
-	return goastutil.DefineStmtMulti(
-		[]string{identStatement, emitter_shared.IdentErr},
-		goastutil.CallExpr(
-			goastutil.SelectorExprFrom(
-				goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), emitter_shared.IdentDB),
-				"PrepareContext",
-			),
-			goastutil.CachedIdent(emitter_shared.IdentCtx),
-			goastutil.CachedIdent(emitter_shared.IdentQuery),
-		),
-	)
-}
-
-// buildStmtsMapAssign constructs the prepared.stmts[query] = statement assignment for
-// caching a newly prepared statement.
-//
-// Returns *ast.AssignStmt which is the map assignment statement.
-func buildStmtsMapAssign() *ast.AssignStmt {
-	return goastutil.AssignStmt(
-		&ast.IndexExpr{
-			X:     goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), identPreparedStmts),
-			Index: goastutil.CachedIdent(emitter_shared.IdentQuery),
-		},
-		goastutil.CachedIdent(identStatement),
-	)
-}
-
-// returnStatementNil constructs a return statement, nil return expression.
-//
-// Returns *ast.ReturnStmt which returns the cached statement and nil error.
-func returnStatementNil() *ast.ReturnStmt {
-	return goastutil.ReturnStmt(goastutil.CachedIdent(identStatement), goastutil.CachedIdent(emitter_shared.IdentNil))
 }
 
 // buildPreparedExecContext generates the ExecContext method on PreparedDBTX that routes
@@ -456,25 +386,23 @@ func buildPreparedDBTXMethod(name string, results *ast.FieldList) *ast.FuncDecl 
 	}
 }
 
-// buildPreparedDBTXMethodBody constructs the body statements for a DBTX method, including
-// the getOrPrepare call and fallback to direct db call on error.
+// buildPreparedDBTXMethodBody constructs the body statements for a DBTX method.
+//
+// It looks up the cached static statement and uses it when present, otherwise runs the
+// (dynamic) query directly against the underlying db.
 //
 // Takes name (string) which is the method name to call on statement or db.
 //
 // Returns []ast.Stmt which contains the method body statements.
 func buildPreparedDBTXMethodBody(name string) []ast.Stmt {
 	return []ast.Stmt{
-		goastutil.DefineStmtMulti(
-			[]string{identStatement, emitter_shared.IdentErr},
-			goastutil.CallExpr(
-				goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), "getOrPrepare"),
-				goastutil.CachedIdent(emitter_shared.IdentCtx),
-				goastutil.CachedIdent(emitter_shared.IdentQuery),
-			),
-		),
+		goastutil.DefineStmt(identStatement, goastutil.CallExpr(
+			goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), identCachedStatementMethod),
+			goastutil.CachedIdent(emitter_shared.IdentQuery),
+		)),
 		&ast.IfStmt{
 			Cond: &ast.BinaryExpr{
-				X: goastutil.CachedIdent(emitter_shared.IdentErr), Op: token.NEQ, Y: goastutil.CachedIdent(emitter_shared.IdentNil),
+				X: goastutil.CachedIdent(identStatement), Op: token.EQL, Y: goastutil.CachedIdent(emitter_shared.IdentNil),
 			},
 			Body: goastutil.BlockStmt(
 				goastutil.ReturnStmt(buildVariadicCall(
@@ -537,6 +465,61 @@ func buildPreparedBeginTx() *ast.FuncDecl {
 	}
 }
 
+// buildPreparedPingContext generates the PingContext method that delegates to the
+// underlying *sql.DB. Useful for DAL-level health checks that work regardless of whether
+// the DAL holds a raw *sql.DB or a *PreparedDBTX.
+//
+// Returns *ast.FuncDecl which is the PingContext method declaration.
+func buildPreparedPingContext() *ast.FuncDecl {
+	return &ast.FuncDecl{
+		Recv: preparedReceiver(),
+		Name: goastutil.CachedIdent("PingContext"),
+		Type: &ast.FuncType{
+			Params: goastutil.FieldList(
+				goastutil.Field(emitter_shared.IdentCtx, goastutil.SelectorExpr(emitter_shared.IdentContext, emitter_shared.IdentContextType)),
+			),
+			Results: goastutil.FieldList(
+				goastutil.Field("", goastutil.CachedIdent(emitter_shared.IdentError)),
+			),
+		},
+		Body: goastutil.BlockStmt(
+			goastutil.ReturnStmt(
+				goastutil.CallExpr(
+					goastutil.SelectorExprFrom(
+						goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), emitter_shared.IdentDB),
+						"PingContext",
+					),
+					goastutil.CachedIdent(emitter_shared.IdentCtx),
+				),
+			),
+		),
+	}
+}
+
+// buildPreparedUnderlyingDB generates the UnderlyingDB method returning the wrapped DB.
+//
+// DAL layers use it when they need direct access to the raw database handle (for example
+// for transaction creation via BeginTx) while still routing reads and writes through the
+// prepared-statement cache.
+//
+// Returns *ast.FuncDecl which is the UnderlyingDB method declaration.
+func buildPreparedUnderlyingDB() *ast.FuncDecl {
+	return &ast.FuncDecl{
+		Recv: preparedReceiver(),
+		Name: goastutil.CachedIdent("UnderlyingDB"),
+		Type: &ast.FuncType{
+			Results: goastutil.FieldList(
+				goastutil.Field("", goastutil.StarExpr(goastutil.SelectorExpr(identSQL, "DB"))),
+			),
+		},
+		Body: goastutil.BlockStmt(
+			goastutil.ReturnStmt(
+				goastutil.SelectorExprFrom(goastutil.CachedIdent(identPrepared), emitter_shared.IdentDB),
+			),
+		),
+	}
+}
+
 // buildPreparedClose generates the Close method that closes all cached prepared
 // statements without closing the underlying database.
 //
@@ -570,8 +553,8 @@ func buildPreparedCloseBody() []ast.Stmt {
 		&ast.DeclStmt{Decl: &ast.GenDecl{
 			Tok: token.VAR,
 			Specs: []ast.Spec{&ast.ValueSpec{
-				Names: []*ast.Ident{goastutil.CachedIdent("firstError")},
-				Type:  goastutil.CachedIdent(emitter_shared.IdentError),
+				Names: []*ast.Ident{goastutil.CachedIdent("closeErrors")},
+				Type:  &ast.ArrayType{Elt: goastutil.CachedIdent(emitter_shared.IdentError)},
 			}},
 		}},
 		buildCloseRangeLoop(),
@@ -582,7 +565,11 @@ func buildPreparedCloseBody() []ast.Stmt {
 				stmtMapType(),
 			),
 		),
-		goastutil.ReturnStmt(goastutil.CachedIdent("firstError")),
+		goastutil.ReturnStmt(&ast.CallExpr{
+			Fun:      goastutil.SelectorExpr("errors", "Join"),
+			Args:     []ast.Expr{goastutil.CachedIdent("closeErrors")},
+			Ellipsis: token.Pos(1),
+		}),
 	}
 }
 
@@ -602,22 +589,18 @@ func buildCloseRangeLoop() *ast.RangeStmt {
 					goastutil.SelectorExprFrom(goastutil.CachedIdent(identStatement), "Close"),
 				)),
 				&ast.BinaryExpr{
-					X: &ast.BinaryExpr{
-						X:  goastutil.CachedIdent(emitter_shared.IdentErr),
-						Op: token.NEQ,
-						Y:  goastutil.CachedIdent(emitter_shared.IdentNil),
-					},
-					Op: token.LAND,
-					Y: &ast.BinaryExpr{
-						X:  goastutil.CachedIdent("firstError"),
-						Op: token.EQL,
-						Y:  goastutil.CachedIdent(emitter_shared.IdentNil),
-					},
+					X:  goastutil.CachedIdent(emitter_shared.IdentErr),
+					Op: token.NEQ,
+					Y:  goastutil.CachedIdent(emitter_shared.IdentNil),
 				},
 				goastutil.BlockStmt(
 					goastutil.AssignStmt(
-						goastutil.CachedIdent("firstError"),
-						goastutil.CachedIdent(emitter_shared.IdentErr),
+						goastutil.CachedIdent("closeErrors"),
+						goastutil.CallExpr(
+							goastutil.CachedIdent("append"),
+							goastutil.CachedIdent("closeErrors"),
+							goastutil.CachedIdent(emitter_shared.IdentErr),
+						),
 					),
 				),
 			),

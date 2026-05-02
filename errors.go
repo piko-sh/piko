@@ -23,52 +23,50 @@ import (
 	"piko.sh/piko/internal/safeerror"
 )
 
-// Error is an error that carries a user-safe message separate from its internal
-// cause.
+// Error is an error that carries a user-safe message separate from its internal cause.
 //
-// In production, only SafeMessage() reaches the user; the full error detail is
-// logged server-side. In development mode (dev or dev-i), the full error string is
-// shown for easier debugging.
+// In production, only SafeMessage() reaches the user; the full error detail is logged
+// server-side. In development mode (dev or dev-i), the full error string is shown for
+// easier debugging.
 //
-// Any error in the chain can implement Error; the error boundary will discover it
-// via errors.As. Existing sentinels and errors.Is chains are preserved through
-// Unwrap().
+// Any error in the chain can implement Error; the error boundary will discover it via
+// errors.As. Existing sentinels and errors.Is chains are preserved through Unwrap().
 type Error = safeerror.Error
 
 var (
-	// NewError wraps a cause error with a user-safe message. The cause's
-	// Error() string is used for internal logging, while safeMessage is
-	// the string shown to users in production.
+	// NewError wraps a cause error with a user-safe message. The cause's Error() string is
+	// used for internal logging, while safeMessage is the string shown to users in
+	// production.
 	//
-	// The returned error implements Unwrap(), so errors.Is and errors.As
-	// continue to work through the chain.
+	// The returned error implements Unwrap(), so errors.Is and errors.As continue to work
+	// through the chain.
 	//
 	// Example:
 	//
-	//	return piko.NewError("something went wrong", err)
+	// 	return piko.NewError("something went wrong", err)
 	NewError = safeerror.NewError
 
-	// Errorf creates an error with a user-safe message and a formatted
-	// internal cause (using fmt.Errorf semantics for the internal part).
+	// Errorf creates an error with a user-safe message and a formatted internal cause (using
+	// fmt.Errorf semantics for the internal part).
 	//
 	// Example:
 	//
-	//	return piko.Errorf("could not process order",
-	//	    "loading order %s from database: %w", orderID, err)
+	// 	return piko.Errorf("could not process order",
+	// 	    "loading order %s from database: %w", orderID, err)
 	Errorf = safeerror.Errorf
 )
 
-// IsDevelopmentMode reports whether the current request is being
-// served under the dev or dev-i runtime modes.
+// IsDevelopmentMode reports whether the current request is being served under the dev or
+// dev-i runtime modes.
 //
-// Use this in error page Render functions to decide whether to show
-// internal error details. Returns false when r is nil or the request
-// context does not carry runtime mode information.
+// Use this in error page Render functions to decide whether to show internal error
+// details. Returns false when r is nil or the request context does not carry runtime mode
+// information.
 //
 // Takes r (*RequestData) which provides the request context to check.
 //
-// Returns bool which is true when the request is being served under
-// the dev or dev-i runtime modes.
+// Returns bool which is true when the request is being served under the dev or dev-i
+// runtime modes.
 func IsDevelopmentMode(r *RequestData) bool {
 	if r == nil {
 		return false

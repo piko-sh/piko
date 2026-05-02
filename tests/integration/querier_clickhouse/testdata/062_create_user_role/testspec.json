@@ -1,0 +1,4 @@
+{
+  "description": "CREATE USER / CREATE ROLE / GRANT statements declare server-wide access-control objects. The fixture migration creates a user with no_password identification, a role, grants the role to the user, then teardown drops both because they outlive the per-test database isolation. The runtime verifies the catalogue entries appear in system.users and system.roles.",
+  "skip": false
+}

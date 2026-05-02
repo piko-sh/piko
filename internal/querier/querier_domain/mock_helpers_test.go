@@ -28,8 +28,9 @@ import (
 
 type mockEngine struct {
 	parseStatementsFn            func(sql string) ([]querier_dto.ParsedStatement, error)
-	applyDDLFn                   func(statement querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error)
+	applyDDLFn                   func(ctx context.Context, statement querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error)
 	analyseQueryFn               func(catalogue *querier_dto.Catalogue, statement querier_dto.ParsedStatement) (*querier_dto.RawQueryAnalysis, error)
+	rewriteSelectAsCountFn       func(originalSQL string, analysis *querier_dto.RawQueryAnalysis) (string, bool, error)
 	normaliseTypeNameFn          func(name string, modifiers ...int) querier_dto.SQLType
 	promoteTypeFn                func(left querier_dto.SQLType, right querier_dto.SQLType) querier_dto.SQLType
 	canImplicitCastFn            func(from querier_dto.SQLTypeCategory, to querier_dto.SQLTypeCategory) bool
@@ -43,6 +44,7 @@ type mockEngine struct {
 	parameterStyleFn             func() querier_dto.ParameterStyle
 	supportsReturningFn          func() bool
 	dialectFn                    func() string
+	supportsAsyncMutationsFn     func() bool
 }
 
 func (m *mockEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, error) {
@@ -52,9 +54,9 @@ func (m *mockEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement,
 	return nil, nil
 }
 
-func (m *mockEngine) ApplyDDL(statement querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
+func (m *mockEngine) ApplyDDL(ctx context.Context, statement querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
 	if m.applyDDLFn != nil {
-		return m.applyDDLFn(statement)
+		return m.applyDDLFn(ctx, statement)
 	}
 	return nil, nil
 }
@@ -64,6 +66,13 @@ func (m *mockEngine) AnalyseQuery(catalogue *querier_dto.Catalogue, statement qu
 		return m.analyseQueryFn(catalogue, statement)
 	}
 	return nil, nil
+}
+
+func (m *mockEngine) RewriteSelectAsCount(originalSQL string, analysis *querier_dto.RawQueryAnalysis) (string, bool, error) {
+	if m.rewriteSelectAsCountFn != nil {
+		return m.rewriteSelectAsCountFn(originalSQL, analysis)
+	}
+	return RewriteSelectAsCount(originalSQL, analysis)
 }
 
 func (m *mockEngine) NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
@@ -164,6 +173,13 @@ func (m *mockEngine) Dialect() string {
 		return m.dialectFn()
 	}
 	return "mock"
+}
+
+func (m *mockEngine) SupportsAsyncMutations() bool {
+	if m.supportsAsyncMutationsFn != nil {
+		return m.supportsAsyncMutationsFn()
+	}
+	return false
 }
 
 type mockFileReader struct {

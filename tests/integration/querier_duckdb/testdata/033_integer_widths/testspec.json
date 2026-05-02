@@ -1,0 +1,3 @@
+{
+  "description": "Integer width and signedness: DuckDB tinyint/smallint/integer/bigint and the unsigned utinyint/usmallint/uinteger/ubigint plus the 128-bit hugeint/uhugeint each generate a width- and sign-correct Go type. Large values (bigint above int32, ubigint above int64, hugeint/uhugeint above 64-bit) round-trip without truncation, proving the generated types are int8/int16/int32/int64, uint8/uint16/uint32/uint64, and *big.Int rather than the int32 fallback."
+}

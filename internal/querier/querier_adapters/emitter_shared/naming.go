@@ -19,8 +19,10 @@
 package emitter_shared
 
 import (
+	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 var (
@@ -62,6 +64,12 @@ var (
 // SnakeToPascalCase converts a snake_case SQL identifier to PascalCase Go identifier,
 // applying Go initialism conventions.
 //
+// A SQL name need not be a legal Go identifier stem: quoted identifiers and aliases such
+// as "2fa_enabled" are valid SQL but their naive PascalCase form ("2faEnabled") starts
+// with a digit and would not compile. The result is therefore passed through
+// sanitiseGoIdentifier so a leading-digit (or otherwise empty) stem is prefixed with an
+// underscore.
+//
 // Takes name (string) which is the snake_case identifier to convert.
 //
 // Returns string which is the PascalCase Go identifier.
@@ -86,11 +94,15 @@ func SnakeToPascalCase(name string) string {
 		builder.WriteString(string(runes))
 	}
 
-	return builder.String()
+	return sanitiseGoIdentifier(builder.String())
 }
 
 // SnakeToCamelCase converts a snake_case SQL identifier to camelCase Go identifier,
 // applying Go initialism conventions for non-leading segments.
+//
+// As with SnakeToPascalCase, the result is passed through sanitiseGoIdentifier so a SQL
+// name whose camelCase form begins with a digit (or is empty) becomes a legal Go
+// identifier rather than non-compiling source.
 //
 // Takes name (string) which is the snake_case identifier to convert.
 //
@@ -122,5 +134,82 @@ func SnakeToCamelCase(name string) string {
 		builder.WriteString(string(runes))
 	}
 
-	return builder.String()
+	return sanitiseGoIdentifier(builder.String())
+}
+
+// sanitiseGoIdentifier ensures a converted name is a legal Go identifier stem.
+//
+// A Go identifier may not start with a digit, yet a quoted SQL name such as "2fa_enabled"
+// or "123" produces exactly such a stem. The name is prefixed with an underscore when it
+// begins with a digit, leaving every already-valid name untouched. An empty name is left
+// empty so callers that intentionally pass an empty string, for example an anonymous
+// field or result, are not given a spurious underscore.
+//
+// Takes name (string) which is the candidate Go identifier.
+//
+// Returns string which is a legal Go identifier stem.
+func sanitiseGoIdentifier(name string) string {
+	if name == "" {
+		return ""
+	}
+	if first, _ := utf8.DecodeRuneInString(name); unicode.IsDigit(first) {
+		return "_" + name
+	}
+	return name
+}
+
+// DisambiguateGoFieldNames converts an ordered list of snake_case SQL names into the
+// matching ordered list of PascalCase Go field identifiers, suffixing collisions.
+//
+// Takes names ([]string) which are the source SQL names in declaration order.
+//
+// Returns []string which are the disambiguated PascalCase identifiers in the same order.
+func DisambiguateGoFieldNames(names []string) []string {
+	return disambiguateGoFieldNames(names, SnakeToPascalCase)
+}
+
+// DisambiguateGoFieldNamesCamelCase converts an ordered list of snake_case SQL names into
+// the matching ordered list of camelCase Go identifiers, suffixing collisions.
+//
+// Takes names ([]string) which are the source SQL names in declaration order.
+//
+// Returns []string which are the disambiguated camelCase identifiers in the same order.
+func DisambiguateGoFieldNamesCamelCase(names []string) []string {
+	return disambiguateGoFieldNames(names, SnakeToCamelCase)
+}
+
+// disambiguateGoFieldNames converts an ordered list of snake_case SQL names into the
+// matching ordered list of Go identifiers using the supplied case converter.
+//
+// A numeric suffix is appended to any name that would otherwise collide with an earlier
+// one. Distinct SQL names can fold onto the same Go identifier, for example "foo_bar" and
+// "foo__bar" both become "FooBar", which would be a duplicate-field compile error. The
+// suffix keeps each field unique while preserving source order so the struct fields and
+// the scan targets derived from the same ordered list stay in lockstep.
+//
+// The suffix search continues past a suffixed candidate that itself collides, so a
+// literal column whose converted form equals an already-emitted suffix (for example
+// "foo2" alongside a second "foo" that became "Foo2") still receives a distinct
+// identifier.
+//
+// Takes names ([]string) which are the source SQL names in declaration order.
+// Takes convert (func(string) string) which maps a snake_case name to its Go identifier.
+//
+// Returns []string which are the disambiguated Go identifiers in the same order.
+func disambiguateGoFieldNames(names []string, convert func(string) string) []string {
+	result := make([]string, len(names))
+	seen := make(map[string]struct{}, len(names))
+	for index, name := range names {
+		converted := convert(name)
+		candidate := converted
+		for suffix := 2; ; suffix++ {
+			if _, exists := seen[candidate]; !exists {
+				break
+			}
+			candidate = converted + strconv.Itoa(suffix)
+		}
+		seen[candidate] = struct{}{}
+		result[index] = candidate
+	}
+	return result
 }

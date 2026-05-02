@@ -40,15 +40,15 @@ func main() {
 
 	queries := db.New(conn)
 
-	if err := queries.InsertOrder(ctx, db.InsertOrderParams{P1: "Alice", P2: int32(5000)}); err != nil {
+	if err := queries.InsertOrder(ctx, db.InsertOrderParams{Customer: "Alice", Total: int32(5000)}); err != nil {
 		fmt.Fprintln(os.Stderr, "InsertOrder 1:", err)
 		os.Exit(1)
 	}
-	if err := queries.InsertOrder(ctx, db.InsertOrderParams{P1: "Bob", P2: int32(3000)}); err != nil {
+	if err := queries.InsertOrder(ctx, db.InsertOrderParams{Customer: "Bob", Total: int32(3000)}); err != nil {
 		fmt.Fprintln(os.Stderr, "InsertOrder 2:", err)
 		os.Exit(1)
 	}
-	if err := queries.InsertOrder(ctx, db.InsertOrderParams{P1: "Charlie", P2: int32(7500)}); err != nil {
+	if err := queries.InsertOrder(ctx, db.InsertOrderParams{Customer: "Charlie", Total: int32(7500)}); err != nil {
 		fmt.Fprintln(os.Stderr, "InsertOrder 3:", err)
 		os.Exit(1)
 	}

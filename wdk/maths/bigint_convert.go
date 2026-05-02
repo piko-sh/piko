@@ -23,6 +23,7 @@ import (
 	stdjson "encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 
 	"piko.sh/piko/internal/json"
@@ -169,7 +170,7 @@ func (b BigInt) Value() (driver.Value, error) {
 // Scan implements the sql.Scanner interface for database deserialisation.
 //
 // Takes source (any) which provides the database value to scan. Accepts string, []byte,
-// int64, or nil types.
+// int64, *big.Int, big.Int, nil, or any type implementing fmt.Stringer.
 //
 // Returns error when b is nil or source is an unsupported type.
 func (b *BigInt) Scan(source any) error {
@@ -185,10 +186,25 @@ func (b *BigInt) Scan(source any) error {
 		temp = NewBigIntFromString(string(v))
 	case int64:
 		temp = NewBigIntFromInt(v)
+	case *big.Int:
+		if v == nil {
+			temp = ZeroBigInt()
+		} else {
+			temp = NewBigIntFromString(v.String())
+		}
+	case big.Int:
+		temp = NewBigIntFromString(v.String())
 	case nil:
 		temp = ZeroBigInt()
+	case fmt.Stringer:
+		temp = NewBigIntFromString(v.String())
 	default:
-		return fmt.Errorf("maths: cannot scan type %T into BigInt", source)
+		s, ok := stringerFromReflect(source)
+		if !ok {
+			return fmt.Errorf("maths: cannot scan type %T into BigInt", source)
+		}
+
+		temp = NewBigIntFromString(s)
 	}
 
 	*b = temp

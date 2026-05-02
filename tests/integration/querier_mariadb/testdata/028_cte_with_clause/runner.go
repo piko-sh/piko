@@ -26,14 +26,16 @@ func main() {
 
 	queries := db.New(conn)
 
+	parentPtr := func(value int32) *int32 { return &value }
+
 	entries := []db.InsertCategoryParams{
-		{P1: int32(1), P2: "Root", P3: sql.NullInt32{Valid: false}},
-		{P1: int32(2), P2: "Electronics", P3: sql.NullInt32{Int32: 1, Valid: true}},
-		{P1: int32(3), P2: "Clothing", P3: sql.NullInt32{Int32: 1, Valid: true}},
-		{P1: int32(4), P2: "Phones", P3: sql.NullInt32{Int32: 2, Valid: true}},
-		{P1: int32(5), P2: "Laptops", P3: sql.NullInt32{Int32: 2, Valid: true}},
-		{P1: int32(6), P2: "T-Shirts", P3: sql.NullInt32{Int32: 3, Valid: true}},
-		{P1: int32(7), P2: "iPhones", P3: sql.NullInt32{Int32: 4, Valid: true}},
+		{ID: int32(1), Name: "Root", ParentID: nil},
+		{ID: int32(2), Name: "Electronics", ParentID: parentPtr(1)},
+		{ID: int32(3), Name: "Clothing", ParentID: parentPtr(1)},
+		{ID: int32(4), Name: "Phones", ParentID: parentPtr(2)},
+		{ID: int32(5), Name: "Laptops", ParentID: parentPtr(2)},
+		{ID: int32(6), Name: "T-Shirts", ParentID: parentPtr(3)},
+		{ID: int32(7), Name: "iPhones", ParentID: parentPtr(4)},
 	}
 
 	for i, e := range entries {

@@ -33,7 +33,6 @@ func NewMariaDBEngine() *db_engine_mysql.MySQLEngine {
 	return db_engine_mysql.NewMySQLEngine(
 		db_engine_mysql.WithDialectName("mariadb"),
 		db_engine_mysql.WithReturningSupport(true),
-		db_engine_mysql.WithSequenceSupport(true),
 		db_engine_mysql.WithExtraFunctions(registerMariaDBFunctions),
 	)
 }
@@ -41,19 +40,13 @@ func NewMariaDBEngine() *db_engine_mysql.MySQLEngine {
 // registerMariaDBFunctions registers MariaDB-specific built-in functions onto the shared
 // MySQL function catalogue.
 //
+// INET6_ATON / INET6_NTOA are standard MySQL functions and now live in the base
+// catalogue, so only genuinely MariaDB-exclusive functions (SYS_GUID) are registered
+// here.
+//
 // Takes builder (*db_engine_mysql.FunctionCatalogueBuilder) which receives the extra
 // function signatures.
 func registerMariaDBFunctions(builder *db_engine_mysql.FunctionCatalogueBuilder) {
-	uuidType := querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"}
-	builder.NeverNull("uuid", nil, uuidType)
-	builder.NeverNull("sys_guid", nil, uuidType)
-
-	integerType := querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}
-	textType := querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"}
-	binaryType := querier_dto.SQLType{Category: querier_dto.TypeCategoryBytea, EngineName: "varbinary"}
-
-	builder.NullOnNull("inet_aton", builder.Args("address", textType), integerType)
-	builder.NullOnNull("inet_ntoa", builder.Args("value", integerType), textType)
-	builder.NullOnNull("inet6_aton", builder.Args("address", textType), binaryType)
-	builder.NullOnNull("inet6_ntoa", builder.Args("value", binaryType), textType)
+	guidType := querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"}
+	builder.NeverNull("sys_guid", nil, guidType)
 }

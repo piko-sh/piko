@@ -21,6 +21,7 @@ package db_engine_duckdb
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -383,6 +384,12 @@ func (p *parser) parseColumnType(engine typeNormaliser) (querier_dto.SQLType, in
 // Returns querier_dto.SQLType which is the parsed type.
 // Returns int which is the array dimension count parsed from [] or [N] suffixes.
 func (p *parser) parseColumnTypeInner(engine typeNormaliser) (querier_dto.SQLType, int) {
+	if p.typeDepth >= p.maxParseDepth {
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, 0
+	}
+	p.typeDepth++
+	defer func() { p.typeDepth-- }()
+
 	if p.current().kind != tokenIdentifier {
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, 0
 	}
@@ -529,13 +536,9 @@ func (p *parser) parseTypeModifiers() []int {
 	var modifiers []int
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		if p.current().kind == tokenNumber {
-			value := 0
-			for _, char := range p.current().value {
-				if char >= '0' && char <= '9' {
-					value = value*decimalBase + int(char-'0')
-				}
+			if value, usable := parseModifierValue(p.current().value); usable {
+				modifiers = append(modifiers, value)
 			}
-			modifiers = append(modifiers, value)
 		}
 		p.advance()
 	}
@@ -544,6 +547,22 @@ func (p *parser) parseTypeModifiers() []int {
 	}
 
 	return modifiers
+}
+
+// parseModifierValue parses a numeric modifier literal into a bounded integer.
+//
+// Takes literal (string) which is the raw numeric token value.
+//
+// Returns int which is the parsed modifier value when usable.
+// Returns bool which is true when the literal is a plain decimal integer that fits
+// without overflow, and false when it should be skipped (non-integer form or out of
+// range).
+func parseModifierValue(literal string) (int, bool) {
+	value, err := strconv.Atoi(literal)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
 }
 
 // isDuckDBColumnConstraintKeyword reports whether the current token introduces a
@@ -814,7 +833,7 @@ func (p *parser) skipDuckDBDefaultValue() {
 // skipDuckDBForeignKeyClause skips the optional REFERENCES tail and trailing
 // ON/MATCH/DEFERRABLE/INITIALLY modifier clauses.
 func (p *parser) skipDuckDBForeignKeyClause() {
-	if p.current().kind == tokenIdentifier {
+	if p.current().kind == tokenIdentifier && !p.isDuckDBForeignKeyActionKeyword() {
 		p.mustSchemaQualifiedName()
 	}
 	if p.current().kind == tokenLeftParen {
@@ -823,15 +842,25 @@ func (p *parser) skipDuckDBForeignKeyClause() {
 	for p.matchKeyword(keywordON) || p.matchKeyword("MATCH") || p.matchKeyword(keywordNOT) ||
 		p.matchKeyword("DEFERRABLE") || p.matchKeyword("INITIALLY") {
 		for !p.atEnd() && p.current().kind != tokenComma && p.current().kind != tokenRightParen &&
-			!p.isAnyKeyword(keywordON, "MATCH", keywordNOT, "DEFERRABLE", "INITIALLY") {
+			!p.isDuckDBForeignKeyActionKeyword() {
 			p.advance()
 		}
 	}
 }
 
+// isDuckDBForeignKeyActionKeyword reports whether the current token begins (or
+// terminates) a foreign-key action clause. Used by skipDuckDBForeignKeyClause to
+// recognise the boundary between the REFERENCES <table>(cols) prefix and the ON / MATCH /
+// NOT / DEFERRABLE / INITIALLY action clauses that may follow it.
+//
+// Returns bool which is true when the current keyword starts a FK action clause.
+func (p *parser) isDuckDBForeignKeyActionKeyword() bool {
+	return p.isAnyKeyword(keywordON, "MATCH", keywordNOT, "DEFERRABLE", "INITIALLY")
+}
+
 // parseDropTable parses a DROP TABLE statement into a mutation.
 //
-// Returns *querier_dto.CatalogueMutation which describes the drop.
+// Returns *querier_dto.CatalogueMutation which describes the table to drop.
 // Returns error when the table name cannot be parsed.
 func (p *parser) parseDropTable() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
@@ -1117,19 +1146,37 @@ func (p *parser) skipOrReplace() {
 	}
 }
 
-// analyseViewBody runs the SELECT analyser over the tokens following a view's AS keyword.
+// analyseViewBody analyses the SELECT body of a CREATE VIEW so the catalogue can store
+// typed columns.
 //
-// Takes columnNames ([]string) which is the optional column overlay declared on the view.
+// Recovers from panics in the inner analyser so a malformed view body (e.g. CREATE VIEW v
+// AS (SELECT ...) or CREATE VIEW v AS VALUES (...)) cannot crash the whole DDL apply.
 //
-// Returns *querier_dto.RawQueryAnalysis which is the analysed body, or nil when analysis
-// fails or no tokens remain.
-func (p *parser) analyseViewBody(columnNames []string) *querier_dto.RawQueryAnalysis {
+// Takes columnNames ([]string) which is the declared view column list overlaid onto the
+// inferred projection when non-empty.
+//
+// Returns *querier_dto.RawQueryAnalysis which holds the analysed view body, or nil when
+// the body cannot be parsed; in that case the catalogue falls back to the bare
+// column-name list produced by the heuristic.
+func (p *parser) analyseViewBody(columnNames []string) (result *querier_dto.RawQueryAnalysis) {
 	remainingTokens := p.tokens[p.position:]
 	if len(remainingTokens) == 0 {
 		return nil
 	}
 
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result = nil
+		}
+	}()
+
 	viewParser := newParser(remainingTokens)
+	viewParser.analysisDepth = p.analysisDepth
+	viewParser.expressionDepth = p.expressionDepth
+	viewParser.maxParseDepth = p.maxParseDepth
+	if !viewParser.isKeyword(keywordSELECT) && !viewParser.isKeyword(keywordWITH) {
+		return nil
+	}
 	viewAnalysis, analyseError := viewParser.analyseSelect()
 	if analyseError != nil || viewAnalysis == nil {
 		return nil
@@ -1142,11 +1189,13 @@ func (p *parser) analyseViewBody(columnNames []string) *querier_dto.RawQueryAnal
 	return viewAnalysis
 }
 
-// overlayViewColumnNames replaces the analysed output column names with the explicit view
-// column list, preserving expression metadata.
+// overlayViewColumnNames replaces the inferred names from the SELECT projection with the
+// declared column list. Tolerates declared lists longer than the projection by appending
+// name-only entries rather than indexing out of bounds.
 //
-// Takes analysis (*querier_dto.RawQueryAnalysis) which is mutated in place.
-// Takes columnNames ([]string) which is the view's declared columns.
+// Takes analysis (*querier_dto.RawQueryAnalysis) whose output columns are renamed in
+// place.
+// Takes columnNames ([]string) which is the declared view column list.
 func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames []string) {
 	for columnIndex, name := range columnNames {
 		column := querier_dto.RawOutputColumn{Name: name}
@@ -1154,10 +1203,14 @@ func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames 
 			column.Expression = analysis.OutputColumns[columnIndex].Expression
 			column.ColumnName = analysis.OutputColumns[columnIndex].ColumnName
 			column.TableAlias = analysis.OutputColumns[columnIndex].TableAlias
+			analysis.OutputColumns[columnIndex] = column
+			continue
 		}
-		analysis.OutputColumns[columnIndex] = column
+		analysis.OutputColumns = append(analysis.OutputColumns, column)
 	}
-	analysis.OutputColumns = analysis.OutputColumns[:len(columnNames)]
+	if len(columnNames) < len(analysis.OutputColumns) {
+		analysis.OutputColumns = analysis.OutputColumns[:len(columnNames)]
+	}
 }
 
 // columnsFromNames builds placeholder column descriptors for a view's declared column

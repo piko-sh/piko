@@ -36,13 +36,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	widget, err := queries.GetWidget(ctx, int32(1))
+	widget, err := queries.GetWidget(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	widgetQualified, err := queries.GetWidgetQualified(ctx, int32(1))
+	widgetQualified, err := queries.GetWidgetQualified(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

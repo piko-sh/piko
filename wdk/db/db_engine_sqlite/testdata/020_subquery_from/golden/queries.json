@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "customer_totals.sql",
-    "SQL": "-- piko.name: GetCustomerTotals\n-- piko.command: many\nSELECT sub.customer_id, sub.total_amount\nFROM (SELECT customer_id, sum(amount) AS total_amount FROM orders WHERE status = ? GROUP BY customer_id) sub\nWHERE sub.total_amount \u003e ?",
+    "SQL": "-- piko.query(name: GetCustomerTotals, command: many)\nSELECT sub.customer_id, sub.total_amount\nFROM (SELECT customer_id, sum(amount) AS total_amount FROM orders WHERE status = ? GROUP BY customer_id) sub\nWHERE sub.total_amount \u003e ?",
     "Name": "GetCustomerTotals",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       },
       {
         "DefaultLimit": null,
@@ -45,42 +48,51 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "customer_id",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "customer_id",
+        "SourceQualifier": "sub",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int4",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "total_amount",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "total_amount",
+        "SourceQualifier": "sub",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,7 +105,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -114,9 +127,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

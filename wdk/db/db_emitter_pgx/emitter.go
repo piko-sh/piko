@@ -20,6 +20,7 @@ package db_emitter_pgx
 
 import (
 	"go/ast"
+	"strings"
 
 	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/querier/querier_adapters/emitter_shared"
@@ -36,6 +37,9 @@ const (
 
 	// identPgconn is the imported pgconn package alias used in generated source.
 	identPgconn = "pgconn"
+
+	// identError is the built-in error type identifier used in generated return signatures.
+	identError = "error"
 
 	// importPgx is the canonical pgx/v5 module import path.
 	importPgx = "github.com/jackc/pgx/v5"
@@ -139,6 +143,12 @@ func (*pgxStrategy) QueryRowMethod() string { return "QueryRow" }
 // Returns string which is the execute method name.
 func (*pgxStrategy) ExecMethod() string { return "Exec" }
 
+// ExecReturnsResult reports that pgx's Exec returns (pgconn.CommandTag, error), so exec
+// methods take the two-value form.
+//
+// Returns bool which is always true for pgx.
+func (*pgxStrategy) ExecReturnsResult() bool { return true }
+
 // QueriesReceiver returns the standard *Queries receiver field list.
 //
 // Returns *ast.FieldList which is the receiver field list.
@@ -187,11 +197,16 @@ func (s *pgxStrategy) BuildExecRowsBody(queryArgs []ast.Expr, field string) []as
 	}
 }
 
-// BuilderQueryCall constructs builder.q.db.Query(ctx, query, builder.whereArgs...) for
-// the runtime builder's All() method.
+// BuilderQueryCall constructs builder.q.db.Query(ctx, query, argsExpr...) for the runtime
+// builder's All() method.
 //
-// Returns *ast.CallExpr which is the builder Query call expression.
-func (*pgxStrategy) BuilderQueryCall() *ast.CallExpr {
+// All and One pass the local `args` snapshot returned by buildQuery; Count passes
+// builder.whereArgs.
+//
+// Takes argsExpr (ast.Expr) which is the spread argument-slice expression.
+//
+// Returns *ast.CallExpr which is the constructed Query call.
+func (*pgxStrategy) BuilderQueryCall(argsExpr ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
 		Fun: goastutil.SelectorExprFrom(
 			goastutil.SelectorExprFrom(
@@ -203,17 +218,21 @@ func (*pgxStrategy) BuilderQueryCall() *ast.CallExpr {
 		Args: []ast.Expr{
 			goastutil.CachedIdent(emitter_shared.IdentCtx),
 			goastutil.CachedIdent(emitter_shared.IdentQuery),
-			goastutil.SelectorExprFrom(goastutil.CachedIdent(emitter_shared.IdentBuilder), emitter_shared.IdentWhereArgs),
+			argsExpr,
 		},
 		Ellipsis: 1,
 	}
 }
 
-// BuilderQueryRowCall constructs builder.q.db.QueryRow(ctx, query, builder.whereArgs...)
-// for the runtime builder's One() method.
+// BuilderQueryRowCall constructs builder.q.db.QueryRow(ctx, query, argsExpr...) for the
+// runtime builder's One() method.
 //
-// Returns *ast.CallExpr which is the builder QueryRow call.
-func (*pgxStrategy) BuilderQueryRowCall() *ast.CallExpr {
+// Takes argsExpr (ast.Expr) which is the spread argument-slice expression.
+//
+// Returns *ast.CallExpr which is the constructed QueryRow call.
+//
+// See BuilderQueryCall for the argsExpr contract.
+func (*pgxStrategy) BuilderQueryRowCall(argsExpr ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
 		Fun: goastutil.SelectorExprFrom(
 			goastutil.SelectorExprFrom(
@@ -225,7 +244,7 @@ func (*pgxStrategy) BuilderQueryRowCall() *ast.CallExpr {
 		Args: []ast.Expr{
 			goastutil.CachedIdent(emitter_shared.IdentCtx),
 			goastutil.CachedIdent(emitter_shared.IdentQuery),
-			goastutil.SelectorExprFrom(goastutil.CachedIdent(emitter_shared.IdentBuilder), emitter_shared.IdentWhereArgs),
+			argsExpr,
 		},
 		Ellipsis: 1,
 	}
@@ -239,6 +258,29 @@ func (*pgxStrategy) RuntimeBuilderImports(_ *emitter_shared.ImportTracker) {}
 // Returns bool which is false because pgx supports slice parameters.
 func (*pgxStrategy) NeedsSliceExpansion() bool { return false }
 
+// PlaceholderMarker returns the postgres positional placeholder marker.
+//
+// Returns rune which is '$'. The pgx path binds slices as native arrays and never expands
+// them, so the marker only satisfies the strategy contract.
+func (*pgxStrategy) PlaceholderMarker() rune { return '$' }
+
+// ArrayJSONWrapFunc returns empty because pgx scans postgres arrays into Go slices
+// natively, so array output columns need no to_json wrapping.
+//
+// Returns string which is always empty.
+func (*pgxStrategy) ArrayJSONWrapFunc() string { return "" }
+
+// QuoteIdentifier wraps name in double quotes (the postgres identifier-quote style),
+// escaping any embedded quote. pgx scans arrays natively so the array-JSON wrap never
+// calls this, but it satisfies the strategy contract.
+//
+// Takes name (string) which is the raw identifier.
+//
+// Returns string which is the double-quoted identifier.
+func (*pgxStrategy) QuoteIdentifier(name string) string {
+	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+}
+
 // MaxBindVariables returns the PostgreSQL prepared-statement limit.
 //
 // Returns int which is the maximum bind variable count per statement.
@@ -248,6 +290,53 @@ func (*pgxStrategy) MaxBindVariables() int { return maxPostgresBindVariables }
 //
 // Returns bool which is true because PostgreSQL uses $1, $2, ... .
 func (*pgxStrategy) UsesNumberedParams() bool { return true }
+
+// PreservesPlaceholderIndices reports whether the engine retains numbered placeholders in
+// slice-expanded SQL.
+//
+// pgx accepts `$N` natively so the slice helper emits indexed placeholders.
+//
+// Returns bool which is true because pgx preserves numbered placeholders.
+func (*pgxStrategy) PreservesPlaceholderIndices() bool { return true }
+
+// RuntimeBuilderUsesNumberedPlaceholders reports whether the runtime builder appends `$N`
+// placeholders. pgx binds by numbered placeholder natively, so the builder appends `$N`.
+//
+// Returns bool which is true because pgx uses numbered placeholders.
+func (*pgxStrategy) RuntimeBuilderUsesNumberedPlaceholders() bool { return true }
+
+// WrapParameterAccess returns the access expression unchanged.
+//
+// pgx binds parameters positionally so no wrapping is required.
+//
+// Takes access (ast.Expr) which is the parameter access expression.
+//
+// Returns ast.Expr which is the access expression unchanged.
+func (*pgxStrategy) WrapParameterAccess(access ast.Expr, _ string) ast.Expr { return access }
+
+// UsesBracedNamedPlaceholders returns false because pgx renders parameters as positional
+// `$N` placeholders rather than ClickHouse-style `{name:Type}` braced placeholders.
+//
+// Returns bool which is always false for the pgx strategy.
+func (*pgxStrategy) UsesBracedNamedPlaceholders() bool { return false }
+
+// ParameterAccessImports returns nil because pgx requires no additional driver-side
+// helper to bind parameters.
+//
+// Returns []string which is always nil for pgx.
+func (*pgxStrategy) ParameterAccessImports() []string { return nil }
+
+// ParameterAccessHelperFile returns an empty file because pgx does not require a runtime
+// parameter-formatting helper.
+//
+// The error return stays nil; the interface admits an error so engines whose helper
+// rendering can fail, such as ClickHouse, can surface the diagnostic.
+//
+// Returns querier_dto.GeneratedFile which is always the zero value for pgx.
+// Returns error which is always nil for pgx.
+func (*pgxStrategy) ParameterAccessHelperFile(_ string) (querier_dto.GeneratedFile, error) {
+	return querier_dto.GeneratedFile{}, nil
+}
 
 // pgxBatchHandler implements emitter_shared.BatchCopyFromHandler for pgx, delegating to
 // the existing buildBatchMethod and buildCopyFromMethod functions.

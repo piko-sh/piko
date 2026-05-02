@@ -144,7 +144,9 @@ func ExtractLayoutPositions(config LayoutPositionConfig) (map[string]LayoutPosit
 		return nil, err
 	}
 
-	_ = layouter_domain.LayoutBoxTree(ctx, rootBox, fontMetrics)
+	if _, err := layouter_domain.LayoutBoxTree(ctx, rootBox, fontMetrics); err != nil {
+		return nil, err
+	}
 
 	var pageGeometry layouter_domain.PageGeometry
 	if config.Paginate {

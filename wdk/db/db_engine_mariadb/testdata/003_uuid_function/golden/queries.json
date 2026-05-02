@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "tokens.sql",
-    "SQL": "-- piko.name: GenerateToken\n-- piko.command: one\nSELECT UUID() AS token_value;",
+    "SQL": "-- piko.query(name: GenerateToken, command: one)\nSELECT UUID() AS token_value;",
     "Name": "GenerateToken",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "token_value",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,7 +26,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -43,16 +48,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "tokens",
     "Filename": "tokens.sql",
-    "SQL": "-- piko.name: InsertToken\n-- piko.command: exec\nINSERT INTO tokens (token) VALUES (?);",
+    "SQL": "-- piko.query(name: InsertToken, command: exec)\nINSERT INTO tokens (token) VALUES (?);",
     "Name": "InsertToken",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -70,13 +78,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [],
@@ -95,10 +105,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 2,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

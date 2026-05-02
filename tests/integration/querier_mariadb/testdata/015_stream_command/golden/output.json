@@ -1,58 +1,58 @@
 {
   "all_events": [
     {
-      "ID": 1,
-      "Name": "login",
-      "Timestamp": 1000
+      "id": 1,
+      "name": "login",
+      "timestamp": 1000
     },
     {
-      "ID": 2,
-      "Name": "logout",
-      "Timestamp": 2000
+      "id": 2,
+      "name": "logout",
+      "timestamp": 2000
     },
     {
-      "ID": 3,
-      "Name": "login",
-      "Timestamp": 3000
+      "id": 3,
+      "name": "login",
+      "timestamp": 3000
     },
     {
-      "ID": 4,
-      "Name": "purchase",
-      "Timestamp": 4000
+      "id": 4,
+      "name": "purchase",
+      "timestamp": 4000
     },
     {
-      "ID": 5,
-      "Name": "login",
-      "Timestamp": 5000
+      "id": 5,
+      "name": "login",
+      "timestamp": 5000
     }
   ],
   "first_two": [
     {
-      "ID": 1,
-      "Name": "login",
-      "Timestamp": 1000
+      "id": 1,
+      "name": "login",
+      "timestamp": 1000
     },
     {
-      "ID": 2,
-      "Name": "logout",
-      "Timestamp": 2000
+      "id": 2,
+      "name": "logout",
+      "timestamp": 2000
     }
   ],
   "login_events": [
     {
-      "ID": 1,
-      "Name": "login",
-      "Timestamp": 1000
+      "id": 1,
+      "name": "login",
+      "timestamp": 1000
     },
     {
-      "ID": 3,
-      "Name": "login",
-      "Timestamp": 3000
+      "id": 3,
+      "name": "login",
+      "timestamp": 3000
     },
     {
-      "ID": 5,
-      "Name": "login",
-      "Timestamp": 5000
+      "id": 5,
+      "name": "login",
+      "timestamp": 5000
     }
   ]
 }

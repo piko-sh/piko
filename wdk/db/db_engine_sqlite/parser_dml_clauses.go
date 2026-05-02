@@ -22,6 +22,7 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/piko/internal/querier/querier_adapters/engine_shared"
 	"piko.sh/piko/internal/querier/querier_dto"
 	"piko.sh/piko/wdk/safeconv"
 )
@@ -141,7 +142,7 @@ func (p *parser) parseJoinTarget(joinKind int) (*querier_dto.JoinClause, error) 
 // JOIN target.
 func (p *parser) parseJoinCondition() {
 	if p.matchKeyword(keywordON) {
-		p.parseWhereExpression()
+		p.parseJoinConditionExpression()
 	} else if p.matchKeyword("USING") {
 		if p.current().kind == tokenLeftParen {
 			p.mustSkipParenthesised()
@@ -172,6 +173,9 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 
 	childParser := newParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
+	childParser.analysisDepth = p.analysisDepth
+	childParser.expressionDepth = p.expressionDepth
+	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
 		return analyseError
@@ -247,8 +251,12 @@ func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 	functionName := strings.ToLower(p.advance().value)
 	p.advance()
 
+	argumentOrdinal := 0
 	for !p.atEnd() && p.current().kind != tokenRightParen {
+		refsCountBefore := len(p.parameterRefs)
 		p.parseExpression()
+		p.markFunctionArgumentParameters(refsCountBefore, functionName, argumentOrdinal)
+		argumentOrdinal++
 		if p.current().kind != tokenComma {
 			break
 		}
@@ -351,11 +359,51 @@ func (p *parser) resolveComparisonContext(paramPosition int) (querier_dto.Parame
 	if paramPosition < 2 {
 		return querier_dto.ParameterContextUnknown, nil
 	}
+
+	if context, columnRef := p.resolveIsComparisonContext(paramPosition); context != querier_dto.ParameterContextUnknown {
+		return context, columnRef
+	}
+
 	prevToken := p.tokens[paramPosition-1]
 	if prevToken.kind != tokenOperator || !isComparisonOperator(prevToken.value) {
 		return querier_dto.ParameterContextUnknown, nil
 	}
 	columnRef := p.extractColumnReference(paramPosition - 2)
+	if columnRef == nil {
+		return querier_dto.ParameterContextUnknown, nil
+	}
+	return querier_dto.ParameterContextComparison, columnRef
+}
+
+// resolveIsComparisonContext detects SQLite null-safe equality where a placeholder
+// follows IS or IS NOT.
+//
+// An example is f.version_parent_id IS ?1. SQLite treats "x IS y" as a null-safe
+// comparison for arbitrary operands, so the placeholder is typed from the LHS column
+// exactly as "col = ?" is. IS is a plain identifier rather than an operator token, so
+// isComparisonOperator is deliberately not widened; the IS handling lives here. IS NULL
+// and IS NOT NULL never reach this path because no placeholder follows the NULL literal,
+// so they register no parameter.
+//
+// Takes paramPosition (int) which is the placeholder's token index.
+//
+// Returns querier_dto.ParameterContext which is ParameterContextComparison when an IS
+// comparison is found, else ParameterContextUnknown.
+// Returns *querier_dto.ColumnReference which is the LHS column when identifiable, else
+// nil.
+func (p *parser) resolveIsComparisonContext(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference) {
+	isPosition := paramPosition - 1
+	if isPosition >= 0 && p.tokens[isPosition].kind == tokenIdentifier &&
+		strings.EqualFold(p.tokens[isPosition].value, keywordNOT) {
+		isPosition--
+	}
+
+	if isPosition < 1 || p.tokens[isPosition].kind != tokenIdentifier ||
+		!strings.EqualFold(p.tokens[isPosition].value, "IS") {
+		return querier_dto.ParameterContextUnknown, nil
+	}
+
+	columnRef := p.extractColumnReference(isPosition - 1)
 	if columnRef == nil {
 		return querier_dto.ParameterContextUnknown, nil
 	}
@@ -393,29 +441,16 @@ func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterCon
 // Returns int which is the LIKE-style operator's token index when found.
 // Returns bool which is true when an operator was located.
 func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
-	parenDepth := 0
-	for i := paramPosition - 1; i >= 0; i-- {
-		tok := p.tokens[i]
-		switch tok.kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case tokenRightParen:
-			parenDepth++
-			continue
-		case tokenLeftParen:
-			parenDepth--
-			continue
-		}
-		if parenDepth > 0 || tok.kind != tokenIdentifier {
-			continue
-		}
-		keyword := strings.ToUpper(tok.value)
-		if isLikeBoundaryKeyword(keyword) {
-			return 0, false
-		}
-		if isLikePatternKeyword(keyword) {
-			return i, true
-		}
-	}
-	return 0, false
+	return engine_shared.FindEnclosingLikeOperator(paramPosition,
+		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
+		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikePatternKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+	)
 }
 
 // resolveLikeOperatorColumn picks the column reference associated with a LIKE operator's
@@ -621,15 +656,7 @@ func isLikePatternKeyword(keyword string) bool {
 //
 // Returns bool which is true at any clause or boolean boundary.
 func isLikeBoundaryKeyword(keyword string) bool {
-	switch keyword {
-	case "AND", "OR", "WHERE", "HAVING", "ON", "WHEN", "THEN", "ELSE", "CASE",
-		"FROM", "GROUP", "ORDER", "LIMIT", "OFFSET", "RETURNING",
-		"UNION", "INTERSECT", "EXCEPT", "BY",
-		"SELECT", "INSERT", "UPDATE", "DELETE", "VALUES", "SET",
-		"ESCAPE":
-		return true
-	}
-	return false
+	return engine_shared.IsClauseBoundaryKeyword(keyword)
 }
 
 // detectParameterContext infers the surrounding clause context of a parameter token by
@@ -676,25 +703,71 @@ func (p *parser) detectParameterContext(paramPosition int) (querier_dto.Paramete
 	return querier_dto.ParameterContextUnknown, nil, nil
 }
 
+// enclosingFunctionArgument resolves the enclosing function-call metadata for a
+// placeholder the flat scan tagged as a function argument.
+//
+// The metadata is the lower-cased function name (the identifier immediately before the
+// enclosing parenthesis) and the placeholder's 0-based argument ordinal. The ordinal
+// counts top-level commas between the opening parenthesis and the placeholder, so each
+// comma-separated argument slot is counted once regardless of how many tokens it spans.
+// The lower-cased name matches how parseFunctionCall and parseTableValuedFunction record
+// the function name elsewhere, so the analyser resolves the same overload.
+//
+// Takes paramPosition (int) which is the placeholder's token index.
+//
+// Returns name (string) which is the lower-cased enclosing function name.
+// Returns ordinal (int) which is the placeholder's 0-based argument slot.
+// Returns ok (bool) which is true when an enclosing function call was identified.
+func (p *parser) enclosingFunctionArgument(paramPosition int) (name string, ordinal int, ok bool) {
+	enclosingParen := p.findEnclosingParen(paramPosition)
+	if enclosingParen < 1 || p.tokens[enclosingParen-1].kind != tokenIdentifier {
+		return "", 0, false
+	}
+
+	ordinal = p.countTopLevelArgumentsBefore(enclosingParen, paramPosition)
+	return strings.ToLower(p.tokens[enclosingParen-1].value), ordinal, true
+}
+
+// countTopLevelArgumentsBefore counts the top-level comma separators between the token
+// after openParen and paramPosition, which is the 0-based argument ordinal the
+// placeholder occupies. Commas nested inside deeper parentheses (a sub-call's own
+// argument list) are skipped so they do not inflate the ordinal.
+//
+// Takes openParen (int) which is the opening parenthesis token index of the call.
+// Takes paramPosition (int) which is the placeholder's token index.
+//
+// Returns int which is the 0-based argument ordinal.
+func (p *parser) countTopLevelArgumentsBefore(openParen, paramPosition int) int {
+	ordinal := 0
+	depth := 0
+	for i := openParen + 1; i < paramPosition && i < len(p.tokens); i++ {
+		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+		case tokenLeftParen:
+			depth++
+		case tokenRightParen:
+			depth--
+		case tokenComma:
+			if depth == 0 {
+				ordinal++
+			}
+		}
+	}
+	return ordinal
+}
+
 // findEnclosingParen returns the token index of the parenthesis that encloses position.
 //
 // Takes position (int) which is the inner token index to search from.
 //
 // Returns int which is the enclosing `(` token index, or -1 when none encloses position.
 func (p *parser) findEnclosingParen(position int) int {
-	depth := 0
-	for i := position - 1; i >= 0; i-- {
-		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case tokenRightParen:
-			depth++
-		case tokenLeftParen:
-			if depth == 0 {
-				return i
-			}
-			depth--
-		}
-	}
-	return -1
+	return engine_shared.FindEnclosingParen(position,
+		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
+		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+	)
 }
 
 // extractColumnReferenceBeforeIN returns the column referenced immediately before an IN
@@ -847,28 +920,116 @@ func (p *parser) parseGroupByList() []querier_dto.ColumnReference {
 	return columns
 }
 
-// parseGroupByItem parses one GROUP BY item which may be a bare column or `alias.column`
-// reference.
+var (
+	// groupByItemTerminators lists the keywords that end a GROUP BY item at depth zero, so a
+	// non-column group key (a function call or arithmetic expression) is scanned in full and
+	// the cursor lands on the next clause keyword rather than mid-expression.
+	groupByItemTerminators = map[string]bool{
+		keywordHAVING: true, keywordORDER: true, keywordLIMIT: true,
+		keywordUNION: true, keywordINTERSECT: true, keywordEXCEPT: true,
+		keywordRETURNING: true,
+	}
+)
+
+// parseGroupByItem parses one GROUP BY item.
 //
-// Returns []querier_dto.ColumnReference which holds at most one parsed column reference.
+// A bare column or `alias.column` reference is captured as a column reference. Any other
+// group key (such as DATE(created_at) or year + 1) is scanned as a full expression so the
+// cursor stops on the next clause keyword and a following HAVING and its parameters are
+// not abandoned.
+//
+// Returns []querier_dto.ColumnReference which holds the parsed column reference when the
+// item is a plain column, or nil for an expression group key.
 func (p *parser) parseGroupByItem() []querier_dto.ColumnReference {
+	if column, ok := p.tryParseGroupByColumn(); ok {
+		return column
+	}
+
+	p.scanGroupByExpression()
+	return nil
+}
+
+// tryParseGroupByColumn consumes a plain `column` or `alias.column` group key when the
+// next item boundary follows it directly, leaving the cursor unmoved otherwise so the
+// caller can fall back to a full expression scan.
+//
+// Returns []querier_dto.ColumnReference which holds the single parsed column reference.
+// Returns bool which is true when a plain column reference was consumed.
+func (p *parser) tryParseGroupByColumn() ([]querier_dto.ColumnReference, bool) {
 	if p.current().kind != tokenIdentifier {
-		p.advance()
-		return nil
+		return nil, false
 	}
 
-	first := p.advance().value
-	if p.current().kind != tokenDot {
-		return []querier_dto.ColumnReference{{ColumnName: first}}
+	if isGroupByItemBoundary(p.peek()) {
+		return []querier_dto.ColumnReference{{ColumnName: p.advance().value}}, true
 	}
 
+	if p.peek().kind != tokenDot {
+		return nil, false
+	}
+
+	if p.tokenAt(p.position+2).kind != tokenIdentifier || !isGroupByItemBoundary(p.tokenAt(p.position+3)) {
+		return nil, false
+	}
+
+	alias := p.advance().value
 	p.advance()
-	if p.current().kind != tokenIdentifier {
-		return nil
-	}
+	return []querier_dto.ColumnReference{{TableAlias: alias, ColumnName: p.advance().value}}, true
+}
 
-	second := p.advance().value
-	return []querier_dto.ColumnReference{{TableAlias: first, ColumnName: second}}
+// scanGroupByExpression walks an expression group key at depth zero, registering any
+// parameters, and stops at the first depth-zero comma or clause terminator so the next
+// clause is parsed correctly.
+func (p *parser) scanGroupByExpression() {
+	depth := 0
+	for !p.atEnd() {
+		tok := p.current()
+
+		if tok.kind == tokenLeftParen {
+			depth++
+			p.advance()
+			continue
+		}
+		if tok.kind == tokenRightParen {
+			if depth == 0 {
+				break
+			}
+			depth--
+			p.advance()
+			continue
+		}
+
+		if depth == 0 && (tok.kind == tokenComma || isGroupByItemTerminator(tok)) {
+			break
+		}
+
+		if isParameterToken(tok.kind) {
+			p.handleParameterInExpression()
+			continue
+		}
+
+		p.advance()
+	}
+}
+
+// isGroupByItemBoundary reports whether tok closes a GROUP BY item, marking the preceding
+// tokens as a complete plain column reference.
+//
+// Takes tok (token) which is the token to inspect.
+//
+// Returns bool which is true for a comma, a depth-zero clause terminator, or end of
+// input.
+func isGroupByItemBoundary(tok token) bool {
+	return tok.kind == tokenComma || tok.kind == tokenEOF || isGroupByItemTerminator(tok)
+}
+
+// isGroupByItemTerminator reports whether tok is a keyword that ends a GROUP BY item.
+//
+// Takes tok (token) which is the token to inspect.
+//
+// Returns bool which is true for any keyword listed in groupByItemTerminators.
+func isGroupByItemTerminator(tok token) bool {
+	return tok.kind == tokenIdentifier && groupByItemTerminators[strings.ToUpper(tok.value)]
 }
 
 var (
@@ -923,35 +1084,102 @@ func isOrderByTerminator(tok token) bool {
 	return tok.kind == tokenIdentifier && orderByTerminators[strings.ToUpper(tok.value)]
 }
 
+var (
+	// limitOffsetValueTerminators lists the keywords that end a LIMIT or OFFSET value at
+	// depth zero. SQLite allows an arbitrary integer expression in LIMIT or OFFSET, so a
+	// compound value is scanned up to one of these keywords (or a top-level comma) that
+	// begins the next clause.
+	limitOffsetValueTerminators = map[string]bool{
+		"OFFSET": true, keywordLIMIT: true, keywordUNION: true, keywordINTERSECT: true,
+		keywordEXCEPT: true, keywordRETURNING: true,
+	}
+)
+
 // parseLimitOffset consumes a LIMIT value with an optional OFFSET or comma-separated
 // second value, registering any parameter bindings.
 func (p *parser) parseLimitOffset() {
+	p.consumeLimitOffsetValue(querier_dto.ParameterContextLimit)
+
+	if p.matchKeyword("OFFSET") {
+		p.consumeLimitOffsetValue(querier_dto.ParameterContextOffset)
+	} else if p.current().kind == tokenComma {
+		p.advance()
+		p.consumeLimitOffsetValue(querier_dto.ParameterContextOffset)
+	}
+}
+
+// consumeLimitOffsetValue consumes a single LIMIT or OFFSET value.
+//
+// A bare placeholder is registered with the given context (preserving the integer typing
+// and limit or offset name that context drives). A compound value such as COALESCE(?1,
+// 100) or a parenthesised subexpression is scanned in full so a nested placeholder is
+// still registered rather than dropped; the scan stops at a top-level comma or a keyword
+// that begins the next clause.
+//
+// Takes context (querier_dto.ParameterContext) which tags a bare-placeholder value.
+func (p *parser) consumeLimitOffsetValue(context querier_dto.ParameterContext) {
 	if isParameterToken(p.current().kind) {
 		parameterToken := p.current()
 		p.advance()
-		p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextLimit, nil, nil)
-	} else {
-		p.advance()
+		p.registerParameterFromToken(parameterToken, context, nil, nil)
+		return
 	}
 
-	if p.matchKeyword("OFFSET") {
-		if isParameterToken(p.current().kind) {
-			parameterToken := p.current()
+	referenceCountBefore := len(p.parameterRefs)
+	depth := 0
+	for !p.atEnd() {
+		tok := p.current()
+		if tok.kind == tokenLeftParen {
+			depth++
 			p.advance()
-			p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextOffset, nil, nil)
-		} else {
-			p.advance()
+			continue
 		}
-	} else if p.current().kind == tokenComma {
+		if tok.kind == tokenRightParen {
+			if depth == 0 {
+				break
+			}
+			depth--
+			p.advance()
+			continue
+		}
+		if depth == 0 && (tok.kind == tokenComma || isLimitOffsetValueTerminator(tok)) {
+			break
+		}
+		if isParameterToken(tok.kind) {
+			p.handleParameterInExpression()
+			continue
+		}
 		p.advance()
-		if isParameterToken(p.current().kind) {
-			parameterToken := p.current()
-			p.advance()
-			p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextOffset, nil, nil)
-		} else {
-			p.advance()
-		}
 	}
+	p.retagLimitOffsetParameters(referenceCountBefore, context)
+}
+
+// retagLimitOffsetParameters re-tags every parameter registered while scanning a compound
+// LIMIT or OFFSET value with the limit or offset context.
+//
+// An example is the placeholder in LIMIT COALESCE(?n, 100). Re-tagging overrides any
+// incidental function-argument context the inner scan assigned. A placeholder in a LIMIT
+// or OFFSET value is an integer row count, so it types as an integer rather than the
+// polymorphic COALESCE argument type.
+//
+// Takes referenceCountBefore (int), the parameterRefs length before the value scan.
+// Takes context (querier_dto.ParameterContext), the limit or offset context to apply.
+func (p *parser) retagLimitOffsetParameters(referenceCountBefore int, context querier_dto.ParameterContext) {
+	for i := referenceCountBefore; i < len(p.parameterRefs); i++ {
+		p.parameterRefs[i].Context = context
+		p.parameterRefs[i].EnclosingFunctionName = ""
+		p.parameterRefs[i].ArgumentOrdinal = 0
+	}
+}
+
+// isLimitOffsetValueTerminator reports whether tok is a keyword that ends a LIMIT/OFFSET
+// value at depth zero.
+//
+// Takes tok (token) which is the token to inspect.
+//
+// Returns bool which is true for any keyword in limitOffsetValueTerminators.
+func isLimitOffsetValueTerminator(tok token) bool {
+	return tok.kind == tokenIdentifier && limitOffsetValueTerminators[strings.ToUpper(tok.value)]
 }
 
 // isInsertSourceTerminator reports whether tok ends the INSERT source scan at the given
@@ -970,6 +1198,34 @@ func isInsertSourceTerminator(tok token, depth int) bool {
 		return upper == keywordON || upper == keywordRETURNING
 	}
 	return false
+}
+
+// parseInsertValues dispatches on the INSERT payload: a VALUES row list, DEFAULT VALUES,
+// a SELECT/WITH query source, or an opaque source.
+//
+// Takes tableName (string) which scopes column lookups in the VALUES clause.
+// Takes columnNames ([]string) which lists the target columns for parameter binding.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the analysed SELECT body of an INSERT
+// ... SELECT (nil for VALUES/DEFAULT VALUES/opaque sources). The body is analysed so its
+// FROM/JOIN relations and parameters resolve against the body's own scope; analyseSelect
+// stops at a trailing ON CONFLICT (keywordON is a WHERE terminator) or RETURNING.
+// Returns error when the SELECT body fails to parse.
+func (p *parser) parseInsertValues(tableName string, columnNames []string) (*querier_dto.RawQueryAnalysis, error) {
+	switch {
+	case p.matchKeyword(keywordVALUES):
+		p.parseValuesClause(tableName, columnNames)
+	case p.matchKeyword("DEFAULT"):
+		p.matchKeyword(keywordVALUES)
+	case p.isKeyword(keywordSELECT) || p.isKeyword(keywordWITH):
+
+		p.insertTargetTable = tableName
+		p.insertTargetColumns = columnNames
+		return p.analyseSelect()
+	default:
+		p.parseInsertSource()
+	}
+	return nil, nil
 }
 
 // parseInsertSource walks the token stream of an INSERT source, registering any parameter
@@ -1048,7 +1304,8 @@ func (p *parser) parseOneValueElement(tableName string, columnNames []string, co
 		p.advance()
 		p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextAssignment, columnReference, nil)
 	} else if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		columnReference := columnRefForIndex(tableName, columnNames, columnIndex)
+		p.scanInsertValueExpression(columnReference)
 	} else if p.current().kind != tokenComma {
 		p.advance()
 	}
@@ -1060,16 +1317,53 @@ func (p *parser) parseOneValueElement(tableName string, columnNames []string, co
 	return 0
 }
 
-// columnRefForIndex returns the column reference for a VALUES element by positional
-// index.
+// scanInsertValueExpression walks the parenthesised expression starting at the current
+// token, registering every parameter it encounters with the supplied columnReference.
+// Non-parameter tokens are advanced over so the cursor lands just past the matching
+// closing paren.
+//
+// Used by parseOneValueElement to keep INSERT parameters inside function calls like
+// COALESCE(?, default) properly bound to the target column. Mirrors the equivalent
+// helpers in the PostgreSQL, MySQL and DuckDB engines.
+//
+// Takes columnReference (*querier_dto.ColumnReference) which is the INSERT column the
+// parenthesised expression is the value for.
+func (p *parser) scanInsertValueExpression(columnReference *querier_dto.ColumnReference) {
+	if p.current().kind != tokenLeftParen {
+		return
+	}
+	p.advance()
+	depth := 1
+	for !p.atEnd() && depth > 0 {
+		tok := p.current()
+		switch tok.kind {
+		case tokenLeftParen:
+			depth++
+			p.advance()
+		case tokenRightParen:
+			depth--
+			p.advance()
+		default:
+			if isParameterToken(tok.kind) {
+				parameterToken := tok
+				p.advance()
+				p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextAssignment, columnReference, nil)
+				continue
+			}
+			p.advance()
+		}
+	}
+}
+
+// columnRefForIndex resolves the target column reference for a positional VALUES element.
 //
 // Takes tableName (string) which is the target table name used as the column reference
 // alias.
 // Takes columnNames ([]string) which are the target column names in positional order.
-// Takes columnIndex (int) which is the column ordinal to look up.
+// Takes columnIndex (int) which is the current column ordinal.
 //
-// Returns *querier_dto.ColumnReference which is the column reference, or nil when
-// columnIndex is out of range.
+// Returns *querier_dto.ColumnReference which is the column reference, or nil when the
+// index is beyond the declared columns.
 func columnRefForIndex(tableName string, columnNames []string, columnIndex int) *querier_dto.ColumnReference {
 	if columnIndex >= len(columnNames) {
 		return nil
@@ -1096,20 +1390,21 @@ func (p *parser) parseSetClause(tableName string) {
 			p.advance()
 		}
 
+		var columnRef *querier_dto.ColumnReference
+		if columnName != "" {
+			columnRef = &querier_dto.ColumnReference{
+				TableAlias: tableName,
+				ColumnName: columnName,
+			}
+		}
+
 		if isParameterToken(p.current().kind) {
 			parameterToken := p.current()
-			var columnRef *querier_dto.ColumnReference
-			if columnName != "" {
-				columnRef = &querier_dto.ColumnReference{
-					TableAlias: tableName,
-					ColumnName: columnName,
-				}
-			}
 			p.advance()
 			p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextAssignment, columnRef, nil)
-		} else {
-			p.skipSetExpression()
 		}
+
+		p.skipSetExpressionWithColumn(columnRef)
 
 		if p.current().kind != tokenComma {
 			break
@@ -1127,24 +1422,37 @@ var (
 	}
 )
 
-// skipSetExpression walks past a SET assignment's RHS expression, registering any
-// parameter tokens with unknown context.
-func (p *parser) skipSetExpression() {
+// skipSetExpressionWithColumn walks the RHS of a single SET assignment, stopping at a
+// comma or a SET-clause terminator (WHERE, FROM, RETURNING, etc.) at depth 0.
+//
+// A parameter that is the operand of a comparison inside the expression (for example the
+// `?` in `SET col = CASE WHEN other >= ? THEN ... END`) takes its type from the compared
+// column, not the assignment target: the scanner remembers the most recent `<column>
+// <comparison-operator>` pair and binds the following parameter to that column. Any other
+// parameter (one that contributes to the assigned value, such as `COALESCE(?, col)`)
+// keeps the assignment-target column reference so it still picks up that column's Go
+// type. Without this the comparison operand was wrongly typed from the SET target,
+// producing a Params field whose Go type did not match the value the caller binds.
+//
+// Takes setTargetRef (*querier_dto.ColumnReference) which is the column on the left of
+// the SET assignment; nil keeps the legacy no-context behaviour.
+func (p *parser) skipSetExpressionWithColumn(setTargetRef *querier_dto.ColumnReference) {
+	tableAlias := ""
+	if setTargetRef != nil {
+		tableAlias = setTargetRef.TableAlias
+	}
 	depth := 0
+	var comparisonColumn *querier_dto.ColumnReference
+	lastIdentifier := ""
 	for !p.atEnd() {
 		tok := p.current()
 
-		if tok.kind == tokenLeftParen {
-			depth++
-			p.advance()
-			continue
+		nextDepth, stop, handled := p.handleSetExpressionParen(tok, depth)
+		if stop {
+			break
 		}
-		if tok.kind == tokenRightParen {
-			if depth == 0 {
-				break
-			}
-			depth--
-			p.advance()
+		if handled {
+			depth = nextDepth
 			continue
 		}
 		if depth == 0 && isSetExpressionTerminator(tok) {
@@ -1152,13 +1460,98 @@ func (p *parser) skipSetExpression() {
 		}
 
 		if isParameterToken(tok.kind) {
-			p.advance()
-			p.registerParameterFromToken(tok, querier_dto.ParameterContextUnknown, nil, nil)
+			p.registerSetExpressionParameter(tok, setTargetRef, comparisonColumn)
+			comparisonColumn = nil
+			lastIdentifier = ""
 			continue
 		}
 
+		lastIdentifier, comparisonColumn = comparisonColumnForSetParameter(tok, tableAlias, lastIdentifier)
 		p.advance()
 	}
+}
+
+// comparisonColumnForSetParameter advances the comparison scan over a SET expression.
+//
+// When the previous identifier is immediately followed by a comparison operator, that
+// column is reported so a following parameter is typed from it; for example the parameter
+// in "WHEN attempt >= ?" is typed from attempt. Any other token clears the pending state.
+//
+// Takes tok (token) which is the token being observed.
+// Takes tableAlias (string) which qualifies the reported column reference.
+// Takes lastIdentifier (string) which is the identifier from the previous step.
+//
+// Returns nextIdentifier (string) carried into the next step.
+// Returns comparisonColumn (*querier_dto.ColumnReference) which is the compared column,
+// or nil when no identifier is followed by a comparison operator.
+func comparisonColumnForSetParameter(
+	tok token,
+	tableAlias, lastIdentifier string,
+) (nextIdentifier string, comparisonColumn *querier_dto.ColumnReference) {
+	switch {
+	case tok.kind == tokenIdentifier:
+		return tok.value, nil
+	case tok.kind == tokenOperator && isComparisonOperator(tok.value) && lastIdentifier != "":
+		return "", &querier_dto.ColumnReference{TableAlias: tableAlias, ColumnName: lastIdentifier}
+	default:
+		return "", nil
+	}
+}
+
+// handleSetExpressionParen processes a parenthesis token within a SET expression scan.
+// Returns the next depth value, whether to stop the outer loop (unmatched right paren at
+// depth zero), and whether the token was a parenthesis at all.
+//
+// Takes tok (token) which is the token under consideration.
+// Takes depth (int) which is the current parenthesis nesting depth.
+//
+// Returns nextDepth (int) which is the updated nesting depth.
+// Returns stop (bool) which is true when the outer loop should break.
+// Returns handled (bool) which is true when the token was a left or right paren and has
+// already been consumed.
+func (p *parser) handleSetExpressionParen(tok token, depth int) (nextDepth int, stop bool, handled bool) {
+	if tok.kind == tokenLeftParen {
+		p.advance()
+		return depth + 1, false, true
+	}
+	if tok.kind == tokenRightParen {
+		if depth == 0 {
+			return depth, true, true
+		}
+		p.advance()
+		return depth - 1, false, true
+	}
+	return depth, false, false
+}
+
+// registerSetExpressionParameter consumes the parameter token and registers it with the
+// column reference and context that match its position in the SET expression.
+//
+// When comparisonColumn is non-nil the parameter is an operand of a comparison (for
+// example `WHEN attempt >= ?`), so it is recorded against that column with comparison
+// context. Otherwise it is treated as contributing to the assigned value and recorded
+// against the SET-target column with assignment context (or unknown context when no
+// target is known).
+//
+// Takes parameterToken (token) which is the placeholder token to record.
+// Takes setTargetRef (*querier_dto.ColumnReference) which is the SET-target column.
+// Takes comparisonColumn (*querier_dto.ColumnReference) which is the column the parameter
+// is compared against, or nil when the parameter is not a comparison operand.
+func (p *parser) registerSetExpressionParameter(
+	parameterToken token,
+	setTargetRef *querier_dto.ColumnReference,
+	comparisonColumn *querier_dto.ColumnReference,
+) {
+	p.advance()
+	if comparisonColumn != nil {
+		p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextComparison, comparisonColumn, nil)
+		return
+	}
+	context := querier_dto.ParameterContextUnknown
+	if setTargetRef != nil {
+		context = querier_dto.ParameterContextAssignment
+	}
+	p.registerParameterFromToken(parameterToken, context, setTargetRef, nil)
 }
 
 // isSetExpressionTerminator reports whether tok ends a SET expression scan at depth zero.

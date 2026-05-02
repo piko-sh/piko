@@ -2,8 +2,9 @@
   {
     "InsertTable": "counters",
     "Filename": "upsert_counter.sql",
-    "SQL": "-- piko.name: UpsertCounter\n-- piko.command: one\nINSERT INTO counters (key, count, label) VALUES ($1, $2, $3)\nON CONFLICT (key) DO UPDATE SET count = counters.count + EXCLUDED.count, label = $3\nRETURNING key, count, label;",
+    "SQL": "-- piko.query(name: UpsertCounter, command: one)\nINSERT INTO counters (key, count, label) VALUES ($1, $2, $3)\nON CONFLICT (key) DO UPDATE SET count = counters.count + EXCLUDED.count, label = $3\nRETURNING key, count, label;",
     "Name": "UpsertCounter",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -45,13 +48,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -69,20 +74,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 3,
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "key",
         "SourceTable": "counters",
+        "SourceSchema": "",
         "SourceColumn": "key",
+        "SourceQualifier": "counters",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -95,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "count",
         "SourceTable": "counters",
+        "SourceSchema": "",
         "SourceColumn": "count",
+        "SourceQualifier": "counters",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -117,16 +131,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "label",
         "SourceTable": "counters",
+        "SourceSchema": "",
         "SourceColumn": "label",
+        "SourceQualifier": "counters",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -139,7 +157,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -164,9 +183,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

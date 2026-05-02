@@ -1,0 +1,97 @@
+{
+  "Schemas": {
+    "default": {
+      "Tables": {
+        "t": {
+          "Name": "t",
+          "Schema": "default",
+          "Comment": "",
+          "VirtualModuleName": "",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "UInt64",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "status",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "UInt8",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Origin": {
+            "Filename": "001_schema.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": false,
+          "IsWithoutRowID": false
+        }
+      },
+      "Views": {},
+      "Enums": {},
+      "Functions": {},
+      "CompositeTypes": {},
+      "Sequences": {},
+      "Name": "default"
+    }
+  },
+  "Extensions": {},
+  "DefaultSchema": "default"
+}

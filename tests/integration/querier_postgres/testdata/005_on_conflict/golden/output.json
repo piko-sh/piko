@@ -1,12 +1,12 @@
 {
   "first_insert": {
-    "Key": "theme",
-    "UpdatedCount": 0,
-    "Value": "dark"
+    "key": "theme",
+    "updated_count": 0,
+    "value": "dark"
   },
   "second_insert": {
-    "Key": "theme",
-    "UpdatedCount": 1,
-    "Value": "light"
+    "key": "theme",
+    "updated_count": 1,
+    "value": "light"
   }
 }

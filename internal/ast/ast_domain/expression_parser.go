@@ -38,20 +38,20 @@ const (
 	// RuneLiteralPrefixLength is the length of a rune literal prefix and quotes.
 	RuneLiteralPrefixLength = 3
 
-	// DateTimeLiteralPrefixLength is the length of the dt double single quotes prefix
-	// and quotes for datetime literals.
+	// DateTimeLiteralPrefixLength is the length of the dt double single quotes prefix and
+	// quotes for datetime literals.
 	DateTimeLiteralPrefixLength = 4
 
-	// DateLiteralPrefixLength is the length of the d double single quotes prefix and
-	// quotes for date literals.
+	// DateLiteralPrefixLength is the length of the d double single quotes prefix and quotes
+	// for date literals.
 	DateLiteralPrefixLength = 3
 
-	// TimeLiteralPrefixLength is the length of the t double single quotes prefix for
-	// time literals.
+	// TimeLiteralPrefixLength is the length of the t double single quotes prefix for time
+	// literals.
 	TimeLiteralPrefixLength = 3
 
-	// DurationLiteralPrefixLength is the length of the "du double single quotes"
-	// prefix and quotes in duration literals.
+	// DurationLiteralPrefixLength is the length of the "du double single quotes" prefix and
+	// quotes in duration literals.
 	DurationLiteralPrefixLength = 4
 
 	// NilLiteralLength is the length of the nil keyword in characters.
@@ -174,7 +174,6 @@ type cachedExpression struct {
 
 // NewExpressionParser creates and sets up a new parser for the given expression string.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes expression (string) which is the expression to parse.
 // Takes sourcePath (string) which identifies the source file for error messages.
 //
@@ -207,8 +206,6 @@ func (p *ExpressionParser) Release() {
 
 // Reset reinitialises the parser with a new expression string and source path.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes expression (string) which is the new expression to parse.
 // Takes sourcePath (string) which identifies the source for error messages.
 func (p *ExpressionParser) Reset(ctx context.Context, expression string, sourcePath string) {
@@ -232,9 +229,6 @@ type forLoopVarInfo struct {
 
 // ParseExpression is the main entry point for parsing. It handles the special case of
 // for-loop syntax before falling back to standard precedence-based parsing.
-//
-// Takes ctx (context.Context) which carries the request-scoped logger and cancellation
-// signal.
 //
 // Returns Expression which is the parsed expression node.
 // Returns []*Diagnostic which contains any parse errors or warnings.
@@ -1184,7 +1178,7 @@ func ParseExpressionCached(ctx context.Context, expression, sourcePath string) (
 // ClearExpressionCache resets the expression cache to an empty state. Intended for
 // testing and for the bounded-cache wipe path.
 func ClearExpressionCache() {
-	expressionCache = sync.Map{}
+	expressionCache.Clear()
 	expressionCacheCount.Store(0)
 }
 
@@ -1204,8 +1198,10 @@ func parseAndCacheExpression(ctx context.Context, expression, sourcePath string)
 	if expressionCacheCount.Load() >= expressionCacheMaxEntries {
 		ClearExpressionCache()
 	}
-	expressionCache.Store(expression, cachedExpression{expression: parsed, diagnostics: diagnostics})
-	expressionCacheCount.Add(1)
+
+	if _, loaded := expressionCache.LoadOrStore(expression, cachedExpression{expression: parsed, diagnostics: diagnostics}); !loaded {
+		expressionCacheCount.Add(1)
+	}
 
 	return parsed, diagnostics
 }

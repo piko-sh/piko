@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "books.sql",
-    "SQL": "-- piko.name: GetBooksWithAuthorsInner\n-- piko.command: many\nSELECT b.id, b.title, a.name AS author_name FROM books b INNER JOIN authors a ON b.author_id = a.id;",
+    "SQL": "-- piko.query(name: GetBooksWithAuthorsInner, command: many)\nSELECT b.id, b.title, a.name AS author_name FROM books b INNER JOIN authors a ON b.author_id = a.id;",
     "Name": "GetBooksWithAuthorsInner",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "books",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "b",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "books",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "b",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "author_name",
         "SourceTable": "authors",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "a",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,7 +78,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -87,22 +100,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "books.sql",
-    "SQL": "-- piko.name: GetBooksWithAuthorsLeft\n-- piko.command: many\nSELECT b.id, b.title, a.name AS author_name FROM books b LEFT JOIN authors a ON b.author_id = a.id;",
+    "SQL": "-- piko.query(name: GetBooksWithAuthorsLeft, command: many)\nSELECT b.id, b.title, a.name AS author_name FROM books b LEFT JOIN authors a ON b.author_id = a.id;",
     "Name": "GetBooksWithAuthorsLeft",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "books",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "b",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,16 +134,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "books",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "b",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -137,16 +160,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "author_name",
         "SourceTable": "authors",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "a",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -159,7 +186,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -179,10 +207,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -42,8 +42,8 @@ func main() {
 
 	queries := db.New(conn)
 	hitsResult, err := queries.IncrementCounter(ctx, db.IncrementCounterParams{
-		P1: 5,
-		P2: "hits",
+		Value: 5,
+		Name:  "hits",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "IncrementCounter (hits):", err)
@@ -55,8 +55,8 @@ func main() {
 		os.Exit(1)
 	}
 	errorsResult, err := queries.IncrementCounter(ctx, db.IncrementCounterParams{
-		P1: 1,
-		P2: "errors",
+		Value: 1,
+		Name:  "errors",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "IncrementCounter (errors):", err)
@@ -68,8 +68,8 @@ func main() {
 		os.Exit(1)
 	}
 	missingResult, err := queries.IncrementCounter(ctx, db.IncrementCounterParams{
-		P1: 1,
-		P2: "missing",
+		Value: 1,
+		Name:  "missing",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "IncrementCounter (missing):", err)

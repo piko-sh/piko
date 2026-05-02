@@ -1,12 +1,10 @@
--- piko.name: GetTopLevelEmployees
--- piko.command: many
+-- piko.query(name: GetTopLevelEmployees, command: many)
 WITH top_level AS (
     SELECT id, name, manager_id FROM employees WHERE manager_id IS NULL
 )
 SELECT id, name, manager_id FROM top_level;
 
--- piko.name: GetEmployeeHierarchy
--- piko.command: many
+-- piko.query(name: GetEmployeeHierarchy, command: many)
 WITH RECURSIVE hierarchy AS (
     SELECT id, name, manager_id, 0 AS depth FROM employees WHERE manager_id IS NULL
     UNION ALL

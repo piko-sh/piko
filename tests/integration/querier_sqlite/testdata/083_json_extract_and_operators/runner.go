@@ -39,13 +39,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	eventName, err := queries.GetEventName(ctx, int32(1))
+	eventName, err := queries.GetEventName(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetEventName:", err)
 		os.Exit(1)
 	}
 
-	nestedValue, err := queries.GetNestedValue(ctx, int32(2))
+	nestedValue, err := queries.GetNestedValue(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetNestedValue:", err)
 		os.Exit(1)

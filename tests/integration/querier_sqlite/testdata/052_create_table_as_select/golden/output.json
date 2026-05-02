@@ -11,19 +11,19 @@
   ],
   "source": [
     {
-      "ID": 1,
-      "Name": "alpha",
-      "Value": 10.5
+      "id": 1,
+      "name": "alpha",
+      "value": 10.5
     },
     {
-      "ID": 2,
-      "Name": "beta",
-      "Value": null
+      "id": 2,
+      "name": "beta",
+      "value": null
     },
     {
-      "ID": 3,
-      "Name": "gamma",
-      "Value": 30
+      "id": 3,
+      "name": "gamma",
+      "value": 30
     }
   ]
 }

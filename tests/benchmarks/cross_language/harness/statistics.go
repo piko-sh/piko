@@ -25,15 +25,14 @@ import (
 	"sort"
 )
 
-// Summarise reduces a slice of nanosecond samples into a single Aggregate
-// record. Caller is responsible for filtering to only successful runs.
+// Summarise reduces a slice of nanosecond samples into a single Aggregate record. Caller
+// is responsible for filtering to only successful runs.
 // Returns Aggregate with Runs=0 if samples is empty.
 //
-// `samples` is the per-iteration wall/inner runtime (Mode-dependent).
-// `compileSamples` is the per-run CompileNanos values; their median is
-// reported as MedianCompileNanos. Pass nil if compile timing was not
-// captured. `kInner` is the spec.KInner the inner-loop ran for; used to
-// derive per-iteration runtime when computing ColdStartNanos in
+// `samples` is the per-iteration wall/inner runtime (Mode-dependent). `compileSamples` is
+// the per-run CompileNanos values; their median is reported as MedianCompileNanos. Pass
+// nil if compile timing was not captured. `kInner` is the spec.KInner the inner-loop ran
+// for; used to derive per-iteration runtime when computing ColdStartNanos in
 // ModeInnerLoop. For ModeEndToEnd kInner is ignored.
 func Summarise(
 	benchmark string,
@@ -73,8 +72,8 @@ func Summarise(
 	}
 }
 
-// medianInt64 returns the median of a pre-sorted slice. Even-length inputs
-// return the average of the two middle elements (rounded toward zero).
+// medianInt64 returns the median of a pre-sorted slice. Even-length inputs return the
+// average of the two middle elements (rounded toward zero).
 func medianInt64(sorted []int64) int64 {
 	count := len(sorted)
 	if count == 0 {
@@ -108,8 +107,8 @@ func meanInt64(samples []int64) int64 {
 	return total / int64(len(samples))
 }
 
-// stddevInt64 returns the population standard deviation, rounded toward
-// zero. Returns 0 for single-sample inputs.
+// stddevInt64 returns the population standard deviation, rounded toward zero. Returns 0
+// for single-sample inputs.
 func stddevInt64(samples []int64) int64 {
 	count := len(samples)
 	if count < 2 {
@@ -124,8 +123,8 @@ func stddevInt64(samples []int64) int64 {
 	return int64(math.Sqrt(sumSquares / float64(count)))
 }
 
-// percentileInt64 returns the nearest-rank percentile of a pre-sorted slice
-// using the simple ceil-of-(p * N) convention. p must be in [0, 1].
+// percentileInt64 returns the nearest-rank percentile of a pre-sorted slice using the
+// simple ceil-of-(p * N) convention. p must be in [0, 1].
 func percentileInt64(sorted []int64, p float64) int64 {
 	count := len(sorted)
 	if count == 0 {

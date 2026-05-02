@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "all_users.sql",
-    "SQL": "-- piko.name: AllUsers\n-- piko.command: many\nSELECT id, name, email FROM active_users\nUNION ALL\nSELECT id, name, email FROM archived_users;",
+    "SQL": "-- piko.query(name: AllUsers, command: many)\nSELECT id, name, email FROM active_users\nUNION ALL\nSELECT id, name, email FROM archived_users;",
     "Name": "AllUsers",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "email",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "email",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,7 +78,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -87,9 +100,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

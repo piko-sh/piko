@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "list_user_orders.sql",
-    "SQL": "-- piko.name: ListUserOrders\n-- piko.command: many\n-- $1 as piko.param(userId)\n-- $2 as piko.optional(status)\n-- $3 as piko.limit(pageSize)\n-- $4 as piko.offset(pageOffset)\nSELECT u.name, o.total, o.status\nFROM users u\nJOIN orders o ON o.user_id = u.id\nWHERE u.id = $1\n  AND ($2 IS NULL OR o.status = $2)\nLIMIT $3 OFFSET $4",
+    "SQL": "-- piko.query(name: ListUserOrders, command: many)\n-- $1 as piko.param(userId)\n-- $2 as piko.param(status, optional: true)\n-- $3 as piko.param(pageSize)\n-- $4 as piko.param(pageOffset)\nSELECT u.name, o.total, o.status\nFROM users u\nJOIN orders o ON o.user_id = u.id\nWHERE u.id = $1\n  AND ($2 IS NULL OR o.status = $2)\nLIMIT $3 OFFSET $4",
     "Name": "ListUserOrders",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 8
+          "Category": 8,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       },
       {
         "DefaultLimit": null,
@@ -45,13 +48,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": true,
-        "Kind": 1
+        "Kind": 0,
+        "Context": 0
       },
       {
         "DefaultLimit": null,
@@ -69,13 +74,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 3,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 4
+        "Kind": 0,
+        "Context": 6
       },
       {
         "DefaultLimit": null,
@@ -93,20 +100,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 4,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 5
+        "Kind": 0,
+        "Context": 7
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "u",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -119,16 +131,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "total",
         "SourceTable": "orders",
+        "SourceSchema": "",
         "SourceColumn": "total",
+        "SourceQualifier": "o",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 10,
@@ -141,16 +157,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "status",
         "SourceTable": "orders",
+        "SourceSchema": "",
         "SourceColumn": "status",
+        "SourceQualifier": "o",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -163,7 +183,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -184,9 +205,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": true,
     "Command": 1,
+    "IsDynamic": true,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

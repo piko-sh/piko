@@ -1,0 +1,4 @@
+{
+  "description": "UUIDv7ToDateTime(uuid) extracts the embedded 48-bit Unix-millisecond timestamp from a UUIDv7 identifier and returns it as a DateTime64. The fixture seeds a hand-crafted UUIDv7 representing 2026-01-01T00:00:00Z and verifies the function recovers that instant exactly.",
+  "skip": false
+}

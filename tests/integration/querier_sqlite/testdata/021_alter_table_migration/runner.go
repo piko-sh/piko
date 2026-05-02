@@ -48,13 +48,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	accountWithEmail, err := queries.GetAccount(ctx, int32(1))
+	accountWithEmail, err := queries.GetAccount(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	accountWithoutEmail, err := queries.GetAccount(ctx, int32(2))
+	accountWithoutEmail, err := queries.GetAccount(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

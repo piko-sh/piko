@@ -19,6 +19,10 @@
 package db_engine_postgres
 
 import (
+	"fmt"
+	"strings"
+
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -67,6 +71,52 @@ func (p *parser) parseAlterTable(engine *PostgresEngine) (*querier_dto.Catalogue
 		return nil, err
 	}
 
+	first, err := p.parseAlterTableAction(engine, schema, tableName)
+	if err != nil || first == nil {
+		return first, err
+	}
+
+	tail := first
+	for p.current().kind == tokenComma {
+		p.advance()
+
+		if p.current().kind == tokenComma {
+			return nil, fmt.Errorf("ALTER TABLE %q: consecutive commas in action list", tableName)
+		}
+		next, parseError := p.parseAlterTableAction(engine, schema, tableName)
+		if parseError != nil {
+			return nil, parseError
+		}
+		if next == nil {
+			continue
+		}
+		if tail.Kind == querier_dto.MutationAlterTableAddColumn &&
+			next.Kind == querier_dto.MutationAlterTableAddColumn {
+			tail.Columns = append(tail.Columns, next.Columns...)
+			continue
+		}
+		first.AdditionalMutations = append(first.AdditionalMutations, next)
+		tail = next
+	}
+
+	return first, nil
+}
+
+// parseAlterTableAction parses a single ALTER TABLE action (ADD COLUMN, DROP, ALTER
+// COLUMN, RENAME, SET).
+//
+// parseAlterTable uses this to loop over comma-separated actions.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the action, or nil when no
+// recognised action follows.
+// Returns error when the action sub-clause fails to parse.
+func (p *parser) parseAlterTableAction(
+	engine *PostgresEngine, schema, tableName string,
+) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword("ADD") {
 		return p.parseAlterTableAdd(engine, schema, tableName)
 	}
@@ -82,7 +132,6 @@ func (p *parser) parseAlterTable(engine *PostgresEngine) (*querier_dto.Catalogue
 	if p.matchKeyword(keywordSET) {
 		return p.parseAlterTableSet(schema, tableName)
 	}
-
 	return nil, nil
 }
 
@@ -246,6 +295,11 @@ func (p *parser) parseAlterTableSet(schema, tableName string) (*querier_dto.Cata
 			NewName:    newSchema,
 		}, nil
 	}
+
+	if p.current().kind == tokenLeftParen {
+		p.mustSkipParenthesised()
+		return nil, nil
+	}
 	return nil, nil
 }
 
@@ -271,13 +325,13 @@ func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	var columnNames []string
+	var explicitColumnNames []string
 	if p.current().kind == tokenLeftParen {
 		names, listError := p.parsePostgresColumnList()
 		if listError != nil {
 			return nil, listError
 		}
-		columnNames = names
+		explicitColumnNames = names
 	}
 
 	mutation := &querier_dto.CatalogueMutation{
@@ -287,36 +341,306 @@ func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 	}
 
 	if p.matchKeyword(keywordAS) {
-		mutation.ViewDefinition = p.analyseViewBody(columnNames)
+		bodyStart := p.position
+		viewColumnNames := explicitColumnNames
+		if len(viewColumnNames) == 0 {
+			viewColumnNames = inferPostgresViewColumnNames(p.tokens, bodyStart)
+		}
+		mutation.ViewDefinition = p.analyseViewBody(viewColumnNames)
 	}
 
-	if mutation.ViewDefinition == nil {
-		mutation.Columns = columnsFromNames(columnNames)
-	}
+	mutation.Columns = columnsFromNames(explicitColumnNames)
 
 	return mutation, nil
 }
 
-// skipOrReplace consumes an optional OR REPLACE clause.
+// inferPostgresViewColumnNames extracts column names from the SELECT projection that
+// follows `CREATE VIEW ... AS`, as a fallback when full body analysis fails.
+//
+// The logic mirrors the equivalent sqlite helper. It skips wrapping parens and any
+// leading `WITH ... AS (...)` CTE list, then walks comma-separated projection items
+// pulling out the explicit alias, the implicit trailing alias, or the rightmost
+// identifier of a column ref.
+//
+// Takes tokens ([]token) which is the full statement token stream.
+// Takes start (int) which is the index of the first token after `AS`.
+//
+// Returns []string which is the per-item column name list.
+func inferPostgresViewColumnNames(tokens []token, start int) []string {
+	selectStart := findPostgresSelectStart(tokens, start)
+	if selectStart < 0 {
+		return nil
+	}
+	fromIndex := findPostgresTopLevelKeyword(tokens, selectStart, "FROM")
+	if fromIndex < 0 {
+		fromIndex = len(tokens)
+	}
+	return collectPostgresProjectionNames(tokens[selectStart:fromIndex])
+}
+
+// findPostgresSelectStart returns the index just past the outer SELECT keyword, skipping
+// wrapping parens and a leading WITH...AS CTE list.
+//
+// Takes tokens ([]token) which is the token stream.
+// Takes start (int) which is the starting search index.
+//
+// Returns int which is the index of the first projection token, or -1 when no outer
+// SELECT is found.
+func findPostgresSelectStart(tokens []token, start int) int {
+	for start < len(tokens) {
+		switch tokens[start].kind {
+		case tokenLeftParen:
+			start++
+			continue
+		case tokenIdentifier:
+			value := strings.ToUpper(tokens[start].value)
+			if value == "SELECT" {
+				return start + 1
+			}
+			if value == "WITH" {
+				start = skipPostgresWithClause(tokens, start+1)
+				continue
+			}
+			return -1
+		default:
+			return -1
+		}
+	}
+	return -1
+}
+
+// skipPostgresWithClause walks past a WITH cte-list and returns the index of the first
+// token after the last CTE body.
+//
+// Takes tokens ([]token) which is the token stream.
+// Takes start (int) which is the index of the first token after WITH.
+//
+// Returns int which is the index of the token after the CTE list.
+func skipPostgresWithClause(tokens []token, start int) int {
+	if start < len(tokens) && tokens[start].kind == tokenIdentifier &&
+		strings.EqualFold(tokens[start].value, "RECURSIVE") {
+		start++
+	}
+	for {
+		next, hasMoreCTEs := skipPostgresSingleCTE(tokens, start)
+		if !hasMoreCTEs {
+			return next
+		}
+		start = next
+	}
+}
+
+// skipPostgresSingleCTE walks past one CTE entry (`name [col list] AS ( body )`).
+//
+// The body skip uses skipPostgresMatchingParens so nested parens stay balanced. When the
+// entry does not match the expected shape, the walked-to position is returned with a
+// `false` flag so the caller stops.
+//
+// Takes tokens ([]token) which is the surrounding token stream.
+// Takes start (int) which is the index of the CTE name.
+//
+// Returns int which is the index of the first token after the CTE (or after the trailing
+// comma when a sibling follows).
+// Returns bool which is true when a comma was consumed and another CTE should be parsed.
+func skipPostgresSingleCTE(tokens []token, start int) (int, bool) {
+	if start >= len(tokens) || tokens[start].kind != tokenIdentifier {
+		return start, false
+	}
+	start++
+	if start < len(tokens) && tokens[start].kind == tokenLeftParen {
+		start = skipPostgresMatchingParens(tokens, start)
+	}
+	if start >= len(tokens) || tokens[start].kind != tokenIdentifier ||
+		!strings.EqualFold(tokens[start].value, "AS") {
+		return start, false
+	}
+	start++
+	if start >= len(tokens) || tokens[start].kind != tokenLeftParen {
+		return start, false
+	}
+	start = skipPostgresMatchingParens(tokens, start)
+	if start < len(tokens) && tokens[start].kind == tokenComma {
+		return start + 1, true
+	}
+	return start, false
+}
+
+// findPostgresTopLevelKeyword scans tokens for the first occurrence of the given keyword
+// at parenthesis depth zero.
+//
+// Takes tokens ([]token) which is the token stream.
+// Takes start (int) which is the starting index.
+// Takes keyword (string) which is the keyword to find (case-insensitive).
+//
+// Returns int which is the absolute index of the keyword, or -1 when not found.
+func findPostgresTopLevelKeyword(tokens []token, start int, keyword string) int {
+	depth := 0
+	for index := start; index < len(tokens); index++ {
+		switch tokens[index].kind {
+		case tokenLeftParen:
+			depth++
+		case tokenRightParen:
+			depth--
+		case tokenIdentifier:
+			if depth == 0 && strings.EqualFold(tokens[index].value, keyword) {
+				return index
+			}
+		default:
+		}
+	}
+	return -1
+}
+
+// skipPostgresMatchingParens returns the index of the first token after the balanced
+// parenthesised group beginning at start.
+//
+// Takes tokens ([]token) which is the token stream.
+// Takes start (int) which is the index of the opening `(`.
+//
+// Returns int which is the index past the matching `)`, or len(tokens) when the input is
+// unbalanced.
+func skipPostgresMatchingParens(tokens []token, start int) int {
+	depth := 0
+	for index := start; index < len(tokens); index++ {
+		switch tokens[index].kind {
+		case tokenLeftParen:
+			depth++
+		case tokenRightParen:
+			depth--
+			if depth == 0 {
+				return index + 1
+			}
+		default:
+		}
+	}
+	return len(tokens)
+}
+
+// collectPostgresProjectionNames splits the projection tokens on top-level commas and
+// resolves each item to a column name.
+//
+// Takes projection ([]token) which is the slice of tokens between the SELECT keyword
+// (exclusive) and the FROM keyword (exclusive).
+//
+// Returns []string which is the per-item column name list.
+func collectPostgresProjectionNames(projection []token) []string {
+	var names []string
+	depth := 0
+	itemStart := 0
+	for index := range projection {
+		switch projection[index].kind {
+		case tokenLeftParen:
+			depth++
+		case tokenRightParen:
+			depth--
+		case tokenComma:
+			if depth == 0 {
+				names = append(names, postgresProjectionItemName(projection[itemStart:index]))
+				itemStart = index + 1
+			}
+		default:
+		}
+	}
+	if itemStart < len(projection) {
+		names = append(names, postgresProjectionItemName(projection[itemStart:]))
+	}
+	return names
+}
+
+// postgresProjectionItemName resolves a single SELECT projection item to its column name
+// using the SQL naming rules.
+//
+// Takes item ([]token) which is the projection item's tokens.
+//
+// Returns string which is the inferred column name, or empty.
+func postgresProjectionItemName(item []token) string {
+	if len(item) == 0 {
+		return ""
+	}
+
+	for index := len(item) - 2; index >= 0; index-- {
+		if item[index].kind != tokenIdentifier {
+			continue
+		}
+		if !strings.EqualFold(item[index].value, "AS") {
+			continue
+		}
+		if item[index+1].kind == tokenIdentifier {
+			return item[index+1].value
+		}
+	}
+
+	if len(item) >= 2 {
+		last := item[len(item)-1]
+		secondLast := item[len(item)-2]
+		if last.kind == tokenIdentifier && secondLast.kind == tokenIdentifier &&
+			!isPostgresReservedProjectionKeyword(last.value) &&
+			!isPostgresReservedProjectionKeyword(secondLast.value) {
+			return last.value
+		}
+	}
+
+	last := item[len(item)-1]
+	if last.kind == tokenIdentifier {
+		return last.value
+	}
+	return ""
+}
+
+// isPostgresReservedProjectionKeyword reports whether the identifier looks like a SQL
+// keyword that should not be misread as a column alias.
+//
+// Takes value (string) which is the candidate identifier.
+//
+// Returns bool which is true for reserved keywords.
+func isPostgresReservedProjectionKeyword(value string) bool {
+	switch strings.ToUpper(value) {
+	case "DISTINCT", "ALL", "AS", "DESC", "ASC", "NULL", "TRUE", "FALSE":
+		return true
+	}
+	return false
+}
+
+// skipOrReplace consumes an optional `OR REPLACE` qualifier when it is present.
 func (p *parser) skipOrReplace() {
 	if p.matchKeyword("OR") {
 		p.matchKeyword("REPLACE")
 	}
 }
 
-// analyseViewBody analyses the SELECT body following a CREATE VIEW AS clause.
+// analyseViewBody analyses the SELECT body of a CREATE VIEW so the catalogue can store
+// typed columns.
 //
-// Takes columnNames ([]string) which optionally overrides inferred output column names.
+// Recovers from panics in the inner analyser so a malformed view body (e.g. CREATE VIEW v
+// AS (SELECT ...) or CREATE VIEW v AS VALUES (...)) cannot crash the whole DDL apply.
 //
-// Returns *querier_dto.RawQueryAnalysis which is the analysed view body, or nil when the
-// body fails to parse.
-func (p *parser) analyseViewBody(columnNames []string) *querier_dto.RawQueryAnalysis {
+// Takes columnNames ([]string) which is the declared column list overlaid onto the
+// inferred projection names.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the view body, or nil when the
+// body cannot be parsed and the catalogue falls back to the bare column-name list.
+func (p *parser) analyseViewBody(columnNames []string) (result *querier_dto.RawQueryAnalysis) {
 	remainingTokens := p.tokens[p.position:]
 	if len(remainingTokens) == 0 {
 		return nil
 	}
 
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result = nil
+
+			log.Warn("postgres: view body analysis panic recovered",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+			)
+		}
+	}()
+
 	viewParser := newParser(remainingTokens)
+	viewParser.analysisDepth = p.analysisDepth
+	viewParser.maxParseDepth = p.maxParseDepth
+	if !viewParser.isKeyword(keywordSELECT) && !viewParser.isKeyword(keywordWITH) {
+		return nil
+	}
 	viewAnalysis, analyseError := viewParser.analyseSelect()
 	if analyseError != nil || viewAnalysis == nil {
 		return nil
@@ -329,10 +653,15 @@ func (p *parser) analyseViewBody(columnNames []string) *querier_dto.RawQueryAnal
 	return viewAnalysis
 }
 
-// overlayViewColumnNames rewrites the output column names using columnNames.
+// overlayViewColumnNames replaces the inferred names from the SELECT projection with the
+// declared column list.
 //
-// Takes analysis (*querier_dto.RawQueryAnalysis) which holds the columns to rewrite.
-// Takes columnNames ([]string) which provides the replacement names.
+// Tolerates declared lists longer than the projection by appending name-only entries
+// rather than indexing out of bounds.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) whose output columns are renamed in
+// place.
+// Takes columnNames ([]string) which is the declared column list to overlay.
 func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames []string) {
 	for columnIndex, name := range columnNames {
 		column := querier_dto.RawOutputColumn{Name: name}
@@ -340,10 +669,14 @@ func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames 
 			column.Expression = analysis.OutputColumns[columnIndex].Expression
 			column.ColumnName = analysis.OutputColumns[columnIndex].ColumnName
 			column.TableAlias = analysis.OutputColumns[columnIndex].TableAlias
+			analysis.OutputColumns[columnIndex] = column
+			continue
 		}
-		analysis.OutputColumns[columnIndex] = column
+		analysis.OutputColumns = append(analysis.OutputColumns, column)
 	}
-	analysis.OutputColumns = analysis.OutputColumns[:len(columnNames)]
+	if len(columnNames) < len(analysis.OutputColumns) {
+		analysis.OutputColumns = analysis.OutputColumns[:len(columnNames)]
+	}
 }
 
 // columnsFromNames builds placeholder column metadata for a list of names.

@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "build_path.sql",
-    "SQL": "-- piko.name: BuildPath\n-- piko.command: many\nWITH RECURSIVE path AS (\n    SELECT id, name, name AS full_path\n    FROM categories\n    WHERE parent_id IS NULL\n    UNION ALL\n    SELECT c.id, c.name, p.full_path || ' \u003e ' || c.name\n    FROM categories c\n    JOIN path p ON c.parent_id = p.id\n)\nSELECT id, full_path FROM path;",
+    "SQL": "-- piko.query(name: BuildPath, command: many)\nWITH RECURSIVE path AS (\n    SELECT id, name, name AS full_path\n    FROM categories\n    WHERE parent_id IS NULL\n    UNION ALL\n    SELECT c.id, c.name, p.full_path || ' \u003e ' || c.name\n    FROM categories c\n    JOIN path p ON c.parent_id = p.id\n)\nSELECT id, full_path FROM path;",
     "Name": "BuildPath",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "path",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "path",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "full_path",
         "SourceTable": "path",
+        "SourceSchema": "",
         "SourceColumn": "full_path",
+        "SourceQualifier": "path",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,9 +52,10 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       }
@@ -65,9 +74,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

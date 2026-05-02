@@ -1,0 +1,8 @@
+{
+  "wf1_has_incomplete": {
+    "has_incomplete": true
+  },
+  "wf2_has_incomplete": {
+    "has_incomplete": false
+  }
+}

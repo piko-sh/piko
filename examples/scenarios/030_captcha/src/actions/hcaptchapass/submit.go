@@ -7,7 +7,8 @@ type SubmitAction struct {
 	piko.ActionMetadata
 }
 
-// CaptchaConfig marks this action as requiring captcha verification via the hcaptcha_pass provider.
+// CaptchaConfig marks this action as requiring captcha verification via the hcaptcha_pass
+// provider.
 func (SubmitAction) CaptchaConfig() *piko.CaptchaConfig {
 	return &piko.CaptchaConfig{Provider: "hcaptcha_pass"}
 }

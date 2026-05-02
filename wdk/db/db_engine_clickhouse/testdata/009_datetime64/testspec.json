@@ -1,0 +1,3 @@
+{
+  "description": "DateTime64(precision) and DateTime64(precision, 'tz') carry a Precision field on the resulting SQLType. The TZ tag is parsed and discarded."
+}

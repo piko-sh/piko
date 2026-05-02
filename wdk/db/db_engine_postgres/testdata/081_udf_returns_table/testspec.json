@@ -1,0 +1,4 @@
+{
+  "description": "PostgreSQL set-returning UDF declared via RETURNS TABLE(...) used as a relation in FROM with schema-qualified call. The analyser must resolve the inline column list, recognise schema.func(args) as a queryable relation, and emit a typed Row.",
+  "expectedDiagnosticCount": 0
+}

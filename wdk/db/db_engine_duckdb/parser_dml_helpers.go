@@ -22,6 +22,7 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/piko/internal/querier/querier_adapters/engine_shared"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -43,6 +44,7 @@ func (p *parser) handleParameterInExpression() {
 	}
 
 	p.registerParameterFromToken(parameterToken, context, columnRef, castType)
+	p.recordFunctionArgumentMetadata(paramPosition)
 }
 
 // resolveParameterContext picks the best context, target column, and cast for the
@@ -98,29 +100,16 @@ func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterCon
 // Returns int which is the LIKE-style operator's token index when found.
 // Returns bool which is true when an operator was located.
 func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
-	parenDepth := 0
-	for i := paramPosition - 1; i >= 0; i-- {
-		tok := p.tokens[i]
-		switch tok.kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case tokenRightParen:
-			parenDepth++
-			continue
-		case tokenLeftParen:
-			parenDepth--
-			continue
-		}
-		if parenDepth > 0 || tok.kind != tokenIdentifier {
-			continue
-		}
-		keyword := strings.ToUpper(tok.value)
-		if isLikeBoundaryKeyword(keyword) {
-			return 0, false
-		}
-		if isLikePatternKeyword(keyword) {
-			return i, true
-		}
-	}
-	return 0, false
+	return engine_shared.FindEnclosingLikeOperator(paramPosition,
+		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
+		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikePatternKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+	)
 }
 
 // resolveLikeOperatorColumn picks the column reference associated with a LIKE operator's
@@ -324,15 +313,7 @@ func isLikePatternKeyword(keyword string) bool {
 //
 // Returns bool which is true at any clause or boolean boundary.
 func isLikeBoundaryKeyword(keyword string) bool {
-	switch keyword {
-	case "AND", "OR", "WHERE", "HAVING", "ON", "WHEN", "THEN", "ELSE", "CASE",
-		"FROM", "GROUP", "ORDER", "LIMIT", "OFFSET", "RETURNING",
-		"UNION", "INTERSECT", "EXCEPT", "BY",
-		"SELECT", "INSERT", "UPDATE", "DELETE", "VALUES", "SET",
-		"ESCAPE":
-		return true
-	}
-	return false
+	return engine_shared.IsClauseBoundaryKeyword(keyword)
 }
 
 // resolveContextFromPrecedingOperator infers a parameter's context from a comparison or
@@ -346,6 +327,10 @@ func isLikeBoundaryKeyword(keyword string) bool {
 func (p *parser) resolveContextFromPrecedingOperator(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference) {
 	if paramPosition < 2 {
 		return querier_dto.ParameterContextUnknown, nil
+	}
+
+	if context, columnRef := p.resolveIsComparisonContext(paramPosition); context != querier_dto.ParameterContextUnknown {
+		return context, columnRef
 	}
 
 	prevToken := p.tokens[paramPosition-1]
@@ -366,6 +351,41 @@ func (p *parser) resolveContextFromPrecedingOperator(paramPosition int) (querier
 	}
 
 	return querier_dto.ParameterContextUnknown, nil
+}
+
+// resolveIsComparisonContext recognises "col IS <param>" and "col IS NOT <param>" as
+// null-safe equality.
+//
+// It attaches the left-hand column reference to the placeholder just as "col = <param>"
+// does. DuckDB, like SQLite, treats x IS y as null-safe equality, so a bind parameter on
+// the right of IS takes the column's type. IS NULL and IS NOT NULL never reach here
+// because a NULL literal, not a parameter, follows the keyword.
+//
+// The IS keyword is a plain identifier token because the tokeniser only emits
+// tokenOperator for the symbolic operator set, so it is detected by value, not by kind.
+//
+// Takes paramPosition (int) which is the parameter's token index.
+//
+// Returns querier_dto.ParameterContext which is ParameterContextComparison on a match,
+// else ParameterContextUnknown.
+// Returns *querier_dto.ColumnReference which is the left-hand column when found, else
+// nil.
+func (p *parser) resolveIsComparisonContext(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference) {
+	isPosition := paramPosition - 1
+	if isPosition >= 0 && p.tokens[isPosition].kind == tokenIdentifier &&
+		strings.EqualFold(p.tokens[isPosition].value, keywordNOT) {
+		isPosition--
+	}
+	if isPosition < 1 || p.tokens[isPosition].kind != tokenIdentifier ||
+		!strings.EqualFold(p.tokens[isPosition].value, keywordIS) {
+		return querier_dto.ParameterContextUnknown, nil
+	}
+
+	columnRef := p.extractColumnReferenceOrParenthesised(isPosition - 1)
+	if columnRef == nil {
+		return querier_dto.ParameterContextUnknown, nil
+	}
+	return querier_dto.ParameterContextComparison, columnRef
 }
 
 // extractColumnReferenceOrParenthesised resolves a column reference from position,
@@ -414,51 +434,159 @@ func (p *parser) detectParameterContext(paramPosition int) (querier_dto.Paramete
 
 	if enclosingParen >= 2 &&
 		p.tokens[enclosingParen-1].kind == tokenIdentifier &&
-		strings.EqualFold(p.tokens[enclosingParen-1].value, "IN") {
+		strings.EqualFold(p.tokens[enclosingParen-1].value, keywordIN) {
 		columnRef := p.extractColumnReferenceBeforeIN(enclosingParen - 1)
 		return querier_dto.ParameterContextInList, columnRef, nil
 	}
 
 	if enclosingParen >= 1 &&
 		p.tokens[enclosingParen-1].kind == tokenIdentifier &&
-		strings.EqualFold(p.tokens[enclosingParen-1].value, "CAST") {
+		strings.EqualFold(p.tokens[enclosingParen-1].value, keywordCAST) {
 		castType := p.extractCastType(paramPosition)
 		if castType != nil {
 			return querier_dto.ParameterContextCast, nil, castType
 		}
 	}
 
-	if enclosingParen >= 1 && p.tokens[enclosingParen-1].kind == tokenIdentifier {
-		functionName := strings.ToUpper(p.tokens[enclosingParen-1].value)
-		if functionName != "IN" && functionName != "CAST" &&
-			functionName != keywordSELECT && functionName != keywordWHERE {
-			return querier_dto.ParameterContextFunctionArgument, nil, nil
-		}
+	if enclosingParen >= 1 && p.tokens[enclosingParen-1].kind == tokenIdentifier &&
+		isFunctionCallName(p.tokens[enclosingParen-1].value) {
+		return querier_dto.ParameterContextFunctionArgument, nil, nil
 	}
 
 	return querier_dto.ParameterContextUnknown, nil, nil
 }
 
+// isFunctionCallName reports whether the identifier preceding a '(' names a callable
+// function rather than introducing an IN list, a CAST, or a SELECT/WHERE subquery, so a
+// parameter inside the parentheses can be treated as a function argument.
+//
+// Takes value (string) which is the identifier token value preceding the parenthesis.
+//
+// Returns bool which is true when the identifier names a function call.
+func isFunctionCallName(value string) bool {
+	switch strings.ToUpper(value) {
+	case keywordIN, keywordCAST, keywordSELECT, keywordWHERE:
+		return false
+	}
+	return true
+}
+
+// recordFunctionArgumentMetadata records the enclosing function/TVF name and the
+// parameter's 0-based argument ordinal on the most recently registered parameter
+// reference, so the shared resolver can type the placeholder from the matched signature's
+// declared argument type.
+//
+// The metadata is computed purely from the token stream around paramPosition, so it is
+// valid for every registration path (the expression-tree scalar/TVF argument parser and
+// the WHERE/HAVING flat scan alike). It is a no-op when the placeholder does not sit
+// directly in a function/TVF argument list; the resolver only consumes the fields when
+// the placeholder is also tagged ParameterContextFunctionArgument, so leaving them unset
+// is safe.
+//
+// Takes paramPosition (int) which is the parameter token's index in the token stream.
+func (p *parser) recordFunctionArgumentMetadata(paramPosition int) {
+	name, ordinal, ok := p.enclosingFunctionArgument(paramPosition)
+	if !ok {
+		return
+	}
+	lastIndex := len(p.parameterRefs) - 1
+	if lastIndex < 0 {
+		return
+	}
+	p.parameterRefs[lastIndex].EnclosingFunctionName = name
+	p.parameterRefs[lastIndex].ArgumentOrdinal = ordinal
+}
+
+// enclosingFunctionArgument reconstructs the lower-cased, optionally schema-qualified
+// name of the function or table-valued function whose argument list directly encloses the
+// parameter at paramPosition, together with the parameter's 0-based top-level argument
+// ordinal.
+//
+// The enclosing call is the nearest opening parenthesis preceded by a function-name
+// identifier (rejected when that identifier is IN, CAST, SELECT, or WHERE so that IN
+// lists, casts and subqueries are not mistaken for calls). A schema qualifier (`schema .
+// name`) is folded back into the qualified name to match the string the FROM-clause TVF
+// reference is recorded under. The ordinal counts top-level commas between the opening
+// parenthesis and the parameter, so a non-placeholder argument (a literal, a column, an
+// expression) still consumes a slot.
+//
+// Takes paramPosition (int) which is the parameter token's index in the token stream.
+//
+// Returns name (string) which is the qualified lower-cased function name.
+// Returns ordinal (int) which is the parameter's 0-based argument slot.
+// Returns ok (bool) which is true only when the parameter sits in a recognised call.
+func (p *parser) enclosingFunctionArgument(paramPosition int) (name string, ordinal int, ok bool) {
+	enclosingParen := p.findEnclosingParen(paramPosition)
+	if enclosingParen < 1 || p.tokens[enclosingParen-1].kind != tokenIdentifier ||
+		!isFunctionCallName(p.tokens[enclosingParen-1].value) {
+		return "", 0, false
+	}
+
+	return p.qualifiedFunctionName(enclosingParen - 1), p.argumentOrdinal(enclosingParen, paramPosition), true
+}
+
+// qualifiedFunctionName reads the function name at namePosition and folds a leading
+// `schema .` qualifier into a lower-cased, dot-joined name.
+//
+// Takes namePosition (int) which is the index of the function-name identifier.
+//
+// Returns string which is the qualified lower-cased function name.
+func (p *parser) qualifiedFunctionName(namePosition int) string {
+	name := strings.ToLower(p.tokens[namePosition].value)
+	if namePosition >= 2 && p.tokens[namePosition-1].kind == tokenDot &&
+		p.tokens[namePosition-2].kind == tokenIdentifier {
+		return strings.ToLower(p.tokens[namePosition-2].value) + "." + name
+	}
+	return name
+}
+
+// argumentOrdinal counts the top-level commas between an opening parenthesis and a
+// parameter to derive the parameter's 0-based argument slot, ignoring commas nested
+// inside deeper parentheses or brackets.
+//
+// Takes openParen (int) which is the index of the call's opening parenthesis.
+// Takes paramPosition (int) which is the parameter token's index.
+//
+// Returns int which is the 0-based argument ordinal.
+func (p *parser) argumentOrdinal(openParen int, paramPosition int) int {
+	ordinal := 0
+	depth := 0
+	for i := openParen + 1; i < paramPosition && i < len(p.tokens); i++ {
+		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+		case tokenLeftParen, tokenLeftBracket:
+			depth++
+		case tokenRightParen, tokenRightBracket:
+			depth--
+		case tokenComma:
+			if depth == 0 {
+				ordinal++
+			}
+		}
+	}
+	return ordinal
+}
+
 // findEnclosingParen walks back from position looking for the opening parenthesis that
 // encloses it at the same nesting depth.
+//
+// The walk stops at a boolean or clause boundary keyword seen at depth 0, mirroring
+// findLikeExpressionStart, so the backward scan is bounded by the surrounding predicate
+// rather than running to the start of the token stream. An enclosing parenthesis can only
+// sit at depth 0, and any IN-list, CAST, or function-call '(' that genuinely encloses the
+// position precedes such a boundary, so this never changes the result for well-formed
+// input.
 //
 // Takes position (int) which is the search starting index.
 //
 // Returns int which is the index of the enclosing '(' or -1 when none is found.
 func (p *parser) findEnclosingParen(position int) int {
-	depth := 0
-	for i := position - 1; i >= 0; i-- {
-		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case tokenRightParen:
-			depth++
-		case tokenLeftParen:
-			if depth == 0 {
-				return i
-			}
-			depth--
-		}
-	}
-	return -1
+	return engine_shared.FindEnclosingParen(position,
+		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
+		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+	)
 }
 
 // extractColumnReferenceBeforeIN reads the column reference that precedes an IN keyword.

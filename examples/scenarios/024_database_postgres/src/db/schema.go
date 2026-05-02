@@ -1,7 +1,7 @@
-// Package db provides embedded PostgreSQL migration and seed files for the
-// analytics database. Pass Migrations as the MigrationFS field and Seeds as the
-// SeedFS field in a DatabaseRegistration to apply the schema and demo data
-// automatically, or use them directly with the respective services.
+// Package db provides embedded PostgreSQL migration and seed files for the analytics
+// database. Pass Migrations as the MigrationFS field and Seeds as the SeedFS field in a
+// DatabaseRegistration to apply the schema and demo data automatically, or use them
+// directly with the respective services.
 package db
 
 import "embed"

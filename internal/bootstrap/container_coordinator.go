@@ -167,13 +167,13 @@ func (c *Container) createAnnotatorServiceInstance(
 	})
 }
 
-// loadGlobalTranslationKeys returns the union of project-level translation keys across every
-// locale, which the annotator uses to validate T() calls at compile time. It reads the i18n
-// source JSON directly (rather than the built FlatBuffer) so validation always reflects the
-// keys the developer authored, never lagging a build behind.
+// loadGlobalTranslationKeys returns the union of project-level translation keys across
+// every locale, which the annotator uses to validate T() calls at compile time. It reads
+// the i18n source JSON directly (rather than the built FlatBuffer) so validation always
+// reflects the keys the developer authored, never lagging a build behind.
 //
-// Returns map[string]struct{} which holds the global keys, or nil when no translations are
-// available so global key validation is skipped rather than producing false warnings.
+// Returns map[string]struct{} which holds the global keys, or nil when no translations
+// are available so global key validation is skipped rather than producing false warnings.
 func (c *Container) loadGlobalTranslationKeys(ctx context.Context) map[string]struct{} {
 	_, l := logger_domain.From(ctx, log)
 

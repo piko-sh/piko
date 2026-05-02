@@ -1,3 +1,2 @@
--- piko.name: BadQuery
--- piko.command: many
+-- piko.query(name: BadQuery, command: many)
 

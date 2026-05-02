@@ -1,0 +1,3 @@
+{
+  "description": "Migration-level piko.column declared above CREATE TABLE propagates the go_type override to passthrough projections (SELECT id FROM users), while a cast in another query (SELECT id::text AS id_str FROM users) drops the override and falls back to inferred type."
+}

@@ -137,7 +137,7 @@ func TestQueryAnalyser_AnalyseQuery(t *testing.T) {
 		{
 			name: "simple SELECT with directives produces a valid AnalysedQuery",
 			block: queryBlock{
-				sql:       "-- piko.name: GetUser\n-- piko.command: one\n-- $1 as piko.param(user_id)\nSELECT id, name FROM users WHERE id = $1",
+				sql:       "-- piko.query(name: GetUser, command: one)\n-- $1 as piko.param(user_id)\nSELECT id, name FROM users WHERE id = $1",
 				startLine: 1,
 			},
 			filename:        "queries.sql",
@@ -152,7 +152,7 @@ func TestQueryAnalyser_AnalyseQuery(t *testing.T) {
 		{
 			name: "parse error returns diagnostic and nil query",
 			block: queryBlock{
-				sql:       "-- piko.name: BadQuery\n-- piko.command: one\nSELECT * FROM ???",
+				sql:       "-- piko.query(name: BadQuery, command: one)\nSELECT * FROM ???",
 				startLine: 5,
 			},
 			filename: "queries.sql",
@@ -178,7 +178,7 @@ func TestQueryAnalyser_AnalyseQuery(t *testing.T) {
 		{
 			name: "engine analysis error returns diagnostic and nil query",
 			block: queryBlock{
-				sql:       "-- piko.name: FailAnalysis\n-- piko.command: many\nSELECT id FROM users",
+				sql:       "-- piko.query(name: FailAnalysis, command: many)\nSELECT id FROM users",
 				startLine: 10,
 			},
 			filename: "queries.sql",
@@ -192,7 +192,7 @@ func TestQueryAnalyser_AnalyseQuery(t *testing.T) {
 		{
 			name: "empty statement list returns diagnostic and nil query",
 			block: queryBlock{
-				sql:       "-- piko.name: EmptyQuery\n-- piko.command: exec\n",
+				sql:       "-- piko.query(name: EmptyQuery, command: exec)\n",
 				startLine: 1,
 			},
 			filename: "queries.sql",
@@ -206,7 +206,7 @@ func TestQueryAnalyser_AnalyseQuery(t *testing.T) {
 		{
 			name: "multiple statements produces hint diagnostic and analyses last",
 			block: queryBlock{
-				sql:       "-- piko.name: MultiStmt\n-- piko.command: one\nCREATE TEMP TABLE t (x int);\nSELECT id, name FROM users WHERE id = $1",
+				sql:       "-- piko.query(name: MultiStmt, command: one)\nCREATE TEMP TABLE t (x int);\nSELECT id, name FROM users WHERE id = $1",
 				startLine: 1,
 			},
 			filename: "queries.sql",
@@ -335,7 +335,7 @@ func TestQueryAnalyser_AnalyseQuery_OutputColumnDetails(t *testing.T) {
 	ctx := context.Background()
 
 	block := queryBlock{
-		sql:       "-- piko.name: GetUserEmail\n-- piko.command: one\n-- $1 as piko.param(user_id)\nSELECT id, email FROM users WHERE id = $1",
+		sql:       "-- piko.query(name: GetUserEmail, command: one)\n-- $1 as piko.param(user_id)\nSELECT id, email FROM users WHERE id = $1",
 		startLine: 1,
 	}
 
@@ -403,7 +403,7 @@ func TestQueryAnalyser_AnalyseQuery_ReadOnlyOverride(t *testing.T) {
 	ctx := context.Background()
 
 	block := queryBlock{
-		sql:       "-- piko.name: GetUsers\n-- piko.command: many\n-- piko.readonly: true\nSELECT id FROM users",
+		sql:       "-- piko.query(name: GetUsers, command: many, readonly: true)\nSELECT id FROM users",
 		startLine: 1,
 	}
 
@@ -450,7 +450,7 @@ func TestQueryAnalyser_AnalyseQuery_NameOnlyBlock(t *testing.T) {
 	ctx := context.Background()
 
 	block := queryBlock{
-		sql:       "-- piko.name: ListUsers\nSELECT id FROM users",
+		sql:       "-- piko.query(name: ListUsers)\nSELECT id FROM users",
 		startLine: 1,
 	}
 
@@ -491,7 +491,7 @@ func TestQueryAnalyser_AnalyseQuery_UnknownTableWarning(t *testing.T) {
 	ctx := context.Background()
 
 	block := queryBlock{
-		sql:       "-- piko.name: MissingTable\n-- piko.command: many\nSELECT id FROM users",
+		sql:       "-- piko.query(name: MissingTable, command: many)\nSELECT id FROM users",
 		startLine: 1,
 	}
 

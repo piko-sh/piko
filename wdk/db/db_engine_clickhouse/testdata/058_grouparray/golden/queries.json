@@ -1,0 +1,97 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "q.sql",
+    "SQL": "-- piko.query(GroupedVals, many)\nSELECT cat, groupArray(val) AS vals FROM t GROUP BY cat;",
+    "Name": "GroupedVals",
+    "CountSQL": "",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "cat",
+        "SourceTable": "t",
+        "SourceSchema": "",
+        "SourceColumn": "cat",
+        "SourceQualifier": "t",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "String",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "vals",
+        "SourceTable": "",
+        "SourceSchema": "",
+        "SourceColumn": "",
+        "SourceQualifier": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": {
+            "Precision": null,
+            "Scale": null,
+            "Length": null,
+            "ElementType": null,
+            "EngineName": "",
+            "Schema": "",
+            "EnumValues": null,
+            "StructFields": null,
+            "KeyType": null,
+            "UnionMembers": null,
+            "Category": 18,
+            "Nullable": false
+          },
+          "EngineName": "Array",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 13,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "Command": 1,
+    "IsDynamic": false,
+    "DynamicRuntime": false,
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
+  }
+]

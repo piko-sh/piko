@@ -1,3 +1,2 @@
--- piko.name: CreateOrder
--- piko.command: exec
+-- piko.query(name: CreateOrder, command: exec)
 INSERT INTO `order` (`select`, `from`) VALUES (?, ?);

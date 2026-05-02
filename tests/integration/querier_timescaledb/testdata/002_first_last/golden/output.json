@@ -1,0 +1,14 @@
+{
+  "first_last_by_sensor": [
+    {
+      "first_value": 10,
+      "last_value": 12,
+      "sensor_id": 1
+    },
+    {
+      "first_value": 100,
+      "last_value": 105,
+      "sensor_id": 2
+    }
+  ]
+}

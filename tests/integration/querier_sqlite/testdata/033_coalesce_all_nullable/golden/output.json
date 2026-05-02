@@ -1,20 +1,20 @@
 {
   "readings": [
     {
-      "BestReading": null,
-      "ID": 1
+      "best_reading": null,
+      "id": 1
     },
     {
-      "BestReading": 5.5,
-      "ID": 2
+      "best_reading": 5.5,
+      "id": 2
     },
     {
-      "BestReading": 3.3,
-      "ID": 3
+      "best_reading": 3.3,
+      "id": 3
     },
     {
-      "BestReading": 1.1,
-      "ID": 4
+      "best_reading": 1.1,
+      "id": 4
     }
   ]
 }

@@ -1,0 +1,3 @@
+{
+  "description": "DateTime64 round-trip: verifies that high-precision timestamps survive INSERT and SELECT, and that the generated Go time.Time preserves sub-second precision."
+}

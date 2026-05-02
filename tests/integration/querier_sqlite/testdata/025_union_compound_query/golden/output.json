@@ -1,28 +1,28 @@
 {
   "messages": [
     {
-      "ID": 1,
-      "MessageDate": "2025-01-01",
-      "Source": "inbox",
-      "Subject": "Hello"
+      "id": 1,
+      "message_date": "2025-01-01",
+      "source": "inbox",
+      "subject": "Hello"
     },
     {
-      "ID": 1,
-      "MessageDate": "2025-01-02",
-      "Source": "sent",
-      "Subject": "Reply"
+      "id": 1,
+      "message_date": "2025-01-02",
+      "source": "sent",
+      "subject": "Reply"
     },
     {
-      "ID": 2,
-      "MessageDate": "2025-01-03",
-      "Source": "inbox",
-      "Subject": "Meeting"
+      "id": 2,
+      "message_date": "2025-01-03",
+      "source": "inbox",
+      "subject": "Meeting"
     },
     {
-      "ID": 2,
-      "MessageDate": "2025-01-04",
-      "Source": "sent",
-      "Subject": "Follow-up"
+      "id": 2,
+      "message_date": "2025-01-04",
+      "source": "sent",
+      "subject": "Follow-up"
     }
   ]
 }

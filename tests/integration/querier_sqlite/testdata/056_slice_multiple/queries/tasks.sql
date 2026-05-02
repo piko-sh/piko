@@ -1,7 +1,6 @@
--- piko.name: FetchByStatusesAndPriorities
--- piko.command: many
--- ?1 as piko.slice(statuses)
--- ?2 as piko.slice(priorities)
+-- piko.query(name: FetchByStatusesAndPriorities, command: many)
+-- ?1 as piko.param(statuses, kind: slice)
+-- ?2 as piko.param(priorities, kind: slice)
 SELECT id, status, priority
 FROM tasks
 WHERE status IN (?1) AND priority IN (?2)

@@ -1,0 +1,3 @@
+{
+  "description": "GROUP BY GROUPING SETS ((a, b), (a), ()) produces three result sets in a single query: a per-(category, day) tally, a per-category subtotal, and a grand total. Verifies that the parser accepts GROUPING SETS in the GROUP BY clause and that the planner returns rows with the unused dimensions left as nullable / zeroed sentinels."
+}

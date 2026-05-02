@@ -1,3 +1,2 @@
--- piko.name: UpdateBalance
--- piko.command: exec
+-- piko.query(name: UpdateBalance, command: exec)
 UPDATE accounts SET balance = ? WHERE id = ?;

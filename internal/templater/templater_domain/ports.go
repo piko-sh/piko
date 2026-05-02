@@ -281,9 +281,9 @@ type RenderRequest struct {
 	IsFragment bool
 }
 
-// LocaleSEOHead holds the locale-aware SEO head values the framework derives automatically
-// for a localised page from its registered per-locale route patterns. Pages no longer need
-// to assign these by hand.
+// LocaleSEOHead holds the locale-aware SEO head values the framework derives
+// automatically for a localised page from its registered per-locale route patterns. Pages
+// no longer need to assign these by hand.
 type LocaleSEOHead struct {
 	// Language is the current request locale, for the html lang attribute.
 	Language string

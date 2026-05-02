@@ -1,5 +1,4 @@
--- piko.name: ListAllMessages
--- piko.command: many
+-- piko.query(name: ListAllMessages, command: many)
 SELECT id, subject, received_date AS message_date, 'inbox' AS source
 FROM inbox
 UNION ALL

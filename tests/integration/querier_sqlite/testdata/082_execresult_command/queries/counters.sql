@@ -1,7 +1,5 @@
--- piko.name: IncrementCounter
--- piko.command: execresult
+-- piko.query(name: IncrementCounter, command: execresult)
 UPDATE counters SET value = value + ? WHERE name = ?;
 
--- piko.name: GetCounter
--- piko.command: one
+-- piko.query(name: GetCounter, command: one)
 SELECT id, name, value FROM counters WHERE name = ?;

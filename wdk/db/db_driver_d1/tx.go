@@ -41,6 +41,12 @@ type d1Tx struct {
 	// conn is the parent connection used to execute the final batch.
 	conn *d1Conn
 
+	// ctx is the context captured at BeginTx so the batched Commit network call can honour
+	// cancellation and deadlines. The database/sql driver.Tx interface gives Commit no
+	// context of its own, so the transaction must carry it - the sanctioned exception to not
+	// storing a context in a struct.
+	ctx context.Context
+
 	// statements holds the SQL statements queued for batch execution.
 	statements []batchStatement
 
@@ -73,27 +79,56 @@ func (tx *d1Tx) Commit() error {
 		return nil
 	}
 
-	var batch strings.Builder
-	var allParams []string
+	sql, allParams := buildBatch(tx.statements)
 
-	batch.WriteString("BEGIN;\n")
-	for _, statement := range tx.statements {
-		batch.WriteString(statement.query)
-		batch.WriteString(";\n")
-		allParams = append(allParams, statement.params...)
+	commitCtx := tx.ctx
+	if commitCtx == nil {
+		commitCtx = context.Background()
 	}
-	batch.WriteString("COMMIT;")
 
-	_, err := tx.conn.api.QueryD1Database(context.Background(), tx.conn.rc, cloudflare.QueryD1DatabaseParams{
+	results, err := tx.conn.api.QueryD1Database(commitCtx, tx.conn.rc, cloudflare.QueryD1DatabaseParams{
 		DatabaseID: tx.conn.databaseID,
-		SQL:        batch.String(),
+		SQL:        sql,
 		Parameters: allParams,
 	})
 	if err != nil {
 		return fmt.Errorf("db_driver_d1: commit: %w", err)
 	}
 
+	for index, result := range results {
+		if successErr := checkD1Success(result); successErr != nil {
+			return fmt.Errorf("db_driver_d1: commit: statement %d: %w", index, successErr)
+		}
+	}
+
 	return nil
+}
+
+// buildBatch concatenates the queued statements into a single BEGIN/COMMIT-wrapped SQL
+// string and flattens their parameters into one slice.
+//
+// The D1 HTTP API binds a single '?'-sequence across the whole batch, so the parameters
+// are appended in statement order, each statement's bindings following the previous
+// statement's. Callers must therefore queue statements in the order their placeholders
+// should consume the flattened parameter list.
+//
+// Takes statements ([]batchStatement) which are the queued statements in execution order.
+//
+// Returns string which is the BEGIN/COMMIT-wrapped batch SQL.
+// Returns []string which holds every statement's parameters concatenated in order.
+func buildBatch(statements []batchStatement) (string, []string) {
+	var batch strings.Builder
+	var allParams []string
+
+	batch.WriteString("BEGIN;\n")
+	for _, statement := range statements {
+		batch.WriteString(statement.query)
+		batch.WriteString(";\n")
+		allParams = append(allParams, statement.params...)
+	}
+	batch.WriteString("COMMIT;")
+
+	return batch.String(), allParams
 }
 
 // Rollback discards all collected statements. Since D1 transactions are client-side only

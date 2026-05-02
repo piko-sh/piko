@@ -36,13 +36,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	withOptional, err := queries.GetTextTransforms(ctx, int32(1))
+	withOptional, err := queries.GetTextTransforms(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	withoutOptional, err := queries.GetTextTransforms(ctx, int32(2))
+	withoutOptional, err := queries.GetTextTransforms(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

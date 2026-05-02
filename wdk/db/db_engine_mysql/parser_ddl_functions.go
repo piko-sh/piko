@@ -19,6 +19,7 @@
 package db_engine_mysql
 
 import (
+	"fmt"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -30,9 +31,18 @@ import (
 // Takes engine (*MySQLEngine) which provides hooks used when parsing the argument and
 // return types.
 //
-// Returns *querier_dto.CatalogueMutation which describes the function creation.
-// Returns error when the schema-qualified name or argument list cannot be parsed.
-func (p *parser) parseCreateFunction(engine *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
+// Returns *querier_dto.CatalogueMutation which describes the function creation, or nil on
+// recovery.
+// Returns error when the schema-qualified name or argument list cannot be parsed, or when
+// a panic is recovered.
+func (p *parser) parseCreateFunction(engine *MySQLEngine) (mutation *querier_dto.CatalogueMutation, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			mutation = nil
+			err = fmt.Errorf("parseCreateFunction: %v", recovered)
+		}
+	}()
+
 	p.mustKeyword(keywordCREATE)
 
 	if p.matchKeyword(keywordDEFINER) {
@@ -71,9 +81,18 @@ func (p *parser) parseCreateFunction(engine *MySQLEngine) (*querier_dto.Catalogu
 // parseDropFunction parses a DROP FUNCTION or DROP PROCEDURE statement and produces a
 // corresponding catalogue mutation.
 //
-// Returns *querier_dto.CatalogueMutation which describes the function removal.
-// Returns error when the schema-qualified name cannot be parsed.
-func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
+// Returns *querier_dto.CatalogueMutation which describes the function removal, or nil on
+// recovery.
+// Returns error when the schema-qualified name cannot be parsed, or when a panic is
+// recovered.
+func (p *parser) parseDropFunction() (mutation *querier_dto.CatalogueMutation, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			mutation = nil
+			err = fmt.Errorf("parseDropFunction: %v", recovered)
+		}
+	}()
+
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword(keywordFUNCTION, keywordPROCEDURE)
 
@@ -105,7 +124,8 @@ func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
 //
 // Returns []querier_dto.FunctionArgument which is the parsed argument list, or nil when
 // the argument list is absent.
-// Returns error which is currently always nil.
+// Returns error when the argument list is malformed (a token where a type is expected
+// leaves the parser unable to make progress).
 func (p *parser) parseFunctionArgumentList(engine *MySQLEngine) ([]querier_dto.FunctionArgument, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, nil
@@ -114,11 +134,16 @@ func (p *parser) parseFunctionArgumentList(engine *MySQLEngine) ([]querier_dto.F
 
 	var arguments []querier_dto.FunctionArgument
 	for !p.atEnd() && p.current().kind != tokenRightParen {
+		startPosition := p.position
 		argument := p.parseFunctionArgument(engine)
 		arguments = append(arguments, argument)
 
 		if p.current().kind == tokenComma {
 			p.advance()
+		}
+
+		if p.position == startPosition {
+			return nil, fmt.Errorf("malformed function argument list: no progress at position %d", p.current().position)
 		}
 	}
 	if p.current().kind == tokenRightParen {
@@ -129,6 +154,12 @@ func (p *parser) parseFunctionArgumentList(engine *MySQLEngine) ([]querier_dto.F
 }
 
 // parseFunctionArgument parses a single argument from a CREATE FUNCTION argument list.
+//
+// MySQL stored-function parameters cannot declare a DEFAULT value, so none are optional
+// and MinArguments is always the full argument count; and MySQL has no array argument
+// types, so there is no array dimension to capture. Both the optional-argument and
+// array-argument handling that PostgreSQL and DuckDB perform are therefore intentionally
+// absent here.
 //
 // Takes engine (*MySQLEngine) which provides hooks used when parsing the argument type.
 //
@@ -141,7 +172,7 @@ func (p *parser) parseFunctionArgument(engine *MySQLEngine) querier_dto.Function
 	savedPosition := p.position
 	possibleName, _ := p.parseIdentifierOrKeyword()
 
-	if p.current().kind == tokenIdentifier && p.current().kind != tokenComma && p.current().kind != tokenRightParen {
+	if p.current().kind == tokenIdentifier {
 		argumentType := p.parseColumnType(engine)
 		return querier_dto.FunctionArgument{
 			Name: possibleName,

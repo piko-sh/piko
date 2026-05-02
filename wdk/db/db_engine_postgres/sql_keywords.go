@@ -180,4 +180,18 @@ const (
 
 	// decimalBase is the radix used when parsing decimal integer literals.
 	decimalBase = 10
+
+	// maxTypeModifierValue caps a parsed numeric type modifier. PostgreSQL stores type
+	// modifiers as a signed 32-bit value, so any larger figure is already out of range;
+	// clamping the accumulation here keeps it within int and stops a pathologically long
+	// digit run from overflowing silently.
+	maxTypeModifierValue = 1<<31 - 1
+
+	// maxDollarParameterNumber is the highest positional parameter number a `$n` placeholder
+	// may carry.
+	//
+	// PostgreSQL's wire protocol caps bind parameters at 65535, so a larger number can never
+	// be satisfied; rejecting it at the lexer keeps the parsed value within int range and
+	// surfaces a clear error rather than silently clamping an overflowed value.
+	maxDollarParameterNumber = 65535
 )

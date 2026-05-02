@@ -1,5 +1,4 @@
-// Package db provides embedded DuckDB migration files for the sales analytics
-// database.
+// Package db provides embedded DuckDB migration files for the sales analytics database.
 package db
 
 import "embed"

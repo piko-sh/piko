@@ -27,7 +27,7 @@ import (
 
 var (
 	sumF64ProductionBenchDims = []int{128, 768, 1536, 4096}
-	sumF64ProductionSink float64
+	sumF64ProductionSink      float64
 )
 
 func kahanSumF64(a []float64) float64 {

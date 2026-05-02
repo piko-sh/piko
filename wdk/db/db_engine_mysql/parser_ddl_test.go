@@ -19,6 +19,7 @@
 package db_engine_mysql
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,9 +34,27 @@ func applyDDL(t *testing.T, sql string) *querier_dto.CatalogueMutation {
 	stmts, err := engine.ParseStatements(sql)
 	require.NoError(t, err)
 	require.NotEmpty(t, stmts)
-	mutation, err := engine.ApplyDDL(stmts[0])
+	mutation, err := engine.ApplyDDL(context.Background(), stmts[0])
 	require.NoError(t, err)
 	return mutation
+}
+
+func TestApplyDDL_CreateFunction_MalformedArgListDoesNotHang(t *testing.T) {
+	t.Parallel()
+
+	engine := NewMySQLEngine()
+	for _, sql := range []string{
+		"CREATE FUNCTION f(123) RETURNS int RETURN 1",
+		"CREATE FUNCTION f(+) RETURNS int RETURN 1",
+		"CREATE PROCEDURE p(?) BEGIN END",
+		"CREATE FUNCTION f('x') RETURNS int RETURN 1",
+	} {
+		statements, parseError := engine.ParseStatements(sql)
+		if parseError != nil || len(statements) == 0 {
+			continue
+		}
+		_, _ = engine.ApplyDDL(context.Background(), statements[0])
+	}
 }
 
 func TestApplyDDL_CreateTable(t *testing.T) {
@@ -398,6 +417,30 @@ func TestApplyDDL_CreateTable(t *testing.T) {
 				require.Len(t, mutation.Columns, 1)
 				assert.Equal(t, querier_dto.TypeCategoryInteger, mutation.Columns[0].SQLType.Category)
 				assert.Equal(t, "int unsigned", mutation.Columns[0].SQLType.EngineName)
+			},
+		},
+		{
+
+			name: "unsigned decimal column",
+			sql:  "CREATE TABLE t (amount DECIMAL(10,2) UNSIGNED);",
+			assertions: func(t *testing.T, mutation *querier_dto.CatalogueMutation) {
+				require.Len(t, mutation.Columns, 1)
+				assert.Equal(t, querier_dto.TypeCategoryDecimal, mutation.Columns[0].SQLType.Category)
+				assert.Equal(t, "decimal", mutation.Columns[0].SQLType.EngineName)
+				require.NotNil(t, mutation.Columns[0].SQLType.Precision)
+				assert.Equal(t, 10, *mutation.Columns[0].SQLType.Precision)
+				require.NotNil(t, mutation.Columns[0].SQLType.Scale)
+				assert.Equal(t, 2, *mutation.Columns[0].SQLType.Scale)
+			},
+		},
+		{
+
+			name: "unsigned double column",
+			sql:  "CREATE TABLE t (val DOUBLE UNSIGNED);",
+			assertions: func(t *testing.T, mutation *querier_dto.CatalogueMutation) {
+				require.Len(t, mutation.Columns, 1)
+				assert.Equal(t, querier_dto.TypeCategoryFloat, mutation.Columns[0].SQLType.Category)
+				assert.Equal(t, "double", mutation.Columns[0].SQLType.EngineName)
 			},
 		},
 
@@ -885,6 +928,29 @@ func TestApplyDDL_CreateView(t *testing.T) {
 			assertions: func(t *testing.T, mutation *querier_dto.CatalogueMutation) {
 				assert.Equal(t, querier_dto.MutationCreateView, mutation.Kind)
 				assert.Equal(t, "active_users", mutation.TableName)
+			},
+		},
+		{
+			name: "view body is analysed into typed columns",
+			sql:  "CREATE VIEW user_emails AS SELECT id, email FROM users WHERE active = 1;",
+			assertions: func(t *testing.T, mutation *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateView, mutation.Kind)
+				require.NotNil(t, mutation.ViewDefinition,
+					"view body must be analysed so columns are typed, not registered name-only")
+				require.Len(t, mutation.ViewDefinition.OutputColumns, 2)
+				assert.Equal(t, "id", mutation.ViewDefinition.OutputColumns[0].ColumnName)
+				assert.Equal(t, "email", mutation.ViewDefinition.OutputColumns[1].ColumnName)
+			},
+		},
+		{
+			name: "view with declared column list overlays names",
+			sql:  "CREATE VIEW labelled (user_id, contact) AS SELECT id, email FROM users;",
+			assertions: func(t *testing.T, mutation *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateView, mutation.Kind)
+				require.NotNil(t, mutation.ViewDefinition)
+				require.Len(t, mutation.ViewDefinition.OutputColumns, 2)
+				assert.Equal(t, "user_id", mutation.ViewDefinition.OutputColumns[0].Name)
+				assert.Equal(t, "contact", mutation.ViewDefinition.OutputColumns[1].Name)
 			},
 		},
 		{
@@ -1825,7 +1891,7 @@ func TestClassifyStatement_Unknown(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation)
 	})
@@ -1835,7 +1901,7 @@ func TestClassifyStatement_Unknown(t *testing.T) {
 		statements, err := engine.ParseStatements("DROP EVENT my_event;")
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation)
 	})
@@ -1845,7 +1911,7 @@ func TestClassifyStatement_Unknown(t *testing.T) {
 		statements, err := engine.ParseStatements("ALTER DATABASE mydb CHARACTER SET utf8mb4;")
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation)
 	})
@@ -1855,7 +1921,7 @@ func TestClassifyStatement_Unknown(t *testing.T) {
 		statements, err := engine.ParseStatements("CREATE EVENT daily_cleanup ON SCHEDULE EVERY 1 DAY DO DELETE FROM tmp;")
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation)
 	})
@@ -1870,19 +1936,19 @@ func TestParseStatements_MultipleStatements(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, statements, 3, "expected three statements from semicolon-separated SQL")
 
-	mutation1, err := engine.ApplyDDL(statements[0])
+	mutation1, err := engine.ApplyDDL(context.Background(), statements[0])
 	require.NoError(t, err)
 	require.NotNil(t, mutation1)
 	assert.Equal(t, querier_dto.MutationCreateTable, mutation1.Kind)
 	assert.Equal(t, "a", mutation1.TableName)
 
-	mutation2, err := engine.ApplyDDL(statements[1])
+	mutation2, err := engine.ApplyDDL(context.Background(), statements[1])
 	require.NoError(t, err)
 	require.NotNil(t, mutation2)
 	assert.Equal(t, querier_dto.MutationCreateTable, mutation2.Kind)
 	assert.Equal(t, "b", mutation2.TableName)
 
-	mutation3, err := engine.ApplyDDL(statements[2])
+	mutation3, err := engine.ApplyDDL(context.Background(), statements[2])
 	require.NoError(t, err)
 	require.NotNil(t, mutation3)
 	assert.Equal(t, querier_dto.MutationDropTable, mutation3.Kind)
@@ -1898,7 +1964,7 @@ func TestParseStatements_MixedDDLAndDML(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, statements, 3)
 
-	mutation, err := engine.ApplyDDL(statements[0])
+	mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 	require.NoError(t, err)
 	require.NotNil(t, mutation)
 	assert.Equal(t, querier_dto.MutationCreateTable, mutation.Kind)
@@ -1910,4 +1976,31 @@ func TestParseStatements_MixedDDLAndDML(t *testing.T) {
 	analysis, err = engine.AnalyseQuery(nil, statements[2])
 	require.NoError(t, err)
 	assert.True(t, analysis.ReadOnly)
+}
+
+func TestApplyDDL_FunctionArgumentNamesAndNamelessTypes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("named arguments capture their names", func(t *testing.T) {
+		t.Parallel()
+
+		mutation := applyDDL(t, "CREATE FUNCTION f(amount INT, label VARCHAR(20)) RETURNS INT DETERMINISTIC RETURN amount;")
+		require.NotNil(t, mutation)
+		require.NotNil(t, mutation.FunctionSignature)
+		require.Len(t, mutation.FunctionSignature.Arguments, 2)
+		assert.Equal(t, "amount", mutation.FunctionSignature.Arguments[0].Name)
+		assert.Equal(t, querier_dto.TypeCategoryInteger, mutation.FunctionSignature.Arguments[0].Type.Category)
+		assert.Equal(t, "label", mutation.FunctionSignature.Arguments[1].Name)
+	})
+
+	t.Run("nameless argument keeps an empty name", func(t *testing.T) {
+		t.Parallel()
+
+		mutation := applyDDL(t, "CREATE FUNCTION g(INT) RETURNS INT DETERMINISTIC RETURN 1;")
+		require.NotNil(t, mutation)
+		require.NotNil(t, mutation.FunctionSignature)
+		require.Len(t, mutation.FunctionSignature.Arguments, 1)
+		assert.Empty(t, mutation.FunctionSignature.Arguments[0].Name)
+		assert.Equal(t, querier_dto.TypeCategoryInteger, mutation.FunctionSignature.Arguments[0].Type.Category)
+	})
 }

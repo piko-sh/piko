@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "filter_colours.sql",
-    "SQL": "-- piko.name: FilterColours\n-- piko.command: many\nSELECT id, name FROM items WHERE colour = ANY($1::colour[]);",
+    "SQL": "-- piko.query(name: FilterColours, command: many)\nSELECT id, name FROM items WHERE colour = ANY($1::colour[]);",
     "Name": "FilterColours",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -29,7 +30,8 @@
             "StructFields": null,
             "KeyType": null,
             "UnionMembers": null,
-            "Category": 11
+            "Category": 11,
+            "Nullable": false
           },
           "EngineName": "colour[]",
           "Schema": "",
@@ -37,20 +39,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 13
+          "Category": 13,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 2
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -63,16 +70,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -85,7 +96,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -106,9 +118,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

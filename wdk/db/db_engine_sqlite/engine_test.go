@@ -19,6 +19,7 @@
 package db_engine_sqlite
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,9 +54,9 @@ func TestNormaliseTypeName(t *testing.T) {
 	}{
 
 		{
-			name:           "INTEGER maps to integer",
+			name:           "INTEGER maps to int4",
 			input:          "INTEGER",
-			wantEngineName: "integer",
+			wantEngineName: "int4",
 			wantCategory:   querier_dto.TypeCategoryInteger,
 		},
 		{
@@ -78,15 +79,21 @@ func TestNormaliseTypeName(t *testing.T) {
 		},
 
 		{
-			name:           "int maps to integer via built-in lookup",
+			name:           "int maps to int4 via built-in lookup",
 			input:          "int",
-			wantEngineName: "integer",
+			wantEngineName: "int4",
 			wantCategory:   querier_dto.TypeCategoryInteger,
 		},
 		{
-			name:           "bigint maps to integer",
+			name:           "bigint maps to int8",
 			input:          "bigint",
-			wantEngineName: "integer",
+			wantEngineName: "int8",
+			wantCategory:   querier_dto.TypeCategoryInteger,
+		},
+		{
+			name:           "smallint maps to int2",
+			input:          "smallint",
+			wantEngineName: "int2",
 			wantCategory:   querier_dto.TypeCategoryInteger,
 		},
 		{
@@ -117,14 +124,14 @@ func TestNormaliseTypeName(t *testing.T) {
 		{
 			name:           "case insensitive normalisation",
 			input:          "Integer",
-			wantEngineName: "integer",
+			wantEngineName: "int4",
 			wantCategory:   querier_dto.TypeCategoryInteger,
 		},
 
 		{
-			name:           "unknown type containing INT falls back to integer affinity",
+			name:           "unknown type containing INT falls back to int4 affinity",
 			input:          "myinttype",
-			wantEngineName: "integer",
+			wantEngineName: "int4",
 			wantCategory:   querier_dto.TypeCategoryInteger,
 		},
 
@@ -167,8 +174,8 @@ func TestPromoteType(t *testing.T) {
 	}{
 		{
 			name:  "integer and integer returns left",
-			left:  querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-			right: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+			left:  querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
+			right: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
 		},
 		{
 			name:  "real and real returns left",
@@ -396,7 +403,7 @@ func TestNormaliseTypeName_AffinityRules(t *testing.T) {
 			name:           "integer with modifier ignored",
 			input:          "integer",
 			modifiers:      []int{11},
-			wantEngineName: "integer",
+			wantEngineName: "int4",
 			wantCategory:   querier_dto.TypeCategoryInteger,
 		},
 	}
@@ -428,8 +435,68 @@ func TestApplyDDL_UnexpectedStatementType(t *testing.T) {
 
 	engine := NewSQLiteEngine()
 
-	_, err := engine.ApplyDDL(querier_dto.ParsedStatement{
+	_, err := engine.ApplyDDL(context.Background(), querier_dto.ParsedStatement{
 		Raw: nil,
 	})
 	assert.Error(t, err, "ApplyDDL should return an error for nil Raw")
+}
+
+func TestAnalyseQuery_RecoversFromParserPanic(t *testing.T) {
+	t.Parallel()
+
+	engine := NewSQLiteEngine()
+	statement := querier_dto.ParsedStatement{
+		Raw: &parsedStatement{
+			tokens: []token{{kind: tokenEOF}},
+			kind:   statementKindSelect,
+		},
+	}
+
+	analysis, err := engine.AnalyseQuery(nil, statement)
+
+	require.Error(t, err)
+	require.Nil(t, analysis)
+	assert.Contains(t, err.Error(), "sqlite: analyse panic")
+	assert.NotContains(t, err.Error(), "stack:")
+}
+
+func TestApplyDDL_RecoversWithStackTrace(t *testing.T) {
+	t.Parallel()
+
+	engine := NewSQLiteEngine()
+	statement := querier_dto.ParsedStatement{
+		Raw: &parsedStatement{
+			tokens: []token{{kind: tokenEOF}},
+			kind:   statementKindCreateTable,
+		},
+	}
+
+	mutation, err := engine.ApplyDDL(context.Background(), statement)
+
+	require.Error(t, err)
+	require.Nil(t, mutation)
+	assert.Contains(t, err.Error(), "sqlite: ddl panic")
+	assert.NotContains(t, err.Error(), "stack:")
+}
+
+func TestParseStatementsRecordsPerStatementByteLength(t *testing.T) {
+	t.Parallel()
+
+	const first = "SELECT 1"
+	const second = "SELECT 22"
+	sql := first + "; " + second
+
+	engine := NewSQLiteEngine()
+	statements, err := engine.ParseStatements(sql)
+	require.NoError(t, err)
+	require.Len(t, statements, 2)
+
+	assert.Equal(t, 0, statements[0].Location)
+	assert.Equal(t, len(first), statements[0].Length,
+		"first statement Length should span only its own tokens, not the whole source")
+
+	secondLocation := len(first) + len("; ")
+	assert.Equal(t, secondLocation, statements[1].Location)
+	assert.Equal(t, len(second), statements[1].Length,
+		"second statement Length should span only its own tokens")
 }

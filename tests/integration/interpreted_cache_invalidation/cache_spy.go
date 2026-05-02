@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 )
 
-// CacheSpy wraps a cache and tracks all Get operations to detect hits/misses.
-// This is used in tests to verify that the correct cache tier is being used.
+// CacheSpy wraps a cache and tracks all Get operations to detect hits/misses. This is
+// used in tests to verify that the correct cache tier is being used.
 type CacheSpy struct {
 	// underlying is the wrapped cache that handles actual storage operations.
 	underlying coordinator_domain.BuildResultCachePort
@@ -50,8 +50,7 @@ type CacheSpy struct {
 
 // NewCacheSpy creates a new cache spy that wraps an underlying cache.
 //
-// Takes underlying (BuildResultCachePort) which is the cache to wrap and spy
-// on.
+// Takes underlying (BuildResultCachePort) which is the cache to wrap and spy on.
 //
 // Returns *CacheSpy which wraps the underlying cache to record interactions.
 func NewCacheSpy(underlying coordinator_domain.BuildResultCachePort) *CacheSpy {
@@ -62,11 +61,9 @@ func NewCacheSpy(underlying coordinator_domain.BuildResultCachePort) *CacheSpy {
 
 // Get retrieves a cache entry by key, delegating to the underlying cache.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes key (string) which identifies the cache entry to retrieve.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which is the cached result if
-// found.
+// Returns *annotator_dto.ProjectAnnotationResult which is the cached result if found.
 // Returns error when the key is not found or the underlying cache fails.
 //
 // Safe for concurrent use. Access to spy counters is protected by a mutex.
@@ -91,7 +88,6 @@ func (s *CacheSpy) Get(ctx context.Context, key string) (*annotator_dto.ProjectA
 
 // Set stores a cache entry under the given key.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes key (string) which identifies the cache entry.
 // Takes result (*annotator_dto.ProjectAnnotationResult) which is the value to store.
 //
@@ -186,8 +182,7 @@ func NewIntrospectionCacheSpy(underlying coordinator_domain.IntrospectionCachePo
 //
 // Takes key (string) which identifies the cache entry to retrieve.
 //
-// Returns *coordinator_domain.IntrospectionCacheEntry which is the cached entry if
-// found.
+// Returns *coordinator_domain.IntrospectionCacheEntry which is the cached entry if found.
 // Returns error when the key is not found or the underlying cache fails.
 //
 // Safe for concurrent use. Access to spy counters is protected by a mutex.
@@ -213,8 +208,7 @@ func (s *IntrospectionCacheSpy) Get(ctx context.Context, key string) (*coordinat
 // Set stores an introspection cache entry under the given key.
 //
 // Takes key (string) which identifies the cache entry.
-// Takes entry (*coordinator_domain.IntrospectionCacheEntry) which is the value to
-// store.
+// Takes entry (*coordinator_domain.IntrospectionCacheEntry) which is the value to store.
 //
 // Returns error when the underlying cache fails to store the entry.
 func (s *IntrospectionCacheSpy) Set(ctx context.Context, key string, entry *coordinator_domain.IntrospectionCacheEntry) error {

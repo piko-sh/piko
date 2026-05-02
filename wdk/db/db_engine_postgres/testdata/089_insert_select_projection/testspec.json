@@ -1,0 +1,4 @@
+{
+  "description": "INSERT ... SELECT projection placeholders are typed from the positional INSERT target columns: $1 -> uuid (id), $2 -> text (source_algorithm), $3 -> int4 (priority). This exercises the P2 parser mapping that attaches ColumnReference{TableAlias: target table, ColumnName: target column} and the Assignment context to each top-level projection placeholder, exactly as the VALUES path does.",
+  "expectedDiagnosticCount": 0
+}

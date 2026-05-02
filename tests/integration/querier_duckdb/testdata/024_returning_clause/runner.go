@@ -40,7 +40,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	updated, err := queries.UpdateReturning(ctx, db.UpdateReturningParams{P1: int32(1), P2: int32(2499)})
+	updated, err := queries.UpdateReturning(ctx, db.UpdateReturningParams{ID: int32(1), Price: int32(2499)})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "UpdateReturning:", err)
 		os.Exit(1)

@@ -82,15 +82,15 @@ func BuildDynamicParamsStruct(
 	for i := range query.Parameters {
 		fieldName := SnakeToPascalCase(query.Parameters[i].Name)
 
-		switch query.Parameters[i].Kind {
-		case querier_dto.ParameterDirectiveOptional:
+		switch {
+		case query.Parameters[i].IsOptional:
 			goType := ResolveGoType(query.Parameters[i].SQLType, false, mappings)
 			fields = append(fields, goastutil.Field(fieldName, goastutil.StarExpr(tracker.AddType(goType))))
 
-		case querier_dto.ParameterDirectiveLimit, querier_dto.ParameterDirectiveOffset:
+		case query.Parameters[i].IsPaginationBound():
 			fields = append(fields, goastutil.Field(fieldName, goastutil.CachedIdent("int")))
 
-		case querier_dto.ParameterDirectiveSortable:
+		case query.Parameters[i].Kind == querier_dto.ParameterDirectiveSortable:
 			fields = append(fields,
 				goastutil.Field(fieldName, goastutil.CachedIdent(OrderByEnumTypeName(query.Name))),
 				goastutil.Field(fieldName+"Direction", goastutil.CachedIdent(IdentOrderDirection)),
@@ -120,7 +120,7 @@ func BuildParamsInitStatements(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	var statements []ast.Stmt
 
 	for i := range query.Parameters {
-		if query.Parameters[i].Kind != querier_dto.ParameterDirectiveLimit {
+		if !query.Parameters[i].IsPaginationBound() || query.Parameters[i].IsOptional {
 			continue
 		}
 		fieldAccess := goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), SnakeToPascalCase(query.Parameters[i].Name))
@@ -137,6 +137,17 @@ func BuildParamsInitStatements(query *querier_dto.AnalysedQuery) []ast.Stmt {
 				),
 			})
 		}
+
+		statements = append(statements, &ast.IfStmt{
+			Cond: &ast.BinaryExpr{
+				X:  fieldAccess,
+				Op: token.LSS,
+				Y:  goastutil.IntLit(0),
+			},
+			Body: goastutil.BlockStmt(
+				goastutil.AssignStmt(fieldAccess, goastutil.IntLit(0)),
+			),
+		})
 
 		if query.Parameters[i].MaxLimit != nil {
 			statements = append(statements, &ast.IfStmt{
@@ -188,41 +199,70 @@ func BuildDynamicMethodParams(query *querier_dto.AnalysedQuery) *ast.FieldList {
 // database call.
 //
 // All parameters come from the params struct. Sortable parameters are excluded since they
-// are not SQL bind parameters.
+// are not SQL bind parameters. Engines whose driver collapses numbered placeholders down
+// to anonymous `?` need one argument per placeholder occurrence in source order; engines
+// that preserve the index emit one argument per unique parameter.
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
+// Takes strategy (MethodStrategy) which exposes placeholder behaviour, or nil when the
+// caller does not know the strategy yet.
 //
 // Returns []ast.Expr which holds the context, SQL constant, and parameter field access
 // expressions.
-func BuildDynamicQueryArgs(query *querier_dto.AnalysedQuery) []ast.Expr {
+func BuildDynamicQueryArgs(query *querier_dto.AnalysedQuery, strategy MethodStrategy) []ast.Expr {
 	arguments := []ast.Expr{
 		goastutil.CachedIdent(IdentCtx),
 		goastutil.CachedIdent(SnakeToCamelCase(query.Name)),
 	}
 
-	for i := range query.Parameters {
-		if query.Parameters[i].Kind == querier_dto.ParameterDirectiveSortable {
-			continue
-		}
-		arguments = append(arguments,
-			goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), SnakeToPascalCase(query.Parameters[i].Name)),
-		)
-	}
-
-	return arguments
+	return appendDynamicParameterArgs(arguments, query, strategy)
 }
 
 // BuildSortableDynamicQueryArgs constructs query args for a sortable query, using the
 // local "query" variable instead of the SQL constant.
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
+// Takes strategy (MethodStrategy) which exposes placeholder behaviour, or nil when the
+// caller does not know the strategy yet.
 //
 // Returns []ast.Expr which holds the context, local query variable, and parameter field
 // access expressions.
-func BuildSortableDynamicQueryArgs(query *querier_dto.AnalysedQuery) []ast.Expr {
+func BuildSortableDynamicQueryArgs(query *querier_dto.AnalysedQuery, strategy MethodStrategy) []ast.Expr {
 	arguments := []ast.Expr{
 		goastutil.CachedIdent(IdentCtx),
 		goastutil.CachedIdent("query"),
+	}
+
+	return appendDynamicParameterArgs(arguments, query, strategy)
+}
+
+// appendDynamicParameterArgs appends parameter access expressions to the supplied prefix
+// in the order the bind sites appear in the SQL. Sortable parameters are excluded because
+// they steer ORDER BY emission rather than binding values.
+//
+// Takes arguments ([]ast.Expr) which is the prefix (typically ctx and the SQL/query
+// expression) the parameter accesses extend.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
+// Takes strategy (MethodStrategy) which exposes placeholder behaviour, or nil to fall
+// back to one argument per unique parameter.
+//
+// Returns []ast.Expr which holds the original prefix plus one expression per bind
+// occurrence (or per unique parameter when the strategy preserves placeholder indices).
+func appendDynamicParameterArgs(arguments []ast.Expr, query *querier_dto.AnalysedQuery, strategy MethodStrategy) []ast.Expr {
+	if strategy != nil && !strategy.PreservesPlaceholderIndices() {
+		ordering := PlaceholderOccurrenceOrder(query.SQL)
+		if len(ordering) > 0 {
+			for _, number := range ordering {
+				index := parameterIndexByNumber(query, number)
+				if index < 0 || query.Parameters[index].Kind == querier_dto.ParameterDirectiveSortable {
+					continue
+				}
+				arguments = append(arguments,
+					goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), SnakeToPascalCase(query.Parameters[index].Name)),
+				)
+			}
+			return arguments
+		}
 	}
 
 	for i := range query.Parameters {
@@ -330,6 +370,32 @@ func BuildSortableQueryAppend(sortParameter querier_dto.QueryParameter) []ast.St
 	return buildSortableOrderByAppend(sortParameter)
 }
 
+// sortableQueryConcatAssign builds the statement `query = query + (prefix +
+// string(params. <field>))`, used to append a validated ORDER BY column or direction onto
+// the running query string.
+//
+// Takes prefix (string) which is the literal SQL fragment prepended to the field value.
+// Takes field (string) which is the params struct field to convert and append.
+//
+// Returns ast.Stmt which is the append assignment.
+func sortableQueryConcatAssign(prefix, field string) ast.Stmt {
+	return goastutil.AssignStmt(
+		goastutil.CachedIdent("query"),
+		&ast.BinaryExpr{
+			X:  goastutil.CachedIdent("query"),
+			Op: token.ADD,
+			Y: &ast.BinaryExpr{
+				X:  goastutil.StrLit(prefix),
+				Op: token.ADD,
+				Y: goastutil.CallExpr(
+					goastutil.CachedIdent("string"),
+					goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), field),
+				),
+			},
+		},
+	)
+}
+
 // buildSortableOrderByAppend constructs the conditional ORDER BY append statements that
 // operate on an existing "query" local variable.
 //
@@ -338,57 +404,39 @@ func BuildSortableQueryAppend(sortParameter querier_dto.QueryParameter) []ast.St
 //
 // Returns []ast.Stmt which contains the conditional ORDER BY append.
 func buildSortableOrderByAppend(sortParameter querier_dto.QueryParameter) []ast.Stmt {
+	if len(sortParameter.SortableColumns) == 0 {
+		return nil
+	}
+
 	sortField := SnakeToPascalCase(sortParameter.Name)
 	directionField := sortField + "Direction"
 
-	return []ast.Stmt{
-		&ast.IfStmt{
-			Cond: &ast.BinaryExpr{
-				X:  goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), sortField),
-				Op: token.NEQ,
-				Y:  goastutil.StrLit(""),
-			},
-			Body: goastutil.BlockStmt(
-				goastutil.AssignStmt(
-					goastutil.CachedIdent("query"),
-					&ast.BinaryExpr{
-						X:  goastutil.CachedIdent("query"),
-						Op: token.ADD,
-						Y: &ast.BinaryExpr{
-							X:  goastutil.StrLit(" ORDER BY "),
-							Op: token.ADD,
-							Y: goastutil.CallExpr(
-								goastutil.CachedIdent("string"),
-								goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), sortField),
-							),
-						},
-					},
-				),
-				&ast.IfStmt{
-					Cond: &ast.BinaryExpr{
-						X:  goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), directionField),
-						Op: token.NEQ,
-						Y:  goastutil.StrLit(""),
-					},
-					Body: goastutil.BlockStmt(
-						goastutil.AssignStmt(
-							goastutil.CachedIdent("query"),
-							&ast.BinaryExpr{
-								X:  goastutil.CachedIdent("query"),
-								Op: token.ADD,
-								Y: &ast.BinaryExpr{
-									X:  goastutil.StrLit(" "),
-									Op: token.ADD,
-									Y: goastutil.CallExpr(
-										goastutil.CachedIdent("string"),
-										goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), directionField),
-									),
-								},
-							},
-						),
-					),
-				},
-			),
-		},
+	columnLabels := make([]ast.Expr, len(sortParameter.SortableColumns))
+	for i, column := range sortParameter.SortableColumns {
+		columnLabels[i] = goastutil.StrLit(column)
 	}
+
+	appendOrderBy := sortableQueryConcatAssign(" ORDER BY ", sortField)
+	appendDirection := sortableQueryConcatAssign(" ", directionField)
+
+	directionSwitch := &ast.SwitchStmt{
+		Tag: goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), directionField),
+		Body: goastutil.BlockStmt(&ast.CaseClause{
+			List: []ast.Expr{goastutil.CachedIdent("OrderAsc"), goastutil.CachedIdent("OrderDesc")},
+			Body: []ast.Stmt{appendDirection},
+		}),
+	}
+
+	sortSwitch := &ast.SwitchStmt{
+		Tag: goastutil.CallExpr(
+			goastutil.CachedIdent("string"),
+			goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentParams), sortField),
+		),
+		Body: goastutil.BlockStmt(&ast.CaseClause{
+			List: columnLabels,
+			Body: []ast.Stmt{appendOrderBy, directionSwitch},
+		}),
+	}
+
+	return []ast.Stmt{sortSwitch}
 }

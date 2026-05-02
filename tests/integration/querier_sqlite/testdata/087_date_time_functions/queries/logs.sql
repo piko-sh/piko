@@ -1,15 +1,11 @@
--- piko.name: InsertLog
--- piko.command: exec
+-- piko.query(name: InsertLog, command: exec)
 INSERT INTO logs (id, message, created_at, unix_ts) VALUES (?, ?, ?, ?);
 
--- piko.name: GetLog
--- piko.command: one
+-- piko.query(name: GetLog, command: one)
 SELECT id, message, created_at, unix_ts FROM logs WHERE id = ?;
 
--- piko.name: ListByDateRange
--- piko.command: many
+-- piko.query(name: ListByDateRange, command: many)
 SELECT id, message, created_at FROM logs WHERE created_at BETWEEN ? AND ? ORDER BY created_at ASC;
 
--- piko.name: FormatDate
--- piko.command: one
+-- piko.query(name: FormatDate, command: one)
 SELECT strftime('%Y', created_at) AS year, strftime('%m', created_at) AS month FROM logs WHERE id = ?;

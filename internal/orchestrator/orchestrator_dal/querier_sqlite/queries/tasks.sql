@@ -1,22 +1,19 @@
--- piko.name: CreateTask
--- piko.command: exec
+-- piko.query(name: CreateTask, command: exec)
 INSERT INTO tasks (
     id, workflow_id, executor, priority, payload, config, status, execute_at, attempt, created_at, updated_at
 ) VALUES (
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 );
 
--- piko.name: UpdateTask
--- piko.command: exec
+-- piko.query(name: UpdateTask, command: exec)
 UPDATE tasks
 SET
     status = ?, priority = ?, execute_at = ?, attempt = ?, last_error = ?, result = ?, payload = ?, config = ?, updated_at = ?
 WHERE
     id = ?;
 
--- piko.name: FetchDueTasks
--- piko.command: many
--- ?1 as piko.slice(statuses)
+-- piko.query(name: FetchDueTasks, command: many)
+-- ?1 as piko.param(statuses, kind: slice)
 SELECT
   id, workflow_id, executor, priority,
   payload, config,
@@ -32,16 +29,14 @@ ORDER BY
   created_at ASC
 LIMIT ?4;
 
--- piko.name: CreateTasksBatch
--- piko.command: batch
+-- piko.query(name: CreateTasksBatch, command: batch)
 INSERT INTO tasks (
     id, workflow_id, executor, priority, payload, config, status,
     execute_at, attempt, created_at, updated_at, deduplication_key
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
--- piko.name: MarkTasksAsProcessing
--- piko.command: exec
--- ?2 as piko.slice(ids)
+-- piko.query(name: MarkTasksAsProcessing, command: exec)
+-- ?2 as piko.param(ids, kind: slice)
 UPDATE tasks
 SET
   status = 'PROCESSING',

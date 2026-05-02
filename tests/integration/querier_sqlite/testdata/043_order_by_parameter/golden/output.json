@@ -1,24 +1,24 @@
 {
   "items": [
     {
-      "ID": 1,
-      "Name": "Alpha",
-      "Priority": 1
+      "id": 1,
+      "name": "Alpha",
+      "priority": 1
     },
     {
-      "ID": 3,
-      "Name": "Charlie",
-      "Priority": 1
+      "id": 3,
+      "name": "Charlie",
+      "priority": 1
     },
     {
-      "ID": 2,
-      "Name": "Bravo",
-      "Priority": 2
+      "id": 2,
+      "name": "Bravo",
+      "priority": 2
     },
     {
-      "ID": 4,
-      "Name": "Delta",
-      "Priority": 3
+      "id": 4,
+      "name": "Delta",
+      "priority": 3
     }
   ]
 }

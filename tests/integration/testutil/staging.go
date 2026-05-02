@@ -30,8 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// StagedEnvironment manages a temporary staging directory for multi-stage
-// tests.
+// StagedEnvironment manages a temporary staging directory for multi-stage tests.
 type StagedEnvironment struct {
 	// t is the test context for reporting failures and logging.
 	t *testing.T
@@ -46,8 +45,8 @@ type StagedEnvironment struct {
 	TestCaseDir string
 }
 
-// NewStagedEnvironment creates a new staged environment by copying base files
-// from srcDir to a new staged directory.
+// NewStagedEnvironment creates a new staged environment by copying base files from srcDir
+// to a new staged directory.
 //
 // Takes t (*testing.T) which is the test context for reporting failures.
 // Takes testCaseDir (string) which is the root directory containing source files.
@@ -75,8 +74,7 @@ func NewStagedEnvironment(t *testing.T, testCaseDir string) *StagedEnvironment {
 	}
 }
 
-// Cleanup removes the staged directory unless KeepStaged is set and the test
-// failed.
+// Cleanup removes the staged directory unless KeepStaged is set and the test failed.
 func (env *StagedEnvironment) Cleanup() {
 	if env.t.Failed() && KeepStaged != nil && *KeepStaged {
 		env.t.Logf("Test failed, keeping staged directory for inspection: %s", env.StagedDir)
@@ -87,8 +85,8 @@ func (env *StagedEnvironment) Cleanup() {
 	}
 }
 
-// ApplyStagePatch applies all patch files for a given stage number.
-// Patch files are named with a _N suffix (e.g., "main.pk_1" for stage 1).
+// ApplyStagePatch applies all patch files for a given stage number. Patch files are named
+// with a _N suffix (e.g., "main.pk_1" for stage 1).
 //
 // Takes stageNum (int) which specifies the stage number to apply patches for.
 //
@@ -196,9 +194,9 @@ func IsPatchFile(path string) bool {
 // Takes src (string) which is the path to the file to copy.
 // Takes dst (string) which is the path where the file will be saved.
 //
-// Returns error when the source file cannot be opened, the destination
-// folder cannot be created, the destination file cannot be created,
-// the copy fails, or the file cannot be synced.
+// Returns error when the source file cannot be opened, the destination folder cannot be
+// created, the destination file cannot be created, the copy fails, or the file cannot be
+// synced.
 func CopyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {

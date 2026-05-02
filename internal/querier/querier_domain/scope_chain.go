@@ -19,10 +19,30 @@
 package querier_domain
 
 import (
+	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
+)
+
+const (
+	// maxScopeChainDepth caps how deep ResolveColumn and ExpandStar walk the parent chain.
+	//
+	// Hand-written SQL nests subqueries no more than a handful of levels in practice; the 64
+	// limit mirrors maxInferExpressionNameDepth in type_resolver.go so a malformed catalogue
+	// or maliciously crafted parser output cannot blow the Go stack here.
+	maxScopeChainDepth = 64
+)
+
+var (
+	// errScopeChainDepthExceeded is returned by the qualified and unqualified resolvers when
+	// the parent-chain traversal reaches maxScopeChainDepth. Callers see this as an
+	// unknown-column failure so the user message points at the lookup site rather than the
+	// depth limit.
+	errScopeChainDepthExceeded = errors.New("scope chain parent traversal exceeded depth limit")
 )
 
 // scopeChain provides nested scope resolution for column references. Each scope can
@@ -104,7 +124,7 @@ func (s *scopeChain) AddTable(
 		}
 		columns[i] = querier_dto.ScopedColumn{
 			Name:     catalogueTable.Columns[i].Name,
-			SQLType:  catalogueTable.Columns[i].SQLType,
+			SQLType:  arrayWrappedSQLType(&catalogueTable.Columns[i]),
 			Nullable: nullable,
 		}
 	}
@@ -141,6 +161,44 @@ func (s *scopeChain) AddCTE(name string, columns []querier_dto.ScopedColumn) {
 	}
 }
 
+// AddCTEAsTable registers a CTE referenced from a FROM or JOIN clause as a scoped table
+// under the given alias.
+//
+// Unqualified column lookups walk s.tables first, so promoting the CTE here makes
+// unqualified resolution deterministic when multiple CTEs are in scope but only some are
+// actually referenced. Without this, resolveFromCTEsAndLateral iterates every CTE in the
+// scope and the first one with a matching column name wins, which is both
+// non-deterministic (map iteration) and semantically wrong.
+//
+// Takes alias (string) which specifies the alias the CTE was referenced under, or the
+// CTE's own name when no AS clause was used.
+// Takes columns ([]querier_dto.ScopedColumn) which specifies the resolved output columns
+// of the CTE.
+// Takes joinKind (querier_dto.JoinKind) which specifies the join kind so nullability
+// propagates correctly when the CTE participates in an outer JOIN.
+//
+// The supplied columns slice is always deep-copied before being stored. A CTE referenced
+// as a table shares its column slice with the CTE's own definition
+// (s.ctes[name].columns); if it were stored by reference, a later RIGHT/FULL/POSITIONAL
+// join that flips Nullable on the existing table's columns in place would corrupt the
+// CTE's stored nullability for every subsequent reference. Outer joins additionally set
+// Nullable on the copy.
+func (s *scopeChain) AddCTEAsTable(alias string, columns []querier_dto.ScopedColumn, joinKind querier_dto.JoinKind) {
+	scoped := make([]querier_dto.ScopedColumn, len(columns))
+	copy(scoped, columns)
+	if joinKind == querier_dto.JoinLeft || joinKind == querier_dto.JoinFull || joinKind == querier_dto.JoinPositional {
+		for i := range scoped {
+			scoped[i].Nullable = true
+		}
+	}
+	s.tables[alias] = &querier_dto.ScopedTable{
+		Name:     alias,
+		Alias:    alias,
+		Columns:  scoped,
+		JoinKind: joinKind,
+	}
+}
+
 // AddDerivedTable registers a virtual table (from UNNEST, FLATTEN, table-valued
 // functions, or subqueries in FROM) in the current scope. Derived tables are resolved
 // identically to catalogue tables.
@@ -166,14 +224,12 @@ func (s *scopeChain) AddDerivedTable(reference querier_dto.DerivedTableReference
 // ResolveColumn walks the scope chain to find a column by optional table alias and column
 // name.
 //
-// Resolution algorithm:
-//  1. If tableAlias is set, find that table in current scope; if not found and scope is
-//     LATERAL/subquery, search parent.
-//  2. If tableAlias is empty, search all tables for the column name. Exactly one match is
-//     required; multiple matches produce Q002 (ambiguity).
-//  3. Check CTEs in current scope.
-//  4. For LATERAL/subquery scopes, traverse to parent and repeat.
-//  5. Not found anywhere produces Q001 (unknown column).
+// When tableAlias is set, the named table is sought in the current scope and, for LATERAL
+// or subquery scopes, in the parent when absent. When tableAlias is empty, every table is
+// searched for the column name, requiring exactly one match because multiple matches
+// produce Q002 (ambiguity). CTEs in the current scope are checked next, then LATERAL or
+// subquery scopes traverse to the parent and repeat. A column not found anywhere produces
+// Q001 (unknown column).
 //
 // Takes tableAlias (string) which specifies the qualifying table alias, or empty for
 // unqualified lookup.
@@ -187,9 +243,9 @@ func (s *scopeChain) ResolveColumn(
 	columnName string,
 ) (*querier_dto.ScopedColumn, *querier_dto.ScopedTable, error) {
 	if tableAlias != "" {
-		return s.resolveQualifiedColumn(tableAlias, columnName)
+		return s.resolveQualifiedColumn(tableAlias, columnName, 0)
 	}
-	return s.resolveUnqualifiedColumn(columnName)
+	return s.resolveUnqualifiedColumn(columnName, 0)
 }
 
 // ExpandStar expands a SELECT * or table.* into all visible columns from the scope. If
@@ -214,9 +270,11 @@ func (s *scopeChain) ExpandStar(tableAlias string) ([]querier_dto.ScopedColumn, 
 		return nil, fmt.Errorf("%s: unknown table %q in SELECT *", querier_dto.CodeUnknownTable, tableAlias)
 	}
 
+	tableAliases := slices.Sorted(maps.Keys(s.tables))
+
 	var allColumns []querier_dto.ScopedColumn
-	for _, table := range s.tables {
-		allColumns = append(allColumns, table.Columns...)
+	for _, alias := range tableAliases {
+		allColumns = append(allColumns, s.tables[alias].Columns...)
 	}
 	return allColumns, nil
 }
@@ -240,19 +298,29 @@ func (s *scopeChain) MarkLateralVisible(tables []*querier_dto.ScopedTable) {
 }
 
 // resolveQualifiedColumn resolves a column reference that includes a table alias
-// qualifier. Searches the current scope tables, CTEs, lateral-visible tables, and parent
-// scopes in order.
+// qualifier.
+//
+// It searches the current scope tables, CTEs, lateral-visible tables, and parent scopes
+// in order. The depth counter caps the parent-chain traversal at maxScopeChainDepth to
+// defend against runaway recursion on a malformed scope chain.
 //
 // Takes tableAlias (string) which specifies the qualifying table alias.
 // Takes columnName (string) which specifies the column name to find.
+// Takes depth (int) which holds the current parent-traversal depth. The root call passes
+// zero and each recursive parent call increments by one.
 //
 // Returns *querier_dto.ScopedColumn which holds the resolved column, or nil on error.
 // Returns *querier_dto.ScopedTable which holds the containing table, or nil on error.
-// Returns error which indicates Q001 if the table alias or column is unknown.
+// Returns error which indicates Q001 if the table alias or column is unknown, or
+// errScopeChainDepthExceeded when the parent chain ran past maxScopeChainDepth.
 func (s *scopeChain) resolveQualifiedColumn(
 	tableAlias string,
 	columnName string,
+	depth int,
 ) (*querier_dto.ScopedColumn, *querier_dto.ScopedTable, error) {
+	if depth >= maxScopeChainDepth {
+		return nil, nil, errScopeChainDepthExceeded
+	}
 	if table, exists := s.tables[tableAlias]; exists {
 		return resolveColumnInTable(table, columnName, tableAlias)
 	}
@@ -267,7 +335,7 @@ func (s *scopeChain) resolveQualifiedColumn(
 	}
 
 	if s.parent != nil && (s.kind == querier_dto.ScopeKindSubquery || s.kind == querier_dto.ScopeKindLateral) {
-		return s.parent.resolveQualifiedColumn(tableAlias, columnName)
+		return s.parent.resolveQualifiedColumn(tableAlias, columnName, depth+1)
 	}
 
 	return nil, nil, fmt.Errorf("%s: unknown table or alias %q", querier_dto.CodeUnknownColumn, tableAlias)
@@ -360,16 +428,26 @@ func resolveColumnInLateral(
 }
 
 // resolveUnqualifiedColumn resolves a column reference without a table qualifier.
-// Searches tables, implicit rowid, CTEs, lateral-visible tables, and parent scopes.
+//
+// It searches tables, implicit rowid, CTEs, lateral-visible tables, and parent scopes.
+// The depth counter caps the parent-chain traversal at maxScopeChainDepth to defend
+// against runaway recursion on a malformed scope chain.
 //
 // Takes columnName (string) which specifies the column name to resolve.
+// Takes depth (int) which holds the current parent-traversal depth. The root call passes
+// zero and each recursive parent call increments by one.
 //
 // Returns *querier_dto.ScopedColumn which holds the resolved column, or nil on error.
 // Returns *querier_dto.ScopedTable which holds the containing table, or nil on error.
-// Returns error which indicates Q001 (unknown) or Q002 (ambiguous) column.
+// Returns error which indicates Q001 (unknown), Q002 (ambiguous), or
+// errScopeChainDepthExceeded when the parent chain ran past maxScopeChainDepth.
 func (s *scopeChain) resolveUnqualifiedColumn(
 	columnName string,
+	depth int,
 ) (*querier_dto.ScopedColumn, *querier_dto.ScopedTable, error) {
+	if depth >= maxScopeChainDepth {
+		return nil, nil, errScopeChainDepthExceeded
+	}
 	column, table, matchCount := s.findColumnInTables(columnName)
 	if matchCount == 1 {
 		return column, table, nil
@@ -391,7 +469,7 @@ func (s *scopeChain) resolveUnqualifiedColumn(
 	}
 
 	if s.parent != nil && (s.kind == querier_dto.ScopeKindSubquery || s.kind == querier_dto.ScopeKindLateral) {
-		return s.parent.resolveUnqualifiedColumn(columnName)
+		return s.parent.resolveUnqualifiedColumn(columnName, depth+1)
 	}
 
 	return nil, nil, fmt.Errorf("%s: unknown column %q", querier_dto.CodeUnknownColumn, columnName)
@@ -474,7 +552,9 @@ func (s *scopeChain) resolveImplicitRowID(
 func (s *scopeChain) resolveFromCTEsAndLateral(
 	columnName string,
 ) (*querier_dto.ScopedColumn, *querier_dto.ScopedTable) {
-	for _, cte := range s.ctes {
+	cteNames := slices.Sorted(maps.Keys(s.ctes))
+	for _, name := range cteNames {
+		cte := s.ctes[name]
 		for i := range cte.columns {
 			if strings.EqualFold(cte.columns[i].Name, columnName) {
 				cteTable := &querier_dto.ScopedTable{
@@ -507,4 +587,37 @@ func (s *scopeChain) resolveFromCTEsAndLateral(
 func isImplicitRowID(name string) bool {
 	upper := strings.ToUpper(name)
 	return upper == "ROWID" || upper == "_ROWID_" || upper == "OID"
+}
+
+// arrayWrappedSQLType returns the column's SQLType with array wrapping applied when the
+// catalogue captured the column as an array (e.g. `tokens TEXT[]`).
+//
+// The catalogue stores arrays as a separate Column.IsArray flag and ArrayDimensions
+// counter rather than folding them into SQLType, so callers that propagate scope columns
+// downstream (parameters bound to array columns, derived-table column types, and so on)
+// must reconstitute the Array category here or the downstream type mapper falls back to
+// the scalar element type.
+//
+// Takes column (*querier_dto.Column) which is the catalogue column being scoped. Passed
+// by pointer because Column is a heavy value type and copying it on every call shows up
+// in the lint budget.
+//
+// Returns querier_dto.SQLType which is either the original SQLType or an Array-wrapped
+// variant carrying the original as ElementType.
+func arrayWrappedSQLType(column *querier_dto.Column) querier_dto.SQLType {
+	if !column.IsArray || column.ArrayDimensions <= 0 {
+		return column.SQLType
+	}
+
+	dimensions := min(column.ArrayDimensions, maxArrayDimensions)
+	wrapped := column.SQLType
+	for range dimensions {
+		inner := wrapped
+		wrapped = querier_dto.SQLType{
+			Category:    querier_dto.TypeCategoryArray,
+			EngineName:  inner.EngineName + "[]",
+			ElementType: &inner,
+		}
+	}
+	return wrapped
 }

@@ -22,7 +22,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"path/filepath"
+	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -39,7 +39,6 @@ var (
 // readSeedFiles reads and parses seed SQL files matching {version}_{name}.sql from the
 // given directory, returning them sorted by version ascending.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes fileReader (FileReaderPort) which provides filesystem access.
 // Takes directory (string) which is the path to the seed files directory.
 //
@@ -56,6 +55,7 @@ func readSeedFiles(
 	}
 
 	var files []querier_dto.SeedFile
+	seenVersions := make(map[int64]string)
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -71,13 +71,22 @@ func readSeedFiles(
 
 		version, parseErr := strconv.ParseInt(matches[1], 10, 64)
 		if parseErr != nil {
-			continue
+			return nil, fmt.Errorf("parsing version from %s: %w", entry.Name(), parseErr)
 		}
 
-		path := filepath.Join(directory, entry.Name())
-		content, readErr := fileReader.ReadFile(ctx, path)
+		if existing, duplicate := seenVersions[version]; duplicate {
+			return nil, &DuplicateSeedVersionError{
+				FirstFilename:  existing,
+				SecondFilename: entry.Name(),
+				Version:        version,
+			}
+		}
+		seenVersions[version] = entry.Name()
+
+		filePath := path.Join(directory, entry.Name())
+		content, readErr := fileReader.ReadFile(ctx, filePath)
 		if readErr != nil {
-			return nil, fmt.Errorf("reading seed file %s: %w", path, readErr)
+			return nil, fmt.Errorf("reading seed file %s: %w", filePath, readErr)
 		}
 
 		files = append(files, querier_dto.SeedFile{

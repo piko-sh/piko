@@ -85,7 +85,7 @@ func (s *OrchestratorInspectorService) ListRecentTasks(ctx context.Context, requ
 		limit = defaultListLimit
 	}
 
-	tasks, err := s.inspector.ListRecentTasks(ctx, limit)
+	tasks, err := s.inspector.ListRecentTasks(ctx, int(limit))
 	if err != nil {
 		return nil, fmt.Errorf("listing recent tasks: %w", err)
 	}
@@ -107,7 +107,7 @@ func (s *OrchestratorInspectorService) ListWorkflowSummary(ctx context.Context, 
 		limit = defaultListLimit
 	}
 
-	summaries, err := s.inspector.ListWorkflowSummary(ctx, limit)
+	summaries, err := s.inspector.ListWorkflowSummary(ctx, int(limit))
 	if err != nil {
 		return nil, fmt.Errorf("listing workflow summary: %w", err)
 	}

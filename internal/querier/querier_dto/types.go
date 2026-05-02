@@ -18,14 +18,6 @@
 
 package querier_dto
 
-// Dialect is an opaque string that identifies a SQL engine dialect (e.g. "postgres",
-// "mysql", "sqlite", "duckdb").
-//
-// Each engine adapter defines its own dialect name. The domain layer never switches on
-// dialect values; all engine-specific behaviour is expressed through the EnginePort
-// interface.
-type Dialect = string
-
 // ParameterStyle identifies how parameter placeholders are written.
 type ParameterStyle uint8
 
@@ -44,6 +36,11 @@ const (
 
 	// ParameterStyleAt uses @p1, @p2 (SQL Server).
 	ParameterStyleAt
+
+	// ParameterStyleClickHouseCurly uses {name:Type} (ClickHouse). The engine type tag is
+	// part of the placeholder syntax; the emitter queries the engine for the appropriate
+	// ClickHouse type when generating the SQL string.
+	ParameterStyleClickHouseCurly
 )
 
 // DirectiveParameterPrefix describes a sigil that may introduce a parameter reference in
@@ -127,6 +124,16 @@ const (
 
 	// TypeCategoryUnknown is the fallback for unrecognised types.
 	TypeCategoryUnknown
+
+	// TypeCategoryAggregateState covers ClickHouse aggregate state types.
+	//
+	// The covered types are AggregateFunction(name, T) and SimpleAggregateFunction(name, T).
+	// Such columns store the intermediate state of an aggregate function rather than a
+	// finalised value; callers that need the finalised value must wrap with
+	// finalizeAggregation() or use the appropriate state combinator. Placed after
+	// TypeCategoryUnknown so prior SQLTypeCategory iota values stay stable for serialised
+	// golden files.
+	TypeCategoryAggregateState
 )
 
 // SQLType is a structured representation of a SQL type, carrying category,
@@ -168,6 +175,15 @@ type SQLType struct {
 
 	// Category classifies the type for structured resolution.
 	Category SQLTypeCategory
+
+	// Nullable reports whether values can be NULL at the type level.
+	//
+	// ClickHouse uses `Nullable(T)` as a type wrapper, so `Array(Nullable(String))` must
+	// carry the inner nullability on the element type. The Column and Parameter consumers
+	// also carry a separate Nullable flag for outer-column nullability; the type-level flag
+	// covers inner wrappers where consumer-level nullability cannot reach, such as array
+	// elements, map values, and tuple fields.
+	Nullable bool
 }
 
 // StructField describes a single named field within a STRUCT type.
@@ -175,7 +191,9 @@ type StructField struct {
 	// Name is the field name.
 	Name string
 
-	// SQLType is the field's type.
+	// SQLType is the field's type. The SQLType.Nullable flag records inner nullability for
+	// the field, since individual struct fields can be independently nullable in ClickHouse
+	// (`Tuple(a Nullable(T), b T)`).
 	SQLType SQLType
 }
 
@@ -215,6 +233,17 @@ const (
 
 	// QueryCommandCopyFrom uses bulk insert (PostgreSQL COPY).
 	QueryCommandCopyFrom
+
+	// QueryCommandAsyncExec marks a fire-and-forget statement whose completion semantics are
+	// server-side asynchronous.
+	//
+	// ClickHouse ALTER UPDATE and ALTER DELETE are the canonical case: the server accepts
+	// the statement, queues a background mutation, and the client receives no rows-affected
+	// count. The emitted method returns (error) only and carries a doc comment explaining
+	// the asynchronous lifecycle so callers do not expect synchronous completion. Engines
+	// whose EnginePort.SupportsAsyncMutations returns false reject this command at analysis
+	// time.
+	QueryCommandAsyncExec
 )
 
 // QueryCapabilities is a bitmask indicating which pgx-specific features are used by the

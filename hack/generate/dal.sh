@@ -19,8 +19,8 @@
 
 # hack/generate/dal.sh - Generate Go code from SQL using generate_dal
 #
-# Generates type-safe Go code from SQL migrations and queries for all
-# SQLite DAL directories in the project.
+# Generates type-safe Go code from SQL migrations and queries for every DAL
+# directory in the project, across the SQLite and PostgreSQL dialects.
 #
 # Usage:
 #   ./hack/generate/dal.sh
@@ -30,8 +30,10 @@ source "$(dirname "$0")/../lib/init.sh"
 
 # Array of DAL directories (relative to PIKO_ROOT) and their package names.
 DAL_TARGETS=(
-    "internal/orchestrator/orchestrator_dal/querier_sqlite:db"
-    "internal/registry/registry_dal/querier_sqlite:db"
+    "internal/orchestrator/orchestrator_dal/querier_sqlite:db:sqlite"
+    "internal/registry/registry_dal/querier_sqlite:db:sqlite"
+    "internal/orchestrator/orchestrator_dal/querier_postgres:db:postgres"
+    "internal/registry/registry_dal/querier_postgres:db:postgres"
 )
 
 # generate_dal runs the generate_dal tool for all DAL targets.
@@ -44,11 +46,11 @@ generate_dal() {
 
     for target in "${DAL_TARGETS[@]}"; do
         current=$((current + 1))
-        local base_dir="${target%%:*}"
-        local package_name="${target##*:}"
+        local base_dir package_name dialect
+        IFS=':' read -r base_dir package_name dialect <<< "$target"
         local full_path="${PIKO_ROOT}/${base_dir}"
 
-        piko::log::step "$current" "$target_count" "Generating: ${base_dir}"
+        piko::log::step "$current" "$target_count" "Generating: ${base_dir} (${dialect})"
 
         if [[ ! -d "$full_path" ]]; then
             piko::log::warn "Directory not found: $full_path"
@@ -57,7 +59,7 @@ generate_dal() {
 
         cd "$PIKO_ROOT" || piko::log::fatal "Failed to cd to $PIKO_ROOT"
 
-        if go run ./cmd/generate_dal "$full_path" "$package_name"; then
+        if go run ./cmd/generate_dal "$full_path" "$package_name" "$dialect"; then
             piko::log::success "Generated: ${base_dir}"
         else
             piko::log::error "Failed: ${base_dir}"

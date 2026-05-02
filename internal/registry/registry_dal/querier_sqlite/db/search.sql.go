@@ -10,12 +10,12 @@ WHERE storage_key = ?
 LIMIT 1;`
 
 type FindArtefactByVariantStorageKeyRow struct {
-	ArtefactID string
+	ArtefactID string `json:"artefact_id"`
 }
 
-func (queries *Queries) FindArtefactByVariantStorageKey(ctx context.Context, p1 string) (FindArtefactByVariantStorageKeyRow, error) {
+func (queries *Queries) FindArtefactByVariantStorageKey(ctx context.Context, storageKey string) (FindArtefactByVariantStorageKeyRow, error) {
 	var row FindArtefactByVariantStorageKeyRow
-	err := queries.reader.QueryRowContext(ctx, findartefactbyvariantstoragekey, p1).Scan(&row.ArtefactID)
+	err := queries.reader.QueryRowContext(ctx, findartefactbyvariantstoragekey, storageKey).Scan(&row.ArtefactID)
 	if err != nil {
 		return FindArtefactByVariantStorageKeyRow{}, err
 	}
@@ -27,15 +27,15 @@ FROM variant_tag
 WHERE tag_key = ? AND tag_value = ?;`
 
 type FindArtefactIDsByTagParams struct {
-	P1 string
-	P2 string
+	TagKey   string
+	TagValue string
 }
 type FindArtefactIDsByTagRow struct {
-	ArtefactID string
+	ArtefactID string `json:"artefact_id"`
 }
 
 func (queries *Queries) FindArtefactIDsByTag(ctx context.Context, params FindArtefactIDsByTagParams) ([]FindArtefactIDsByTagRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, findartefactidsbytag, params.P1, params.P2)
+	rows, err := queries.reader.QueryContext(ctx, findartefactidsbytag, params.TagKey, params.TagValue)
 	if err != nil {
 		return nil, err
 	}
@@ -59,17 +59,20 @@ FROM variant_tag
 WHERE tag_key = ?1 AND tag_value IN (?2);`
 
 type FindArtefactIDsByTagValuesParams struct {
-	P1        string
+	TagKey    string
 	TagValues []string
 }
 type FindArtefactIDsByTagValuesRow struct {
-	ArtefactID string
+	ArtefactID string `json:"artefact_id"`
 }
 
 func (queries *Queries) FindArtefactIDsByTagValues(ctx context.Context, params FindArtefactIDsByTagValuesParams) ([]FindArtefactIDsByTagValuesRow, error) {
-	query := pikoExpandSlicePlaceholders(findartefactidsbytagvalues, []pikoSliceExpansionSpec{{1, 1}, {2, len(params.TagValues)}})
+	query, expansionError := pikoExpandSlicePlaceholders(findartefactidsbytagvalues, []pikoSliceExpansionSpec{{Placeholder: 1, Count: 1}, {Placeholder: 2, Count: len(params.TagValues)}})
+	if expansionError != nil {
+		return nil, expansionError
+	}
 	args := make([]any, 0, len(params.TagValues)+1)
-	args = append(args, params.P1)
+	args = append(args, params.TagKey)
 	for _, v := range params.TagValues {
 		args = append(args, v)
 	}

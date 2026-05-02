@@ -1,47 +1,74 @@
 {
   "normal_query": [
     {
-      "ID": 1,
-      "Name": "Alice",
-      "Role": "admin"
+      "id": 1,
+      "name": "Alice",
+      "role": "admin"
     }
   ],
   "orderby_column_injection": {
-    "message": "unknown column: id; DROP TABLE users; --",
-    "panicked": true
+    "message": "piko: unknown column in runtime query filter",
+    "panicked": false,
+    "rejected": true
   },
   "orderby_column_subquery": {
-    "message": "unknown column: (CASE WHEN (SELECT 1) THEN id ELSE name END)",
-    "panicked": true
+    "message": "piko: unknown column in runtime query filter",
+    "panicked": false,
+    "rejected": true
   },
   "orderby_direction_injection": {
-    "message": "unknown direction: ASC; DROP TABLE users; --",
-    "panicked": true
+    "message": "piko: unknown sort direction in runtime query order",
+    "panicked": false,
+    "rejected": true
   },
   "orderby_direction_subquery": {
-    "message": "unknown direction: ASC, (SELECT secret FROM users LIMIT 1)",
-    "panicked": true
+    "message": "piko: unknown sort direction in runtime query order",
+    "panicked": false,
+    "rejected": true
+  },
+  "orderby_hidden_column": {
+    "message": "piko: unknown column in runtime query filter",
+    "panicked": false,
+    "rejected": true
   },
   "table_still_exists": [
     {
-      "ID": 1,
-      "Name": "Alice",
-      "Role": "admin"
+      "id": 1,
+      "name": "Alice",
+      "role": "admin"
     }
   ],
   "value_drop_injection": null,
   "value_tautology": null,
   "value_union_injection": null,
   "where_column_injection": {
-    "message": "unknown column: id; DROP TABLE users; --",
-    "panicked": true
+    "message": "piko: unknown column in runtime query filter",
+    "panicked": false,
+    "rejected": true
   },
   "where_column_subquery": {
-    "message": "unknown column: (SELECT secret FROM users LIMIT 1)",
-    "panicked": true
+    "message": "piko: unknown column in runtime query filter",
+    "panicked": false,
+    "rejected": true
+  },
+  "where_hidden_column_equality": {
+    "message": "piko: unknown column in runtime query filter",
+    "panicked": false,
+    "rejected": true
+  },
+  "where_hidden_column_json_wrapper": {
+    "message": "piko: unknown column in runtime query filter",
+    "panicked": false,
+    "rejected": true
+  },
+  "where_hidden_column_like_oracle": {
+    "message": "piko: unknown column in runtime query filter",
+    "panicked": false,
+    "rejected": true
   },
   "where_operator_injection": {
-    "message": "unknown operator: = 1 OR 1=1; --",
-    "panicked": true
+    "message": "piko: unknown operator in runtime query filter",
+    "panicked": false,
+    "rejected": true
   }
 }

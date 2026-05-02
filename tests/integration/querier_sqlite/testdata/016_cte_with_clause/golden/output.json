@@ -1,14 +1,14 @@
 {
   "top_level": [
     {
-      "ChildCount": 1,
-      "ID": 2,
-      "Name": "Books"
+      "child_count": 1,
+      "id": 2,
+      "name": "Books"
     },
     {
-      "ChildCount": 2,
-      "ID": 1,
-      "Name": "Electronics"
+      "child_count": 2,
+      "id": 1,
+      "name": "Electronics"
     }
   ]
 }

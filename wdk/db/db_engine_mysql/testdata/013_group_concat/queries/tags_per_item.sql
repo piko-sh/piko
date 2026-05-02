@@ -1,5 +1,4 @@
--- piko.name: TagsPerItem
--- piko.command: many
+-- piko.query(name: TagsPerItem, command: many)
 SELECT
     item_id,
     GROUP_CONCAT(tag_name ORDER BY tag_name SEPARATOR ', ') AS all_tags

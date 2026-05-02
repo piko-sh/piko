@@ -1,0 +1,3 @@
+{
+  "description": "GROUP BY with aggregates. Verifies GroupByColumns is populated and aggregate output columns are tracked."
+}

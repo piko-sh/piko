@@ -1,0 +1,3 @@
+{
+  "description": "Convert a regular table to a hypertable via SELECT create_hypertable(), insert sample readings, and aggregate them by time_bucket('1 hour', ts). Exercises the function-call DDL form, the time_bucket function family, and basic aggregation over time-series data."
+}

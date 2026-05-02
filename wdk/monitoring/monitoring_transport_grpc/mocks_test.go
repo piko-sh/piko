@@ -58,11 +58,11 @@ func (m *mockOrchestratorInspector) ListTaskSummary(_ context.Context) ([]orches
 	return m.taskSummaryReturn, m.taskSummaryError
 }
 
-func (m *mockOrchestratorInspector) ListRecentTasks(_ context.Context, _ int32) ([]orchestrator_domain.TaskListItem, error) {
+func (m *mockOrchestratorInspector) ListRecentTasks(_ context.Context, _ int) ([]orchestrator_domain.TaskListItem, error) {
 	return m.recentTasksReturn, m.recentTasksError
 }
 
-func (m *mockOrchestratorInspector) ListWorkflowSummary(_ context.Context, _ int32) ([]orchestrator_domain.WorkflowSummary, error) {
+func (m *mockOrchestratorInspector) ListWorkflowSummary(_ context.Context, _ int) ([]orchestrator_domain.WorkflowSummary, error) {
 	return m.workflowSummaryReturn, m.workflowSummaryError
 }
 
@@ -87,7 +87,7 @@ func (m *mockRegistryInspector) ListVariantSummary(_ context.Context) ([]registr
 	return m.variantSummaryReturn, m.variantSummaryError
 }
 
-func (m *mockRegistryInspector) ListRecentArtefacts(_ context.Context, _ int32) ([]registry_domain.ArtefactListItem, error) {
+func (m *mockRegistryInspector) ListRecentArtefacts(_ context.Context, _ int) ([]registry_domain.ArtefactListItem, error) {
 	return m.recentArtefactsReturn, m.recentArtefactsError
 }
 

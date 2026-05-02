@@ -1,5 +1,4 @@
--- piko.name: GetBulkCategories
--- piko.command: many
+-- piko.query(name: GetBulkCategories, command: many)
 -- ?1 as piko.param(minimum_quantity)
 SELECT category, SUM(quantity) AS total_quantity
 FROM order_items

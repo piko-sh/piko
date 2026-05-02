@@ -1,0 +1,3 @@
+{
+  "description": "Decimal128 column round-trip: verifies high-precision decimal storage and retrieval preserves precision/scale across the driver."
+}

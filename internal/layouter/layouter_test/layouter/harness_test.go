@@ -165,7 +165,7 @@ func runLayoutTest(t *testing.T, testDirectory string) {
 		t.Fatalf("box tree construction failed: %v", err)
 	}
 
-	_ = layouter_domain.LayoutBoxTree(context.Background(), rootBox, fontMetrics)
+	_, _ = layouter_domain.LayoutBoxTree(context.Background(), rootBox, fontMetrics)
 
 	actual := layouter_domain.SerialiseLayoutBoxToGoFileContent(rootBox, "test")
 

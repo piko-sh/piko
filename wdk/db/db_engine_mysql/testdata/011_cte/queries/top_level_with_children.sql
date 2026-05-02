@@ -1,5 +1,4 @@
--- piko.name: TopLevelWithChildren
--- piko.command: many
+-- piko.query(name: TopLevelWithChildren, command: many)
 WITH top_level AS (
     SELECT id, name FROM categories WHERE parent_id IS NULL
 )

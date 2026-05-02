@@ -50,7 +50,7 @@ func main() {
 		os.Exit(1)
 	}
 	singleBatch := []db.InsertItemsBatchParams{
-		{P1: int32(1), P2: "Solo", P3: "misc", P4: int32(999), P5: nil},
+		{ID: int32(1), Name: "Solo", Category: "misc", Price: int32(999), Description: nil},
 	}
 	err = queries.InsertItemsBatch(ctx, singleBatch)
 	if err != nil {
@@ -69,9 +69,9 @@ func main() {
 		os.Exit(1)
 	}
 	smallBatch := []db.InsertItemsBatchParams{
-		{P1: int32(1), P2: "Apple", P3: "fruit", P4: int32(100), P5: stringPointer("A crisp fruit")},
-		{P1: int32(2), P2: "Banana", P3: "fruit", P4: int32(50), P5: nil},
-		{P1: int32(3), P2: "Carrot", P3: "veg", P4: int32(75), P5: stringPointer("An orange root")},
+		{ID: int32(1), Name: "Apple", Category: "fruit", Price: int32(100), Description: stringPointer("A crisp fruit")},
+		{ID: int32(2), Name: "Banana", Category: "fruit", Price: int32(50), Description: nil},
+		{ID: int32(3), Name: "Carrot", Category: "veg", Price: int32(75), Description: stringPointer("An orange root")},
 	}
 	err = queries.InsertItemsBatch(ctx, smallBatch)
 	if err != nil {
@@ -93,11 +93,11 @@ func main() {
 	boundaryBatch := make([]db.InsertItemsBatchParams, boundarySize)
 	for i := range boundaryBatch {
 		boundaryBatch[i] = db.InsertItemsBatchParams{
-			P1: int32(i + 1),
-			P2: fmt.Sprintf("item_%d", i+1),
-			P3: "bulk",
-			P4: int32(i * 10),
-			P5: stringPointer(fmt.Sprintf("desc_%d", i+1)),
+			ID:          int32(i + 1),
+			Name:        fmt.Sprintf("item_%d", i+1),
+			Category:    "bulk",
+			Price:       int32(i * 10),
+			Description: stringPointer(fmt.Sprintf("desc_%d", i+1)),
 		}
 	}
 	err = queries.InsertItemsBatch(ctx, boundaryBatch)
@@ -120,11 +120,11 @@ func main() {
 	overBoundaryBatch := make([]db.InsertItemsBatchParams, overBoundarySize)
 	for i := range overBoundaryBatch {
 		overBoundaryBatch[i] = db.InsertItemsBatchParams{
-			P1: int32(i + 1),
-			P2: fmt.Sprintf("item_%d", i+1),
-			P3: "bulk",
-			P4: int32(i * 10),
-			P5: stringPointer(fmt.Sprintf("desc_%d", i+1)),
+			ID:          int32(i + 1),
+			Name:        fmt.Sprintf("item_%d", i+1),
+			Category:    "bulk",
+			Price:       int32(i * 10),
+			Description: stringPointer(fmt.Sprintf("desc_%d", i+1)),
 		}
 	}
 	err = queries.InsertItemsBatch(ctx, overBoundaryBatch)
@@ -152,11 +152,11 @@ func main() {
 	largeBatch := make([]db.InsertItemsBatchParams, largeSize)
 	for i := range largeBatch {
 		largeBatch[i] = db.InsertItemsBatchParams{
-			P1: int32(i + 1),
-			P2: fmt.Sprintf("item_%d", i+1),
-			P3: "bulk",
-			P4: int32(i * 10),
-			P5: stringPointer(fmt.Sprintf("desc_%d", i+1)),
+			ID:          int32(i + 1),
+			Name:        fmt.Sprintf("item_%d", i+1),
+			Category:    "bulk",
+			Price:       int32(i * 10),
+			Description: stringPointer(fmt.Sprintf("desc_%d", i+1)),
 		}
 	}
 	err = queries.InsertItemsBatch(ctx, largeBatch)

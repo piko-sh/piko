@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "products.sql",
-    "SQL": "-- piko.name: GetDoubledPrice\n-- piko.command: one\nSELECT double_price(price) AS doubled FROM products WHERE id = $1;",
+    "SQL": "-- piko.query(name: GetDoubledPrice, command: one)\nSELECT double_price(price) AS doubled FROM products WHERE id = $1;",
     "Name": "GetDoubledPrice",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "doubled",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,7 +53,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -68,16 +75,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "products.sql",
-    "SQL": "-- piko.name: GetCurrentPrice\n-- piko.command: one\nSELECT get_current_price($1::integer) AS price;",
+    "SQL": "-- piko.query(name: GetCurrentPrice, command: one)\nSELECT get_current_price($1::integer) AS price;",
     "Name": "GetCurrentPrice",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -95,20 +105,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 3
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "price",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -121,7 +136,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -141,10 +157,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

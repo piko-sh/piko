@@ -16,14 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package components provides Piko's built-in PKC component
-// library.
+// Package components provides Piko's built-in PKC component library.
 //
-// Components are organised into categories: [Piko] (core piko-*
-// components), [Example] (reference implementations), [M2]
-// (Material Design 2 data tables), [M3E] (Material Design 3
-// Expressive), and [Dev] (developer tools overlay). Each function
-// returns component definitions that can be passed to
-// piko.WithComponents. The [All] function returns every category
-// except Dev, which must be registered separately in dev mode.
+// Components are organised into categories: [Piko] (core piko-* components), [Example]
+// (reference implementations), [M2] (Material Design 2 data tables), [M3E] (Material
+// Design 3 Expressive), and [Dev] (developer tools overlay). Each function returns
+// component definitions that can be passed to piko.WithComponents. The [All] function
+// returns every category except Dev, which must be registered separately in dev mode.
 package components

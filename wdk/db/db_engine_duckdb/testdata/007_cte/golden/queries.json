@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "employees.sql",
-    "SQL": "-- piko.name: GetTopLevelEmployees\n-- piko.command: many\nWITH top_level AS (\n    SELECT id, name, manager_id FROM employees WHERE manager_id IS NULL\n)\nSELECT id, name, manager_id FROM top_level;",
+    "SQL": "-- piko.query(name: GetTopLevelEmployees, command: many)\nWITH top_level AS (\n    SELECT id, name, manager_id FROM employees WHERE manager_id IS NULL\n)\nSELECT id, name, manager_id FROM top_level;",
     "Name": "GetTopLevelEmployees",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "top_level",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "top_level",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "top_level",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "top_level",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "manager_id",
         "SourceTable": "top_level",
+        "SourceSchema": "",
         "SourceColumn": "manager_id",
+        "SourceQualifier": "top_level",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,7 +78,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -87,22 +100,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "employees.sql",
-    "SQL": "-- piko.name: GetEmployeeHierarchy\n-- piko.command: many\nWITH RECURSIVE hierarchy AS (\n    SELECT id, name, manager_id, 0 AS depth FROM employees WHERE manager_id IS NULL\n    UNION ALL\n    SELECT e.id, e.name, e.manager_id, h.depth + 1 FROM employees e INNER JOIN hierarchy h ON e.manager_id = h.id\n)\nSELECT id, name, manager_id, depth FROM hierarchy;",
+    "SQL": "-- piko.query(name: GetEmployeeHierarchy, command: many)\nWITH RECURSIVE hierarchy AS (\n    SELECT id, name, manager_id, 0 AS depth FROM employees WHERE manager_id IS NULL\n    UNION ALL\n    SELECT e.id, e.name, e.manager_id, h.depth + 1 FROM employees e INNER JOIN hierarchy h ON e.manager_id = h.id\n)\nSELECT id, name, manager_id, depth FROM hierarchy;",
     "Name": "GetEmployeeHierarchy",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "hierarchy",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "hierarchy",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,16 +134,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "hierarchy",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "hierarchy",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -137,16 +160,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "manager_id",
         "SourceTable": "hierarchy",
+        "SourceSchema": "",
         "SourceColumn": "manager_id",
+        "SourceQualifier": "hierarchy",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -159,16 +186,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "depth",
         "SourceTable": "hierarchy",
+        "SourceSchema": "",
         "SourceColumn": "depth",
+        "SourceQualifier": "hierarchy",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -181,9 +212,10 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       }
@@ -201,10 +233,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 8,
-    "IsDynamic": false,
+    "Line": 7,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

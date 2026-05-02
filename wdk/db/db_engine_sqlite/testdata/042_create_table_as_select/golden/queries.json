@@ -2,36 +2,44 @@
   {
     "InsertTable": "",
     "Filename": "source.sql",
-    "SQL": "-- piko.name: ListSource\n-- piko.command: many\nSELECT id, name, value FROM source ORDER BY id;",
+    "SQL": "-- piko.query(name: ListSource, command: many)\nSELECT id, name, value FROM source ORDER BY id;",
     "Name": "ListSource",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "source",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "source",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "source",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "source",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "value",
         "SourceTable": "source",
+        "SourceSchema": "",
         "SourceColumn": "value",
+        "SourceQualifier": "source",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,7 +78,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -87,9 +100,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

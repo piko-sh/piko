@@ -1,0 +1,5 @@
+{
+  "description": "Variant(Int32, String) columns surface in the generated row struct as encoding/json.RawMessage (the new TypeCategoryUnion mapping in complexMappings). The fixture creates a table with a Variant column, seeds an integer and a string member, and reads both rows back so the generated struct's Payload field is exercised as json.RawMessage rather than the v0 any-typed fallback.",
+  "skip": true,
+  "skipReason": "Variant requires `SET allow_experimental_variant_type = 1` and ClickHouse 25.4 still gates the type behind the experimental flag. The migration harness's database/sql connection pool does not guarantee that the SET propagates to subsequent CREATE TABLE / INSERT statements (sql.DB may switch physical connections per ExecContext), and the clickhouse-go/v2 v2.30.0 driver does not yet expose a stable Scan path for Variant columns into json.RawMessage. The codegen path is exercised in unit tests; this end-to-end fixture is checked in so the runtime proof is ready to land once driver support firms up. Unskip once the driver scans Variant into json.RawMessage reliably and the harness applies migrations on a pinned single connection."
+}

@@ -75,14 +75,18 @@ func (p *parser) parseFunctionCallWithArgs(loweredName string, schema string) qu
 	p.matchKeyword(keywordALL)
 
 	parameterCountBefore := p.parameterCount
-	arguments := p.parseFunctionArguments()
+	arguments, argumentSlots := p.parseFunctionArguments()
 	p.parseFunctionOrderByClause()
 
 	if p.current().kind == tokenRightParen {
 		p.advance()
 	}
 
-	p.markParametersAsFunctionArguments(parameterCountBefore)
+	qualifiedName := loweredName
+	if schema != "" {
+		qualifiedName = strings.ToLower(schema) + "." + loweredName
+	}
+	p.markParametersAsFunctionArguments(parameterCountBefore, qualifiedName, argumentSlots)
 
 	result := &querier_dto.FunctionCallExpression{
 		FunctionName: loweredName,
@@ -96,20 +100,38 @@ func (p *parser) parseFunctionCallWithArgs(loweredName string, schema string) qu
 // parseFunctionArguments parses the comma-separated argument list of a function call,
 // stopping at ORDER, LIMIT, or `)`.
 //
+// Alongside the parsed expressions it returns, per registered parameter reference index,
+// the zero-based ordinal of the top-level argument slot the parameter sits in. The
+// ordinal map lets markParametersAsFunctionArguments record ArgumentOrdinal as the
+// call-site argument slot rather than the parameter number, so a non-placeholder argument
+// (literal, column, expression) still consumes its slot. Parameters registered by a
+// nested call are recorded against the outer argument slot they appear in, but the caller
+// only tags those still missing an enclosing function name, so the inner call's own
+// tagging is never clobbered.
+//
 // Returns []querier_dto.Expression which is the argument list.
-func (p *parser) parseFunctionArguments() []querier_dto.Expression {
+// Returns map[int]int which maps each parameterRefs index registered while parsing the
+// argument list to its top-level argument ordinal.
+func (p *parser) parseFunctionArguments() ([]querier_dto.Expression, map[int]int) {
 	var arguments []querier_dto.Expression
+	argumentSlots := make(map[int]int)
+	ordinal := 0
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		if p.isAnyKeyword(keywordORDER, keywordLIMIT) {
 			break
 		}
+		referenceCountBefore := len(p.parameterRefs)
 		arguments = append(arguments, p.parseExpression())
+		for index := referenceCountBefore; index < len(p.parameterRefs); index++ {
+			argumentSlots[index] = ordinal
+		}
+		ordinal++
 		if p.current().kind != tokenComma {
 			break
 		}
 		p.advance()
 	}
-	return arguments
+	return arguments, argumentSlots
 }
 
 // parseFunctionOrderByClause consumes an ORDER BY clause that may appear inside an
@@ -134,15 +156,36 @@ func (p *parser) parseFunctionOrderByClause() {
 }
 
 // markParametersAsFunctionArguments tags any parameter added since parameterCountBefore
-// with the FunctionArgument context when it still has the Unknown context.
+// with the FunctionArgument context when it still has the Unknown context, and records
+// the enclosing function name and the call-site argument ordinal on the references parsed
+// from the top-level argument list so the resolver can look up the matched signature's
+// declared argument type.
+//
+// Only references that still carry the Unknown context and an empty EnclosingFunctionName
+// are touched, so a parameter already claimed by a nested call (for example $2 in
+// outer_fn($1, inner_fn($2))) keeps its inner call's name and ordinal and is never
+// clobbered by the outer call's marker. The context tag still uses the parameter-number
+// threshold (preserving the prior behaviour for a placeholder in an aggregate ORDER BY,
+// which is not in argumentSlots), while the name and ordinal come from argumentSlots,
+// which identifies exactly the references appended for each top-level argument slot.
 //
 // Takes parameterCountBefore (int) which is the parameterCount snapshot taken before
 // parsing the argument list.
-func (p *parser) markParametersAsFunctionArguments(parameterCountBefore int) {
-	for i := range p.parameterRefs {
-		if p.parameterRefs[i].Number > parameterCountBefore &&
-			p.parameterRefs[i].Context == querier_dto.ParameterContextUnknown {
-			p.parameterRefs[i].Context = querier_dto.ParameterContextFunctionArgument
+// Takes qualifiedName (string) which is the lower-cased, optionally schema-qualified
+// enclosing function name.
+// Takes argumentSlots (map[int]int) which maps each parameterRefs index registered while
+// parsing the argument list to its top-level argument ordinal.
+func (p *parser) markParametersAsFunctionArguments(parameterCountBefore int, qualifiedName string, argumentSlots map[int]int) {
+	for index := range p.parameterRefs {
+		if p.parameterRefs[index].Number <= parameterCountBefore ||
+			p.parameterRefs[index].Context != querier_dto.ParameterContextUnknown ||
+			p.parameterRefs[index].EnclosingFunctionName != "" {
+			continue
+		}
+		p.parameterRefs[index].Context = querier_dto.ParameterContextFunctionArgument
+		p.parameterRefs[index].EnclosingFunctionName = qualifiedName
+		if ordinal, ok := argumentSlots[index]; ok {
+			p.parameterRefs[index].ArgumentOrdinal = ordinal
 		}
 	}
 }
@@ -517,8 +560,13 @@ func (p *parser) parseCaseExpression() querier_dto.Expression {
 	return expression
 }
 
-// parseExistsSubquery parses an EXISTS (subquery) expression by recursing into a child
-// parser and importing its parameter state.
+// parseExistsSubquery parses an EXISTS (subquery) expression.
+//
+// The expression recurses into a child parser and imports its parameter state. The child
+// is created via newChildParser so it inherits the parent's analysisDepth and
+// maxParseDepth. Without that inheritance each nested EXISTS would reset the recursion
+// counter to zero and a deeply chained EXISTS (SELECT ... WHERE EXISTS (...)) could
+// overflow the goroutine stack.
 //
 // Returns querier_dto.Expression which is the EXISTS expression.
 func (p *parser) parseExistsSubquery() querier_dto.Expression {
@@ -527,8 +575,7 @@ func (p *parser) parseExistsSubquery() querier_dto.Expression {
 		return &querier_dto.ExistsExpression{}
 	}
 
-	childParser := newParser(innerTokens)
-	childParser.parameterCount = p.parameterCount
+	childParser := p.newChildParser(innerTokens)
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
 		return &querier_dto.ExistsExpression{}
@@ -539,26 +586,48 @@ func (p *parser) parseExistsSubquery() querier_dto.Expression {
 	return &querier_dto.ExistsExpression{InnerQuery: innerAnalysis}
 }
 
-// parseScalarSubquery parses a parenthesised scalar subquery by recursing into a child
-// parser and importing its parameter state.
+// parseScalarSubquery parses a parenthesised scalar subquery.
+//
+// The expression recurses into a child parser and imports its parameter state. The child
+// is created via newChildParser so it inherits the parent's analysisDepth and
+// maxParseDepth. Without that inheritance each nested scalar subquery would reset the
+// recursion counter to zero and a deeply chained sequence of scalar subqueries could
+// overflow the goroutine stack.
 //
 // Returns querier_dto.Expression which is the scalar subquery expression.
 func (p *parser) parseScalarSubquery() querier_dto.Expression {
-	innerTokens, collectError := p.collectParenthesised()
-	if collectError != nil {
-		return &querier_dto.UnknownExpression{}
-	}
-
-	childParser := newParser(innerTokens)
-	childParser.parameterCount = p.parameterCount
-	innerAnalysis, analyseError := childParser.analyseSelect()
+	innerAnalysis, analyseError := p.analyseSubqueryBody()
 	if analyseError != nil {
 		return &querier_dto.UnknownExpression{}
+	}
+	return &querier_dto.ScalarSubqueryExpression{InnerQuery: innerAnalysis}
+}
+
+// analyseSubqueryBody collects a parenthesised subquery, analyses it in a child parser
+// that inherits the parameter and depth state, and splices the child's parameter results
+// back into this parser. Shared by the scalar-subquery expression parser and the
+// WHERE/HAVING predicate scan.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the inner SELECT analysis (nil on
+// failure).
+// Returns error which is non-nil when the subquery could not be collected or analysed; on
+// failure the inner parameters are not spliced back, so callers should surface the error
+// rather than silently discarding the subquery's parameters.
+func (p *parser) analyseSubqueryBody() (*querier_dto.RawQueryAnalysis, error) {
+	innerTokens, collectError := p.collectParenthesised()
+	if collectError != nil {
+		return nil, collectError
+	}
+
+	childParser := p.newChildParser(innerTokens)
+	innerAnalysis, analyseError := childParser.analyseSelect()
+	if analyseError != nil {
+		return nil, analyseError
 	}
 	p.parameterCount = childParser.parameterCount
 	p.parameterRefs = append(p.parameterRefs, childParser.parameterRefs...)
 
-	return &querier_dto.ScalarSubqueryExpression{InnerQuery: innerAnalysis}
+	return innerAnalysis, nil
 }
 
 // parseArrayExpression parses an ARRAY[...] literal or ARRAY(subquery) constructor.

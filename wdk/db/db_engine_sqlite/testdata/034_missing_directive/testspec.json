@@ -2,7 +2,7 @@
   "description": "Two queries with missing required directives: one missing piko.name, the other missing piko.command. Both produce Q008 errors.",
   "expectedDiagnosticCount": 2,
   "diagnostics": [
-    { "severity": "error", "code": "Q008", "messageContains": "piko.name", "filename": "missing_name.sql" },
-    { "severity": "error", "code": "Q008", "messageContains": "piko.command", "filename": "missing_command.sql" }
+    { "severity": "error", "code": "Q031", "messageContains": "missing required name on piko", "filename": "missing_name.sql" },
+    { "severity": "error", "code": "Q031", "messageContains": "missing required command on piko", "filename": "missing_command.sql" }
   ]
 }

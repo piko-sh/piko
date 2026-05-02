@@ -1,5 +1,4 @@
--- piko.name: GetRankedSales
--- piko.command: many
+-- piko.query(name: GetRankedSales, command: many)
 SELECT
   id,
   region,

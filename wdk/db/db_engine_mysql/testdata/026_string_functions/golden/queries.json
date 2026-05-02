@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "formatted_contacts.sql",
-    "SQL": "-- piko.name: FormattedContacts\n-- piko.command: many\nSELECT\n    id,\n    CONCAT(first_name, ' ', last_name) AS full_name,\n    UPPER(last_name) AS upper_last,\n    CHAR_LENGTH(first_name) AS name_length,\n    SUBSTRING(phone, 1, 3) AS area_code\nFROM contacts;",
+    "SQL": "-- piko.query(name: FormattedContacts, command: many)\nSELECT\n    id,\n    CONCAT(first_name, ' ', last_name) AS full_name,\n    UPPER(last_name) AS upper_last,\n    CHAR_LENGTH(first_name) AS name_length,\n    SUBSTRING(phone, 1, 3) AS area_code\nFROM contacts;",
     "Name": "FormattedContacts",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "contacts",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "contacts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "full_name",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "upper_last",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,16 +78,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name_length",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -88,16 +104,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "area_code",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -110,7 +130,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -131,9 +152,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

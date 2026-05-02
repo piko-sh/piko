@@ -98,10 +98,10 @@ func TestResolveFunctionCall(t *testing.T) {
 			expectedIsAggregate: true,
 		},
 		{
-			description:         "sum with integer returns integer",
+			description:         "sum with integer returns 64-bit integer",
 			functionName:        "sum",
 			argumentTypes:       []querier_dto.SQLType{integerType},
-			expectedEngineName:  "integer",
+			expectedEngineName:  "int8",
 			expectedCategory:    querier_dto.TypeCategoryInteger,
 			expectedIsAggregate: true,
 		},

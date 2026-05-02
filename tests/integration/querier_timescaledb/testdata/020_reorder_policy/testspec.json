@@ -1,0 +1,4 @@
+{
+  "description": "add_reorder_policy('table', 'idx_name') registers a periodic chunk-reorder job against the supplied index. The fixture creates an index, schedules the policy, then drops it via remove_reorder_policy. Verifies that the extension classifier dispatches add_reorder_policy to the policy parser and that the catalogue resolves both calls. JobID is normalised by the harness.",
+  "skip": false
+}

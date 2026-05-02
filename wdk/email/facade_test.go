@@ -19,8 +19,11 @@
 package email_test
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/apitest"
 	"piko.sh/piko/wdk/email"
@@ -48,4 +51,28 @@ func TestEmailFacadeAPI(t *testing.T) {
 	}
 
 	apitest.Check(t, surface, filepath.Join("facade_test.golden.yaml"))
+}
+
+func TestNewEmailBuilder_NilServiceYieldsPanicSafeBuilder(t *testing.T) {
+	t.Parallel()
+
+	builder, err := email.NewEmailBuilder(nil)
+
+	require.Error(t, err)
+	require.NotNil(t, builder, "a nil service must still yield a non-nil builder so best-effort callers do not panic")
+	require.NotPanics(t, func() {
+		require.ErrorIs(t, builder.Do(context.Background()), err)
+	})
+}
+
+func TestNewTemplatedEmailBuilder_NilServiceYieldsPanicSafeBuilder(t *testing.T) {
+	t.Parallel()
+
+	builder, err := email.NewTemplatedEmailBuilder[map[string]any](nil)
+
+	require.Error(t, err)
+	require.NotNil(t, builder, "a nil service must still yield a non-nil templated builder")
+	require.NotPanics(t, func() {
+		require.ErrorIs(t, builder.Do(context.Background()), err)
+	})
 }

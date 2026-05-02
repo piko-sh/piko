@@ -20,19 +20,20 @@ package layouter_domain
 
 import (
 	"context"
+	"fmt"
 	"math"
 )
 
 // LayoutBoxTree performs layout on the entire box tree.
 //
-// Takes ctx (context.Context) which carries the cancellation signal through recursive
-// layout.
 // Takes root (*LayoutBox) which is the root box of the tree to lay out.
 // Takes fontMetrics (FontMetricsPort) which provides font measurement capabilities for
 // text layout.
 //
 // Returns *Fragment which holds the layout results for the entire box tree.
-func LayoutBoxTree(ctx context.Context, root *LayoutBox, fontMetrics FontMetricsPort) *Fragment {
+// Returns error when ctx is cancelled mid-layout, so the caller does not treat a silently
+// truncated (partial) layout as a finished document.
+func LayoutBoxTree(ctx context.Context, root *LayoutBox, fontMetrics FontMetricsPort) (*Fragment, error) {
 	viewportHeight := root.ContentHeight
 	cache := newLayoutCache()
 	input := layoutInput{
@@ -42,12 +43,19 @@ func LayoutBoxTree(ctx context.Context, root *LayoutBox, fontMetrics FontMetrics
 		Cache:              cache,
 	}
 	fragment := layoutBox(ctx, root, input)
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("box-tree layout cancelled: %w", err)
+	}
 	writeFragmentsToBoxTree(fragment, 0, 0)
 	root.ContentHeight = viewportHeight
 	layoutListMarkers(root, fontMetrics)
 	applyAllRelativeOffsets(root)
 	layoutPositionedElements(ctx, root, input)
-	return fragment
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("box-tree layout cancelled: %w", err)
+	}
+	return fragment, nil
 }
 
 // layoutListMarkers walks the box tree and positions outside list markers now that all
@@ -146,8 +154,8 @@ func layoutBox(ctx context.Context, box *LayoutBox, input layoutInput) *Fragment
 //
 // Returns formattingContextResult which holds the layout results for the resolved
 // formatting context.
-// Returns bool which is true when the formatting context was resolved, or false when
-// it could not be resolved.
+// Returns bool which is true when the formatting context was resolved, or false when it
+// could not be resolved.
 func runFormattingContext(
 	ctx context.Context,
 	box *LayoutBox,

@@ -1,0 +1,12 @@
+{
+  "latest": {
+    "account_id": 1,
+    "email": "a@x.com",
+    "status": "suspended"
+  },
+  "latest_before_20": {
+    "account_id": 1,
+    "email": "a@x.com",
+    "status": "active"
+  }
+}

@@ -25,9 +25,9 @@ import (
 	"syscall"
 )
 
-// applyProcessAttributes configures the command with a fresh process group
-// so we can SIGKILL the whole group on context cancellation. Matches the
-// pattern used at internal/interp/interp_test/snippets/parity_test.go.
+// applyProcessAttributes configures the command with a fresh process group so we can
+// SIGKILL the whole group on context cancellation. Matches the pattern used at
+// internal/interp/interp_test/snippets/parity_test.go.
 func applyProcessAttributes(command *exec.Cmd) {
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	command.Cancel = func() error {
@@ -39,8 +39,8 @@ func applyProcessAttributes(command *exec.Cmd) {
 	command.WaitDelay = waitDelayAfterCancel
 }
 
-// platformPeakRSSKB extracts the peak resident-set-size from the syscall
-// rusage payload. Linux reports KiB directly; Darwin reports bytes.
+// platformPeakRSSKB extracts the peak resident-set-size from the syscall rusage payload.
+// Linux reports KiB directly; Darwin reports bytes.
 func platformPeakRSSKB(usage any) int64 {
 	rusage, ok := usage.(*syscall.Rusage)
 	if !ok || rusage == nil {

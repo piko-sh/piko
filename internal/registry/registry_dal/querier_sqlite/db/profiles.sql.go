@@ -6,8 +6,8 @@ import "context"
 
 const deletedesiredprofilesforartefact = `DELETE FROM desired_profile WHERE artefact_id = ?;`
 
-func (queries *Queries) DeleteDesiredProfilesForArtefact(ctx context.Context, p1 string) error {
-	_, err := queries.writer.ExecContext(ctx, deletedesiredprofilesforartefact, p1)
+func (queries *Queries) DeleteDesiredProfilesForArtefact(ctx context.Context, artefactID string) error {
+	_, err := queries.writer.ExecContext(ctx, deletedesiredprofilesforartefact, artefactID)
 	return err
 }
 
@@ -16,16 +16,16 @@ FROM desired_profile
 WHERE artefact_id = ?;`
 
 type GetDesiredProfilesForArtefactRow struct {
-	Name           string
-	CapabilityName string
-	Priority       string
-	ParamsJSON     string
-	TagsJSON       string
-	DependsOnJSON  string
+	Name           string `json:"name"`
+	CapabilityName string `json:"capability_name"`
+	Priority       string `json:"priority"`
+	ParamsJSON     string `json:"params_json"`
+	TagsJSON       string `json:"tags_json"`
+	DependsOnJSON  string `json:"depends_on_json"`
 }
 
-func (queries *Queries) GetDesiredProfilesForArtefact(ctx context.Context, p1 string) ([]GetDesiredProfilesForArtefactRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, getdesiredprofilesforartefact, p1)
+func (queries *Queries) GetDesiredProfilesForArtefact(ctx context.Context, artefactID string) ([]GetDesiredProfilesForArtefactRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, getdesiredprofilesforartefact, artefactID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,17 +52,20 @@ type GetDesiredProfilesForArtefactIDsParams struct {
 	IDs []string
 }
 type GetDesiredProfilesForArtefactIDsRow struct {
-	ArtefactID     string
-	Name           string
-	CapabilityName string
-	Priority       string
-	ParamsJSON     string
-	TagsJSON       string
-	DependsOnJSON  string
+	ArtefactID     string `json:"artefact_id"`
+	Name           string `json:"name"`
+	CapabilityName string `json:"capability_name"`
+	Priority       string `json:"priority"`
+	ParamsJSON     string `json:"params_json"`
+	TagsJSON       string `json:"tags_json"`
+	DependsOnJSON  string `json:"depends_on_json"`
 }
 
 func (queries *Queries) GetDesiredProfilesForArtefactIDs(ctx context.Context, params GetDesiredProfilesForArtefactIDsParams) ([]GetDesiredProfilesForArtefactIDsRow, error) {
-	query := pikoExpandSlicePlaceholders(getdesiredprofilesforartefactids, []pikoSliceExpansionSpec{{1, len(params.IDs)}})
+	query, expansionError := pikoExpandSlicePlaceholders(getdesiredprofilesforartefactids, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
+	if expansionError != nil {
+		return nil, expansionError
+	}
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -90,16 +93,16 @@ const insertdesiredprofile = `INSERT INTO desired_profile (artefact_id, name, ca
 VALUES (?, ?, ?, ?, ?, ?, ?);`
 
 type InsertDesiredProfileParams struct {
-	P1 string
-	P2 string
-	P3 string
-	P4 string
-	P5 string
-	P6 string
-	P7 string
+	ArtefactID     string
+	Name           string
+	CapabilityName string
+	Priority       string
+	ParamsJSON     string
+	TagsJSON       string
+	DependsOnJSON  string
 }
 
 func (queries *Queries) InsertDesiredProfile(ctx context.Context, params InsertDesiredProfileParams) error {
-	_, err := queries.writer.ExecContext(ctx, insertdesiredprofile, params.P1, params.P2, params.P3, params.P4, params.P5, params.P6, params.P7)
+	_, err := queries.writer.ExecContext(ctx, insertdesiredprofile, params.ArtefactID, params.Name, params.CapabilityName, params.Priority, params.ParamsJSON, params.TagsJSON, params.DependsOnJSON)
 	return err
 }

@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 )
 
-// Probe is a driven port that allows components to be monitored for health. Any
-// component or adapter that needs health checking must implement Probe.
+// Probe is a driven port that allows components to be monitored for health. Any component
+// or adapter that needs health checking must implement Probe.
 type Probe interface {
 	// Name returns the unique, human-readable name of the component being checked.
 	Name() string

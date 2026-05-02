@@ -1,5 +1,4 @@
--- piko.name: GetProductTotal
--- piko.command: one
+-- piko.query(name: GetProductTotal, command: one)
 SELECT
   price * quantity as total,
   price + discount as adjusted_price,

@@ -1,5 +1,4 @@
--- piko.name: LatestBooks
--- piko.command: many
+-- piko.query(name: LatestBooks, command: many)
 SELECT a.name, latest.title, latest.published
 FROM authors a
 LEFT JOIN LATERAL (

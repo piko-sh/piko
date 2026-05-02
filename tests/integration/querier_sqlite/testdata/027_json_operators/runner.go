@@ -36,7 +36,7 @@ func main() {
 
 	queries := db.New(conn)
 
-	metadata, err := queries.GetMetadataField(ctx, int32(1))
+	metadata, err := queries.GetMetadataField(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

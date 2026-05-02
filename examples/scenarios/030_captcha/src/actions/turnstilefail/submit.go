@@ -2,12 +2,14 @@ package turnstilefail
 
 import "piko.sh/piko"
 
-// SubmitAction handles captcha-protected form submissions using Cloudflare Turnstile (always fail).
+// SubmitAction handles captcha-protected form submissions using Cloudflare Turnstile
+// (always fail).
 type SubmitAction struct {
 	piko.ActionMetadata
 }
 
-// CaptchaConfig marks this action as requiring captcha verification via the turnstile_fail provider.
+// CaptchaConfig marks this action as requiring captcha verification via the
+// turnstile_fail provider.
 func (SubmitAction) CaptchaConfig() *piko.CaptchaConfig {
 	return &piko.CaptchaConfig{Provider: "turnstile_fail"}
 }

@@ -76,14 +76,15 @@ func (p *parser) parseFunctionCallWithArgs(loweredName string, schema string) qu
 	p.matchKeyword(keywordALL)
 
 	parameterCountBefore := p.parameterCount
-	arguments := p.parseFunctionArguments()
+	arguments, argumentBoundaries := p.parseFunctionArguments()
 	p.parseFunctionOrderByClause()
 
 	if p.current().kind == tokenRightParen {
 		p.advance()
 	}
 
-	p.markParametersAsFunctionArguments(parameterCountBefore)
+	p.markParametersAsFunctionArguments(
+		parameterCountBefore, qualifiedFunctionName(loweredName, schema), argumentBoundaries)
 
 	result := &querier_dto.FunctionCallExpression{
 		FunctionName: loweredName,
@@ -94,22 +95,46 @@ func (p *parser) parseFunctionCallWithArgs(loweredName string, schema string) qu
 	return p.parseFunctionSuffix(result)
 }
 
-// parseFunctionArguments parses a comma-separated argument list.
+// qualifiedFunctionName joins the optional schema and the lower-cased function name into
+// the form the analyser looks the function up by (schema-qualified when a schema is
+// present, bare otherwise). The schema is lower-cased so the whole name is lower-case,
+// matching the EnclosingFunctionName contract the analyser relies on for its schema
+// split.
+//
+// Takes loweredName (string) which is the lower-cased function name.
+// Takes schema (string) which is the optional schema qualifier.
+//
+// Returns string which is the lower-cased qualified function name.
+func qualifiedFunctionName(loweredName string, schema string) string {
+	if schema == "" {
+		return loweredName
+	}
+	return strings.ToLower(schema) + "." + loweredName
+}
+
+// parseFunctionArguments parses a comma-separated argument list, recording the running
+// parameter count after each top-level argument so callers can map a placeholder's
+// parameter number back to its zero-based argument slot.
 //
 // Returns []querier_dto.Expression which is the parsed argument list.
-func (p *parser) parseFunctionArguments() []querier_dto.Expression {
+// Returns []int which holds, per top-level argument index, the parameter count once that
+// argument has been fully parsed. A placeholder whose number is at most boundaries[i]
+// (and greater than boundaries[i-1]) belongs to argument slot i.
+func (p *parser) parseFunctionArguments() ([]querier_dto.Expression, []int) {
 	var arguments []querier_dto.Expression
+	var argumentBoundaries []int
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		if p.isAnyKeyword(keywordORDER, keywordLIMIT, keywordSEPARATOR) {
 			break
 		}
 		arguments = append(arguments, p.parseExpression())
+		argumentBoundaries = append(argumentBoundaries, p.parameterCount)
 		if p.current().kind != tokenComma {
 			break
 		}
 		p.advance()
 	}
-	return arguments
+	return arguments, argumentBoundaries
 }
 
 // parseFunctionOrderByClause consumes an ORDER BY inside a function call.
@@ -136,17 +161,59 @@ func (p *parser) parseFunctionOrderByClause() {
 }
 
 // markParametersAsFunctionArguments retags parameters parsed since parameterCountBefore
-// as function argument contexts.
+// as function argument contexts, stamping the enclosing function name and the zero-based
+// argument ordinal so the analyser can type each placeholder from the matched function
+// signature.
+//
+// Only placeholders still in ParameterContextUnknown are retagged, which preserves any
+// tag already set by an inner call (a placeholder nested in a sub-call keeps its
+// inner-call name and ordinal rather than being clobbered by the outer call). The ordinal
+// is derived from argumentBoundaries: a placeholder whose number is at most
+// argumentBoundaries[i] and greater than argumentBoundaries[i-1] belongs to argument slot
+// i.
 //
 // Takes parameterCountBefore (int) which is the parameter count recorded before the
 // function arguments were parsed.
-func (p *parser) markParametersAsFunctionArguments(parameterCountBefore int) {
+// Takes qualifiedName (string) which is the lower-cased, optionally schema-qualified
+// enclosing function name.
+// Takes argumentBoundaries ([]int) which holds the running parameter count after each
+// top-level argument.
+func (p *parser) markParametersAsFunctionArguments(
+	parameterCountBefore int,
+	qualifiedName string,
+	argumentBoundaries []int,
+) {
 	for i := range p.parameterRefs {
 		if p.parameterRefs[i].Number > parameterCountBefore &&
 			p.parameterRefs[i].Context == querier_dto.ParameterContextUnknown {
 			p.parameterRefs[i].Context = querier_dto.ParameterContextFunctionArgument
+			p.parameterRefs[i].EnclosingFunctionName = qualifiedName
+			p.parameterRefs[i].ArgumentOrdinal = argumentOrdinalForNumber(
+				p.parameterRefs[i].Number, argumentBoundaries)
 		}
 	}
+}
+
+// argumentOrdinalForNumber maps a placeholder's parameter number to the zero-based
+// argument slot it belongs to, using the per-argument parameter-count boundaries recorded
+// while the argument list was parsed.
+//
+// Takes number (int) which is the placeholder's parameter number.
+// Takes argumentBoundaries ([]int) which holds the running parameter count after each
+// top-level argument.
+//
+// Returns int which is the zero-based argument ordinal, or the last slot when the number
+// falls beyond the recorded boundaries.
+func argumentOrdinalForNumber(number int, argumentBoundaries []int) int {
+	for ordinal, boundary := range argumentBoundaries {
+		if number <= boundary {
+			return ordinal
+		}
+	}
+	if len(argumentBoundaries) == 0 {
+		return 0
+	}
+	return len(argumentBoundaries) - 1
 }
 
 // parseFunctionSuffix wraps a function call in an OVER window if present.
@@ -303,13 +370,14 @@ func (p *parser) parseTrimFunction(loweredName string, schema string) querier_dt
 		p.matchKeyword(keywordFROM)
 	}
 
-	arguments := p.parseFunctionArguments()
+	arguments, argumentBoundaries := p.parseFunctionArguments()
 
 	if p.current().kind == tokenRightParen {
 		p.advance()
 	}
 
-	p.markParametersAsFunctionArguments(parameterCountBefore)
+	p.markParametersAsFunctionArguments(
+		parameterCountBefore, qualifiedFunctionName(loweredName, schema), argumentBoundaries)
 
 	return &querier_dto.FunctionCallExpression{
 		FunctionName: loweredName,
@@ -331,13 +399,14 @@ func (p *parser) parseExtractFunction(loweredName string, schema string) querier
 	p.matchKeyword(keywordFROM)
 
 	parameterCountBefore := p.parameterCount
-	arguments := p.parseFunctionArguments()
+	arguments, argumentBoundaries := p.parseFunctionArguments()
 
 	if p.current().kind == tokenRightParen {
 		p.advance()
 	}
 
-	p.markParametersAsFunctionArguments(parameterCountBefore)
+	p.markParametersAsFunctionArguments(
+		parameterCountBefore, qualifiedFunctionName(loweredName, schema), argumentBoundaries)
 
 	return &querier_dto.FunctionCallExpression{
 		FunctionName: loweredName,
@@ -357,11 +426,13 @@ func (p *parser) parseGroupConcatFunction(loweredName string, schema string) que
 
 	parameterCountBefore := p.parameterCount
 	var arguments []querier_dto.Expression
+	var argumentBoundaries []int
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		if p.isAnyKeyword(keywordORDER, keywordSEPARATOR) {
 			break
 		}
 		arguments = append(arguments, p.parseExpression())
+		argumentBoundaries = append(argumentBoundaries, p.parameterCount)
 		if p.current().kind != tokenComma {
 			break
 		}
@@ -378,7 +449,8 @@ func (p *parser) parseGroupConcatFunction(loweredName string, schema string) que
 		p.advance()
 	}
 
-	p.markParametersAsFunctionArguments(parameterCountBefore)
+	p.markParametersAsFunctionArguments(
+		parameterCountBefore, qualifiedFunctionName(loweredName, schema), argumentBoundaries)
 
 	result := &querier_dto.FunctionCallExpression{
 		FunctionName: loweredName,

@@ -1,0 +1,3 @@
+{
+  "description": "Primitive type round-trip: integers (UInt64, Int32), float, string, bool. Verifies the generated row struct fields scan correctly from the ClickHouse native protocol."
+}

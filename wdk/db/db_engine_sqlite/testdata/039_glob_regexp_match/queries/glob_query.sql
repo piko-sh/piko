@@ -1,3 +1,2 @@
--- piko.name: FindByGlob
--- piko.command: many
+-- piko.query(name: FindByGlob, command: many)
 SELECT id, name FROM files WHERE name GLOB ?

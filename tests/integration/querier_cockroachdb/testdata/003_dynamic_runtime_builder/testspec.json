@@ -1,0 +1,3 @@
+{
+  "description": "Dynamic runtime builder over CockroachDB (pgx stdlib): exercises the runtime builder's $N placeholder generation for a pure-dynamic query and one combined with a static parameter, executed against live CockroachDB."
+}

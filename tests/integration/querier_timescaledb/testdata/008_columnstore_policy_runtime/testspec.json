@@ -1,0 +1,3 @@
+{
+  "description": "ALTER TABLE ... SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'device', timescaledb.orderby = 'ts DESC') marks the hypertable for columnar storage with the given segmentation. Verifies that the ALTER TABLE SET parser accepts the columnstore options and that the table remains queryable afterwards."
+}

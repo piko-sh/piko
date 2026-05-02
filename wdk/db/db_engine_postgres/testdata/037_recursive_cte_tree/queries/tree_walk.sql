@@ -1,5 +1,4 @@
--- piko.name: TreeWalk
--- piko.command: many
+-- piko.query(name: TreeWalk, command: many)
 WITH RECURSIVE cat_tree AS (
     SELECT id, name, parent_id, 1 AS depth
     FROM categories

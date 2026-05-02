@@ -230,6 +230,57 @@ func TestTokenise_Identifiers(t *testing.T) {
 	})
 }
 
+func TestTokenise_UnicodeIdentifiers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "identifier with combining accent letter",
+			input: "café",
+		},
+		{
+			name:  "identifier with CJK letters",
+			input: "名前",
+		},
+		{
+			name:  "identifier with diaeresis letter",
+			input: "naïve",
+		},
+		{
+			name:  "mixed ASCII and multi-byte letter with trailing digit",
+			input: "user_café2",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			requireTokens(t, testCase.input, []token{
+				{kind: tokenIdentifier, value: testCase.input},
+			})
+		})
+	}
+
+	t.Run("multi-byte identifier qualified by dot", func(t *testing.T) {
+		t.Parallel()
+		requireTokens(t, "café.名前", []token{
+			{kind: tokenIdentifier, value: "café"},
+			{kind: tokenDot, value: "."},
+			{kind: tokenIdentifier, value: "名前"},
+		})
+	})
+
+	t.Run("ASCII identifier still tokenises unchanged", func(t *testing.T) {
+		t.Parallel()
+		requireTokens(t, "user_id_2", []token{
+			{kind: tokenIdentifier, value: "user_id_2"},
+		})
+	})
+}
+
 func TestTokenise_Numbers(t *testing.T) {
 	t.Parallel()
 
@@ -367,6 +418,30 @@ func TestTokenise_Strings(t *testing.T) {
 		t.Parallel()
 		requireTokens(t, `'sub\Z'`, []token{
 			{kind: tokenString, value: "sub\x1A"},
+		})
+	})
+
+	t.Run("string with backslash escape backspace", func(t *testing.T) {
+		t.Parallel()
+
+		requireTokens(t, `'a\bc'`, []token{
+			{kind: tokenString, value: "a\x08c"},
+		})
+	})
+
+	t.Run("string with backslash escaped percent keeps backslash", func(t *testing.T) {
+		t.Parallel()
+
+		requireTokens(t, `'50\% off'`, []token{
+			{kind: tokenString, value: `50\% off`},
+		})
+	})
+
+	t.Run("string with backslash escaped underscore keeps backslash", func(t *testing.T) {
+		t.Parallel()
+
+		requireTokens(t, `'a\_b'`, []token{
+			{kind: tokenString, value: `a\_b`},
 		})
 	})
 
@@ -754,12 +829,10 @@ func TestTokenise_WhitespaceAndComments(t *testing.T) {
 		})
 	})
 
-	t.Run("unterminated block comment consumes to end", func(t *testing.T) {
+	t.Run("unterminated block comment is an error", func(t *testing.T) {
 		t.Parallel()
 
-		requireTokens(t, "a /* never closed", []token{
-			{kind: tokenIdentifier, value: "a"},
-		})
+		requireTokeniseError(t, "a /* never closed", "unterminated block comment")
 	})
 
 	t.Run("empty input yields no tokens", func(t *testing.T) {

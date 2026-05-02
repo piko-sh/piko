@@ -27,6 +27,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestReadSeedFiles_DuplicateVersion(t *testing.T) {
+	reader := &mockFileReader{
+		dirs: map[string][]os.DirEntry{
+			"seeds": {
+				&mockDirEntry{name: "001_first.sql"},
+				&mockDirEntry{name: "001_second.sql"},
+			},
+		},
+		files: map[string][]byte{
+			"seeds/001_first.sql":  []byte("INSERT 1;"),
+			"seeds/001_second.sql": []byte("INSERT 2;"),
+		},
+	}
+
+	_, err := readSeedFiles(context.Background(), reader, "seeds")
+
+	var duplicate *DuplicateSeedVersionError
+	require.ErrorAs(t, err, &duplicate)
+	assert.Equal(t, int64(1), duplicate.Version)
+}
+
 func TestReadSeedFiles_ValidFiles(t *testing.T) {
 	reader := &mockFileReader{
 		dirs: map[string][]os.DirEntry{
@@ -91,13 +112,13 @@ func TestReadSeedFiles_SkipsInvalidFiles(t *testing.T) {
 				&mockDirEntry{name: "README.md"},
 				&mockDirEntry{name: "no_version.sql"},
 				&mockDirEntry{name: "subdir", isDir: true},
-				&mockDirEntry{name: "001_migration.up.sql"},
+				&mockDirEntry{name: "003_migration.up.sql"},
 				&mockDirEntry{name: "002_another.sql"},
 			},
 		},
 		files: map[string][]byte{
 			"seeds/001_valid.sql":        []byte("INSERT 1;"),
-			"seeds/001_migration.up.sql": []byte("CREATE TABLE x;"),
+			"seeds/003_migration.up.sql": []byte("CREATE TABLE x;"),
 			"seeds/002_another.sql":      []byte("INSERT 2;"),
 		},
 	}
@@ -107,8 +128,8 @@ func TestReadSeedFiles_SkipsInvalidFiles(t *testing.T) {
 
 	require.Len(t, files, 3)
 	assert.Equal(t, "valid", files[0].Name)
-	assert.Equal(t, "migration.up", files[1].Name)
-	assert.Equal(t, "another", files[2].Name)
+	assert.Equal(t, "another", files[1].Name)
+	assert.Equal(t, "migration.up", files[2].Name)
 }
 
 func TestReadSeedFiles_EmptyDirectory(t *testing.T) {

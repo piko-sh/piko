@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "inventories.sql",
-    "SQL": "-- piko.name: GetDoubledQuantities\n-- piko.command: many\nSELECT id, name, list_transform(quantities, x -\u003e x * 2) AS doubled FROM inventories;",
+    "SQL": "-- piko.query(name: GetDoubledQuantities, command: many)\nSELECT id, name, list_transform(quantities, x -\u003e x * 2) AS doubled FROM inventories;",
     "Name": "GetDoubledQuantities",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "inventories",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "inventories",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "inventories",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "inventories",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,29 +52,47 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "doubled",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
-          "ElementType": null,
-          "EngineName": "int4",
+          "ElementType": {
+            "Precision": null,
+            "Scale": null,
+            "Length": null,
+            "ElementType": null,
+            "EngineName": "int4",
+            "Schema": "",
+            "EnumValues": null,
+            "StructFields": null,
+            "KeyType": null,
+            "UnionMembers": null,
+            "Category": 0,
+            "Nullable": false
+          },
+          "EngineName": "int4[]",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 13,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -87,22 +113,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "inventories.sql",
-    "SQL": "-- piko.name: GetPositiveQuantities\n-- piko.command: many\nSELECT id, name, list_filter(quantities, x -\u003e x \u003e 0) AS positive FROM inventories;",
+    "SQL": "-- piko.query(name: GetPositiveQuantities, command: many)\nSELECT id, name, list_filter(quantities, x -\u003e x \u003e 0) AS positive FROM inventories;",
     "Name": "GetPositiveQuantities",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "inventories",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "inventories",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,16 +147,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "inventories",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "inventories",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -137,29 +173,47 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "positive",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
-          "ElementType": null,
-          "EngineName": "int4",
+          "ElementType": {
+            "Precision": null,
+            "Scale": null,
+            "Length": null,
+            "ElementType": null,
+            "EngineName": "int4",
+            "Schema": "",
+            "EnumValues": null,
+            "StructFields": null,
+            "KeyType": null,
+            "UnionMembers": null,
+            "Category": 0,
+            "Nullable": false
+          },
+          "EngineName": "int4[]",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 13,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -179,10 +233,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

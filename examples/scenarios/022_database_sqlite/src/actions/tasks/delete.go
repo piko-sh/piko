@@ -23,8 +23,8 @@ type DeleteInput struct {
 	ID int32 `json:"id" validate:"required"`
 }
 
-// DeleteResponse is returned after a successful deletion. It is intentionally
-// empty because the client reloads the page to reflect the change.
+// DeleteResponse is returned after a successful deletion. It is intentionally empty
+// because the client reloads the page to reflect the change.
 type DeleteResponse struct{}
 
 // Call removes the specified task from the database.

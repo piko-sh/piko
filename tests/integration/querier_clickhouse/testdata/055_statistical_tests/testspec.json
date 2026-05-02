@@ -1,0 +1,4 @@
+{
+  "description": "welchTTest(sample, index) returns a Tuple(Float64, Float64) of (t-statistic, p-value) for Welch's two-sample test. The fixture seeds two shifted cohorts, computes the test, and verifies the sign of the t-statistic is negative (group b > group a), the rounded magnitude, and that the p-value falls below 0.001 because the two populations are well-separated.",
+  "skip": false
+}

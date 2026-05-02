@@ -21,10 +21,10 @@ package querier_domain
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/wdk/clock"
 )
 
 // QuerierPorts holds the port interfaces required by the querier service.
@@ -42,6 +42,11 @@ type QuerierPorts struct {
 	// the service falls back to migration-file-based catalogue building using the Engine and
 	// FileReader ports.
 	CatalogueProvider CatalogueProviderPort
+
+	// Clock supplies the time source used for generation-duration telemetry. When nil the
+	// service uses clock.RealClock(); tests inject a mock clock to assert recorded
+	// durations.
+	Clock clock.Clock
 }
 
 // querierService orchestrates the three-phase pipeline: catalogue building from
@@ -60,6 +65,9 @@ type querierService struct {
 
 	// catalogueProvider holds an optional override for catalogue building.
 	catalogueProvider CatalogueProviderPort
+
+	// clock is the time source for duration telemetry; never nil after NewQuerierService.
+	clock clock.Clock
 }
 
 // NewQuerierService creates a new querier service from the given ports.
@@ -79,11 +87,17 @@ func NewQuerierService(ports QuerierPorts) (QuerierServicePort, error) {
 		return nil, ErrMissingFileReaderPort
 	}
 
+	serviceClock := ports.Clock
+	if serviceClock == nil {
+		serviceClock = clock.RealClock()
+	}
+
 	return &querierService{
 		engine:            ports.Engine,
 		emitter:           ports.Emitter,
 		fileReader:        ports.FileReader,
 		catalogueProvider: ports.CatalogueProvider,
+		clock:             serviceClock,
 	}, nil
 }
 
@@ -100,14 +114,21 @@ func (s *querierService) GenerateDatabase(
 	ctx context.Context,
 	name string,
 	config *querier_dto.DatabaseConfig,
-	_ string,
 ) (*querier_dto.GenerationResult, error) {
-	ctx, logger := logger_domain.From(ctx, log)
-	ctx, span, _ := log.Span(ctx, "QuerierService.GenerateDatabase")
+	ctx, span, logger := log.Span(ctx, "QuerierService.GenerateDatabase")
 	defer span.End()
 
-	start := time.Now()
+	if config == nil {
+		generationErrorCount.Add(ctx, 1)
+		return nil, ErrMissingConfig
+	}
+
+	start := s.clock.Now()
 	generationCount.Add(ctx, 1)
+
+	defer func() {
+		generationDuration.Record(ctx, float64(s.clock.Now().Sub(start).Milliseconds()))
+	}()
 	logger.Trace("starting database generation", logger_domain.String("database", name))
 
 	catalogue, catalogueDiagnostics, catalogueError := s.buildCatalogue(ctx, config)
@@ -127,7 +148,6 @@ func (s *querierService) GenerateDatabase(
 	allDiagnostics = append(allDiagnostics, queryDiagnostics...)
 
 	if diagnosticsContainErrors(allDiagnostics) {
-		generationDuration.Record(ctx, float64(time.Since(start).Milliseconds()))
 		generationErrorCount.Add(ctx, 1)
 		logger.Warn("generation aborted due to errors",
 			logger_domain.String("database", name),
@@ -135,6 +155,32 @@ func (s *querierService) GenerateDatabase(
 		)
 		return &querier_dto.GenerationResult{Diagnostics: allDiagnostics}, nil
 	}
+
+	return s.emitGenerationResult(ctx, name, catalogue, queries, config, allDiagnostics)
+}
+
+// emitGenerationResult runs the emit phase and assembles the final generation result. It
+// is reached only after catalogue build and query analysis succeed with no error-level
+// diagnostics.
+//
+// Takes name (string) which is the package name.
+// Takes catalogue (*querier_dto.Catalogue) which holds the resolved schema state.
+// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked queries.
+// Takes config (*querier_dto.DatabaseConfig) which provides the type overrides.
+// Takes diagnostics ([]querier_dto.SourceError) which holds the (non-error) diagnostics
+// to carry into the result.
+//
+// Returns *querier_dto.GenerationResult which holds the generated files and diagnostics.
+// Returns error when the emit phase fails.
+func (s *querierService) emitGenerationResult(
+	ctx context.Context,
+	name string,
+	catalogue *querier_dto.Catalogue,
+	queries []*querier_dto.AnalysedQuery,
+	config *querier_dto.DatabaseConfig,
+	diagnostics []querier_dto.SourceError,
+) (*querier_dto.GenerationResult, error) {
+	_, logger := logger_domain.From(ctx, log)
 
 	typeMapper := NewTypeMapper(s.engine.BuiltinTypes())
 	mappings := typeMapper.BuildMappingTable(config.TypeOverrides)
@@ -144,19 +190,15 @@ func (s *querierService) GenerateDatabase(
 		return nil, emitError
 	}
 
-	duration := time.Since(start).Milliseconds()
-	generationDuration.Record(ctx, float64(duration))
-
 	logger.Trace("database generation complete",
 		logger_domain.String("database", name),
 		logger_domain.Int("files", len(generatedFiles)),
 		logger_domain.Int("queries", len(queries)),
-		logger_domain.Int64("durationMs", duration),
 	)
 
 	return &querier_dto.GenerationResult{
 		Files:       generatedFiles,
-		Diagnostics: allDiagnostics,
+		Diagnostics: diagnostics,
 	}, nil
 }
 
@@ -179,12 +221,20 @@ func (s *querierService) emitAllFiles(
 ) ([]querier_dto.GeneratedFile, error) {
 	var generatedFiles []querier_dto.GeneratedFile
 
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	modelFiles, modelError := s.emitter.EmitModels(name, catalogue, mappings)
 	if modelError != nil {
 		generationErrorCount.Add(ctx, 1)
 		return nil, fmt.Errorf("emitting models for %s: %w", name, modelError)
 	}
 	generatedFiles = append(generatedFiles, modelFiles...)
+
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
 	queryFiles, queryFileError := s.emitter.EmitQueries(name, queries, mappings)
 	if queryFileError != nil {
@@ -256,7 +306,7 @@ func (s *querierService) buildCatalogue(
 	ctx, span, _ := log.Span(ctx, "QuerierService.buildCatalogue")
 	defer span.End()
 
-	start := time.Now()
+	start := s.clock.Now()
 	catalogueBuildCount.Add(ctx, 1)
 
 	provider := s.catalogueProvider
@@ -266,7 +316,7 @@ func (s *querierService) buildCatalogue(
 
 	catalogue, diagnostics, buildError := provider.BuildCatalogue(ctx)
 
-	duration := time.Since(start).Milliseconds()
+	duration := s.clock.Now().Sub(start).Milliseconds()
 	catalogueBuildDuration.Record(ctx, float64(duration))
 
 	return catalogue, diagnostics, buildError
@@ -289,7 +339,7 @@ func (s *querierService) analyseQueries(
 	ctx, span, _ := log.Span(ctx, "QuerierService.analyseQueries")
 	defer span.End()
 
-	start := time.Now()
+	start := s.clock.Now()
 	queryAnalysisCount.Add(ctx, 1)
 
 	queryFiles, readError := readMigrationFiles(ctx, s.fileReader, config.QueryDirectory)
@@ -297,16 +347,16 @@ func (s *querierService) analyseQueries(
 		return nil, nil, readError
 	}
 
+	var allQueries []*querier_dto.AnalysedQuery
+	var allDiagnostics []querier_dto.SourceError
+
 	if len(config.CustomFunctions) > 0 {
-		mergeCustomFunctions(catalogue, s.engine, config.CustomFunctions)
+		allDiagnostics = append(allDiagnostics, mergeCustomFunctions(catalogue, s.engine, config.CustomFunctions)...)
 	}
 
 	analyser := newQueryAnalyser(s.engine, catalogue)
 
 	commentStyle := s.engine.CommentStyle()
-
-	var allQueries []*querier_dto.AnalysedQuery
-	var allDiagnostics []querier_dto.SourceError
 
 	for _, queryFile := range queryFiles {
 		if ctx.Err() != nil {
@@ -316,6 +366,9 @@ func (s *querierService) analyseQueries(
 		blocks := splitQueryFile(queryFile.content, commentStyle)
 
 		for _, block := range blocks {
+			if ctx.Err() != nil {
+				return nil, nil, ctx.Err()
+			}
 			query, diagnostics := analyser.AnalyseQuery(ctx, block, queryFile.filename)
 			allDiagnostics = append(allDiagnostics, diagnostics...)
 
@@ -328,7 +381,7 @@ func (s *querierService) analyseQueries(
 	duplicateDiagnostics := analyser.validator.ValidateDuplicateNames(allQueries)
 	allDiagnostics = append(allDiagnostics, duplicateDiagnostics...)
 
-	duration := time.Since(start).Milliseconds()
+	duration := s.clock.Now().Sub(start).Milliseconds()
 	queryAnalysisDuration.Record(ctx, float64(duration))
 
 	return allQueries, allDiagnostics, nil

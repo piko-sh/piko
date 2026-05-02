@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "high_value_orders.sql",
-    "SQL": "-- piko.name: GetHighValueOrders\n-- piko.command: many\nWITH high_value AS (\n  SELECT id, customer_name, amount\n  FROM orders\n  WHERE amount \u003e ?\n)\nSELECT id, customer_name, amount FROM high_value",
+    "SQL": "-- piko.query(name: GetHighValueOrders, command: many)\nWITH high_value AS (\n  SELECT id, customer_name, amount\n  FROM orders\n  WHERE amount \u003e ?\n)\nSELECT id, customer_name, amount FROM high_value",
     "Name": "GetHighValueOrders",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,42 +22,51 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "high_value",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "high_value",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "customer_name",
         "SourceTable": "high_value",
+        "SourceSchema": "",
         "SourceColumn": "customer_name",
+        "SourceQualifier": "high_value",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "amount",
         "SourceTable": "high_value",
+        "SourceSchema": "",
         "SourceColumn": "amount",
+        "SourceQualifier": "high_value",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -91,7 +105,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -112,9 +127,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

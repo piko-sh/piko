@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "count_union.sql",
-    "SQL": "-- piko.name: CountUnion\n-- piko.command: one\nWITH t AS (\n    SELECT thing FROM things\n    UNION ALL\n    SELECT thing FROM things\n)\nSELECT COUNT(*) AS total FROM t;",
+    "SQL": "-- piko.query(name: CountUnion, command: one)\nWITH t AS (\n    SELECT thing FROM things\n    UNION ALL\n    SELECT thing FROM things\n)\nSELECT COUNT(*) AS total FROM t;",
     "Name": "CountUnion",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "total",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,7 +26,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -43,9 +48,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -1,0 +1,3 @@
+{
+  "description": "QUALIFY row_number() OVER (PARTITION BY x ORDER BY y DESC) = 1 picks the top observation in each partition. Verifies that the parser accepts QUALIFY after the SELECT body and that the window function resolves through the catalogue at runtime."
+}

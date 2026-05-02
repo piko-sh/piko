@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "values_join.sql",
-    "SQL": "-- piko.name: ValuesJoin\n-- piko.command: many\nWITH filter(target_id, target_status) AS (VALUES (1, 'active'), (2, 'pending'))\nSELECT i.id, i.name, i.status\nFROM items i\nJOIN filter f ON f.target_id = i.id AND f.target_status = i.status;",
+    "SQL": "-- piko.query(name: ValuesJoin, command: many)\nWITH filter(target_id, target_status) AS (VALUES (1, 'active'), (2, 'pending'))\nSELECT i.id, i.name, i.status\nFROM items i\nJOIN filter f ON f.target_id = i.id AND f.target_status = i.status;",
     "Name": "ValuesJoin",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "i",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "i",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "status",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "status",
+        "SourceQualifier": "i",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,7 +78,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -87,9 +100,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

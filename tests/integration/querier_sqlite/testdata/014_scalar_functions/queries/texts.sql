@@ -1,5 +1,4 @@
--- piko.name: GetTextTransforms
--- piko.command: one
+-- piko.query(name: GetTextTransforms, command: one)
 SELECT
     id,
     lower(content) AS lowered,

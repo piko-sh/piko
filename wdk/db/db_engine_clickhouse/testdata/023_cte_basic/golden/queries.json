@@ -1,0 +1,84 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "top_spenders.sql",
+    "SQL": "-- piko.query(TopSpenders, many)\nWITH user_totals AS (\n    SELECT user_id, sum(total) AS lifetime_total FROM orders GROUP BY user_id\n)\nSELECT user_id, lifetime_total FROM user_totals ORDER BY lifetime_total DESC LIMIT 10;",
+    "Name": "TopSpenders",
+    "CountSQL": "",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "user_id",
+        "SourceTable": "user_totals",
+        "SourceSchema": "",
+        "SourceColumn": "user_id",
+        "SourceQualifier": "user_totals",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "lifetime_total",
+        "SourceTable": "user_totals",
+        "SourceSchema": "",
+        "SourceColumn": "lifetime_total",
+        "SourceQualifier": "user_totals",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "Decimal128",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "Command": 1,
+    "IsDynamic": false,
+    "DynamicRuntime": false,
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
+  }
+]

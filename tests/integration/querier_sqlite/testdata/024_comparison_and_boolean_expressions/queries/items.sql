@@ -1,5 +1,4 @@
--- piko.name: ListItemsWithFlags
--- piko.command: many
+-- piko.query(name: ListItemsWithFlags, command: many)
 SELECT
     id,
     name,

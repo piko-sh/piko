@@ -1,25 +1,25 @@
 {
   "created": {
-    "Done": false,
-    "ID": 1,
-    "Title": "First task"
+    "done": false,
+    "id": 1,
+    "title": "First task"
   },
   "deleted": {
-    "ID": 3,
-    "Title": "Third task"
+    "id": 3,
+    "title": "Third task"
   },
   "marked_done": [
     {
-      "ID": 1,
-      "Title": "First task"
+      "id": 1,
+      "title": "First task"
     },
     {
-      "ID": 2,
-      "Title": "Second task"
+      "id": 2,
+      "title": "Second task"
     },
     {
-      "ID": 3,
-      "Title": "Third task"
+      "id": 3,
+      "title": "Third task"
     }
   ]
 }

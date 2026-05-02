@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "get_active_users.sql",
-    "SQL": "-- piko.name: GetActiveUserNames\n-- piko.command: many\nWITH active_users AS (SELECT id, name FROM users WHERE active = true)\nSELECT active_users.name FROM active_users",
+    "SQL": "-- piko.query(name: GetActiveUserNames, command: many)\nWITH active_users AS (SELECT id, name FROM users WHERE active = true)\nSELECT active_users.name FROM active_users",
     "Name": "GetActiveUserNames",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,7 +26,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -43,9 +48,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

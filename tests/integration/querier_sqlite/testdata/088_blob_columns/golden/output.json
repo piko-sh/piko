@@ -1,20 +1,20 @@
 {
   "file": {
-    "Content": "SGVsbG8sIFdvcmxkIQ==",
-    "ID": 1,
-    "Name": "hello.txt",
-    "Size": 13
+    "content": "SGVsbG8sIFdvcmxkIQ==",
+    "id": 1,
+    "name": "hello.txt",
+    "size": 13
   },
   "file_names": [
     {
-      "ID": 1,
-      "Name": "hello.txt",
-      "Size": 13
+      "id": 1,
+      "name": "hello.txt",
+      "size": 13
     },
     {
-      "ID": 2,
-      "Name": "binary.dat",
-      "Size": 3
+      "id": 2,
+      "name": "binary.dat",
+      "size": 3
     }
   ]
 }

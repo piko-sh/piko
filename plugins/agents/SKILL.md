@@ -76,7 +76,7 @@ For each artefact, include:
 Provide the appropriate command sequence:
 - `go run ./cmd/generator/main.go all` to regenerate assets
 - `go build ./...` to verify Go compilation
-- `air` or `go run ./cmd/main/main.go` to start dev server
+- `air` or `go run ./cmd/main/main.go dev` to start the dev server. `cmd/main/main.go` takes a mode argument: `dev` (the default when omitted), `dev-i` (interpreted), or `prod` (production).
 
 ## 6) Output contract
 
@@ -109,6 +109,6 @@ These are authoritative sources. When a reference file is ambiguous or incomplet
 When debugging issues, inspect the build output in the user's project:
 
 - **`.piko/`** - contains generated intermediate files, including compiled JavaScript for `.pk` and `.pkc` files. Examining these reveals exactly what the framework produces from the source templates and script blocks.
-- **`dist/`** - contains generated Go code for compiled `.pk` pages and partials (e.g. `dist/pages/pages_index_abc123/component.go`). Inspect these to understand how the `Render` function, props, and metadata are wired together.
+- **`dist/`** - contains generated Go code for compiled `.pk` pages and partials (for example `dist/pages/pages_index_abc123/generated.go`). Inspect these to understand how the `Render` function, props, and metadata are wired together.
 
 Comparing source `.pk`/`.pkc` files against their generated output in `.piko/` and `dist/` is often the fastest way to diagnose template compilation issues, missing exports, or incorrect action wiring.

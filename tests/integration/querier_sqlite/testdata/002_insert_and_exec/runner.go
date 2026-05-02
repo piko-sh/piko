@@ -31,9 +31,9 @@ func main() {
 	queries := db.New(conn)
 
 	err = queries.InsertUser(ctx, db.InsertUserParams{
-		P1: int32(1),
-		P2: "Alice",
-		P3: "alice@example.com",
+		ID:    int64(1),
+		Name:  "Alice",
+		Email: "alice@example.com",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -41,16 +41,16 @@ func main() {
 	}
 
 	err = queries.InsertUser(ctx, db.InsertUserParams{
-		P1: int32(2),
-		P2: "Bob",
-		P3: "bob@example.com",
+		ID:    int64(2),
+		Name:  "Bob",
+		Email: "bob@example.com",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	user, err := queries.GetUser(ctx, int32(1))
+	user, err := queries.GetUser(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

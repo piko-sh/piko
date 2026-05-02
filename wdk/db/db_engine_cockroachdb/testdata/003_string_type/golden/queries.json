@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "documents.sql",
-    "SQL": "-- piko.name: GetDocument\n-- piko.command: one\nSELECT id, title, content, checksum FROM documents WHERE id = $1;",
+    "SQL": "-- piko.query(name: GetDocument, command: one)\nSELECT id, title, content, checksum FROM documents WHERE id = $1;",
     "Name": "GetDocument",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -15,105 +16,123 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "int4",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "int4",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "string",
+          "EngineName": "text",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "content",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "content",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "string",
+          "EngineName": "text",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "checksum",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "checksum",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "bytes",
+          "EngineName": "bytea",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -134,57 +153,68 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "documents.sql",
-    "SQL": "-- piko.name: ListDocuments\n-- piko.command: many\nSELECT id, title FROM documents ORDER BY title;",
+    "SQL": "-- piko.query(name: ListDocuments, command: many)\nSELECT id, title FROM documents ORDER BY title;",
     "Name": "ListDocuments",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "int4",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "string",
+          "EngineName": "text",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -204,10 +234,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -22,16 +22,16 @@ type CreateAction struct {
 
 // CreateInput defines the data the action expects to receive.
 //
-// The json tags map HTML form field names to struct fields. When the form
-// is submitted, Piko deserialises the form data using these tags.
+// The json tags map HTML form field names to struct fields. When the form is submitted,
+// Piko deserialises the form data using these tags.
 type CreateInput struct {
 	PostID     int32  `json:"post_id" validate:"required"`
 	AuthorName string `json:"author_name" validate:"required,min=1,max=255"`
 	Body       string `json:"body" validate:"required,min=1"`
 }
 
-// CreateResponse is returned after a successful creation. It is intentionally
-// empty because the client reloads the page to reflect the change.
+// CreateResponse is returned after a successful creation. It is intentionally empty
+// because the client reloads the page to reflect the change.
 type CreateResponse struct{}
 
 // Call inserts a new comment for the specified post.

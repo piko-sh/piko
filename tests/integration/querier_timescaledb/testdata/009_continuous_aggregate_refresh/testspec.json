@@ -1,0 +1,3 @@
+{
+  "description": "CALL refresh_continuous_aggregate(name, start, finish) materialises the requested window into the cagg. The fixture creates a hypertable and a continuous aggregate (WITH NO DATA), seeds samples spanning two hours, runs the refresh via a direct SQL CALL (postgres rejects bind parameters on CALL targets), then reads the cagg back to confirm the refresh populated the expected rows."
+}

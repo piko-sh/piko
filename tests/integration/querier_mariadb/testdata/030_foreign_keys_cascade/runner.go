@@ -26,8 +26,8 @@ func main() {
 
 	queries := db.New(conn)
 	err = queries.InsertDepartment(ctx, db.InsertDepartmentParams{
-		P1: int32(1),
-		P2: "Engineering",
+		ID:   int32(1),
+		Name: "Engineering",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert dept 1:", err)
@@ -35,17 +35,17 @@ func main() {
 	}
 
 	err = queries.InsertDepartment(ctx, db.InsertDepartmentParams{
-		P1: int32(2),
-		P2: "Sales",
+		ID:   int32(2),
+		Name: "Sales",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert dept 2:", err)
 		os.Exit(1)
 	}
 	err = queries.InsertEmployee(ctx, db.InsertEmployeeParams{
-		P1: int32(1),
-		P2: "Alice",
-		P3: int32(1),
+		ID:     int32(1),
+		Name:   "Alice",
+		DeptID: int32(1),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert emp 1:", err)
@@ -53,9 +53,9 @@ func main() {
 	}
 
 	err = queries.InsertEmployee(ctx, db.InsertEmployeeParams{
-		P1: int32(2),
-		P2: "Bob",
-		P3: int32(1),
+		ID:     int32(2),
+		Name:   "Bob",
+		DeptID: int32(1),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert emp 2:", err)
@@ -63,9 +63,9 @@ func main() {
 	}
 
 	err = queries.InsertEmployee(ctx, db.InsertEmployeeParams{
-		P1: int32(3),
-		P2: "Charlie",
-		P3: int32(2),
+		ID:     int32(3),
+		Name:   "Charlie",
+		DeptID: int32(2),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert emp 3:", err)

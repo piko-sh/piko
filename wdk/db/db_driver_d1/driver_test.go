@@ -66,16 +66,29 @@ func TestStringifyNamedParamsNil(t *testing.T) {
 	args := []driver.NamedValue{
 		{Ordinal: 1, Value: nil},
 	}
-	result := stringifyNamedParams(args)
-	require.Len(t, result, 1)
-	assert.Equal(t, "", result[0])
+	result, err := stringifyNamedParams(args)
+	require.ErrorIs(t, err, errNullParamUnsupported)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "parameter 1")
+}
+
+func TestStringifyNamedParamsNilNotFirst(t *testing.T) {
+	args := []driver.NamedValue{
+		{Ordinal: 1, Value: "ok"},
+		{Ordinal: 2, Value: nil},
+	}
+	result, err := stringifyNamedParams(args)
+	require.ErrorIs(t, err, errNullParamUnsupported)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "parameter 2")
 }
 
 func TestStringifyNamedParamsString(t *testing.T) {
 	args := []driver.NamedValue{
 		{Ordinal: 1, Value: "hello"},
 	}
-	result := stringifyNamedParams(args)
+	result, err := stringifyNamedParams(args)
+	require.NoError(t, err)
 	require.Len(t, result, 1)
 	assert.Equal(t, "hello", result[0])
 }
@@ -84,7 +97,8 @@ func TestStringifyNamedParamsInt64(t *testing.T) {
 	args := []driver.NamedValue{
 		{Ordinal: 1, Value: int64(42)},
 	}
-	result := stringifyNamedParams(args)
+	result, err := stringifyNamedParams(args)
+	require.NoError(t, err)
 	require.Len(t, result, 1)
 	assert.Equal(t, "42", result[0])
 }
@@ -93,7 +107,8 @@ func TestStringifyNamedParamsFloat64(t *testing.T) {
 	args := []driver.NamedValue{
 		{Ordinal: 1, Value: float64(3.14)},
 	}
-	result := stringifyNamedParams(args)
+	result, err := stringifyNamedParams(args)
+	require.NoError(t, err)
 	require.Len(t, result, 1)
 	assert.Equal(t, strconv.FormatFloat(3.14, 'g', -1, 64), result[0])
 }
@@ -113,7 +128,8 @@ func TestStringifyNamedParamsBool(t *testing.T) {
 			args := []driver.NamedValue{
 				{Ordinal: 1, Value: test.value},
 			}
-			result := stringifyNamedParams(args)
+			result, err := stringifyNamedParams(args)
+			require.NoError(t, err)
 			require.Len(t, result, 1)
 			assert.Equal(t, test.expected, result[0])
 		})
@@ -125,21 +141,55 @@ func TestStringifyNamedParamsBytes(t *testing.T) {
 	args := []driver.NamedValue{
 		{Ordinal: 1, Value: data},
 	}
-	result := stringifyNamedParams(args)
+	result, err := stringifyNamedParams(args)
+	require.NoError(t, err)
 	require.Len(t, result, 1)
 	assert.Equal(t, base64.StdEncoding.EncodeToString(data), result[0])
 }
 
 func TestStringifyNamedParamsTime(t *testing.T) {
-	timestamp := time.Date(2026, 3, 27, 12, 0, 0, 0, time.UTC)
+	timestamp := time.Date(2026, 3, 27, 12, 0, 0, 123456789, time.FixedZone("CEST", 2*60*60))
 	args := []driver.NamedValue{
 		{Ordinal: 1, Value: timestamp},
 	}
-	result := stringifyNamedParams(args)
+	result, err := stringifyNamedParams(args)
+	require.NoError(t, err)
 	require.Len(t, result, 1)
-	assert.Equal(t, strconv.FormatInt(timestamp.Unix(), 10), result[0])
+
+	assert.Equal(t, timestamp.UTC().Format(time.RFC3339Nano), result[0])
 }
 
 func TestDriverName(t *testing.T) {
 	assert.Equal(t, "d1", DriverName())
+}
+
+func TestBuildBatchParameterOrdering(t *testing.T) {
+	statements := []batchStatement{
+		{query: "INSERT INTO a (x) VALUES (?)", params: []string{"a1"}},
+		{query: "INSERT INTO b (x, y) VALUES (?, ?)", params: []string{"b1", "b2"}},
+		{query: "INSERT INTO c (x) VALUES (?)", params: []string{"c1"}},
+	}
+
+	sql, params := buildBatch(statements)
+
+	expectedSQL := "BEGIN;\n" +
+		"INSERT INTO a (x) VALUES (?);\n" +
+		"INSERT INTO b (x, y) VALUES (?, ?);\n" +
+		"INSERT INTO c (x) VALUES (?);\n" +
+		"COMMIT;"
+	assert.Equal(t, expectedSQL, sql)
+
+	assert.Equal(t, []string{"a1", "b1", "b2", "c1"}, params)
+}
+
+func TestBuildBatchEmptyParameters(t *testing.T) {
+	statements := []batchStatement{
+		{query: "DELETE FROM a", params: nil},
+		{query: "DELETE FROM b", params: nil},
+	}
+
+	sql, params := buildBatch(statements)
+
+	assert.Equal(t, "BEGIN;\nDELETE FROM a;\nDELETE FROM b;\nCOMMIT;", sql)
+	assert.Empty(t, params)
 }

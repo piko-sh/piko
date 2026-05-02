@@ -183,7 +183,7 @@ func (a *Adapter) CreateTasks(ctx context.Context, tasks []*orchestrator_domain.
 
 	return a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
 		batchParams := make([]orchestrator_db.CreateTasksBatchParams, len(tasks))
-		now := safeconv.Int64ToInt32(time.Now().UTC().Unix())
+		nowSeconds := time.Now().UTC().Unix()
 
 		for i, task := range tasks {
 			payloadBytes, err := json.Marshal(task.Payload)
@@ -201,18 +201,18 @@ func (a *Adapter) CreateTasks(ctx context.Context, tasks []*orchestrator_domain.
 			}
 
 			batchParams[i] = orchestrator_db.CreateTasksBatchParams{
-				P1:  task.ID,
-				P2:  task.WorkflowID,
-				P3:  task.Executor,
-				P4:  safeconv.IntToInt32(int(task.Config.Priority)),
-				P5:  string(payloadBytes),
-				P6:  string(configBytes),
-				P7:  string(task.Status),
-				P8:  safeconv.Int64ToInt32(task.ExecuteAt.Unix()),
-				P9:  safeconv.IntToInt32(task.Attempt),
-				P10: safeconv.Int64ToInt32(task.CreatedAt.Unix()),
-				P11: now,
-				P12: dedupKey,
+				ID:               task.ID,
+				WorkflowID:       task.WorkflowID,
+				Executor:         task.Executor,
+				Priority:         safeconv.IntToInt32(int(task.Config.Priority)),
+				Payload:          string(payloadBytes),
+				Config:           string(configBytes),
+				Status:           string(task.Status),
+				ExecuteAt:        task.ExecuteAt.Unix(),
+				Attempt:          safeconv.IntToInt32(task.Attempt),
+				CreatedAt:        task.CreatedAt.Unix(),
+				UpdatedAt:        nowSeconds,
+				DeduplicationKey: dedupKey,
 			}
 		}
 
@@ -287,7 +287,7 @@ func (a *Adapter) CreateTaskWithDedup(ctx context.Context, task *orchestrator_do
 // Returns error when the fetch or mark operation fails.
 func (a *Adapter) FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error) {
 	var domainTasks []*orchestrator_domain.Task
-	nowSeconds := safeconv.Int64ToInt32(time.Now().UTC().Unix())
+	nowSeconds := time.Now().UTC().Unix()
 
 	err := a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
 		fetchedRows, err := qtx.FetchDueTasks(ctx, orchestrator_db.FetchDueTasksParams{
@@ -295,9 +295,9 @@ func (a *Adapter) FetchAndMarkDueTasks(ctx context.Context, priority orchestrato
 				string(orchestrator_domain.StatusPending),
 				string(orchestrator_domain.StatusRetrying),
 			},
-			P2: safeconv.IntToInt32(int(priority)),
-			P3: nowSeconds,
-			P4: safeconv.IntToInt32(limit),
+			Priority:  safeconv.IntToInt32(int(priority)),
+			ExecuteAt: nowSeconds,
+			Limit:     limit,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to fetch due tasks: %w", err)
@@ -315,14 +315,17 @@ func (a *Adapter) FetchAndMarkDueTasks(ctx context.Context, priority orchestrato
 		domainTasks = converted
 
 		if err := qtx.MarkTasksAsProcessing(ctx, orchestrator_db.MarkTasksAsProcessingParams{
-			P1:  safeconv.Int64ToInt32(time.Now().UTC().Unix()),
-			IDs: taskIDs,
+			UpdatedAt: time.Now().UTC().Unix(),
+			IDs:       taskIDs,
 		}); err != nil {
 			return fmt.Errorf("failed to mark tasks as processing: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
+		for _, task := range domainTasks {
+			orchestrator_domain.TaskPool.Put(task)
+		}
 		return nil, err
 	}
 
@@ -376,14 +379,14 @@ func (a *Adapter) GetWorkflowStatus(ctx context.Context, workflowID string) (boo
 // Returns int which is the number of tasks promoted.
 // Returns error when the database transaction fails.
 func (a *Adapter) PromoteScheduledTasks(ctx context.Context) (int, error) {
-	nowSeconds := safeconv.Int64ToInt32(time.Now().UTC().Unix())
+	nowSeconds := time.Now().UTC().Unix()
 
 	var rowsAffected int64
 	err := a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
 		var txErr error
 		rowsAffected, txErr = qtx.PromoteScheduledTasks(ctx, orchestrator_db.PromoteScheduledTasksParams{
-			P1: nowSeconds,
-			P2: nowSeconds,
+			UpdatedAt: nowSeconds,
+			ExecuteAt: nowSeconds,
 		})
 		if txErr != nil {
 			return fmt.Errorf("failed to promote scheduled tasks: %w", txErr)
@@ -422,19 +425,19 @@ func (a *Adapter) PendingTaskCount(ctx context.Context) (int64, error) {
 // Returns error when the recovery operation fails.
 func (a *Adapter) RecoverStaleTasks(ctx context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error) {
 	now := time.Now().UTC()
-	nowSeconds := safeconv.Int64ToInt32(now.Unix())
-	staleThresholdSeconds := safeconv.Int64ToInt32(now.Add(-staleThreshold).Unix())
+	nowSeconds := now.Unix()
+	staleThresholdSeconds := now.Add(-staleThreshold).Unix()
 
 	var rowsAffected int64
 	err := a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
 		var txErr error
 		rowsAffected, txErr = qtx.RecoverStaleTasks(ctx, orchestrator_db.RecoverStaleTasksParams{
-			P1: maxRetries,
-			P2: maxRetries,
-			P3: &recoveryError,
-			P4: nowSeconds,
-			P5: nowSeconds,
-			P6: staleThresholdSeconds,
+			Attempt:    safeconv.IntToInt32(maxRetries),
+			Attempt2:   safeconv.IntToInt32(maxRetries),
+			LastError:  &recoveryError,
+			UpdatedAt:  nowSeconds,
+			ExecuteAt:  nowSeconds,
+			UpdatedAt2: staleThresholdSeconds,
 		})
 		if txErr != nil {
 			return fmt.Errorf("executing stale task recovery: %w", txErr)
@@ -457,7 +460,7 @@ func (a *Adapter) RecoverStaleTasks(ctx context.Context, staleThreshold time.Dur
 // Returns int64 which is the count of stale tasks.
 // Returns error when the count cannot be retrieved.
 func (a *Adapter) GetStaleProcessingTaskCount(ctx context.Context, staleThreshold time.Duration) (int64, error) {
-	staleThresholdSeconds := safeconv.Int64ToInt32(time.Now().UTC().Add(-staleThreshold).Unix())
+	staleThresholdSeconds := time.Now().UTC().Add(-staleThreshold).Unix()
 
 	result, err := a.queries.GetStaleProcessingTaskCount(ctx, staleThresholdSeconds)
 	if err != nil {
@@ -473,10 +476,10 @@ func (a *Adapter) GetStaleProcessingTaskCount(ctx context.Context, staleThreshol
 //
 // Returns error when the update fails.
 func (a *Adapter) UpdateTaskHeartbeat(ctx context.Context, taskID string) error {
-	nowSeconds := safeconv.Int64ToInt32(time.Now().UTC().Unix())
+	nowSeconds := time.Now().UTC().Unix()
 	return a.queries.UpdateTaskHeartbeat(ctx, orchestrator_db.UpdateTaskHeartbeatParams{
-		P1: nowSeconds,
-		P2: taskID,
+		UpdatedAt: nowSeconds,
+		ID:        taskID,
 	})
 }
 
@@ -496,17 +499,17 @@ func (a *Adapter) ClaimStaleTasksForRecovery(
 	ctx context.Context, nodeID string, staleThreshold time.Duration, leaseTimeout time.Duration, batchLimit int,
 ) ([]orchestrator_domain.RecoveryClaimedTask, error) {
 	now := time.Now().UTC()
-	nowUnixSeconds := safeconv.Int64ToInt32(now.Unix())
-	staleThresholdSeconds := safeconv.Int64ToInt32(now.Add(-staleThreshold).Unix())
-	leaseExpiresAtSeconds := safeconv.Int64ToInt32(now.Add(leaseTimeout).Unix())
+	nowUnixSeconds := now.Unix()
+	staleThresholdSeconds := now.Add(-staleThreshold).Unix()
+	leaseExpiresAtSeconds := now.Add(leaseTimeout).Unix()
 
 	var claimed []orchestrator_domain.RecoveryClaimedTask
 
 	err := a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
 		rows, err := qtx.GetStaleTasksForRecovery(ctx, orchestrator_db.GetStaleTasksForRecoveryParams{
-			P1: staleThresholdSeconds,
-			P2: &nowUnixSeconds,
-			P3: safeconv.IntToInt32(batchLimit),
+			UpdatedAt:         staleThresholdSeconds,
+			RecoveryExpiresAt: &nowUnixSeconds,
+			Limit:             batchLimit,
 		})
 		if err != nil {
 			return fmt.Errorf("getting stale tasks for recovery: %w", err)
@@ -519,10 +522,10 @@ func (a *Adapter) ClaimStaleTasksForRecovery(
 		claimed = make([]orchestrator_domain.RecoveryClaimedTask, 0, len(rows))
 		for _, row := range rows {
 			rowsAffected, err := qtx.ClaimTaskForRecovery(ctx, orchestrator_db.ClaimTaskForRecoveryParams{
-				P1: &nodeID,
-				P2: &leaseExpiresAtSeconds,
-				P3: row.ID,
-				P4: &nowUnixSeconds,
+				RecoveryNodeID:     &nodeID,
+				RecoveryExpiresAt:  &leaseExpiresAtSeconds,
+				ID:                 row.ID,
+				RecoveryExpiresAt2: &nowUnixSeconds,
 			})
 			if err != nil {
 				return fmt.Errorf("claiming task for recovery: %w", err)
@@ -555,18 +558,18 @@ func (a *Adapter) ClaimStaleTasksForRecovery(
 // Returns int which is the count of tasks recovered.
 // Returns error when the recovery fails.
 func (a *Adapter) RecoverClaimedTasks(ctx context.Context, nodeID string, maxRetries int, recoveryError string) (int, error) {
-	nowSeconds := safeconv.Int64ToInt32(time.Now().UTC().Unix())
+	nowSeconds := time.Now().UTC().Unix()
 
 	var rowsAffected int64
 	err := a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
 		var txErr error
 		rowsAffected, txErr = qtx.RecoverClaimedTasks(ctx, orchestrator_db.RecoverClaimedTasksParams{
-			P1: maxRetries,
-			P2: maxRetries,
-			P3: &recoveryError,
-			P4: nowSeconds,
-			P5: nowSeconds,
-			P6: &nodeID,
+			Attempt:        safeconv.IntToInt32(maxRetries),
+			Attempt2:       safeconv.IntToInt32(maxRetries),
+			LastError:      &recoveryError,
+			UpdatedAt:      nowSeconds,
+			ExecuteAt:      nowSeconds,
+			RecoveryNodeID: &nodeID,
 		})
 		if txErr != nil {
 			return fmt.Errorf("recovering claimed tasks: %w", txErr)
@@ -611,15 +614,15 @@ func (a *Adapter) ReleaseRecoveryLeases(ctx context.Context, nodeID string) (int
 //
 // Returns error when the receipt cannot be created.
 func (a *Adapter) CreateWorkflowReceipt(ctx context.Context, id, workflowID, nodeID string) error {
-	nowSeconds := safeconv.Int64ToInt32(time.Now().UTC().Unix())
+	nowSeconds := time.Now().UTC().Unix()
 
 	return a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
 		err := qtx.CreateWorkflowReceipt(ctx, orchestrator_db.CreateWorkflowReceiptParams{
-			P1: id,
-			P2: workflowID,
-			P3: nodeID,
-			P4: nowSeconds,
-			P5: nowSeconds,
+			ID:         id,
+			WorkflowID: workflowID,
+			NodeID:     nodeID,
+			CreatedAt:  nowSeconds,
+			UpdatedAt:  nowSeconds,
 		})
 		if err != nil {
 			return fmt.Errorf("creating workflow receipt: %w", err)
@@ -636,7 +639,7 @@ func (a *Adapter) CreateWorkflowReceipt(ctx context.Context, id, workflowID, nod
 // Returns int which is the count of receipts resolved.
 // Returns error when the resolution fails.
 func (a *Adapter) ResolveWorkflowReceipts(ctx context.Context, workflowID string, errorMessage string) (int, error) {
-	nowSeconds := safeconv.Int64ToInt32(time.Now().UTC().Unix())
+	nowSeconds := time.Now().UTC().Unix()
 	var errorMessagePtr *string
 	if errorMessage != "" {
 		errorMessagePtr = &errorMessage
@@ -646,10 +649,10 @@ func (a *Adapter) ResolveWorkflowReceipts(ctx context.Context, workflowID string
 	err := a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
 		var txErr error
 		rowsAffected, txErr = qtx.ResolveWorkflowReceipts(ctx, orchestrator_db.ResolveWorkflowReceiptsParams{
-			P1: errorMessagePtr,
-			P2: nowSeconds,
-			P3: &nowSeconds,
-			P4: workflowID,
+			ErrorMessage: errorMessagePtr,
+			UpdatedAt:    nowSeconds,
+			ResolvedAt:   &nowSeconds,
+			WorkflowID:   workflowID,
 		})
 		if txErr != nil {
 			return fmt.Errorf("resolving workflow receipts: %w", txErr)
@@ -719,7 +722,7 @@ func (a *Adapter) GetPendingReceiptsByWorkflow(ctx context.Context, workflowID s
 // Returns int which is the count of receipts deleted.
 // Returns error when the cleanup fails.
 func (a *Adapter) CleanupOldResolvedReceipts(ctx context.Context, olderThan time.Time) (int, error) {
-	olderThanSeconds := safeconv.Int64ToInt32(olderThan.Unix())
+	olderThanSeconds := olderThan.Unix()
 
 	var rowsAffected int64
 	err := a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
@@ -744,15 +747,15 @@ func (a *Adapter) CleanupOldResolvedReceipts(ctx context.Context, olderThan time
 // Returns int which is the count of receipts timed out.
 // Returns error when the timeout operation fails.
 func (a *Adapter) TimeoutStaleReceipts(ctx context.Context, olderThan time.Time) (int, error) {
-	nowSeconds := safeconv.Int64ToInt32(time.Now().UTC().Unix())
-	olderThanSeconds := safeconv.Int64ToInt32(olderThan.Unix())
+	nowSeconds := time.Now().UTC().Unix()
+	olderThanSeconds := olderThan.Unix()
 
 	var rowsAffected int64
 	err := a.runInTransaction(ctx, func(ctx context.Context, qtx *orchestrator_db.Queries) error {
 		var txErr error
 		rowsAffected, txErr = qtx.TimeoutStaleReceipts(ctx, orchestrator_db.TimeoutStaleReceiptsParams{
-			P1: nowSeconds,
-			P2: olderThanSeconds,
+			UpdatedAt: nowSeconds,
+			CreatedAt: olderThanSeconds,
 		})
 		if txErr != nil {
 			return fmt.Errorf("timing out stale receipts: %w", txErr)
@@ -817,12 +820,12 @@ func (a *Adapter) ListTaskSummary(ctx context.Context) ([]orchestrator_domain.Ta
 
 // ListRecentTasks returns the most recently updated tasks.
 //
-// Takes limit (int32) which specifies the maximum number of tasks to return.
+// Takes limit (int) which specifies the maximum number of tasks to return.
 //
 // Returns []orchestrator_domain.TaskListItem which contains the tasks ordered by update
 // time descending.
 // Returns error when the database query fails.
-func (a *Adapter) ListRecentTasks(ctx context.Context, limit int32) ([]orchestrator_domain.TaskListItem, error) {
+func (a *Adapter) ListRecentTasks(ctx context.Context, limit int) ([]orchestrator_domain.TaskListItem, error) {
 	rows, err := a.queries.ListRecentTasks(ctx, limit)
 	if err != nil {
 		return nil, fmt.Errorf("listing recent tasks: %w", err)
@@ -848,12 +851,12 @@ func (a *Adapter) ListRecentTasks(ctx context.Context, limit int32) ([]orchestra
 
 // ListWorkflowSummary returns workflow-level aggregates ordered by most recently updated.
 //
-// Takes limit (int32) which specifies the maximum number of workflows to return.
+// Takes limit (int) which specifies the maximum number of workflows to return.
 //
 // Returns []orchestrator_domain.WorkflowSummary which contains one entry per workflow
 // with task counts by status.
 // Returns error when the database query fails.
-func (a *Adapter) ListWorkflowSummary(ctx context.Context, limit int32) ([]orchestrator_domain.WorkflowSummary, error) {
+func (a *Adapter) ListWorkflowSummary(ctx context.Context, limit int) ([]orchestrator_domain.WorkflowSummary, error) {
 	rows, err := a.queries.ListWorkflowSummary(ctx, limit)
 	if err != nil {
 		return nil, fmt.Errorf("listing workflow summary: %w", err)
@@ -863,29 +866,29 @@ func (a *Adapter) ListWorkflowSummary(ctx context.Context, limit int32) ([]orche
 	for i, row := range rows {
 		results[i] = orchestrator_domain.WorkflowSummary{
 			WorkflowID:    row.WorkflowID,
-			TaskCount:     int64(row.TaskCount),
-			CompleteCount: derefInt32AsInt64(row.CompleteCount),
-			FailedCount:   derefInt32AsInt64(row.FailedCount),
-			ActiveCount:   derefInt32AsInt64(row.ActiveCount),
-			CreatedAt:     derefInt32AsInt64(row.CreatedAt),
-			UpdatedAt:     derefInt32AsInt64(row.UpdatedAt),
+			TaskCount:     row.TaskCount,
+			CompleteCount: derefInt64(row.CompleteCount),
+			FailedCount:   derefInt64(row.FailedCount),
+			ActiveCount:   derefInt64(row.ActiveCount),
+			CreatedAt:     derefInt64(row.CreatedAt),
+			UpdatedAt:     derefInt64(row.UpdatedAt),
 		}
 	}
 
 	return results, nil
 }
 
-// derefInt32AsInt64 returns the value behind a nullable int32 pointer as int64,
-// defaulting to zero when nil.
+// derefInt64 returns the value behind a nullable int64 pointer, defaulting to zero when
+// nil.
 //
-// Takes value (*int32) which may be nil.
+// Takes value (*int64) which may be nil.
 //
-// Returns int64 which is the dereferenced and widened value.
-func derefInt32AsInt64(value *int32) int64 {
+// Returns int64 which is the dereferenced value.
+func derefInt64(value *int64) int64 {
 	if value == nil {
 		return 0
 	}
-	return int64(*value)
+	return *value
 }
 
 // runInTransaction executes fn within a transaction using the generated Queries struct.
@@ -1004,17 +1007,17 @@ func buildCreateTaskParams(task *orchestrator_domain.Task) (orchestrator_db.Crea
 	now := time.Now().UTC()
 
 	return orchestrator_db.CreateTaskParams{
-		P1:  task.ID,
-		P2:  task.WorkflowID,
-		P3:  task.Executor,
-		P4:  safeconv.IntToInt32(int(task.Config.Priority)),
-		P5:  string(payloadBytes),
-		P6:  string(configBytes),
-		P7:  string(task.Status),
-		P8:  safeconv.Int64ToInt32(task.ExecuteAt.Unix()),
-		P9:  safeconv.IntToInt32(task.Attempt),
-		P10: safeconv.Int64ToInt32(task.CreatedAt.Unix()),
-		P11: safeconv.Int64ToInt32(now.Unix()),
+		ID:         task.ID,
+		WorkflowID: task.WorkflowID,
+		Executor:   task.Executor,
+		Priority:   safeconv.IntToInt32(int(task.Config.Priority)),
+		Payload:    string(payloadBytes),
+		Config:     string(configBytes),
+		Status:     string(task.Status),
+		ExecuteAt:  task.ExecuteAt.Unix(),
+		Attempt:    safeconv.IntToInt32(task.Attempt),
+		CreatedAt:  task.CreatedAt.Unix(),
+		UpdatedAt:  now.Unix(),
 	}, nil
 }
 
@@ -1052,16 +1055,16 @@ func buildUpdateTaskParams(task *orchestrator_domain.Task) (orchestrator_db.Upda
 	}
 
 	return orchestrator_db.UpdateTaskParams{
-		P1:  string(task.Status),
-		P2:  safeconv.IntToInt32(int(task.Config.Priority)),
-		P3:  safeconv.Int64ToInt32(task.ExecuteAt.Unix()),
-		P4:  safeconv.IntToInt32(task.Attempt),
-		P5:  lastErrorPtr,
-		P6:  resultPtr,
-		P7:  string(payloadBytes),
-		P8:  string(configBytes),
-		P9:  safeconv.Int64ToInt32(time.Now().UTC().Unix()),
-		P10: task.ID,
+		Status:    string(task.Status),
+		Priority:  safeconv.IntToInt32(int(task.Config.Priority)),
+		ExecuteAt: task.ExecuteAt.Unix(),
+		Attempt:   safeconv.IntToInt32(task.Attempt),
+		LastError: lastErrorPtr,
+		Result:    resultPtr,
+		Payload:   string(payloadBytes),
+		Config:    string(configBytes),
+		UpdatedAt: time.Now().UTC().Unix(),
+		ID:        task.ID,
 	}, nil
 }
 

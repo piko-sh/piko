@@ -1,0 +1,3 @@
+{
+  "description": "Integer-time time_bucket overload. The hypertable uses a BIGINT ts_epoch column (Unix epoch seconds) instead of a TIMESTAMPTZ. The fixture seeds rows at known epoch positions and groups by time_bucket(60, ts_epoch) to produce per-minute buckets, verifying the (bigint, bigint) overload of the catalogue's time_bucket family."
+}

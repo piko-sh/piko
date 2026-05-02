@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "category_tree.sql",
-    "SQL": "-- piko.name: CategoryTree\n-- piko.command: many\nWITH RECURSIVE category_tree AS (\n    SELECT id, name, parent_id, 0 AS depth\n    FROM categories\n    WHERE parent_id IS NULL\n    UNION ALL\n    SELECT c.id, c.name, c.parent_id, ct.depth + 1\n    FROM categories c\n    INNER JOIN category_tree ct ON ct.id = c.parent_id\n)\nSELECT id, name, depth FROM category_tree ORDER BY depth, name;",
+    "SQL": "-- piko.query(name: CategoryTree, command: many)\nWITH RECURSIVE category_tree AS (\n    SELECT id, name, parent_id, 0 AS depth\n    FROM categories\n    WHERE parent_id IS NULL\n    UNION ALL\n    SELECT c.id, c.name, c.parent_id, ct.depth + 1\n    FROM categories c\n    INNER JOIN category_tree ct ON ct.id = c.parent_id\n)\nSELECT id, name, depth FROM category_tree ORDER BY depth, name;",
     "Name": "CategoryTree",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "category_tree",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "category_tree",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "category_tree",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "category_tree",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "depth",
         "SourceTable": "category_tree",
+        "SourceSchema": "",
         "SourceColumn": "depth",
+        "SourceQualifier": "category_tree",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,9 +78,10 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       }
@@ -87,9 +100,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

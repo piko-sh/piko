@@ -24,7 +24,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"path/filepath"
+	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -39,11 +39,33 @@ var (
 	migrationFilePattern = regexp.MustCompile(`^(\d+)_(.+)\.(up|down)\.sql$`)
 )
 
+// migrationVersionKey identifies a migration file slot by its numeric version and
+// direction. Two files mapping to the same key collide and are rejected at read time.
+type migrationVersionKey struct {
+	// version is the numeric migration version parsed from the filename prefix.
+	version int64
+
+	// direction records whether the slot is the up or down migration.
+	direction querier_dto.MigrationDirection
+}
+
+// parsedMigrationFilename holds the fields extracted from a
+// {version}_{name}.{up|down}.sql filename.
+type parsedMigrationFilename struct {
+	// name is the descriptive segment between the version prefix and the direction suffix.
+	name string
+
+	// version is the numeric migration version parsed from the filename prefix.
+	version int64
+
+	// direction records whether the file is the up or down migration.
+	direction querier_dto.MigrationDirection
+}
+
 // readMigrationFilesVersioned reads migration files matching the
 // {version}_{name}.{up|down}.sql naming convention from the given directory.
 // Returns files sorted by version ascending, then up before down within the same version.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes fileReader (FileReaderPort) which provides filesystem access.
 // Takes directory (string) which is the path to the migration files.
 //
@@ -61,43 +83,44 @@ func readMigrationFilesVersioned(
 	}
 
 	var files []querier_dto.MigrationFile
+	seenVersions := make(map[migrationVersionKey]string)
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
 
-		matches := migrationFilePattern.FindStringSubmatch(entry.Name())
-		if matches == nil {
+		parsed, matched, parseError := parseMigrationFilename(entry.Name())
+		if parseError != nil {
+			return nil, parseError
+		}
+		if !matched {
 			continue
 		}
 
-		version, parseError := strconv.ParseInt(matches[1], 10, 64)
-		if parseError != nil {
-			return nil, fmt.Errorf("parsing version from %s: %w", entry.Name(), parseError)
+		key := migrationVersionKey{version: parsed.version, direction: parsed.direction}
+		if existing, duplicate := seenVersions[key]; duplicate {
+			return nil, &DuplicateMigrationVersionError{
+				FirstFilename:  existing,
+				SecondFilename: entry.Name(),
+				Version:        parsed.version,
+				Direction:      parsed.direction,
+			}
 		}
+		seenVersions[key] = entry.Name()
 
-		const directionGroupIndex = 3
-		name := matches[2]
-		direction := querier_dto.MigrationDirectionUp
-		if matches[directionGroupIndex] == "down" {
-			direction = querier_dto.MigrationDirectionDown
-		}
-
-		path := filepath.Join(directory, entry.Name())
-		content, fileError := fileReader.ReadFile(ctx, path)
+		filePath := path.Join(directory, entry.Name())
+		content, fileError := fileReader.ReadFile(ctx, filePath)
 		if fileError != nil {
-			return nil, fmt.Errorf("reading migration file %s: %w", path, fileError)
+			return nil, fmt.Errorf("reading migration file %s: %w", filePath, fileError)
 		}
-
-		checksum := computeChecksum(content)
 
 		files = append(files, querier_dto.MigrationFile{
-			Version:   version,
-			Name:      name,
-			Direction: direction,
+			Version:   parsed.version,
+			Name:      parsed.name,
+			Direction: parsed.direction,
 			Filename:  entry.Name(),
 			Content:   content,
-			Checksum:  checksum,
+			Checksum:  computeChecksum(content),
 		})
 	}
 
@@ -109,6 +132,35 @@ func readMigrationFilesVersioned(
 	})
 
 	return files, nil
+}
+
+// parseMigrationFilename extracts the version, descriptive name, and direction from a
+// migration filename following the {version}_{name}.{up|down}.sql convention.
+//
+// Takes filename (string) which is the directory entry name.
+//
+// Returns parsedMigrationFilename which holds the extracted fields (zero value when no
+// match).
+// Returns bool which is true when the filename matched the convention.
+// Returns error when the numeric version prefix overflows int64.
+func parseMigrationFilename(filename string) (parsedMigrationFilename, bool, error) {
+	matches := migrationFilePattern.FindStringSubmatch(filename)
+	if matches == nil {
+		return parsedMigrationFilename{}, false, nil
+	}
+
+	version, parseError := strconv.ParseInt(matches[1], 10, 64)
+	if parseError != nil {
+		return parsedMigrationFilename{}, false, fmt.Errorf("parsing version from %s: %w", filename, parseError)
+	}
+
+	const directionGroupIndex = 3
+	direction := querier_dto.MigrationDirectionUp
+	if matches[directionGroupIndex] == "down" {
+		direction = querier_dto.MigrationDirectionDown
+	}
+
+	return parsedMigrationFilename{name: matches[2], version: version, direction: direction}, true, nil
 }
 
 // computeChecksum returns the SHA-256 hex digest of the given content.

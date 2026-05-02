@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "get_counter.sql",
-    "SQL": "-- piko.name: GetCounter\n-- piko.command: one\nSELECT id, page_views, small_counter, tiny_flag, medium_counter\nFROM counters\nWHERE id = ?;",
+    "SQL": "-- piko.query(name: GetCounter, command: one)\nSELECT id, page_views, small_counter, tiny_flag, medium_counter\nFROM counters\nWHERE id = ?;",
     "Name": "GetCounter",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "counters",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "counters",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "page_views",
         "SourceTable": "counters",
+        "SourceSchema": "",
         "SourceColumn": "page_views",
+        "SourceQualifier": "counters",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "small_counter",
         "SourceTable": "counters",
+        "SourceSchema": "",
         "SourceColumn": "small_counter",
+        "SourceQualifier": "counters",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -91,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "tiny_flag",
         "SourceTable": "counters",
+        "SourceSchema": "",
         "SourceColumn": "tiny_flag",
+        "SourceQualifier": "counters",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -113,16 +131,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "medium_counter",
         "SourceTable": "counters",
+        "SourceSchema": "",
         "SourceColumn": "medium_counter",
+        "SourceQualifier": "counters",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -135,7 +157,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -156,16 +179,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "increment_views.sql",
-    "SQL": "-- piko.name: IncrementViews\n-- piko.command: exec\nUPDATE counters SET page_views = page_views + 1 WHERE id = ?;",
+    "SQL": "-- piko.query(name: IncrementViews, command: exec)\nUPDATE counters SET page_views = page_views + 1 WHERE id = ?;",
     "Name": "IncrementViews",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -183,13 +209,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [],
@@ -207,9 +235,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 2,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

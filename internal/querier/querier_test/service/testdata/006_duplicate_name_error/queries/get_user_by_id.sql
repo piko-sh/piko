@@ -1,3 +1,2 @@
--- piko.name: GetUser
--- piko.command: one
+-- piko.query(name: GetUser, command: one)
 SELECT id, name FROM users WHERE id = $1

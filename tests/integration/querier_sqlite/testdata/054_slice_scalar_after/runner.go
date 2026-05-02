@@ -49,7 +49,7 @@ func main() {
 	queries := db.New(conn)
 	fetched, err := queries.FetchByStatusesAndPriority(ctx, db.FetchByStatusesAndPriorityParams{
 		Statuses: []string{"PENDING", "RETRYING"},
-		P2:       int32(2),
+		Priority: int32(2),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "FetchByStatusesAndPriority:", err)
@@ -57,7 +57,7 @@ func main() {
 	}
 	counted, err := queries.CountByStatusesAndPriority(ctx, db.CountByStatusesAndPriorityParams{
 		Statuses: []string{"PENDING", "PROCESSING", "RETRYING"},
-		P2:       int32(2),
+		Priority: int32(2),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "CountByStatusesAndPriority:", err)

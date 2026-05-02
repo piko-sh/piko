@@ -1,37 +1,43 @@
 {
   "active_widgets": [
     {
-      "ID": 1,
-      "Name": "Widget A",
-      "Price": 1000,
-      "Sku": "WDG-001"
+      "id": 1,
+      "name": "Widget A",
+      "price": 1000,
+      "sku": "WDG-001"
     },
     {
-      "ID": 2,
-      "Name": "Widget B",
-      "Price": 1500,
-      "Sku": "WDG-002"
+      "id": 2,
+      "name": "Widget B",
+      "price": 1500,
+      "sku": "WDG-002"
     }
   ],
   "by_attributes": [
     {
-      "Attributes": "{\"colour\": \"red\", \"weight\": 100}",
-      "ID": 1,
-      "Name": "Widget A",
-      "Sku": "WDG-001"
+      "attributes": {
+        "colour": "red",
+        "weight": 100
+      },
+      "id": 1,
+      "name": "Widget A",
+      "sku": "WDG-001"
     },
     {
-      "Attributes": "{\"colour\": \"red\", \"weight\": 200}",
-      "ID": 3,
-      "Name": "Gadget X",
-      "Sku": "GDG-001"
+      "attributes": {
+        "colour": "red",
+        "weight": 200
+      },
+      "id": 3,
+      "name": "Gadget X",
+      "sku": "GDG-001"
     }
   ],
   "by_sku": {
-    "Category": "widgets",
-    "ID": 2,
-    "Name": "Widget B",
-    "Price": 1500,
-    "Sku": "WDG-002"
+    "category": "widgets",
+    "id": 2,
+    "name": "Widget B",
+    "price": 1500,
+    "sku": "WDG-002"
   }
 }

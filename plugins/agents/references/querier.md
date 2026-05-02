@@ -26,7 +26,7 @@ Re-run after any SQL change: `go run ./cmd/generator/main.go all`.
 
 ## Migration filenames
 
-Numeric prefix is the version (`int64` parsed from leading digits). Anything after the digits is decorative. Use zero-padded (`001_initial.up.sql`) or timestamped (`20260115143000_initial.up.sql`) - pick one and stick with it. `.down.sql` is optional but recommended; without one, rollback returns `db.NoDownMigrationError`.
+Numeric prefix is the version (`int64` parsed from leading digits). Anything after the digits is decorative. The prefix is either zero-padded (`001_initial.up.sql`) or timestamped (`20260115143000_initial.up.sql`), and one scheme applies across a project. The `.down.sql` file is optional. Without one, rollback returns `db.NoDownMigrationError`.
 
 ```sql
 -- 001_initial.up.sql
@@ -40,26 +40,23 @@ CREATE TABLE tasks (
 
 | Directive | Effect |
 |---|---|
-| `-- piko:no-transaction` (first line) | Skip `BEGIN`/`COMMIT` wrapping. Required for `CREATE INDEX CONCURRENTLY`, `VACUUM`. |
+| `-- piko.migration(no_transaction: true)` (above the statement) | Skip `BEGIN`/`COMMIT` wrapping. Auto-detected for `CREATE INDEX CONCURRENTLY`, `VACUUM`. |
 
 ## Query annotations
 
-Every query needs `piko.name` and `piko.command` headers:
+Every query needs a `piko.query(name, command)` header:
 
 ```sql
--- piko.name: ListTasks
--- piko.command: many
+-- piko.query(name: ListTasks, command: many)
 SELECT id, title, completed, created_at
 FROM tasks
 ORDER BY created_at DESC;
 
--- piko.name: CreateTask
--- piko.command: one
+-- piko.query(name: CreateTask, command: one)
 INSERT INTO tasks (title, created_at) VALUES (?, ?)
 RETURNING id, title, completed, created_at;
 
--- piko.name: DeleteTask
--- piko.command: exec
+-- piko.query(name: DeleteTask, command: exec)
 DELETE FROM tasks WHERE id = ?;
 ```
 
@@ -75,11 +72,12 @@ DELETE FROM tasks WHERE id = ?;
 | `stream` | `(ctx, params, fn func(<Name>Row) error) error` | Large result sets without buffering. |
 | `batch` | Batch handle with `Exec`/`Query`/`QueryRow` callbacks | Multiple parameter sets in one round-trip (driver-dependent). |
 | `copyfrom` | `(ctx, rows) (int64, error)` | Postgres `COPY FROM` bulk insert. |
+| `asyncexec` | `(ctx, params) error` | Fire-and-forget mutation. The call returns once the server accepts the statement (engine-dependent, for example ClickHouse `ALTER UPDATE`/`DELETE`). A nil error does not guarantee the mutation has finished applying. |
 
 ### Placeholders
 
-- SQLite, MySQL, MariaDB, DuckDB: `?` (positional)
-- PostgreSQL, CockroachDB: `$1`, `$2`
+- SQLite, MySQL, MariaDB, DuckDB, ClickHouse: `?` (positional)
+- PostgreSQL, CockroachDB, TimescaleDB: `$1`, `$2`
 
 One placeholder -> single typed argument: `func DeleteTask(ctx, p1 int32) error`.
 Multiple placeholders -> typed params struct:
@@ -94,21 +92,20 @@ func (q *Queries) CreateTask(ctx context.Context, params CreateTaskParams) (Crea
 Bind positional placeholders to named struct fields:
 
 ```sql
--- piko.name: FindUser
--- piko.command: one
+-- piko.query(name: FindUser, command: one)
 -- $1 as piko.param(userID)
--- $2 as piko.optional(email)
+-- $2 as piko.param(email, optional: true)
 SELECT id, name FROM users
 WHERE id = $1 AND ($2 IS NULL OR email = $2);
 ```
 
 | Directive | Effect |
 |---|---|
-| `piko.param(<name>)` | Required field on params struct. |
-| `piko.optional(<name>)` | Nullable field; callers may omit. |
-| `piko.limit(<name>)` / `piko.offset(<name>)` | Pagination semantics. |
-| `piko.sortable(<name>)` | Sort key validation. |
-| `piko.slice(<name>)` | `IN (?1)` slice expansion. |
+| `$1 as piko.param(<name>)` | Required field on params struct. |
+| `$1 as piko.param(<name>, optional: true)` | Nullable field; the predicate is dropped when the caller passes nil. |
+| `$1 as piko.param(<name>, kind: slice)` | `IN (?1)` slice expansion. |
+| `$1 as piko.param(<name>, default:, max:)` in a LIMIT/OFFSET clause | Pagination: non-negative int, optional default/max clamp. |
+| `piko.sortable(<name>, columns: [col, ...])` | Standalone validated dynamic ORDER BY (no `$N` anchor). |
 
 Same syntax works with `?1`/`?2` for SQLite/MySQL. See [`/docs/reference/querier.md`](../../../docs/reference/querier.md) for the full directive surface.
 
@@ -208,20 +205,22 @@ piko.WithDatabase("primary", &db.DatabaseRegistration{
 })
 ```
 
-Engine factories: `db_engine_sqlite.SQLite()`, `db_engine_postgres.Postgres()` / `PostgresPgBouncer()`, `db_engine_mysql.MySQL()`, `db_engine_mariadb.MariaDB()`, `db_engine_cockroachdb.CockroachDB()`, `db_engine_duckdb.DuckDB()`.
+Engine factories: `db_engine_sqlite.SQLite()`, `db_engine_postgres.Postgres()` / `PostgresPgBouncer()`, `db_engine_mysql.MySQL()`, `db_engine_mariadb.MariaDB()`, `db_engine_cockroachdb.CockroachDB()`, `db_engine_duckdb.DuckDB()`, `db_engine_clickhouse.ClickHouse()`, `db_engine_timescaledb.TimescaleDB()`.
 
 Reserved names: `db.DatabaseNameRegistry` (framework registry), `db.DatabaseNameOrchestrator` (orchestrator queue) - register a SQL database under either to persist that subsystem.
 
-## LLM mistake checklist
+## Constraints and failure modes
 
-- Forgetting `-- piko.name:` and `-- piko.command:` directives (queries do not generate)
-- Mixing placeholder styles (`?` vs `$1`) - dialect picks one
-- Missing `.up.sql`/`.down.sql` pair (rollback returns `db.NoDownMigrationError`)
-- Editing an applied migration on disk (returns `db.ChecksumMismatchError`; only safe rollback is to write a new migration)
-- Wrapping `CREATE INDEX CONCURRENTLY` / `VACUUM` in a transaction (use `-- piko:no-transaction` on the first line)
-- Forgetting to run `go run ./cmd/generator/main.go all` after changing query files
-- Calling `migrator.Up` after `piko.Run` (run migrations before the server starts accepting traffic)
-- Importing the SQLite cgo driver without CGO enabled (use `db_driver_sqlite_nocgo`)
+| Constraint | Consequence when violated |
+|---|---|
+| Every query needs a `-- piko.query(name, command)` header. | The query does not generate. |
+| A query uses one placeholder style per dialect (`?` or `$1`). | The dialect picks one. Mixing the two does not parse. |
+| Each migration ships a `.up.sql`/`.down.sql` pair. | A missing `.down.sql` makes rollback return `db.NoDownMigrationError`. |
+| Applied migrations are immutable on disk. | Editing one returns `db.ChecksumMismatchError`. The safe rollback is a new migration. |
+| `CREATE INDEX CONCURRENTLY` and `VACUUM` run outside a transaction. | Use `-- piko.migration(no_transaction: true)`. Wrapping them in `BEGIN`/`COMMIT` fails. |
+| `go run ./cmd/generator/main.go all` runs after every query-file change. | Stale generated code otherwise. |
+| `migrator.Up` runs before `piko.Run`. | Run migrations before the server accepts traffic. |
+| The SQLite cgo driver needs CGO enabled. | Without CGO, use `db_driver_sqlite_nocgo`. |
 
 ## Related
 

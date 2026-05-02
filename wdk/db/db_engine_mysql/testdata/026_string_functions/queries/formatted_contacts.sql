@@ -1,5 +1,4 @@
--- piko.name: FormattedContacts
--- piko.command: many
+-- piko.query(name: FormattedContacts, command: many)
 SELECT
     id,
     CONCAT(first_name, ' ', last_name) AS full_name,

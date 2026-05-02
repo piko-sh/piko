@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "items_by_colour.sql",
-    "SQL": "-- piko.name: ItemsByColour\n-- piko.command: many\nSELECT id, colour FROM items WHERE colour = $1::colour;",
+    "SQL": "-- piko.query(name: ItemsByColour, command: many)\nSELECT id, colour FROM items WHERE colour = $1::colour;",
     "Name": "ItemsByColour",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -26,20 +27,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 11
+          "Category": 11,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -52,16 +58,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "colour",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "colour",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -78,7 +88,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 11
+          "Category": 11,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -99,9 +110,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

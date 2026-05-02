@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "grouped.sql",
-    "SQL": "-- piko.name: GroupedUserPosts\n-- piko.command: many\nSELECT u.name, u.email, p.title FROM users u FULL OUTER JOIN posts p ON p.author_id = u.id GROUP BY u.id, p.id",
+    "SQL": "-- piko.query(name: GroupedUserPosts, command: many)\nSELECT u.name, u.email, p.title FROM users u FULL OUTER JOIN posts p ON p.author_id = u.id GROUP BY u.id, p.id",
     "Name": "GroupedUserPosts",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "u",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "email",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "email",
+        "SourceQualifier": "u",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "posts",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "p",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,9 +78,10 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       }
@@ -87,9 +100,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

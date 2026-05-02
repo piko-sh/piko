@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "top_level_with_children.sql",
-    "SQL": "-- piko.name: TopLevelWithChildren\n-- piko.command: many\nWITH top_level AS (\n    SELECT id, name FROM categories WHERE parent_id IS NULL\n)\nSELECT c.id, c.name, t.name AS parent_name\nFROM categories c\nINNER JOIN top_level t ON c.parent_id = t.id;",
+    "SQL": "-- piko.query(name: TopLevelWithChildren, command: many)\nWITH top_level AS (\n    SELECT id, name FROM categories WHERE parent_id IS NULL\n)\nSELECT c.id, c.name, t.name AS parent_name\nFROM categories c\nINNER JOIN top_level t ON c.parent_id = t.id;",
     "Name": "TopLevelWithChildren",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "categories",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "c",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "categories",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "c",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "parent_name",
         "SourceTable": "t",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "t",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,7 +78,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -87,9 +100,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -1,0 +1,4 @@
+{
+  "description": "add_job(proc, schedule_interval, config => '{}'::jsonb, fixed_schedule => true, timezone => 'UTC') exercises the extended named-argument signature. The fixture registers a no-op procedure, schedules it through add_job, and then deletes the job. The JobID is non-deterministic so the harness normalises it before comparison.",
+  "skip": false
+}

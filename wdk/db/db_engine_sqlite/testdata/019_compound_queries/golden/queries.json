@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "all_workers.sql",
-    "SQL": "-- piko.name: ListAllWorkers\n-- piko.command: many\nSELECT id, name, department AS org, salary AS pay FROM employees WHERE department = ?\nUNION ALL\nSELECT id, name, agency AS org, rate AS pay FROM contractors WHERE agency = ?",
+    "SQL": "-- piko.query(name: ListAllWorkers, command: many)\nSELECT id, name, department AS org, salary AS pay FROM employees WHERE department = ?\nUNION ALL\nSELECT id, name, agency AS org, rate AS pay FROM contractors WHERE agency = ?",
     "Name": "ListAllWorkers",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       },
       {
         "DefaultLimit": null,
@@ -45,42 +48,51 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "employees",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "employees",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "employees",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "employees",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "org",
         "SourceTable": "employees",
+        "SourceSchema": "",
         "SourceColumn": "department",
+        "SourceQualifier": "employees",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,16 +131,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "pay",
         "SourceTable": "employees",
+        "SourceSchema": "",
         "SourceColumn": "salary",
+        "SourceQualifier": "employees",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -137,7 +157,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -158,22 +179,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "all_workers.sql",
-    "SQL": "-- piko.name: ListUniqueWorkerNames\n-- piko.command: many\nSELECT name FROM employees\nUNION\nSELECT name FROM contractors\nORDER BY name",
+    "SQL": "-- piko.query(name: ListUniqueWorkerNames, command: many)\nSELECT name FROM employees\nUNION\nSELECT name FROM contractors\nORDER BY name",
     "Name": "ListUniqueWorkerNames",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "employees",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "employees",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -186,7 +213,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -206,10 +234,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 7,
-    "IsDynamic": false,
+    "Line": 6,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -73,19 +73,30 @@ func EmitOTel(packageName string, queries []*querier_dto.AnalysedQuery) (querier
 //	    ...
 //	}
 //
-// Only static queries are included; dynamic queries produce variable SQL that cannot be
-// matched by constant lookup.
+// Static, dynamic, and dynamic-runtime queries all carry a base SQL constant emitted by
+// BuildSQLConstant, so their analyser-derived prefixes serve as lookup keys for OTel
+// attribution at runtime. CopyFrom queries skip the map because their batch helper
+// synthesises SQL at call time rather than referencing a package-level constant;
+// including them would emit an undefined identifier and the file would refuse to compile.
 //
 // Takes queries ([]*querier_dto.AnalysedQuery) which provide the query names.
 //
 // Returns *ast.GenDecl which is the variable declaration.
 func buildQueryNameMapVar(queries []*querier_dto.AnalysedQuery) *ast.GenDecl {
 	var elements []ast.Expr
+	seen := make(map[string]struct{}, len(queries))
 	for _, query := range queries {
-		if query.IsDynamic || query.DynamicRuntime {
+		if query.Command == querier_dto.QueryCommandCopyFrom {
 			continue
 		}
-		constantName := SnakeToCamelCase(query.Name)
+
+		dedupKey := RewriteNamedParameters(StripDirectiveComments(query.SQL), query.Parameters)
+		if _, exists := seen[dedupKey]; exists {
+			continue
+		}
+		seen[dedupKey] = struct{}{}
+
+		constantName := BaseSQLConstantName(query.Name)
 		humanName := SnakeToPascalCase(query.Name)
 		elements = append(elements, goastutil.KeyValueExpr(
 			goastutil.CachedIdent(constantName),

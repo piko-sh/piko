@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "get_log.sql",
-    "SQL": "-- piko.name: GetAuditLog\n-- piko.command: many\nSELECT id, action, created_at FROM audit_log WHERE action = $1;",
+    "SQL": "-- piko.query(name: GetAuditLog, command: many)\nSELECT id, action, created_at FROM audit_log WHERE action = $1;",
     "Name": "GetAuditLog",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "audit_log",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "audit_log",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "action",
         "SourceTable": "audit_log",
+        "SourceSchema": "",
         "SourceColumn": "action",
+        "SourceQualifier": "audit_log",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "created_at",
         "SourceTable": "audit_log",
+        "SourceSchema": "",
         "SourceColumn": "created_at",
+        "SourceQualifier": "audit_log",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -91,7 +105,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -112,9 +127,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

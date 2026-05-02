@@ -2,8 +2,9 @@
   {
     "InsertTable": "rectangles",
     "Filename": "create_rectangle.sql",
-    "SQL": "-- piko.name: CreateRectangle\n-- piko.command: exec\nINSERT INTO rectangles (width, height) VALUES (?, ?);",
+    "SQL": "-- piko.query(name: CreateRectangle, command: exec)\nINSERT INTO rectangles (width, height) VALUES (?, ?);",
     "Name": "CreateRectangle",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -45,13 +48,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [],
@@ -72,16 +77,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 2,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "get_rectangle.sql",
-    "SQL": "-- piko.name: GetRectangle\n-- piko.command: one\nSELECT id, width, height, area, perimeter FROM rectangles WHERE id = ?;",
+    "SQL": "-- piko.query(name: GetRectangle, command: one)\nSELECT id, width, height, area, perimeter FROM rectangles WHERE id = ?;",
     "Name": "GetRectangle",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -99,20 +107,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "rectangles",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "rectangles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -125,16 +138,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "width",
         "SourceTable": "rectangles",
+        "SourceSchema": "",
         "SourceColumn": "width",
+        "SourceQualifier": "rectangles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 10,
@@ -147,16 +164,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "height",
         "SourceTable": "rectangles",
+        "SourceSchema": "",
         "SourceColumn": "height",
+        "SourceQualifier": "rectangles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 10,
@@ -169,16 +190,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "area",
         "SourceTable": "rectangles",
+        "SourceSchema": "",
         "SourceColumn": "area",
+        "SourceQualifier": "rectangles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 20,
@@ -191,16 +216,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "perimeter",
         "SourceTable": "rectangles",
+        "SourceSchema": "",
         "SourceColumn": "perimeter",
+        "SourceQualifier": "rectangles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 20,
@@ -213,7 +242,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -234,9 +264,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

@@ -228,7 +228,8 @@ func TestConvertCustomFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := convertCustomFunction(tt.config, engine)
+			result, conversionError := convertCustomFunction(tt.config, engine)
+			require.NoError(t, conversionError, "valid configs should convert without error")
 
 			if tt.expectNil {
 				assert.Nil(t, result, "expected nil result for invalid config")
@@ -266,9 +267,10 @@ func TestParseNullableBehaviour(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		input    string
-		expected querier_dto.FunctionNullableBehaviour
+		name        string
+		input       string
+		expected    querier_dto.FunctionNullableBehaviour
+		expectError bool
 	}{
 		{
 			name:     "never_null returns FunctionNullableNeverNull",
@@ -291,9 +293,10 @@ func TestParseNullableBehaviour(t *testing.T) {
 			expected: querier_dto.FunctionNullableReturnsNullOnNull,
 		},
 		{
-			name:     "unknown value returns FunctionNullableReturnsNullOnNull",
-			input:    "something_unexpected",
-			expected: querier_dto.FunctionNullableReturnsNullOnNull,
+			name:        "unknown value returns the default and an error",
+			input:       "something_unexpected",
+			expected:    querier_dto.FunctionNullableReturnsNullOnNull,
+			expectError: true,
 		},
 		{
 			name:     "case insensitive NEVER_NULL returns FunctionNullableNeverNull",
@@ -306,8 +309,13 @@ func TestParseNullableBehaviour(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := parseNullableBehaviour(tt.input)
+			result, parseError := parseNullableBehaviour(tt.input)
 			assert.Equal(t, tt.expected, result)
+			if tt.expectError {
+				assert.Error(t, parseError, "an unrecognised value should surface an error")
+			} else {
+				assert.NoError(t, parseError, "a recognised value should not error")
+			}
 		})
 	}
 }

@@ -19,10 +19,12 @@
 package db_driver_sqlite_nocgo
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite" // register "sqlite" database/sql driver
@@ -61,6 +63,21 @@ const (
 	connMaxLifetime = 1 * time.Hour
 )
 
+var (
+	// sqliteFilePathEscaper percent-encodes the characters that would otherwise corrupt a
+	// SQLite file: URI when interpolated into the DSN path component.
+	//
+	// "%" is encoded first (and strings.NewReplacer performs a single non-overlapping pass,
+	// so the encoded sequences are not re-encoded). "/" and ":" are preserved so ordinary
+	// paths and the ":memory:" form continue to work. SQLite percent-decodes the path,
+	// restoring the original bytes.
+	sqliteFilePathEscaper = strings.NewReplacer(
+		"%", "%25",
+		"?", "%3F",
+		"#", "%23",
+	)
+)
+
 // Config holds configuration for opening a SQLite database.
 type Config struct {
 	// BusyTimeoutMs is the timeout in milliseconds for SQLite busy waits. Zero uses the
@@ -83,15 +100,16 @@ type Config struct {
 // The returned *sql.DB is configured with a single connection (SQLite's single-writer
 // model) and WAL mode enabled.
 //
-// The modernc.org/sqlite driver does not parse DSN pragma parameters, so all PRAGMAs are
-// applied explicitly after opening the connection.
+// The busy timeout, journal mode and foreign-key enforcement are seeded through the DSN
+// so they are in effect from the first connection, and the remaining tuning PRAGMAs are
+// then applied explicitly after opening the connection.
 //
 // Takes path (string) which is the filesystem path to the SQLite database file.
 // Takes config (Config) which provides optional tuning parameters.
 //
 // Returns *sql.DB which is the configured database connection.
 // Returns error when the database cannot be opened or PRAGMAs fail to apply.
-func Open(path string, config Config) (*sql.DB, error) {
+func Open(ctx context.Context, path string, config Config) (*sql.DB, error) {
 	if path == "" {
 		return nil, errors.New("db_driver_sqlite_nocgo: path must not be empty")
 	}
@@ -104,24 +122,13 @@ func Open(path string, config Config) (*sql.DB, error) {
 		_ = sandbox.Close()
 	}
 
-	busyTimeout := defaultBusyTimeoutMs
-	if config.BusyTimeoutMs > 0 {
-		busyTimeout = config.BusyTimeoutMs
-	}
-	cachePages := defaultCachePages
-	if config.CachePages != 0 {
-		cachePages = config.CachePages
-	}
-	mmapSize := defaultMmapSize
-	if config.MmapSize > 0 {
-		mmapSize = config.MmapSize
-	}
-	journalSizeLimit := defaultJournalSizeLimit
-	if config.JournalSizeLimit > 0 {
-		journalSizeLimit = config.JournalSizeLimit
-	}
+	busyTimeout, cachePages, mmapSize, journalSizeLimit := resolveConfig(config)
 
-	dsn := fmt.Sprintf("file:%s", path)
+	dsn := fmt.Sprintf(
+		"file:%s?_pragma=busy_timeout=%d&_pragma=journal_mode=WAL&_pragma=foreign_keys=ON",
+		sqliteFilePathEscaper.Replace(path),
+		busyTimeout,
+	)
 
 	database, err := sql.Open(driverName, dsn)
 	if err != nil {
@@ -133,17 +140,46 @@ func Open(path string, config Config) (*sql.DB, error) {
 	database.SetConnMaxIdleTime(connMaxIdleTime)
 	database.SetConnMaxLifetime(connMaxLifetime)
 
-	if err := database.Ping(); err != nil {
+	if err := database.PingContext(ctx); err != nil {
 		closeErr := database.Close()
 		return nil, fmt.Errorf("db_driver_sqlite_nocgo: pinging database: %w", errors.Join(err, closeErr))
 	}
 
-	if err := applyPragmas(database, busyTimeout, cachePages, mmapSize, journalSizeLimit); err != nil {
+	if err := applyPragmas(ctx, database, busyTimeout, cachePages, mmapSize, journalSizeLimit); err != nil {
 		closeErr := database.Close()
 		return nil, fmt.Errorf("db_driver_sqlite_nocgo: applying PRAGMAs: %w", errors.Join(err, closeErr))
 	}
 
 	return database, nil
+}
+
+// resolveConfig applies the package defaults to any unset Config fields.
+//
+// Takes config (Config) which provides optional tuning parameters.
+//
+// Returns busyTimeout (int) which is the resolved busy timeout in milliseconds.
+// Returns cachePages (int) which is the resolved cache size in pages or KiB.
+// Returns mmapSize (int) which is the resolved memory-mapped I/O size in bytes.
+// Returns journalSizeLimit (int) which is the resolved WAL journal size limit in bytes.
+func resolveConfig(config Config) (busyTimeout, cachePages, mmapSize, journalSizeLimit int) {
+	busyTimeout = defaultBusyTimeoutMs
+	if config.BusyTimeoutMs > 0 {
+		busyTimeout = config.BusyTimeoutMs
+	}
+	cachePages = defaultCachePages
+	if config.CachePages != 0 {
+		cachePages = config.CachePages
+	}
+	mmapSize = defaultMmapSize
+	if config.MmapSize > 0 {
+		mmapSize = config.MmapSize
+	}
+	journalSizeLimit = defaultJournalSizeLimit
+	if config.JournalSizeLimit > 0 {
+		journalSizeLimit = config.JournalSizeLimit
+	}
+
+	return busyTimeout, cachePages, mmapSize, journalSizeLimit
 }
 
 // applyPragmas executes PRAGMA statements for performance and safety.
@@ -155,7 +191,7 @@ func Open(path string, config Config) (*sql.DB, error) {
 // Takes journalSizeLimit (int) which sets PRAGMA journal_size_limit in bytes.
 //
 // Returns error when any PRAGMA statement fails to execute.
-func applyPragmas(database *sql.DB, busyTimeout, cachePages, mmapSize, journalSizeLimit int) error {
+func applyPragmas(ctx context.Context, database *sql.DB, busyTimeout, cachePages, mmapSize, journalSizeLimit int) error {
 	pragmas := []struct {
 		name  string
 		value string
@@ -174,7 +210,7 @@ func applyPragmas(database *sql.DB, busyTimeout, cachePages, mmapSize, journalSi
 	}
 
 	for _, pragma := range pragmas {
-		if _, err := database.Exec(fmt.Sprintf("PRAGMA %s = %s", pragma.name, pragma.value)); err != nil {
+		if _, err := database.ExecContext(ctx, fmt.Sprintf("PRAGMA %s = %s", pragma.name, pragma.value)); err != nil {
 			return fmt.Errorf("PRAGMA %s: %w", pragma.name, err)
 		}
 	}

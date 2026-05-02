@@ -1,18 +1,15 @@
--- piko.name: FindArtefactIDsByTag
--- piko.command: many
+-- piko.query(name: FindArtefactIDsByTag, command: many)
 SELECT DISTINCT artefact_id
 FROM variant_tag
 WHERE tag_key = ? AND tag_value = ?;
 
--- piko.name: FindArtefactIDsByTagValues
--- piko.command: many
--- ?2 as piko.slice(tag_values)
+-- piko.query(name: FindArtefactIDsByTagValues, command: many)
+-- ?2 as piko.param(tag_values, kind: slice)
 SELECT DISTINCT artefact_id
 FROM variant_tag
 WHERE tag_key = ?1 AND tag_value IN (?2);
 
--- piko.name: FindArtefactByVariantStorageKey
--- piko.command: one
+-- piko.query(name: FindArtefactByVariantStorageKey, command: one)
 SELECT artefact_id
 FROM variant
 WHERE storage_key = ?

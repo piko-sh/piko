@@ -7,8 +7,8 @@ import "context"
 const cleanupoldresolvedreceipts = `DELETE FROM workflow_receipts
 WHERE status = 'RESOLVED' AND resolved_at < ?;`
 
-func (queries *Queries) CleanupOldResolvedReceipts(ctx context.Context, p1 *int32) (int64, error) {
-	results, err := queries.writer.ExecContext(ctx, cleanupoldresolvedreceipts, p1)
+func (queries *Queries) CleanupOldResolvedReceipts(ctx context.Context, resolvedAt *int64) (int64, error) {
+	results, err := queries.writer.ExecContext(ctx, cleanupoldresolvedreceipts, resolvedAt)
 	if err != nil {
 		return 0, err
 	}
@@ -24,20 +24,20 @@ WHERE status = 'FAILED'
 ORDER BY updated_at DESC;`
 
 type ListFailedTasksRow struct {
-	ID               string
-	WorkflowID       string
-	Executor         string
-	Priority         int32
-	Payload          string
-	Config           string
-	Result           *string
-	Status           string
-	ExecuteAt        int32
-	Attempt          int32
-	LastError        *string
-	CreatedAt        int32
-	UpdatedAt        int32
-	DeduplicationKey *string
+	ID               string  `json:"id"`
+	WorkflowID       string  `json:"workflow_id"`
+	Executor         string  `json:"executor"`
+	Priority         int32   `json:"priority"`
+	Payload          string  `json:"payload"`
+	Config           string  `json:"config"`
+	Result           *string `json:"result"`
+	Status           string  `json:"status"`
+	ExecuteAt        int64   `json:"execute_at"`
+	Attempt          int32   `json:"attempt"`
+	LastError        *string `json:"last_error"`
+	CreatedAt        int64   `json:"created_at"`
+	UpdatedAt        int64   `json:"updated_at"`
+	DeduplicationKey *string `json:"deduplication_key"`
 }
 
 func (queries *Queries) ListFailedTasks(ctx context.Context) ([]ListFailedTasksRow, error) {
@@ -65,12 +65,12 @@ SET status = 'TIMED_OUT', updated_at = ?
 WHERE status = 'PENDING' AND created_at < ?;`
 
 type TimeoutStaleReceiptsParams struct {
-	P1 int32
-	P2 int32
+	UpdatedAt int64
+	CreatedAt int64
 }
 
 func (queries *Queries) TimeoutStaleReceipts(ctx context.Context, params TimeoutStaleReceiptsParams) (int64, error) {
-	results, err := queries.writer.ExecContext(ctx, timeoutstalereceipts, params.P1, params.P2)
+	results, err := queries.writer.ExecContext(ctx, timeoutstalereceipts, params.UpdatedAt, params.CreatedAt)
 	if err != nil {
 		return 0, err
 	}

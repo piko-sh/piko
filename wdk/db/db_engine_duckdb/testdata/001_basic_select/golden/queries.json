@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "users.sql",
-    "SQL": "-- piko.name: GetAllUsers\n-- piko.command: many\nSELECT id, name, email, active, created_at FROM users;",
+    "SQL": "-- piko.query(name: GetAllUsers, command: many)\nSELECT id, name, email, active, created_at FROM users;",
     "Name": "GetAllUsers",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "email",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "email",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,16 +78,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "active",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "active",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -88,16 +104,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 3
+          "Category": 3,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "created_at",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "created_at",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -110,7 +130,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -131,16 +152,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "users.sql",
-    "SQL": "-- piko.name: GetUserByID\n-- piko.command: one\nSELECT id, name, email, active, created_at FROM users WHERE id = $1;",
+    "SQL": "-- piko.query(name: GetUserByID, command: one)\nSELECT id, name, email, active, created_at FROM users WHERE id = $1;",
     "Name": "GetUserByID",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -158,20 +182,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -184,16 +213,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -206,16 +239,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "email",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "email",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -228,16 +265,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "active",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "active",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -250,16 +291,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 3
+          "Category": 3,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "created_at",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "created_at",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -272,7 +317,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -292,23 +338,29 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "users.sql",
-    "SQL": "-- piko.name: GetActiveUsers\n-- piko.command: many\nSELECT id, name, email FROM users WHERE active = true;",
+    "SQL": "-- piko.query(name: GetActiveUsers, command: many)\nSELECT id, name, email FROM users WHERE active = true;",
     "Name": "GetActiveUsers",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -321,16 +373,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -343,16 +399,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "email",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "email",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -365,7 +425,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -385,10 +446,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 9,
-    "IsDynamic": false,
+    "Line": 7,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

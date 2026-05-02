@@ -1,0 +1,4 @@
+{
+  "description": "ALTER TABLE x ADD INDEX idx col TYPE minmax GRANULARITY 4 declares a data skipping index. The parser treats ADD INDEX as a catalogue no-op so the migration applies cleanly, and the runtime query exercises the range-filter shape the index supports.",
+  "skip": false
+}

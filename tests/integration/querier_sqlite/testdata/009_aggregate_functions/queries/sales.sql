@@ -1,5 +1,4 @@
--- piko.name: GetSalesSummary
--- piko.command: one
+-- piko.query(name: GetSalesSummary, command: one)
 SELECT
     count(*) AS total_count,
     sum(amount) AS total_amount,
@@ -8,8 +7,7 @@ SELECT
     max(amount) AS max_amount
 FROM sales;
 
--- piko.name: GetSalesByProduct
--- piko.command: many
+-- piko.query(name: GetSalesByProduct, command: many)
 SELECT
     product,
     count(*) AS sale_count,

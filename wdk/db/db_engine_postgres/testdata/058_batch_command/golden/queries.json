@@ -2,8 +2,9 @@
   {
     "InsertTable": "audit_log",
     "Filename": "insert_audit_batch.sql",
-    "SQL": "-- piko.name: InsertAuditBatch\n-- piko.command: batch\nINSERT INTO audit_log (action, detail) VALUES ($1, $2);",
+    "SQL": "-- piko.query(name: InsertAuditBatch, command: batch)\nINSERT INTO audit_log (action, detail) VALUES ($1, $2);",
     "Name": "InsertAuditBatch",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -45,13 +48,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [],
@@ -72,9 +77,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 5,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -1,7 +1,5 @@
--- piko.name: ReadOnlyWithDeterministic
--- piko.command: many
+-- piko.query(name: ReadOnlyWithDeterministic, command: many)
 SELECT id, safe_multiply(points, 2) AS doubled FROM scores;
 
--- piko.name: NotReadOnlyWithUnknown
--- piko.command: one
+-- piko.query(name: NotReadOnlyWithUnknown, command: one)
 SELECT some_unknown_function(?) AS result;

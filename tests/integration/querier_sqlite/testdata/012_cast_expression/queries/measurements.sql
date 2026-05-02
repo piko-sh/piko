@@ -1,5 +1,4 @@
--- piko.name: GetMeasurement
--- piko.command: one
+-- piko.query(name: GetMeasurement, command: one)
 SELECT
     id,
     CAST(raw_value AS REAL) AS numeric_value,

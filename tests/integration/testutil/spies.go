@@ -34,9 +34,9 @@ var (
 	_ render_domain.RegistryPort = (*SpyRegistryPort)(nil)
 )
 
-// SpyRegistryPort captures artefact lookup calls while delegating to an
-// optional real implementation, allowing verification that the correct
-// artefact IDs are being looked up during rendering.
+// SpyRegistryPort captures artefact lookup calls while delegating to an optional real
+// implementation, allowing verification that the correct artefact IDs are being looked up
+// during rendering.
 type SpyRegistryPort struct {
 	// delegate is the underlying registry port that this spy wraps.
 	delegate render_domain.RegistryPort
@@ -47,8 +47,7 @@ type SpyRegistryPort struct {
 	// componentData maps component names to their metadata.
 	componentData map[string]*render_dto.ComponentMetadata
 
-	// svgLookupCalls records the arguments passed to SVGLookup calls for test
-	// verification.
+	// svgLookupCalls records the arguments passed to SVGLookup calls for test verification.
 	svgLookupCalls []string
 
 	// componentLookupCalls records the component names passed to ComponentLookup.
@@ -60,8 +59,7 @@ type SpyRegistryPort struct {
 
 // NewSpyRegistryPort creates a new spy registry with optional mock data.
 //
-// Returns *SpyRegistryPort which is an uninitialised spy ready for test
-// configuration.
+// Returns *SpyRegistryPort which is an uninitialised spy ready for test configuration.
 func NewSpyRegistryPort() *SpyRegistryPort {
 	return &SpyRegistryPort{
 		delegate:             nil,
@@ -73,11 +71,10 @@ func NewSpyRegistryPort() *SpyRegistryPort {
 	}
 }
 
-// NewSpyRegistryPortWithDelegate creates a spy that delegates to a real
-// registry.
+// NewSpyRegistryPortWithDelegate creates a spy that delegates to a real registry.
 //
-// Takes delegate (render_domain.RegistryPort) which provides the real registry
-// to forward calls to.
+// Takes delegate (render_domain.RegistryPort) which provides the real registry to forward
+// calls to.
 //
 // Returns *SpyRegistryPort which wraps the delegate with spy capabilities.
 func NewSpyRegistryPortWithDelegate(delegate render_domain.RegistryPort) *SpyRegistryPort {
@@ -86,8 +83,8 @@ func NewSpyRegistryPortWithDelegate(delegate render_domain.RegistryPort) *SpyReg
 	return spy
 }
 
-// SetSVGData configures mock SVG data for a given asset ID.
-// Pre-computes CachedSymbol to match production behaviour.
+// SetSVGData configures mock SVG data for a given asset ID. Pre-computes CachedSymbol to
+// match production behaviour.
 //
 // Takes assetID (string) which identifies the asset to configure.
 // Takes data (*render_domain.ParsedSvgData) which provides the SVG data to store.
@@ -102,8 +99,7 @@ func (s *SpyRegistryPort) SetSVGData(assetID string, data *render_domain.ParsedS
 	s.svgData[assetID] = data
 }
 
-// SetComponentData configures mock component metadata for a given component
-// type.
+// SetComponentData configures mock component metadata for a given component type.
 //
 // Takes componentType (string) which identifies the component to configure.
 // Takes data (*render_dto.ComponentMetadata) which provides the metadata to store.
@@ -221,9 +217,8 @@ func (s *SpyRegistryPort) BulkGetComponentMetadata(ctx context.Context, componen
 
 // GetStats implements render_domain.RegistryPort.
 //
-// Returns render_domain.RegistryAdapterStats which contains the registry
-// statistics from the delegate, or an empty stats struct if no delegate is
-// set.
+// Returns render_domain.RegistryAdapterStats which contains the registry statistics from
+// the delegate, or an empty stats struct if no delegate is set.
 func (s *SpyRegistryPort) GetStats() render_domain.RegistryAdapterStats {
 	if s.delegate != nil {
 		return s.delegate.GetStats()
@@ -233,16 +228,16 @@ func (s *SpyRegistryPort) GetStats() render_domain.RegistryAdapterStats {
 
 // ClearComponentCache implements render_domain.RegistryPort.
 //
-// Takes componentType (string) which specifies the type of component to clear
-// from the cache.
+// Takes componentType (string) which specifies the type of component to clear from the
+// cache.
 func (s *SpyRegistryPort) ClearComponentCache(ctx context.Context, componentType string) {
 	if s.delegate != nil {
 		s.delegate.ClearComponentCache(ctx, componentType)
 	}
 }
 
-// ClearSvgCache clears the cached SVG for the given identifier.
-// Implements render_domain.RegistryPort.
+// ClearSvgCache clears the cached SVG for the given identifier. Implements
+// render_domain.RegistryPort.
 //
 // Takes svgID (string) which identifies the SVG to remove from the cache.
 func (s *SpyRegistryPort) ClearSvgCache(ctx context.Context, svgID string) {
@@ -255,8 +250,8 @@ func (s *SpyRegistryPort) ClearSvgCache(ctx context.Context, svgID string) {
 //
 // Takes artefactID (string) which identifies the artefact to look up.
 //
-// Returns string which is the serve path from the delegate, or empty if no
-// delegate is set.
+// Returns string which is the serve path from the delegate, or empty if no delegate is
+// set.
 func (s *SpyRegistryPort) GetArtefactServePath(ctx context.Context, artefactID string) string {
 	if s.delegate != nil {
 		return s.delegate.GetArtefactServePath(ctx, artefactID)
@@ -270,8 +265,8 @@ func (s *SpyRegistryPort) GetArtefactServePath(ctx context.Context, artefactID s
 // Takes sourcePath (string) which specifies the path to the source content.
 // Takes sourceData (io.Reader) which provides the artefact content to store.
 // Takes storageBackendID (string) which identifies the storage backend to use.
-// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the profiles
-// to apply to the artefact.
+// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the profiles to
+// apply to the artefact.
 //
 // Returns *registry_dto.ArtefactMeta which contains metadata for the artefact.
 // Returns error when the delegate is nil or the operation fails.

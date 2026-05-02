@@ -26,17 +26,23 @@ import (
 )
 
 var (
-	// builtinTypeMap maps every recognised SQLite type spelling to its normalised SQL type,
-	// including all SQLite type-affinity aliases.
+	// builtinTypeMap maps SQLite type spellings to normalised SQL types.
+	//
+	// This includes all SQLite type-affinity aliases. Integer spellings carry their declared
+	// width as the canonical int2/int4/int8 engine name so the Go type matches the column's
+	// declared range and stays consistent with the postgres family, rather than collapsing
+	// every width to a single fallback. SQLite stores all integers as 64-bit, so a column
+	// that needs more than its declared width (for example a key beyond the 32-bit range)
+	// must be declared BIGINT to map to int64.
 	builtinTypeMap = map[string]querier_dto.SQLType{
-		"integer":   {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-		"int":       {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-		"tinyint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-		"smallint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-		"mediumint": {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-		"bigint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-		"int2":      {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-		"int8":      {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+		"integer":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
+		"int":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
+		"mediumint": {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
+		"tinyint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
+		"smallint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
+		"int2":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
+		"bigint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
+		"int8":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
 
 		"text":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
 		"clob":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
@@ -51,6 +57,8 @@ var (
 		"float":  {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
 
 		"blob": {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
+
+		"any": {Category: querier_dto.TypeCategoryUnknown, EngineName: "any"},
 
 		"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
 		"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
@@ -111,11 +119,13 @@ func normaliseByAffinity(lowered string, modifiers []int) querier_dto.SQLType {
 	upper := strings.ToUpper(lowered)
 
 	if strings.Contains(upper, "INT") {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "integer"}
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}
 	}
 
 	if strings.Contains(upper, "CHAR") || strings.Contains(upper, "CLOB") || strings.Contains(upper, "TEXT") {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}
+		result := querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}
+		applyModifiers(&result, modifiers)
+		return result
 	}
 
 	if strings.Contains(upper, "BLOB") {

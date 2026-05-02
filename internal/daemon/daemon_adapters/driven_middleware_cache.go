@@ -899,9 +899,9 @@ func formatCacheKey(hash uint64) string {
 	return string(buffer)
 }
 
-// variantETag returns a usable ETag for a cached variant. It prefers the stored ETag tag and
-// falls back to a strong validator derived from the content hash, so a variant persisted
-// without an explicit ETag tag still has a non-empty validator.
+// variantETag returns a usable ETag for a cached variant. It prefers the stored ETag tag
+// and falls back to a strong validator derived from the content hash, so a variant
+// persisted without an explicit ETag tag still has a non-empty validator.
 //
 // Takes variant (*registry_dto.Variant) which provides the cached metadata.
 //

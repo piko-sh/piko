@@ -42,15 +42,15 @@ func BuildStreamMethod(
 	strategy MethodStrategy,
 ) *ast.FuncDecl {
 	rowTypeName := query.Name + "Row"
-	scanArguments := BuildScanArgs(query)
+	scanArguments := BuildScanArgs(query, strategy, mappings)
 
 	var iteratorBody []ast.Stmt
 	if NeedsSliceExpansion(query, strategy) {
-		iteratorBody = append(iteratorBody, BuildSliceExpansionPreamble(query)...)
+		iteratorBody = append(iteratorBody, BuildSliceExpansionStreamPreamble(query, strategy, rowTypeName)...)
 		dbCall := SliceDBCall(strategy, query, strategy.QueryMethod())
 		iteratorBody = append(iteratorBody, buildStreamIteratorBodyFromCall(rowTypeName, dbCall, scanArguments, query)...)
 	} else {
-		queryArguments := BuildQueryArgs(query)
+		queryArguments := BuildQueryArgs(query, strategy)
 		iteratorBody = buildStreamIteratorBody(rowTypeName, queryArguments, scanArguments, query, strategy)
 	}
 
@@ -70,16 +70,16 @@ func BuildStreamMethod(
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which is the dynamic stream method declaration.
-func BuildDynamicStreamMethod(query *querier_dto.AnalysedQuery, strategy MethodStrategy) *ast.FuncDecl {
+func BuildDynamicStreamMethod(query *querier_dto.AnalysedQuery, strategy MethodStrategy, mappings *querier_dto.TypeMappingTable) *ast.FuncDecl {
 	rowTypeName := query.Name + "Row"
 	sortParameter := FindSortableParameter(query)
-	scanArguments := BuildScanArgs(query)
+	scanArguments := BuildScanArgs(query, strategy, mappings)
 
 	preStatements := BuildParamsInitStatements(query)
 
 	var iteratorBody []ast.Stmt
 	if NeedsSliceExpansion(query, strategy) {
-		preStatements = append(preStatements, BuildSliceExpansionPreamble(query)...)
+		preStatements = append(preStatements, BuildSliceExpansionStreamPreamble(query, strategy, rowTypeName)...)
 		if sortParameter != nil {
 			preStatements = append(preStatements, BuildSortableQueryAppend(*sortParameter)...)
 		}
@@ -87,10 +87,10 @@ func BuildDynamicStreamMethod(query *querier_dto.AnalysedQuery, strategy MethodS
 		iteratorBody = buildStreamIteratorBodyFromCall(rowTypeName, dbCall, scanArguments, query)
 	} else if sortParameter != nil {
 		preStatements = append(preStatements, BuildSortableQueryInit(query, *sortParameter)...)
-		queryArguments := BuildSortableDynamicQueryArgs(query)
+		queryArguments := BuildSortableDynamicQueryArgs(query, strategy)
 		iteratorBody = buildStreamIteratorBody(rowTypeName, queryArguments, scanArguments, query, strategy)
 	} else {
-		queryArguments := BuildDynamicQueryArgs(query)
+		queryArguments := BuildDynamicQueryArgs(query, strategy)
 		iteratorBody = buildStreamIteratorBody(rowTypeName, queryArguments, scanArguments, query, strategy)
 	}
 
@@ -167,7 +167,7 @@ func streamYieldType(rowTypeName string) *ast.FuncType {
 			goastutil.Field("", goastutil.CachedIdent(IdentError)),
 		),
 		goastutil.FieldList(
-			goastutil.Field("", goastutil.CachedIdent("bool")),
+			goastutil.Field("", goastutil.CachedIdent(IdentBool)),
 		),
 	)
 }

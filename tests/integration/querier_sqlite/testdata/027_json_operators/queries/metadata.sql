@@ -1,5 +1,4 @@
--- piko.name: GetMetadataField
--- piko.command: one
+-- piko.query(name: GetMetadataField, command: one)
 SELECT
     id,
     data ->> '$.name' AS extracted_name,

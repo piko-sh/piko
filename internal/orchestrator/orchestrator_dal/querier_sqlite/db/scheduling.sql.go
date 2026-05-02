@@ -8,7 +8,7 @@ const pendingtaskcount = `SELECT COUNT(*) FROM tasks
 WHERE status IN ('PENDING', 'SCHEDULED', 'RETRYING');`
 
 type PendingTaskCountRow struct {
-	Count int32
+	Count int64 `json:"count"`
 }
 
 func (queries *Queries) PendingTaskCount(ctx context.Context) (PendingTaskCountRow, error) {
@@ -29,12 +29,12 @@ WHERE
     AND execute_at <= ?;`
 
 type PromoteScheduledTasksParams struct {
-	P1 int32
-	P2 int32
+	UpdatedAt int64
+	ExecuteAt int64
 }
 
 func (queries *Queries) PromoteScheduledTasks(ctx context.Context, params PromoteScheduledTasksParams) (int64, error) {
-	results, err := queries.writer.ExecContext(ctx, promotescheduledtasks, params.P1, params.P2)
+	results, err := queries.writer.ExecContext(ctx, promotescheduledtasks, params.UpdatedAt, params.ExecuteAt)
 	if err != nil {
 		return 0, err
 	}

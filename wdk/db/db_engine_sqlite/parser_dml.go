@@ -40,6 +40,12 @@ func isParameterToken(kind tokenKind) bool {
 // Returns *querier_dto.RawQueryAnalysis which describes the SELECT.
 // Returns error when the statement fails to parse.
 func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
+	if p.analysisDepth >= p.maxParseDepth {
+		return nil, errAnalysisDepthExceeded
+	}
+	p.analysisDepth++
+	defer func() { p.analysisDepth-- }()
+
 	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if p.isKeyword(keywordWITH) {
@@ -82,6 +88,7 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	analysis.ReadOnly = true
 	analysis.ParameterReferences = p.parameterRefs
 	analysis.RawDerivedTables = p.rawDerivedTables
+	analysis.PredicateSubqueries = p.predicateSubqueries
 	analysis.RawTableValuedFunctions = p.rawTableValuedFunctions
 	return analysis, nil
 }
@@ -103,6 +110,7 @@ func (p *parser) parseSelectBody(analysis *querier_dto.RawQueryAnalysis) error {
 	}
 
 	if p.matchKeyword(keywordWHERE) {
+		analysis.HasWhereClause = true
 		p.parseWhereExpression()
 	}
 
@@ -194,13 +202,11 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 		columnNames = names
 	}
 
-	if p.matchKeyword(keywordVALUES) {
-		p.parseValuesClause(tableName, columnNames)
-	} else if p.matchKeyword("DEFAULT") {
-		p.matchKeyword(keywordVALUES)
-	} else {
-		p.parseInsertSource()
+	insertSelect, valuesError := p.parseInsertValues(tableName, columnNames)
+	if valuesError != nil {
+		return nil, valuesError
 	}
+	analysis.InsertSelect = insertSelect
 
 	if p.matchKeyword(keywordON) {
 		p.skipOnConflict(tableName)
@@ -216,6 +222,9 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	}
 
 	analysis.ParameterReferences = p.parameterRefs
+	analysis.PredicateSubqueries = p.predicateSubqueries
+	analysis.RawDerivedTables = p.rawDerivedTables
+	analysis.RawTableValuedFunctions = p.rawTableValuedFunctions
 	return analysis, nil
 }
 
@@ -256,6 +265,7 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 	}
 
 	if p.matchKeyword(keywordWHERE) {
+		analysis.HasWhereClause = true
 		p.parseWhereExpression()
 	}
 
@@ -269,6 +279,9 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 	}
 
 	analysis.ParameterReferences = p.parameterRefs
+	analysis.PredicateSubqueries = p.predicateSubqueries
+	analysis.RawDerivedTables = p.rawDerivedTables
+	analysis.RawTableValuedFunctions = p.rawTableValuedFunctions
 	return analysis, nil
 }
 
@@ -294,6 +307,7 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 	analysis.FromTables = []querier_dto.TableReference{{Name: tableName, Alias: alias}}
 
 	if p.matchKeyword(keywordWHERE) {
+		analysis.HasWhereClause = true
 		p.parseWhereExpression()
 	}
 
@@ -316,6 +330,9 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 	}
 
 	analysis.ParameterReferences = p.parameterRefs
+	analysis.PredicateSubqueries = p.predicateSubqueries
+	analysis.RawDerivedTables = p.rawDerivedTables
+	analysis.RawTableValuedFunctions = p.rawTableValuedFunctions
 	return analysis, nil
 }
 
@@ -422,12 +439,10 @@ func (p *parser) parseWithClause() ([]querier_dto.RawCTEDefinition, error) {
 		}
 		definitions = append(definitions, definition)
 
-		if !p.matchKeyword(",") && p.current().kind != tokenComma {
+		if p.current().kind != tokenComma {
 			break
 		}
-		if p.current().kind == tokenComma {
-			p.advance()
-		}
+		p.advance()
 	}
 
 	return definitions, nil
@@ -460,6 +475,10 @@ func (p *parser) parseSingleCTE(isRecursive bool) (querier_dto.RawCTEDefinition,
 	}
 
 	cteParser := newParser(cteTokens)
+	cteParser.parameterCount = p.parameterCount
+	cteParser.analysisDepth = p.analysisDepth
+	cteParser.expressionDepth = p.expressionDepth
+	cteParser.maxParseDepth = p.maxParseDepth
 	cteAnalysis, analyseErr := cteParser.analyseSelect()
 
 	definition := querier_dto.RawCTEDefinition{
@@ -470,9 +489,12 @@ func (p *parser) parseSingleCTE(isRecursive bool) (querier_dto.RawCTEDefinition,
 	if analyseErr == nil {
 		definition.OutputColumns = buildCTEOutputColumns(columnNames, cteAnalysis)
 		definition.FromTables = cteAnalysis.FromTables
+		definition.JoinClauses = cteAnalysis.JoinClauses
+
+		definition.ParameterReferences = cteAnalysis.ParameterReferences
 	}
 
-	p.parameterCount += cteParser.parameterCount
+	p.parameterCount = cteParser.parameterCount
 	p.parameterRefs = append(p.parameterRefs, cteParser.parameterRefs...)
 
 	return definition, nil
@@ -557,17 +579,35 @@ func (p *parser) isFollowedByAS(position int) bool {
 
 // parseSelectList parses the comma-separated select list.
 //
+// When this select list is the body of an INSERT ... SELECT, its top-level projection
+// placeholders are bound positionally to the INSERT target columns (the same binding the
+// VALUES path applies), so an INSERT ... SELECT $1, $2 types $1/$2 from the target
+// columns rather than leaving them untyped. The INSERT target is consumed and cleared up
+// front so nested subqueries and compound branches parsed inside the items do not inherit
+// it.
+//
 // Returns []querier_dto.RawOutputColumn which is the parsed output column list.
 // Returns error when an item fails to parse.
 func (p *parser) parseSelectList() ([]querier_dto.RawOutputColumn, error) {
+	insertTargetTable := p.insertTargetTable
+	insertTargetColumns := p.insertTargetColumns
+	p.insertTargetTable = ""
+	p.insertTargetColumns = nil
+
 	var columns []querier_dto.RawOutputColumn
 
+	projectionOrdinal := 0
 	for {
+		refsCountBefore := len(p.parameterRefs)
 		column, err := p.parseSelectItem()
 		if err != nil {
 			return nil, err
 		}
 		columns = append(columns, column)
+		if insertTargetTable != "" {
+			p.bindInsertSelectProjection(refsCountBefore, insertTargetTable, insertTargetColumns, projectionOrdinal)
+		}
+		projectionOrdinal++
 
 		if p.current().kind != tokenComma {
 			break
@@ -576,6 +616,33 @@ func (p *parser) parseSelectList() ([]querier_dto.RawOutputColumn, error) {
 	}
 
 	return columns, nil
+}
+
+// bindInsertSelectProjection binds the placeholders registered while parsing one
+// top-level INSERT ... SELECT projection item to the matching INSERT target column.
+//
+// Only placeholders that do not already carry a column reference are bound, so a deeper
+// comparison/LIKE column reference is preserved; the assignment context and the qualified
+// target column reference mirror the VALUES path so the analyser types the placeholder
+// from the target column. The boundary is the parameterRefs length (references are
+// appended) so out-of-order numbered placeholders are handled correctly.
+//
+// Takes refsCountBefore (int) which is len(parameterRefs) before the item was parsed.
+// Takes tableName (string) which is the INSERT target table name (the column ref alias).
+// Takes columnNames ([]string) which are the INSERT target column names in positional
+// order.
+// Takes projectionOrdinal (int) which is the 0-based projection slot of the item.
+func (p *parser) bindInsertSelectProjection(refsCountBefore int, tableName string, columnNames []string, projectionOrdinal int) {
+	columnReference := columnRefForIndex(tableName, columnNames, projectionOrdinal)
+	if columnReference == nil {
+		return
+	}
+	for i := refsCountBefore; i < len(p.parameterRefs); i++ {
+		if p.parameterRefs[i].ColumnReference == nil {
+			p.parameterRefs[i].Context = querier_dto.ParameterContextAssignment
+			p.parameterRefs[i].ColumnReference = columnReference
+		}
+	}
 }
 
 // parseSelectItem parses a single select-list item: star, qualified reference, or

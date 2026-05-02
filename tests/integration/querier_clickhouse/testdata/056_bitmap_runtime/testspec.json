@@ -1,0 +1,4 @@
+{
+  "description": "groupBitmap aggregate state stored in an AggregatingMergeTree, then read back via bitmapCardinality(groupBitmapMergeState(state)). Verifies the bitmap construction, the State combinator path through the parser, the merge path, and that bitmapCardinality returns the count of distinct user IDs per day.",
+  "skip": false
+}

@@ -2,12 +2,14 @@ package turnstilepass
 
 import "piko.sh/piko"
 
-// SubmitAction handles captcha-protected form submissions using Cloudflare Turnstile (always pass).
+// SubmitAction handles captcha-protected form submissions using Cloudflare Turnstile
+// (always pass).
 type SubmitAction struct {
 	piko.ActionMetadata
 }
 
-// CaptchaConfig marks this action as requiring captcha verification via the turnstile_pass provider.
+// CaptchaConfig marks this action as requiring captcha verification via the
+// turnstile_pass provider.
 func (SubmitAction) CaptchaConfig() *piko.CaptchaConfig {
 	return &piko.CaptchaConfig{Provider: "turnstile_pass"}
 }

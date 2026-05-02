@@ -1,0 +1,3 @@
+{
+  "description": "Create a continuous aggregate via CREATE MATERIALIZED VIEW WITH (timescaledb.continuous = true), refresh it, and query it. Exercises the TimescaleDB-specific reloption recognition during migration parsing plus the runtime refresh/query lifecycle. The cagg itself is queried via direct SQL because the extension parser intentionally captures the view body as opaque text (see docs/how-to/database/timescaledb.md limitations), so Piko cannot codegen typed access to the cagg yet."
+}

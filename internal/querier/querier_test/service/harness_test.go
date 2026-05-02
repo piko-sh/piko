@@ -42,6 +42,7 @@ type testSpec struct {
 	Description             string               `json:"description"`
 	Engine                  string               `json:"engine"`
 	ShouldError             bool                 `json:"shouldError"`
+	ExpectedQueryCount      *int                 `json:"expectedQueryCount"`
 	ExpectedDiagnosticCount *int                 `json:"expectedDiagnosticCount"`
 	Diagnostics             []expectedDiagnostic `json:"diagnostics"`
 }
@@ -91,7 +92,7 @@ func runTestCase(t *testing.T, testCaseDirectory string) {
 		QueryDirectory:     queryDirectory,
 	}
 
-	result, generateError := service.GenerateDatabase(ctx, "test", databaseConfig, "")
+	result, generateError := service.GenerateDatabase(ctx, "test", databaseConfig)
 
 	if spec.ShouldError {
 		assert.Error(t, generateError, "expected GenerateDatabase to return an error")
@@ -108,19 +109,14 @@ func runTestCase(t *testing.T, testCaseDirectory string) {
 	goldenDirectory := filepath.Join(testCaseDirectory, "golden")
 	require.NoError(t, os.MkdirAll(goldenDirectory, 0o755))
 
-	if catalogue != nil {
-		catalogueJSON := serialiseDeterministic(t, catalogue)
-		assertGoldenJSON(t, filepath.Join(goldenDirectory, "catalogue.json"), catalogueJSON)
-	}
+	assertOutputGolden(t, filepath.Join(goldenDirectory, "catalogue.json"), catalogue, catalogue != nil)
+	assertOutputGolden(t, filepath.Join(goldenDirectory, "queries.json"), emitter.queries, len(emitter.queries) > 0)
+	assertOutputGolden(t, filepath.Join(goldenDirectory, "diagnostics.json"), result.Diagnostics,
+		len(result.Diagnostics) > 0)
 
-	if len(emitter.queries) > 0 {
-		queriesJSON := serialiseDeterministic(t, emitter.queries)
-		assertGoldenJSON(t, filepath.Join(goldenDirectory, "queries.json"), queriesJSON)
-	}
-
-	if len(result.Diagnostics) > 0 {
-		diagnosticsJSON := serialiseDeterministic(t, result.Diagnostics)
-		assertGoldenJSON(t, filepath.Join(goldenDirectory, "diagnostics.json"), diagnosticsJSON)
+	if spec.ExpectedQueryCount != nil {
+		assert.Equal(t, *spec.ExpectedQueryCount, len(emitter.queries),
+			"unexpected query count")
 	}
 
 	if spec.ExpectedDiagnosticCount != nil {
@@ -162,6 +158,20 @@ func loadEngineConfig(t *testing.T, testCaseDirectory string) mockEngineConfig {
 	var config mockEngineConfig
 	require.NoError(t, json.Unmarshal(engineBytes, &config), "failed to parse engine.json")
 	return config
+}
+
+func assertOutputGolden(t *testing.T, goldenPath string, value any, hasData bool) {
+	t.Helper()
+	if !hasData && !goldenFileExists(goldenPath) {
+		return
+	}
+	actual := serialiseDeterministic(t, value)
+	assertGoldenJSON(t, goldenPath, actual)
+}
+
+func goldenFileExists(goldenPath string) bool {
+	_, statError := os.Stat(goldenPath)
+	return statError == nil
 }
 
 func assertGoldenJSON(t *testing.T, goldenPath string, actual []byte) {

@@ -1,0 +1,1 @@
+{"expensive_products":[{"id":4,"name":"gimbal","price":250,"in_stock":true},{"id":3,"name":"gizmo","price":200,"in_stock":true}],"stocked_expensive_products":[{"id":3,"name":"gizmo","price":200,"in_stock":true},{"id":4,"name":"gimbal","price":250,"in_stock":true}]}

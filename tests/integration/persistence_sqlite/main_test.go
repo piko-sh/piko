@@ -82,12 +82,17 @@ func openTestDB(t *testing.T, name string) *sql.DB {
 
 func runMigrations(t *testing.T, database *sql.DB, migration_fs embed.FS) {
 	t.Helper()
+	runMigrationsWithDir(t, database, migration_fs, "migrations")
+}
+
+func runMigrationsWithDir(t *testing.T, database *sql.DB, migration_fs embed.FS, directory string) {
+	t.Helper()
 
 	ctx := context.Background()
 
 	executor := migration_sql.NewExecutor(database, migration_sql.SQLiteDialect())
 	file_reader := migration_sql.NewFSFileReader(migration_fs)
-	service := querier_domain.NewMigrationService(executor, file_reader, "migrations")
+	service := querier_domain.NewMigrationService(executor, file_reader, directory)
 
 	_, err := service.Up(ctx)
 	require.NoError(t, err, "running migrations")

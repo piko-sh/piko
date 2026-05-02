@@ -32,6 +32,7 @@ import (
 	"piko.sh/piko/internal/registry/registry_adapters"
 	"piko.sh/piko/internal/registry/registry_dal"
 	registry_querier_adapter "piko.sh/piko/internal/registry/registry_dal/querier_adapter"
+	registry_querier_adapter_postgres "piko.sh/piko/internal/registry/registry_dal/querier_adapter_postgres"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_adapters"
@@ -125,6 +126,17 @@ func (c *Container) createQuerierRegistryDAL() (registry_domain.MetadataStore, e
 	database, err := c.GetDatabaseConnection(DatabaseNameRegistry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get registry database connection: %w", err)
+	}
+
+	driver, err := c.GetDatabaseDriver(DatabaseNameRegistry)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve registry database driver: %w", err)
+	}
+
+	if isPostgresDriver(driver) {
+		dal := registry_querier_adapter_postgres.NewDAL(database)
+		c.registryInspector = dal
+		return dal, nil
 	}
 
 	dal := registry_querier_adapter.NewDAL(database)

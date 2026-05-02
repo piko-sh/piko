@@ -155,6 +155,76 @@ func TestTokenise_Identifiers(t *testing.T) {
 	}
 }
 
+func TestTokenise_UnicodeIdentifiers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		expected []token
+	}{
+		{
+			name:  "ascii identifier is unchanged",
+			input: "users",
+			expected: []token{
+				{kind: tokenIdentifier, value: "users", position: 0},
+			},
+		},
+		{
+			name:  "accented latin identifier stays whole",
+			input: "café",
+			expected: []token{
+				{kind: tokenIdentifier, value: "café", position: 0},
+			},
+		},
+		{
+			name:  "identifier with a non-ascii diaeresis letter stays whole",
+			input: "naïve",
+			expected: []token{
+				{kind: tokenIdentifier, value: "naïve", position: 0},
+			},
+		},
+		{
+			name:  "cjk identifier stays whole",
+			input: "名前",
+			expected: []token{
+				{kind: tokenIdentifier, value: "名前", position: 0},
+			},
+		},
+		{
+			name:  "mixed ascii unicode and trailing digit stays whole",
+			input: "user_café2",
+			expected: []token{
+				{kind: tokenIdentifier, value: "user_café2", position: 0},
+			},
+		},
+		{
+			name:  "qualified unicode identifiers split only on the dot",
+			input: "café.名前",
+			expected: []token{
+				{kind: tokenIdentifier, value: "café", position: 0},
+
+				{kind: tokenDot, value: ".", position: 5},
+				{kind: tokenIdentifier, value: "名前", position: 6},
+			},
+		},
+		{
+			name:  "named parameter accepts a unicode body",
+			input: ":café",
+			expected: []token{
+				{kind: tokenNamedParam, value: ":café", position: 0},
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			requireTokens(t, testCase.input, testCase.expected)
+		})
+	}
+}
+
 func TestTokenise_Numbers(t *testing.T) {
 	t.Parallel()
 
@@ -263,6 +333,34 @@ func TestTokenise_Strings(t *testing.T) {
 			input: "b'110'",
 			expected: []token{
 				{kind: tokenBitString, value: "110", position: 0},
+			},
+		},
+		{
+			name:  "doubled-dollar quoted string",
+			input: "$$body$$",
+			expected: []token{
+				{kind: tokenDollarString, value: "body", position: 0},
+			},
+		},
+		{
+			name:  "tagged dollar quoted string",
+			input: "$tag$body$tag$",
+			expected: []token{
+				{kind: tokenDollarString, value: "body", position: 0},
+			},
+		},
+		{
+			name:  "dollar quoted string with embedded single quote",
+			input: "$$it's fine$$",
+			expected: []token{
+				{kind: tokenDollarString, value: "it's fine", position: 0},
+			},
+		},
+		{
+			name:  "empty doubled-dollar quoted string",
+			input: "$$$$",
+			expected: []token{
+				{kind: tokenDollarString, value: "", position: 0},
 			},
 		},
 	}
@@ -554,14 +652,34 @@ func TestTokenise_Errors(t *testing.T) {
 			expectedSubstring: "unterminated quoted identifier",
 		},
 		{
-			name:              "bare dollar without digit",
+			name:              "bare dollar without digit or tag",
 			input:             "$ ",
-			expectedSubstring: "unexpected character $",
+			expectedSubstring: "invalid dollar-quoted string",
+		},
+		{
+			name:              "unterminated dollar-quoted string",
+			input:             "$$body",
+			expectedSubstring: "unterminated dollar-quoted string",
+		},
+		{
+			name:              "unterminated tagged dollar-quoted string",
+			input:             "$tag$body$other$",
+			expectedSubstring: "unterminated dollar-quoted string",
 		},
 		{
 			name:              "unterminated bit string",
 			input:             "B'101",
 			expectedSubstring: "unterminated bit string",
+		},
+		{
+			name:              "unterminated block comment",
+			input:             "SELECT /* open",
+			expectedSubstring: "unterminated block comment",
+		},
+		{
+			name:              "unterminated block comment at end of input",
+			input:             "SELECT /*",
+			expectedSubstring: "unterminated block comment",
 		},
 	}
 

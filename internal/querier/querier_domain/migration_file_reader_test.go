@@ -32,6 +32,30 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+func TestReadMigrationFilesVersionedDuplicateVersion(t *testing.T) {
+	t.Parallel()
+
+	reader := &mockFileReader{
+		dirs: map[string][]os.DirEntry{
+			"migrations": {
+				&mockDirEntry{name: "001_first.up.sql"},
+				&mockDirEntry{name: "001_second.up.sql"},
+			},
+		},
+		files: map[string][]byte{
+			"migrations/001_first.up.sql":  []byte("CREATE TABLE a;"),
+			"migrations/001_second.up.sql": []byte("CREATE TABLE b;"),
+		},
+	}
+
+	_, err := readMigrationFilesVersioned(context.Background(), reader, "migrations")
+
+	var duplicate *DuplicateMigrationVersionError
+	require.ErrorAs(t, err, &duplicate)
+	assert.Equal(t, int64(1), duplicate.Version)
+	assert.Equal(t, querier_dto.MigrationDirectionUp, duplicate.Direction)
+}
+
 func TestReadMigrationFilesVersioned(t *testing.T) {
 	t.Parallel()
 

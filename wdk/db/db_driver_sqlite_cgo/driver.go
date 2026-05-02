@@ -19,10 +19,12 @@
 package db_driver_sqlite_cgo
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3" // register "sqlite3" database/sql driver
@@ -61,6 +63,21 @@ const (
 	connMaxLifetime = 1 * time.Hour
 )
 
+var (
+	// sqliteFilePathEscaper percent-encodes the characters that would otherwise corrupt a
+	// SQLite file: URI when interpolated into the DSN path component.
+	//
+	// "%" is encoded first (and strings.NewReplacer performs a single non-overlapping pass,
+	// so the encoded sequences are not re-encoded). "/" and ":" are preserved so ordinary
+	// paths and the ":memory:" form continue to work. SQLite percent-decodes the path,
+	// restoring the original bytes.
+	sqliteFilePathEscaper = strings.NewReplacer(
+		"%", "%25",
+		"?", "%3F",
+		"#", "%23",
+	)
+)
+
 // Config holds configuration for opening a SQLite database.
 type Config struct {
 	// BusyTimeoutMs is the timeout in milliseconds for SQLite busy waits. Zero uses the
@@ -88,7 +105,7 @@ type Config struct {
 //
 // Returns *sql.DB which is the configured database connection.
 // Returns error when the database cannot be opened or PRAGMAs fail to apply.
-func Open(path string, config Config) (*sql.DB, error) {
+func Open(ctx context.Context, path string, config Config) (*sql.DB, error) {
 	if path == "" {
 		return nil, errors.New("db_driver_sqlite_cgo: path must not be empty")
 	}
@@ -118,7 +135,7 @@ func Open(path string, config Config) (*sql.DB, error) {
 		journalSizeLimit = config.JournalSizeLimit
 	}
 
-	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=%d&_foreign_keys=true", path, busyTimeout)
+	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=%d&_foreign_keys=true", sqliteFilePathEscaper.Replace(path), busyTimeout)
 
 	database, err := sql.Open(driverName, dsn)
 	if err != nil {
@@ -130,12 +147,12 @@ func Open(path string, config Config) (*sql.DB, error) {
 	database.SetConnMaxIdleTime(connMaxIdleTime)
 	database.SetConnMaxLifetime(connMaxLifetime)
 
-	if err := database.Ping(); err != nil {
+	if err := database.PingContext(ctx); err != nil {
 		closeErr := database.Close()
 		return nil, fmt.Errorf("db_driver_sqlite_cgo: pinging database: %w", errors.Join(err, closeErr))
 	}
 
-	if err := applyPragmas(database, busyTimeout, cachePages, mmapSize, journalSizeLimit); err != nil {
+	if err := applyPragmas(ctx, database, busyTimeout, cachePages, mmapSize, journalSizeLimit); err != nil {
 		closeErr := database.Close()
 		return nil, fmt.Errorf("db_driver_sqlite_cgo: applying PRAGMAs: %w", errors.Join(err, closeErr))
 	}
@@ -155,7 +172,7 @@ func Open(path string, config Config) (*sql.DB, error) {
 // Takes journalSizeLimit (int) which sets PRAGMA journal_size_limit in bytes.
 //
 // Returns error when any PRAGMA statement fails to execute.
-func applyPragmas(database *sql.DB, busyTimeout, cachePages, mmapSize, journalSizeLimit int) error {
+func applyPragmas(ctx context.Context, database *sql.DB, busyTimeout, cachePages, mmapSize, journalSizeLimit int) error {
 	pragmas := []struct {
 		name  string
 		value string
@@ -174,7 +191,7 @@ func applyPragmas(database *sql.DB, busyTimeout, cachePages, mmapSize, journalSi
 	}
 
 	for _, pragma := range pragmas {
-		if _, err := database.Exec(fmt.Sprintf("PRAGMA %s = %s", pragma.name, pragma.value)); err != nil {
+		if _, err := database.ExecContext(ctx, fmt.Sprintf("PRAGMA %s = %s", pragma.name, pragma.value)); err != nil {
 			return fmt.Errorf("PRAGMA %s: %w", pragma.name, err)
 		}
 	}

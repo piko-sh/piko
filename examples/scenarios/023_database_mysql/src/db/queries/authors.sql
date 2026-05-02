@@ -1,11 +1,8 @@
--- piko.name: CreateAuthor
--- piko.command: exec
+-- piko.query(name: CreateAuthor, command: exec)
 INSERT INTO authors (name, email, created_at) VALUES (?, ?, ?);
 
--- piko.name: ListAuthors
--- piko.command: many
+-- piko.query(name: ListAuthors, command: many)
 SELECT id, name, email FROM authors ORDER BY name;
 
--- piko.name: GetAuthor
--- piko.command: one
+-- piko.query(name: GetAuthor, command: one)
 SELECT id, name, email FROM authors WHERE id = ?;

@@ -18,9 +18,9 @@
 
 //go:build ignore
 
-// Command gen_flat_switch parses the four dispatch registration maps in interp_domain
-// and emits a single 1024-arm switch dispatcher. The switch lets Go's compiler lay out a
-// jump table and inline the small handler bodies, which is faster than the equivalent
+// Command gen_flat_switch parses the four dispatch registration maps in interp_domain and
+// emits a single 1024-arm switch dispatcher. The switch lets Go's compiler lay out a jump
+// table and inline the small handler bodies, which is faster than the equivalent
 // function-pointer LUT.
 //
 // Run via:

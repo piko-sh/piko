@@ -80,7 +80,7 @@ func generateCode(t *testing.T, testCaseDirectory string, spec testSpec) []queri
 	ctx := context.Background()
 
 	engine := db_engine_duckdb.NewDuckDBEngine()
-	emitter := emitter_go.NewGoEmitter()
+	emitter := emitter_go.NewGoEmitterForDialect(engine.Dialect())
 
 	migrationDirectory, err := filepath.Abs(filepath.Join(testCaseDirectory, "migrations"))
 	require.NoError(t, err)
@@ -101,7 +101,7 @@ func generateCode(t *testing.T, testCaseDirectory string, spec testSpec) []queri
 		TypeOverrides:      spec.TypeOverrides,
 	}
 
-	result, generateError := service.GenerateDatabase(ctx, "db", databaseConfig, "")
+	result, generateError := service.GenerateDatabase(ctx, "db", databaseConfig)
 	require.NoError(t, generateError)
 	require.NotNil(t, result)
 

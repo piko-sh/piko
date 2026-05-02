@@ -20,6 +20,7 @@ package querier_domain
 
 import (
 	"context"
+	"fmt"
 
 	"piko.sh/piko/internal/querier/querier_dto"
 )
@@ -78,6 +79,9 @@ func (provider *MigrationCatalogueProvider) BuildCatalogue(
 
 	allDiagnostics := warnNonConformingMigrationFiles(ctx, provider.fileReader, provider.directory)
 	for _, migration := range migrationFiles {
+		if err := ctx.Err(); err != nil {
+			return nil, allDiagnostics, fmt.Errorf("building catalogue from migrations cancelled: %w", err)
+		}
 		diagnostics := builder.ApplyMigration(ctx, migration.filename, migration.content, migration.index)
 		allDiagnostics = append(allDiagnostics, diagnostics...)
 	}

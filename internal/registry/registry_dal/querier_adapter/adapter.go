@@ -33,7 +33,6 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/registry/registry_schema"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safeconv"
 )
 
 const (
@@ -333,7 +332,7 @@ func (d *DAL) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tag
 	}
 
 	dbTagRows, err := d.queries.FindArtefactIDsByTagValues(ctx, registry_db.FindArtefactIDsByTagValuesParams{
-		P1:        tagKey,
+		TagKey:    tagKey,
 		TagValues: tagValues,
 	})
 	if err != nil {
@@ -396,7 +395,7 @@ func (d *DAL) PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint,
 	var hints []registry_dto.GCHint
 	err := l.RunInSpan(ctx, "PopGCHintsTransaction", func(ctx context.Context, _ logger.Logger) error {
 		return d.runInTransaction(ctx, func(ctx context.Context, _ registry_db.DBTX, qtx *registry_db.Queries) error {
-			dbHints, err := qtx.PopGCHints(ctx, safeconv.IntToInt32(limit))
+			dbHints, err := qtx.PopGCHints(ctx, limit)
 			if err != nil {
 				return fmt.Errorf("failed to pop GC hints from DB: %w", err)
 			}
@@ -408,7 +407,7 @@ func (d *DAL) PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint,
 			}
 
 			l.Trace("Processing GC hints", logger.Int("hintCount", len(dbHints)))
-			var idsToDelete []int32
+			var idsToDelete []int64
 			hints, idsToDelete = convertDBHintsToDTO(dbHints)
 			if err := qtx.DeleteGCHints(ctx, registry_db.DeleteGCHintsParams{IDs: idsToDelete}); err != nil {
 				return fmt.Errorf("failed to delete popped GC hints: %w", err)
@@ -490,13 +489,13 @@ func (d *DAL) IncrementBlobRefCount(ctx context.Context, blob registry_domain.Bl
 
 	now := time.Now().UTC()
 	row, err := d.queries.IncrementBlobRefCount(ctx, registry_db.IncrementBlobRefCountParams{
-		P1: blob.StorageKey,
-		P2: blob.StorageBackendID,
-		P3: blob.ContentHash,
-		P4: safeconv.Int64ToInt32(blob.SizeBytes),
-		P5: blob.MimeType,
-		P6: safeconv.Int64ToInt32(now.Unix()),
-		P7: safeconv.Int64ToInt32(now.Unix()),
+		StorageKey:       blob.StorageKey,
+		StorageBackendID: blob.StorageBackendID,
+		ContentHash:      blob.ContentHash,
+		SizeBytes:        blob.SizeBytes,
+		MimeType:         blob.MimeType,
+		CreatedAt:        now.Unix(),
+		LastReferencedAt: now.Unix(),
 	})
 	if err != nil {
 		l.ReportError(span, err, "Failed to increment blob ref count")
@@ -527,8 +526,8 @@ func (d *DAL) DecrementBlobRefCount(ctx context.Context, storageKey string) (int
 
 	now := time.Now().UTC()
 	row, err := d.queries.DecrementBlobRefCount(ctx, registry_db.DecrementBlobRefCountParams{
-		P1: safeconv.Int64ToInt32(now.Unix()),
-		P2: storageKey,
+		LastReferencedAt: now.Unix(),
+		StorageKey:       storageKey,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -646,12 +645,12 @@ func (d *DAL) ListVariantSummary(ctx context.Context) ([]registry_domain.Variant
 // ListRecentArtefacts returns the most recently updated artefacts with variant counts and
 // total sizes.
 //
-// Takes limit (int32) which specifies the maximum number of artefacts to return.
+// Takes limit (int) which specifies the maximum number of artefacts to return.
 //
 // Returns []registry_domain.ArtefactListItem which contains artefacts ordered by update
 // time descending.
 // Returns error when the database query fails or a FlatBuffer is corrupt.
-func (d *DAL) ListRecentArtefacts(ctx context.Context, limit int32) ([]registry_domain.ArtefactListItem, error) {
+func (d *DAL) ListRecentArtefacts(ctx context.Context, limit int) ([]registry_domain.ArtefactListItem, error) {
 	rows, err := d.queries.ListRecentArtefactsWithData(ctx, limit)
 	if err != nil {
 		return nil, fmt.Errorf("listing recent artefacts: %w", err)
@@ -771,8 +770,8 @@ func (d *DAL) processTagQueries(
 			logger.String("tagValue", value))
 
 		rows, err := d.queries.FindArtefactIDsByTag(ctx, registry_db.FindArtefactIDsByTagParams{
-			P1: key,
-			P2: value,
+			TagKey:   key,
+			TagValue: value,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("tag search failed for %s=%s: %w", key, value, err)
@@ -846,11 +845,11 @@ func upsertArtefact(ctx context.Context, qtx *registry_db.Queries, art *registry
 	fbsData := registry_schema.BuildArtefactMeta(art)
 
 	if err := qtx.UpsertArtefact(ctx, registry_db.UpsertArtefactParams{
-		P1: art.ID,
-		P2: art.SourcePath,
-		P3: safeconv.Int64ToInt32(art.CreatedAt.Unix()),
-		P4: safeconv.Int64ToInt32(art.UpdatedAt.Unix()),
-		P5: fbsData,
+		ID:         art.ID,
+		SourcePath: art.SourcePath,
+		CreatedAt:  art.CreatedAt.Unix(),
+		UpdatedAt:  art.UpdatedAt.Unix(),
+		DataFbs:    fbsData,
 	}); err != nil {
 		return fmt.Errorf("failed to upsert artefact: %w", err)
 	}
@@ -874,12 +873,12 @@ func upsertArtefact(ctx context.Context, qtx *registry_db.Queries, art *registry
 //
 // Returns error when a hint cannot be added to the database.
 func addGCHints(ctx context.Context, qtx *registry_db.Queries, hints []registry_dto.GCHint) error {
-	nowSeconds := safeconv.Int64ToInt32(time.Now().Unix())
+	nowSeconds := time.Now().Unix()
 	for _, hint := range hints {
 		err := qtx.AddGCHint(ctx, registry_db.AddGCHintParams{
-			P1: hint.BackendID,
-			P2: hint.StorageKey,
-			P3: nowSeconds,
+			BackendID:  hint.BackendID,
+			StorageKey: hint.StorageKey,
+			CreatedAt:  nowSeconds,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to add GC hint for key '%s': %w", hint.StorageKey, err)
@@ -903,8 +902,8 @@ func deleteExistingArtefactData(ctx context.Context, qtx *registry_db.Queries, a
 	for i := range art.ActualVariants {
 		v := &art.ActualVariants[i]
 		if err := qtx.DeleteChunksForVariant(ctx, registry_db.DeleteChunksForVariantParams{
-			P1: art.ID,
-			P2: v.VariantID,
+			ArtefactID: art.ID,
+			VariantID:  v.VariantID,
 		}); err != nil {
 			return fmt.Errorf("failed to delete old chunks for variant '%s': %w", v.VariantID, err)
 		}
@@ -953,14 +952,14 @@ func insertVariantsWithData(ctx context.Context, qtx *registry_db.Queries, art *
 // Returns error when the database insert fails.
 func insertVariant(ctx context.Context, qtx *registry_db.Queries, artefactID string, v *registry_dto.Variant) error {
 	return qtx.InsertVariant(ctx, registry_db.InsertVariantParams{
-		P1: artefactID,
-		P2: v.VariantID,
-		P3: v.StorageKey,
-		P4: v.StorageBackendID,
-		P5: v.MimeType,
-		P6: safeconv.Int64ToInt32(v.SizeBytes),
-		P7: string(v.Status),
-		P8: safeconv.Int64ToInt32(v.CreatedAt.Unix()),
+		ArtefactID:       artefactID,
+		VariantID:        v.VariantID,
+		StorageKey:       v.StorageKey,
+		StorageBackendID: v.StorageBackendID,
+		MimeType:         v.MimeType,
+		SizeBytes:        v.SizeBytes,
+		Status:           string(v.Status),
+		CreatedAt:        v.CreatedAt.Unix(),
 	})
 }
 
@@ -974,10 +973,10 @@ func insertVariant(ctx context.Context, qtx *registry_db.Queries, artefactID str
 func insertVariantTags(ctx context.Context, qtx *registry_db.Queries, artefactID string, v *registry_dto.Variant) error {
 	for key, value := range v.MetadataTags.All() {
 		err := qtx.InsertVariantTag(ctx, registry_db.InsertVariantTagParams{
-			P1: artefactID,
-			P2: v.VariantID,
-			P3: key,
-			P4: value,
+			ArtefactID: artefactID,
+			VariantID:  v.VariantID,
+			TagKey:     key,
+			TagValue:   value,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to insert tag for variant '%s': %w", v.VariantID, err)
@@ -997,17 +996,17 @@ func insertVariantChunks(ctx context.Context, qtx *registry_db.Queries, artefact
 	for i := range v.Chunks {
 		chunk := &v.Chunks[i]
 		err := qtx.InsertVariantChunk(ctx, registry_db.InsertVariantChunkParams{
-			P1:  artefactID,
-			P2:  v.VariantID,
-			P3:  chunk.ChunkID,
-			P4:  chunk.StorageKey,
-			P5:  chunk.StorageBackendID,
-			P6:  safeconv.Int64ToInt32(chunk.SizeBytes),
-			P7:  chunk.ContentHash,
-			P8:  safeconv.IntToInt32(chunk.SequenceNumber),
-			P9:  chunk.MimeType,
-			P10: safeconv.Int64ToInt32(chunk.CreatedAt.Unix()),
-			P11: chunk.DurationSeconds,
+			ArtefactID:       artefactID,
+			VariantID:        v.VariantID,
+			ChunkID:          chunk.ChunkID,
+			StorageKey:       chunk.StorageKey,
+			StorageBackendID: chunk.StorageBackendID,
+			SizeBytes:        chunk.SizeBytes,
+			ContentHash:      chunk.ContentHash,
+			SequenceNumber:   int64(chunk.SequenceNumber),
+			MimeType:         chunk.MimeType,
+			CreatedAt:        chunk.CreatedAt.Unix(),
+			DurationSeconds:  chunk.DurationSeconds,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to insert chunk '%s' for variant '%s': %w", chunk.ChunkID, v.VariantID, err)
@@ -1025,19 +1024,27 @@ func insertVariantChunks(ctx context.Context, qtx *registry_db.Queries, artefact
 func insertDesiredProfiles(ctx context.Context, qtx *registry_db.Queries, art *registry_dto.ArtefactMeta) error {
 	for i := range art.DesiredProfiles {
 		np := &art.DesiredProfiles[i]
-		paramsJSON, _ := json.Marshal(np.Profile.Params)
-		tagsJSON, _ := json.Marshal(np.Profile.ResultingTags)
-		dependsOnJSON, _ := json.Marshal(np.Profile.DependsOn)
-		err := qtx.InsertDesiredProfile(ctx, registry_db.InsertDesiredProfileParams{
-			P1: art.ID,
-			P2: np.Name,
-			P3: np.Profile.CapabilityName,
-			P4: string(np.Profile.Priority),
-			P5: string(paramsJSON),
-			P6: string(tagsJSON),
-			P7: string(dependsOnJSON),
-		})
+		paramsJSON, err := json.Marshal(np.Profile.Params)
 		if err != nil {
+			return fmt.Errorf("marshalling params for desired profile '%s': %w", np.Name, err)
+		}
+		tagsJSON, err := json.Marshal(np.Profile.ResultingTags)
+		if err != nil {
+			return fmt.Errorf("marshalling tags for desired profile '%s': %w", np.Name, err)
+		}
+		dependsOnJSON, err := json.Marshal(np.Profile.DependsOn)
+		if err != nil {
+			return fmt.Errorf("marshalling depends-on for desired profile '%s': %w", np.Name, err)
+		}
+		if err := qtx.InsertDesiredProfile(ctx, registry_db.InsertDesiredProfileParams{
+			ArtefactID:     art.ID,
+			Name:           np.Name,
+			CapabilityName: np.Profile.CapabilityName,
+			Priority:       string(np.Profile.Priority),
+			ParamsJSON:     string(paramsJSON),
+			TagsJSON:       string(tagsJSON),
+			DependsOnJSON:  string(dependsOnJSON),
+		}); err != nil {
 			return fmt.Errorf("failed to insert desired profile '%s': %w", np.Name, err)
 		}
 	}
@@ -1078,10 +1085,10 @@ func intersectIDSets(current *map[string]struct{}, ids []string) *map[string]str
 // convert.
 //
 // Returns []registry_dto.GCHint which contains the converted hint DTOs.
-// Returns []int32 which contains the row IDs to delete from the database.
-func convertDBHintsToDTO(dbHints []registry_db.PopGCHintsRow) ([]registry_dto.GCHint, []int32) {
+// Returns []int64 which contains the row IDs to delete from the database.
+func convertDBHintsToDTO(dbHints []registry_db.PopGCHintsRow) ([]registry_dto.GCHint, []int64) {
 	hints := make([]registry_dto.GCHint, len(dbHints))
-	idsToDelete := make([]int32, len(dbHints))
+	idsToDelete := make([]int64, len(dbHints))
 	for i, h := range dbHints {
 		hints[i] = registry_dto.GCHint{BackendID: h.BackendID, StorageKey: h.StorageKey}
 		idsToDelete[i] = h.ID

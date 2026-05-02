@@ -22,6 +22,7 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/piko/internal/querier/querier_adapters/engine_shared"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -29,6 +30,11 @@ import (
 //
 // Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseExpression() querier_dto.Expression {
+	if p.expressionDepth >= p.maxParseDepth {
+		return &querier_dto.UnknownExpression{}
+	}
+	p.expressionDepth++
+	defer func() { p.expressionDepth-- }()
 	return p.parseOrExpression()
 }
 
@@ -389,12 +395,40 @@ func (p *parser) parseNumberLiteral(tok token) querier_dto.Expression {
 
 // parseParameterExpression registers a bare parameter token.
 //
+// When an INSERT ... SELECT projection context is active the placeholder is assigned the
+// matching INSERT target column (by the projection ordinal) with
+// ParameterContextAssignment, mirroring the VALUES path; this lets the analyser type the
+// placeholder from the target column even though the SELECT body itself has no scope
+// column for it. Otherwise the placeholder is registered as context-unknown and a later
+// marker may retag it.
+//
 // Returns querier_dto.Expression which is an UnknownExpression placeholder.
 func (p *parser) parseParameterExpression() querier_dto.Expression {
 	parameterToken := p.current()
 	p.advance()
-	p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextUnknown, nil, nil)
+
+	context := querier_dto.ParameterContextUnknown
+	var columnRef *querier_dto.ColumnReference
+	if ref := p.insertProjectionColumnRef(); ref != nil {
+		context = querier_dto.ParameterContextAssignment
+		columnRef = ref
+	}
+
+	p.registerParameterFromToken(parameterToken, context, columnRef, nil)
 	return &querier_dto.UnknownExpression{}
+}
+
+// insertProjectionColumnRef returns the INSERT target column reference for the projection
+// item currently being parsed, or nil when no INSERT ... SELECT projection context is
+// active or the ordinal is beyond the declared target column list.
+//
+// Returns *querier_dto.ColumnReference which is the target column reference or nil.
+func (p *parser) insertProjectionColumnRef() *querier_dto.ColumnReference {
+	if p.insertProjectionColumns == nil {
+		return nil
+	}
+	return p.columnRefForIndex(
+		p.insertProjectionTable, p.insertProjectionColumns, p.insertProjectionIndex)
 }
 
 // parseParenthesisedExpression parses a `(expr)` or scalar subquery.
@@ -668,6 +702,9 @@ func (p *parser) parseInListSuffix(left querier_dto.Expression) querier_dto.Expr
 		}
 		childParser := newParser(innerTokens)
 		childParser.parameterCount = p.parameterCount
+		childParser.analysisDepth = p.analysisDepth
+		childParser.expressionDepth = p.expressionDepth
+		childParser.maxParseDepth = p.maxParseDepth
 		innerAnalysis, analyseError := childParser.analyseSelect()
 		if analyseError != nil {
 			return &querier_dto.UnknownExpression{}
@@ -765,16 +802,19 @@ func (p *parser) parseParenthesisedExpressionList() []querier_dto.Expression {
 // handleParameterInExpression registers a parameter found mid-expression.
 //
 // Inspects surrounding tokens to infer the parameter's context, column reference, and any
-// cast type, then advances past the token.
+// cast type, then advances past the token. When the placeholder sits in a function
+// argument list the enclosing function name and argument ordinal are stamped onto the
+// reference so the analyser can type it from the matched function signature.
 func (p *parser) handleParameterInExpression() {
 	paramPosition := p.position
 	parameterToken := p.current()
 
-	context, columnRef, castType := p.resolveParameterContext(paramPosition)
+	context, columnRef, castType, functionArgument := p.resolveParameterContext(paramPosition)
 
 	p.advance()
 
-	p.registerParameterFromToken(parameterToken, context, columnRef, castType)
+	p.registerParameterFromTokenWithFunctionArgument(
+		parameterToken, context, columnRef, castType, functionArgument)
 }
 
 // resolveParameterContext infers the context for a parameter token.
@@ -789,13 +829,15 @@ func (p *parser) handleParameterInExpression() {
 // identified.
 // Returns *querier_dto.SQLType which is the cast target type when the parameter sits
 // inside a CAST.
-func (p *parser) resolveParameterContext(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference, *querier_dto.SQLType) {
+// Returns functionArgumentMetadata which carries the enclosing function name and argument
+// ordinal when the parameter sits in a function argument list, empty otherwise.
+func (p *parser) resolveParameterContext(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference, *querier_dto.SQLType, functionArgumentMetadata) {
 	context, columnRef := p.resolveContextFromPrecedingOperator(paramPosition)
 	if context != querier_dto.ParameterContextUnknown {
-		return context, columnRef, nil
+		return context, columnRef, nil, functionArgumentMetadata{}
 	}
 	if likeContext, likeColumn := p.resolveLikeContext(paramPosition); likeContext != querier_dto.ParameterContextUnknown {
-		return likeContext, likeColumn, nil
+		return likeContext, likeColumn, nil, functionArgumentMetadata{}
 	}
 	return p.detectParameterContext(paramPosition)
 }
@@ -830,29 +872,16 @@ func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterCon
 // Returns int which is the LIKE-style operator's token index when found.
 // Returns bool which is true when an operator was located.
 func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
-	parenDepth := 0
-	for i := paramPosition - 1; i >= 0; i-- {
-		tok := p.tokens[i]
-		switch tok.kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case tokenRightParen:
-			parenDepth++
-			continue
-		case tokenLeftParen:
-			parenDepth--
-			continue
-		}
-		if parenDepth > 0 || tok.kind != tokenIdentifier {
-			continue
-		}
-		keyword := strings.ToUpper(tok.value)
-		if isLikeBoundaryKeyword(keyword) {
-			return 0, false
-		}
-		if isLikePatternKeyword(keyword) {
-			return i, true
-		}
-	}
-	return 0, false
+	return engine_shared.FindEnclosingLikeOperator(paramPosition,
+		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
+		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikePatternKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+	)
 }
 
 // resolveLikeOperatorColumn picks the column reference associated with a LIKE operator's
@@ -1058,15 +1087,7 @@ func isLikePatternKeyword(keyword string) bool {
 //
 // Returns bool which is true at any clause or boolean boundary.
 func isLikeBoundaryKeyword(keyword string) bool {
-	switch keyword {
-	case "AND", "OR", "WHERE", "HAVING", "ON", "WHEN", "THEN", "ELSE", "CASE",
-		"FROM", "GROUP", "ORDER", "LIMIT", "OFFSET", "RETURNING",
-		"UNION", "INTERSECT", "EXCEPT", "BY",
-		"SELECT", "INSERT", "UPDATE", "DELETE", "VALUES", "SET",
-		"ESCAPE":
-		return true
-	}
-	return false
+	return engine_shared.IsClauseBoundaryKeyword(keyword)
 }
 
 // resolveContextFromPrecedingOperator infers context from the preceding comparison or
@@ -1123,7 +1144,10 @@ func (p *parser) extractColumnReferenceOrParenthesised(position int) *querier_dt
 // detectParameterContext infers context from the enclosing parenthesis.
 //
 // Recognises IN lists, CAST expressions, and function argument lists by inspecting the
-// identifier immediately before the opening paren.
+// identifier immediately before the opening paren. For a function argument it
+// additionally records the enclosing function name and the placeholder's zero-based
+// argument ordinal so the analyser can type the placeholder from the matched function
+// signature.
 //
 // Takes paramPosition (int) which is the parameter's token index.
 //
@@ -1132,17 +1156,19 @@ func (p *parser) extractColumnReferenceOrParenthesised(position int) *querier_dt
 // otherwise.
 // Returns *querier_dto.SQLType which is the cast target type for CAST contexts, or nil
 // otherwise.
-func (p *parser) detectParameterContext(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference, *querier_dto.SQLType) {
+// Returns functionArgumentMetadata which carries the enclosing function name and argument
+// ordinal for a function argument, empty otherwise.
+func (p *parser) detectParameterContext(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference, *querier_dto.SQLType, functionArgumentMetadata) {
 	enclosingParen := p.findEnclosingParen(paramPosition)
 	if enclosingParen < 0 {
-		return querier_dto.ParameterContextUnknown, nil, nil
+		return querier_dto.ParameterContextUnknown, nil, nil, functionArgumentMetadata{}
 	}
 
 	if enclosingParen >= 2 &&
 		p.tokens[enclosingParen-1].kind == tokenIdentifier &&
 		strings.EqualFold(p.tokens[enclosingParen-1].value, keywordIN) {
 		columnRef := p.extractColumnReferenceBeforeIN(enclosingParen - 1)
-		return querier_dto.ParameterContextInList, columnRef, nil
+		return querier_dto.ParameterContextInList, columnRef, nil, functionArgumentMetadata{}
 	}
 
 	if enclosingParen >= 1 &&
@@ -1150,7 +1176,7 @@ func (p *parser) detectParameterContext(paramPosition int) (querier_dto.Paramete
 		strings.EqualFold(p.tokens[enclosingParen-1].value, keywordCAST) {
 		castType := p.extractCastType(paramPosition)
 		if castType != nil {
-			return querier_dto.ParameterContextCast, nil, castType
+			return querier_dto.ParameterContextCast, nil, castType, functionArgumentMetadata{}
 		}
 	}
 
@@ -1158,11 +1184,73 @@ func (p *parser) detectParameterContext(paramPosition int) (querier_dto.Paramete
 		functionName := strings.ToUpper(p.tokens[enclosingParen-1].value)
 		if functionName != keywordIN && functionName != keywordCAST &&
 			functionName != keywordSELECT && functionName != keywordWHERE {
-			return querier_dto.ParameterContextFunctionArgument, nil, nil
+			metadata := functionArgumentMetadata{
+				enclosingFunctionName: p.enclosingFunctionName(enclosingParen - 1),
+				argumentOrdinal:       p.argumentOrdinalAt(enclosingParen, paramPosition),
+			}
+			return querier_dto.ParameterContextFunctionArgument, nil, nil, metadata
 		}
 	}
 
-	return querier_dto.ParameterContextUnknown, nil, nil
+	return querier_dto.ParameterContextUnknown, nil, nil, functionArgumentMetadata{}
+}
+
+// enclosingFunctionName reconstructs the lower-cased, optionally schema-qualified name of
+// the function whose opening parenthesis the placeholder sits in.
+//
+// The name is read from the identifier at namePosition (the token immediately before the
+// opening paren). A leading "schema ." qualifier is folded into the returned name so it
+// matches the schema-qualified name the engine records on a function or TVF reference,
+// which is how the analyser looks the function up.
+//
+// Takes namePosition (int) which is the token index of the function name identifier.
+//
+// Returns string which is the lower-cased function name, schema-qualified when
+// applicable.
+func (p *parser) enclosingFunctionName(namePosition int) string {
+	if namePosition < 0 || namePosition >= len(p.tokens) ||
+		p.tokens[namePosition].kind != tokenIdentifier {
+		return ""
+	}
+
+	name := p.tokens[namePosition].value
+	if namePosition >= 2 &&
+		p.tokens[namePosition-1].kind == tokenDot &&
+		p.tokens[namePosition-2].kind == tokenIdentifier {
+		name = p.tokens[namePosition-2].value + "." + name
+	}
+
+	return strings.ToLower(name)
+}
+
+// argumentOrdinalAt computes the zero-based ordinal of the argument slot the placeholder
+// occupies within the call whose opening parenthesis is openParen.
+//
+// The ordinal counts top-level commas (those at the call's own parenthesis depth) between
+// the opening paren and the placeholder, so a literal, column, or nested expression
+// argument still consumes a slot. The returned value is the literal argument slot and is
+// NOT clamped for variadic functions; the analyser performs any variadic clamp.
+//
+// Takes openParen (int) which is the token index of the call's opening parenthesis.
+// Takes paramPosition (int) which is the placeholder's token index.
+//
+// Returns int which is the zero-based argument ordinal.
+func (p *parser) argumentOrdinalAt(openParen int, paramPosition int) int {
+	ordinal := 0
+	depth := 0
+	for i := openParen + 1; i < paramPosition && i < len(p.tokens); i++ {
+		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+		case tokenLeftParen:
+			depth++
+		case tokenRightParen:
+			depth--
+		case tokenComma:
+			if depth == 0 {
+				ordinal++
+			}
+		}
+	}
+	return ordinal
 }
 
 // findEnclosingParen returns the index of the enclosing `(` at depth zero.
@@ -1171,19 +1259,13 @@ func (p *parser) detectParameterContext(paramPosition int) (querier_dto.Paramete
 //
 // Returns int which is the index of the enclosing `(`, or -1 when none.
 func (p *parser) findEnclosingParen(position int) int {
-	depth := 0
-	for i := position - 1; i >= 0; i-- {
-		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case tokenRightParen:
-			depth++
-		case tokenLeftParen:
-			if depth == 0 {
-				return i
-			}
-			depth--
-		}
-	}
-	return -1
+	return engine_shared.FindEnclosingParen(position,
+		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
+		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+	)
 }
 
 // extractColumnReferenceBeforeIN returns the column before an IN keyword.
@@ -1440,24 +1522,46 @@ func isMultiWordTypeKeyword(upper string) bool {
 	return false
 }
 
-// parseExistsSubquery parses the `(SELECT ...)` of an EXISTS predicate.
+// analyseSubqueryBody analyses a parenthesised subquery in a depth-inheriting child
+// parser.
 //
-// Returns querier_dto.Expression which is the parsed EXISTS expression.
-func (p *parser) parseExistsSubquery() querier_dto.Expression {
+// It collects the parenthesised subquery, analyses it in a child parser that inherits the
+// parameter and depth state, and splices the child's parameter results back into this
+// parser. The EXISTS and scalar subquery parsers share it so the child setup lives in one
+// place.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the inner SELECT analysis, or nil on
+// failure.
+// Returns bool which is true when the subquery was collected and analysed successfully.
+func (p *parser) analyseSubqueryBody() (*querier_dto.RawQueryAnalysis, bool) {
 	innerTokens, collectError := p.collectParenthesised()
 	if collectError != nil {
-		return &querier_dto.ExistsExpression{}
+		return nil, false
 	}
 
 	childParser := newParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
+	childParser.analysisDepth = p.analysisDepth
+	childParser.expressionDepth = p.expressionDepth
+	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
-		return &querier_dto.ExistsExpression{}
+		return nil, false
 	}
 	p.parameterCount = childParser.parameterCount
 	p.parameterRefs = append(p.parameterRefs, childParser.parameterRefs...)
 
+	return innerAnalysis, true
+}
+
+// parseExistsSubquery parses the `(SELECT ...)` of an EXISTS predicate.
+//
+// Returns querier_dto.Expression which is the parsed EXISTS expression.
+func (p *parser) parseExistsSubquery() querier_dto.Expression {
+	innerAnalysis, ok := p.analyseSubqueryBody()
+	if !ok {
+		return &querier_dto.ExistsExpression{}
+	}
 	return &querier_dto.ExistsExpression{InnerQuery: innerAnalysis}
 }
 
@@ -1465,19 +1569,9 @@ func (p *parser) parseExistsSubquery() querier_dto.Expression {
 //
 // Returns querier_dto.Expression which is the parsed scalar subquery.
 func (p *parser) parseScalarSubquery() querier_dto.Expression {
-	innerTokens, collectError := p.collectParenthesised()
-	if collectError != nil {
+	innerAnalysis, ok := p.analyseSubqueryBody()
+	if !ok {
 		return &querier_dto.UnknownExpression{}
 	}
-
-	childParser := newParser(innerTokens)
-	childParser.parameterCount = p.parameterCount
-	innerAnalysis, analyseError := childParser.analyseSelect()
-	if analyseError != nil {
-		return &querier_dto.UnknownExpression{}
-	}
-	p.parameterCount = childParser.parameterCount
-	p.parameterRefs = append(p.parameterRefs, childParser.parameterRefs...)
-
 	return &querier_dto.ScalarSubqueryExpression{InnerQuery: innerAnalysis}
 }

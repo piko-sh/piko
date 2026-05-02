@@ -9,15 +9,15 @@ const createworkflowreceipt = `INSERT INTO workflow_receipts (
 ) VALUES (?, ?, ?, 'PENDING', ?, ?);`
 
 type CreateWorkflowReceiptParams struct {
-	P1 string
-	P2 string
-	P3 string
-	P4 int32
-	P5 int32
+	ID         string
+	WorkflowID string
+	NodeID     string
+	CreatedAt  int64
+	UpdatedAt  int64
 }
 
 func (queries *Queries) CreateWorkflowReceipt(ctx context.Context, params CreateWorkflowReceiptParams) error {
-	_, err := queries.writer.ExecContext(ctx, createworkflowreceipt, params.P1, params.P2, params.P3, params.P4, params.P5)
+	_, err := queries.writer.ExecContext(ctx, createworkflowreceipt, params.ID, params.WorkflowID, params.NodeID, params.CreatedAt, params.UpdatedAt)
 	return err
 }
 
@@ -26,13 +26,13 @@ FROM workflow_receipts
 WHERE node_id = ? AND status = 'PENDING';`
 
 type GetPendingReceiptsByNodeRow struct {
-	ID         string
-	WorkflowID string
-	CreatedAt  int32
+	ID         string `json:"id"`
+	WorkflowID string `json:"workflow_id"`
+	CreatedAt  int64  `json:"created_at"`
 }
 
-func (queries *Queries) GetPendingReceiptsByNode(ctx context.Context, p1 string) ([]GetPendingReceiptsByNodeRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, getpendingreceiptsbynode, p1)
+func (queries *Queries) GetPendingReceiptsByNode(ctx context.Context, nodeID string) ([]GetPendingReceiptsByNodeRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, getpendingreceiptsbynode, nodeID)
 	if err != nil {
 		return nil, err
 	}
@@ -56,14 +56,14 @@ FROM workflow_receipts
 WHERE workflow_id = ? AND status = 'PENDING';`
 
 type GetPendingReceiptsByWorkflowRow struct {
-	ID         string
-	WorkflowID string
-	NodeID     string
-	CreatedAt  int32
+	ID         string `json:"id"`
+	WorkflowID string `json:"workflow_id"`
+	NodeID     string `json:"node_id"`
+	CreatedAt  int64  `json:"created_at"`
 }
 
-func (queries *Queries) GetPendingReceiptsByWorkflow(ctx context.Context, p1 string) ([]GetPendingReceiptsByWorkflowRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, getpendingreceiptsbyworkflow, p1)
+func (queries *Queries) GetPendingReceiptsByWorkflow(ctx context.Context, workflowID string) ([]GetPendingReceiptsByWorkflowRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, getpendingreceiptsbyworkflow, workflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,12 +89,12 @@ const getworkflowstatus = `SELECT EXISTS(
 ) AS has_incomplete;`
 
 type GetWorkflowStatusRow struct {
-	HasIncomplete bool
+	HasIncomplete bool `json:"has_incomplete"`
 }
 
-func (queries *Queries) GetWorkflowStatus(ctx context.Context, p1 any) (GetWorkflowStatusRow, error) {
+func (queries *Queries) GetWorkflowStatus(ctx context.Context, workflowID string) (GetWorkflowStatusRow, error) {
 	var row GetWorkflowStatusRow
-	err := queries.reader.QueryRowContext(ctx, getworkflowstatus, p1).Scan(&row.HasIncomplete)
+	err := queries.reader.QueryRowContext(ctx, getworkflowstatus, workflowID).Scan(&row.HasIncomplete)
 	if err != nil {
 		return GetWorkflowStatusRow{}, err
 	}
@@ -109,14 +109,14 @@ SET status = 'RESOLVED',
 WHERE workflow_id = ? AND status = 'PENDING';`
 
 type ResolveWorkflowReceiptsParams struct {
-	P1 *string
-	P2 int32
-	P3 *int32
-	P4 string
+	ErrorMessage *string
+	UpdatedAt    int64
+	ResolvedAt   *int64
+	WorkflowID   string
 }
 
 func (queries *Queries) ResolveWorkflowReceipts(ctx context.Context, params ResolveWorkflowReceiptsParams) (int64, error) {
-	results, err := queries.writer.ExecContext(ctx, resolveworkflowreceipts, params.P1, params.P2, params.P3, params.P4)
+	results, err := queries.writer.ExecContext(ctx, resolveworkflowreceipts, params.ErrorMessage, params.UpdatedAt, params.ResolvedAt, params.WorkflowID)
 	if err != nil {
 		return 0, err
 	}

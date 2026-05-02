@@ -14,8 +14,8 @@ type ForecastOutput struct {
 	Condition   string `json:"condition"`
 }
 
-// ForecastAction returns weather data with response caching.
-// See https://piko.sh/docs/how-to/actions/advanced-patterns#caching
+// ForecastAction returns weather data with response caching. See
+// https://piko.sh/docs/how-to/actions/advanced-patterns#caching
 type ForecastAction struct {
 	piko.ActionMetadata
 }
@@ -28,8 +28,8 @@ func (a *ForecastAction) Call(input ForecastInput) (ForecastOutput, error) {
 	}, nil
 }
 
-// CacheConfig enables response caching. Piko stores the serialised response
-// keyed by action name + input, and returns it within the TTL window.
+// CacheConfig enables response caching. Piko stores the serialised response keyed by
+// action name + input, and returns it within the TTL window.
 func (a *ForecastAction) CacheConfig() *piko.CacheConfig {
 	return &piko.CacheConfig{
 		TTL: 10 * time.Second,

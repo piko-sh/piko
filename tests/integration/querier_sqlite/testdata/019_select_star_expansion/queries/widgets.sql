@@ -1,7 +1,5 @@
--- piko.name: GetWidget
--- piko.command: one
+-- piko.query(name: GetWidget, command: one)
 SELECT * FROM widgets WHERE id = ?;
 
--- piko.name: GetWidgetQualified
--- piko.command: one
+-- piko.query(name: GetWidgetQualified, command: one)
 SELECT w.* FROM widgets w WHERE w.id = ?;

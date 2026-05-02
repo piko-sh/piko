@@ -1,0 +1,4 @@
+{
+  "description": "drop_chunks supports the extended named-argument signature (older_than, verbose). The fixture seeds three old chunks plus two recent rows, calls drop_chunks with the named older_than argument plus verbose, and verifies only the recent rows remain. ChunkName values are non-deterministic (TimescaleDB embeds row-IDs) so the harness normalises them before comparison. Note that older_than and created_before cannot coexist at runtime; the fixture uses older_than which is the more idiomatic interval-based form.",
+  "skip": false
+}

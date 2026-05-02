@@ -1,5 +1,4 @@
--- piko.name: ListOrdersWithCategory
--- piko.command: many
+-- piko.query(name: ListOrdersWithCategory, command: many)
 SELECT
     id,
     status,

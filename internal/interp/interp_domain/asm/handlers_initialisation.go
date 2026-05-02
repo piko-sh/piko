@@ -171,7 +171,7 @@ func handlerInitJumpTableSSE41() asmgen.HandlerDefinition[BytecodeArchitecturePo
 // definition for the dispatchLoop entry point.
 func handlerDispatchLoop() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name:      "dispatchLoop",
+		Name: "dispatchLoop",
 		Comment: "dispatchLoop is the ASM dispatch entry point; loads ctx into pinned registers and performs " +
 			"the first dispatch (subsequent dispatches happen via DISPATCH_NEXT at each handler tail).",
 		FrameSize: "$0-8", Flags: flagNoSplit,
@@ -218,11 +218,10 @@ func handlerTier2Fallback() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 // transitions control from the assembly dispatch loop back to Go for dedicated OpCall
 // handling.
 //
-// Invoked when the inline call handler (handlerCallInline) determines that a call site
-// is not eligible for the assembly fast path. Reasons include: the asmCallInfo base
-// pointer being nil (no call info compiled for the caller), the call site not being
-// marked as a fast path, the call stack being at capacity, or an arena capacity check
-// failing.
+// Invoked when the inline call handler (handlerCallInline) determines that a call site is
+// not eligible for the assembly fast path. Reasons include: the asmCallInfo base pointer
+// being nil (no call info compiled for the caller), the call site not being marked as a
+// fast path, the call stack being at capacity, or an arena capacity check failing.
 //
 // The handler un-advances the program counter by decrementing it (since DISPATCH_NEXT
 // already moved past the instruction), writes EXIT_CALL and the faulting PC into the

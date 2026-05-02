@@ -1,0 +1,3 @@
+{
+  "description": "Query-level piko.column with `type:` overrides the analyser's inferred SQL type. SQLite uses LOWER() on a TEXT column; the directive pins the result type explicitly."
+}

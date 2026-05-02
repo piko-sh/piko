@@ -2,80 +2,96 @@
   {
     "InsertTable": "",
     "Filename": "get_all.sql",
-    "SQL": "-- piko.name: GetAllTypedValues\n-- piko.command: many\nSELECT\n  id, int_val, bigint_val, text_val, varchar_val,\n  real_val, double_val, blob_val, numeric_val,\n  bool_val, date_val, datetime_val, json_val\nFROM typed_values",
+    "SQL": "-- piko.query(name: GetAllTypedValues, command: many)\nSELECT\n  id, int_val, bigint_val, text_val, varchar_val,\n  real_val, double_val, blob_val, numeric_val,\n  bool_val, date_val, datetime_val, json_val\nFROM typed_values",
     "Name": "GetAllTypedValues",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "int_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "int_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int4",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "bigint_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "bigint_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "text_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "text_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -88,16 +104,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "varchar_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "varchar_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -110,16 +130,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "real_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "real_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -132,16 +156,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "double_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "double_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -154,16 +182,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "blob_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "blob_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -176,16 +208,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 5
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "numeric_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "numeric_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 10,
@@ -198,16 +234,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "bool_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "bool_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -220,16 +260,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 3
+          "Category": 3,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "date_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "date_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -242,16 +286,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "datetime_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "datetime_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -264,16 +312,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "json_val",
         "SourceTable": "typed_values",
+        "SourceSchema": "",
         "SourceColumn": "json_val",
+        "SourceQualifier": "typed_values",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -286,7 +338,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 7
+          "Category": 7,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -307,9 +360,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

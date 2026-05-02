@@ -1,12 +1,12 @@
 {
   "item_tags": [
     {
-      "ItemID": 1,
-      "TagList": "[\"red\",\"large\"]"
+      "item_id": 1,
+      "tag_list": "[\"red\",\"large\"]"
     },
     {
-      "ItemID": 2,
-      "TagList": "[\"blue\",\"small\",\"sale\"]"
+      "item_id": 2,
+      "tag_list": "[\"blue\",\"small\",\"sale\"]"
     }
   ]
 }

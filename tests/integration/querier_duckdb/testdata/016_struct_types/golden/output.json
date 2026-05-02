@@ -1,19 +1,19 @@
 {
   "get_contact": {
-    "Address": "{'street': 123 Main St, 'city': NYC, 'zip': 10001}",
-    "ID": 1,
-    "Name": "Alice"
+    "address": "{'street': 123 Main St, 'city': NYC, 'zip': 10001}",
+    "id": 1,
+    "name": "Alice"
   },
   "list_by_city_field": [
     {
-      "City": "NYC",
-      "ID": 1,
-      "Name": "Alice"
+      "city": "NYC",
+      "id": 1,
+      "name": "Alice"
     },
     {
-      "City": "NYC",
-      "ID": 3,
-      "Name": "Charlie"
+      "city": "NYC",
+      "id": 3,
+      "name": "Charlie"
     }
   ]
 }

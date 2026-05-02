@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "full_join.sql",
-    "SQL": "-- piko.name: FullJoinQuery\n-- piko.command: many\nSELECT u.name, p.title FROM users u FULL OUTER JOIN posts p ON p.author_id = u.id",
+    "SQL": "-- piko.query(name: FullJoinQuery, command: many)\nSELECT u.name, p.title FROM users u FULL OUTER JOIN posts p ON p.author_id = u.id",
     "Name": "FullJoinQuery",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "u",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "posts",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "p",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,7 +52,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -65,22 +74,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "right_join.sql",
-    "SQL": "-- piko.name: RightJoinQuery\n-- piko.command: many\nSELECT u.name, p.title FROM users u RIGHT JOIN posts p ON p.author_id = u.id",
+    "SQL": "-- piko.query(name: RightJoinQuery, command: many)\nSELECT u.name, p.title FROM users u RIGHT JOIN posts p ON p.author_id = u.id",
     "Name": "RightJoinQuery",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "u",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +108,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "posts",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "p",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,7 +134,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -136,9 +156,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

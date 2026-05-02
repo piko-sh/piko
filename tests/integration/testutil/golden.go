@@ -34,23 +34,23 @@ const (
 	// fileModeDir is the Unix permission mode for directories (rwxr-xr-x).
 	fileModeDir = 0755
 
-	// fileModeFile is the file permission mode for regular files (owner read/write,
-	// group and others read-only).
+	// fileModeFile is the file permission mode for regular files (owner read/write, group
+	// and others read-only).
 	fileModeFile = 0644
 )
 
 var (
-	// UpdateGolden controls whether golden files are regenerated during tests.
-	// It is set via the -update flag and initialised in flags.go.
+	// UpdateGolden controls whether golden files are regenerated during tests. It is set via
+	// the -update flag and initialised in flags.go.
 	UpdateGolden *bool
 
-	// KeepStaged is set via the -keep-staged flag to preserve staged directories.
-	// This is initialised in flags.go.
+	// KeepStaged is set via the -keep-staged flag to preserve staged directories. This is
+	// initialised in flags.go.
 	KeepStaged *bool
 )
 
-// AssertGoldenFile compares actual bytes against a golden file.
-// If UpdateGolden is true, it updates the golden file instead.
+// AssertGoldenFile compares actual bytes against a golden file. If UpdateGolden is true,
+// it updates the golden file instead.
 //
 // Takes t (*testing.T) which is the test context for assertions.
 // Takes goldenPath (string) which is the path to the golden file.
@@ -75,14 +75,14 @@ func AssertGoldenFile(t *testing.T, goldenPath string, actual []byte, msgAndArgs
 	}
 }
 
-// AssertGoldenJSON compares actual JSON bytes against a golden file.
-// It uses JSON-aware comparison to ignore formatting differences.
+// AssertGoldenJSON compares actual JSON bytes against a golden file. It uses JSON-aware
+// comparison to ignore formatting differences.
 //
 // Takes t (*testing.T) which is the test context for assertions and logging.
 // Takes goldenPath (string) which is the path to the golden file.
 // Takes actual ([]byte) which is the JSON bytes to compare against the golden file.
-// Takes msgAndArgs (...any) which provides optional message and arguments for
-// assertion failures.
+// Takes msgAndArgs (...any) which provides optional message and arguments for assertion
+// failures.
 func AssertGoldenJSON(t *testing.T, goldenPath string, actual []byte, msgAndArgs ...any) {
 	t.Helper()
 
@@ -98,8 +98,8 @@ func AssertGoldenJSON(t *testing.T, goldenPath string, actual []byte, msgAndArgs
 	assert.JSONEq(t, string(expected), string(actual), msgAndArgs...)
 }
 
-// AssertGoldenHTML compares actual HTML bytes against a golden file.
-// This is an alias for AssertGoldenFile but provides semantic clarity.
+// AssertGoldenHTML compares actual HTML bytes against a golden file. This is an alias for
+// AssertGoldenFile but provides semantic clarity.
 //
 // Takes t (*testing.T) which is the test context for reporting failures.
 // Takes goldenPath (string) which is the path to the golden file.
@@ -109,8 +109,7 @@ func AssertGoldenHTML(t *testing.T, goldenPath string, actual []byte, msgAndArgs
 	AssertGoldenFile(t, goldenPath, actual, msgAndArgs...)
 }
 
-// WriteGoldenFile writes content to a golden file, creating directories as
-// needed.
+// WriteGoldenFile writes content to a golden file, creating directories as needed.
 //
 // Takes t (*testing.T) which is the test context for reporting failures.
 // Takes goldenPath (string) which is the file path to write the golden file.

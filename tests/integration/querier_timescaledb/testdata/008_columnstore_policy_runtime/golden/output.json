@@ -1,0 +1,12 @@
+{
+  "sum_by_device": [
+    {
+      "device": "alpha",
+      "total": 36
+    },
+    {
+      "device": "beta",
+      "total": 12
+    }
+  ]
+}

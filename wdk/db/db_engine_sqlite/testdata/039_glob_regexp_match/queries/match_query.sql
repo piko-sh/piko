@@ -1,3 +1,2 @@
--- piko.name: FindByMatch
--- piko.command: many
+-- piko.query(name: FindByMatch, command: many)
 SELECT id, name FROM files WHERE path MATCH ?

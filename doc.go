@@ -18,18 +18,16 @@
 
 // Package piko provides the public API for the Piko web framework.
 //
-// This is the primary entry point for applications built with Piko. It
-// exposes a unified facade over the framework's internal subsystems,
-// including server lifecycle management, server actions, component
-// rendering, collections, search, health monitoring, internationalisation,
-// linguistics, and testing.
+// This is the primary entry point for applications built with Piko. It exposes a unified
+// facade over the framework's internal subsystems, including server lifecycle management,
+// server actions, component rendering, collections, search, health monitoring,
+// internationalisation, linguistics, and testing.
 //
 // # Getting started
 //
-// Create a server with functional options and call Run. Every
-// configuration knob is a With* option; piko reads no configuration
-// files and no environment variables (apart from PIKO_LOG_LEVEL, which
-// seeds the bootstrap logger before options are applied).
+// Create a server with functional options and call Run. Every configuration knob is a
+// With* option; piko reads no configuration files and no environment variables (apart
+// from PIKO_LOG_LEVEL, which seeds the bootstrap logger before options are applied).
 //
 //	server := piko.New(
 //	    piko.WithPort(8080),
@@ -41,8 +39,8 @@
 //
 // # Server actions
 //
-// Actions handle client-initiated mutations. Actions embed
-// [ActionMetadata] and define a Call method with any signature:
+// Actions handle client-initiated mutations. Actions embed [ActionMetadata] and define a
+// Call method with any signature:
 //
 //	type DeleteAction struct {
 //	    piko.ActionMetadata
@@ -52,40 +50,34 @@
 //	    return Response{Success: true}, nil
 //	}
 //
-// Structured error types ([ValidationError], [NotFoundError],
-// [ForbiddenError], etc.) are automatically mapped to HTTP status
-// codes by the action handler.
+// Structured error types ([ValidationError], [NotFoundError], [ForbiddenError], etc.) are
+// automatically mapped to HTTP status codes by the action handler.
 //
 // # Collections and search
 //
-// Use [GetData], [GetSections], and [GetSectionsTree] to extract
-// typed data and table-of-contents headings from collection content.
-// [SearchCollection] provides fuzzy full-text search with field
-// weighting, and [QuickSearch] offers a convenience wrapper with
-// sensible defaults.
+// Use [GetData], [GetSections], and [GetSectionsTree] to extract typed data and
+// table-of-contents headings from collection content. [SearchCollection] provides fuzzy
+// full-text search with field weighting, and [QuickSearch] offers a convenience wrapper
+// with sensible defaults.
 //
 // # Lifecycle and health
 //
 // Register external components for managed startup/shutdown with
-// [SSRServer.RegisterLifecycle]. Components that also implement
-// [LifecycleHealthProbe] are automatically added to the health
-// monitoring system. Custom health probes can also be registered
-// via [WithCustomHealthProbe].
+// [SSRServer.RegisterLifecycle]. Components that also implement [LifecycleHealthProbe]
+// are automatically added to the health monitoring system. Custom health probes can also
+// be registered via [WithCustomHealthProbe].
 //
 // # Testing
 //
-// The package provides a testing framework for components and
-// actions. Use [NewComponentTester] to render and assert against
-// a component's AST, and [NewActionTester] to invoke and verify
-// server actions. [NewTestRequest] builds [RequestData] with a
-// fluent API for injecting context, query parameters, and form
-// data.
+// The package provides a testing framework for components and actions. Use
+// [NewComponentTester] to render and assert against a component's AST, and
+// [NewActionTester] to invoke and verify server actions. [NewTestRequest] builds
+// [RequestData] with a fluent API for injecting context, query parameters, and form data.
 //
 // # Thread safety
 //
-// [SSRServer] methods must be called from a single goroutine
-// during setup. Once [SSRServer.Run] is called, the underlying
-// HTTP server and all registered services are safe for concurrent
-// use. Collection query functions ([GetData], [SearchCollection],
+// [SSRServer] methods must be called from a single goroutine during setup. Once
+// [SSRServer.Run] is called, the underlying HTTP server and all registered services are
+// safe for concurrent use. Collection query functions ([GetData], [SearchCollection],
 // [GetAllCollectionItems]) are safe to call concurrently.
 package piko

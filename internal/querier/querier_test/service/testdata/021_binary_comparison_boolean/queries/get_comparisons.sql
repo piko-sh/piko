@@ -1,5 +1,4 @@
--- piko.name: GetTaskComparisons
--- piko.command: many
+-- piko.query(name: GetTaskComparisons, command: many)
 SELECT
   id,
   priority > 5 as is_high_priority,

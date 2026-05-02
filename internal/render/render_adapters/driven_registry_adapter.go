@@ -878,8 +878,8 @@ func findJSVariant(variants []registry_dto.Variant) *registry_dto.Variant {
 // Takes preferred (*Variant) which is the preferred variant to load first.
 //
 // Returns io.ReadCloser which streams the SVG bytes; the caller must close it.
-// Returns error when the preferred stream fails for any reason other than a missing blob, or
-// when both the preferred and source blobs are missing.
+// Returns error when the preferred stream fails for any reason other than a missing blob,
+// or when both the preferred and source blobs are missing.
 func openSVGVariantStream(
 	ctx context.Context,
 	registryService registry_domain.RegistryService,
@@ -1005,8 +1005,8 @@ func findSVGVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
 }
 
 // findSVGSourceVariant finds the unminified source variant of an SVG artefact. It is the
-// fallback when the preferred (minified) variant's blob is not yet on disk, since the source
-// blob is materialised before any derived variant.
+// fallback when the preferred (minified) variant's blob is not yet on disk, since the
+// source blob is materialised before any derived variant.
 //
 // Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
 //

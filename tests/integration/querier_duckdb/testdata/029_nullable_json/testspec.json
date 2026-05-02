@@ -1,0 +1,3 @@
+{
+  "description": "Nullable JSON column on DuckDB: a NULL row scans into dbjson.JSON as nil, and a populated row (decoded by the driver to a map) is re-encoded to JSON bytes"
+}

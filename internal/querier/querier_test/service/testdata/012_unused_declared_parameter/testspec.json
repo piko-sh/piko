@@ -1,7 +1,7 @@
 {
-  "description": "Unused declared parameter warning. Tests that a parameter declared in annotations but not referenced in the query produces a Q009 diagnostic.",
+  "description": "Unused declared parameter warning. Tests that a parameter declared in annotations but not referenced in the query produces a Q042 (unreferenced parameter) diagnostic.",
   "expectedDiagnosticCount": 1,
   "diagnostics": [
-    { "severity": "warning", "code": "Q009", "messageContains": "unused" }
+    { "severity": "warning", "code": "Q042", "messageContains": "unused" }
   ]
 }

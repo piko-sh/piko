@@ -6,11 +6,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 
 	"querier_test_runner/db"
 )
+
+func mustParseTime(layout string, value string) time.Time {
+	parsed, err := time.Parse(layout, value)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	return parsed
+}
+
 
 func main() {
 	connectionString := os.Getenv("DATABASE_URL")
@@ -27,10 +38,10 @@ func main() {
 	queries := db.New(conn)
 
 	err = queries.InsertEvent(ctx, db.InsertEventParams{
-		P1: "Conference",
-		P2: "2025-06-15",
-		P3: "09:00:00",
-		P4: "2025-01-10 08:00:00",
+		Title:     "Conference",
+		EventDate: mustParseTime("2006-01-02", "2025-06-15"),
+		StartTime: "09:00:00",
+		CreatedAt: mustParseTime("2006-01-02 15:04:05", "2025-01-10 08:00:00"),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertEvent 1:", err)
@@ -38,10 +49,10 @@ func main() {
 	}
 
 	err = queries.InsertEvent(ctx, db.InsertEventParams{
-		P1: "Workshop",
-		P2: "2025-06-20",
-		P3: "14:30:00",
-		P4: "2025-01-10 12:00:00",
+		Title:     "Workshop",
+		EventDate: mustParseTime("2006-01-02", "2025-06-20"),
+		StartTime: "14:30:00",
+		CreatedAt: mustParseTime("2006-01-02 15:04:05", "2025-01-10 12:00:00"),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertEvent 2:", err)
@@ -49,10 +60,10 @@ func main() {
 	}
 
 	err = queries.InsertEvent(ctx, db.InsertEventParams{
-		P1: "Meetup",
-		P2: "2025-03-01",
-		P3: "18:00:00",
-		P4: "2025-01-05 10:00:00",
+		Title:     "Meetup",
+		EventDate: mustParseTime("2006-01-02", "2025-03-01"),
+		StartTime: "18:00:00",
+		CreatedAt: mustParseTime("2006-01-02 15:04:05", "2025-01-05 10:00:00"),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertEvent 3:", err)
@@ -72,8 +83,8 @@ func main() {
 	}
 
 	daysBetween, err := queries.GetDaysBetween(ctx, db.GetDaysBetweenParams{
-		P1: int32(1),
-		P2: int32(2),
+		ID:  int32(1),
+		ID2: int32(2),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetDaysBetween:", err)
@@ -81,8 +92,8 @@ func main() {
 	}
 
 	hoursBetween, err := queries.GetHoursBetween(ctx, db.GetHoursBetweenParams{
-		P1: int32(1),
-		P2: int32(2),
+		ID:  int32(1),
+		ID2: int32(2),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetHoursBetween:", err)

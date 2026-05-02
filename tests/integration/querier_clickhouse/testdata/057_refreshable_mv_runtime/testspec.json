@@ -1,0 +1,5 @@
+{
+  "description": "CREATE MATERIALIZED VIEW v REFRESH EVERY 1 SECOND TO target AS SELECT ... captures the REFRESH metadata into EngineSpecific (MV_REFRESH_KIND, MV_REFRESH_INTERVAL) so downstream tooling can reason about the schedule. The fixture seeds events, waits for at least one refresh cycle, and verifies the materialised view populated the target table with the rolling total.",
+  "skip": true,
+  "skipReason": "Refreshable materialised views were added in ClickHouse 24.x and require the enable_refreshable_materialized_view setting to be on. The fixture also depends on real-clock sleeping which is unreliable in CI. Mark skip until the integration runner can wait for and verify a refresh event deterministically."
+}

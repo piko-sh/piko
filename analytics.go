@@ -28,8 +28,7 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// AnalyticsCollector is the interface that backend analytics adapters
-// implement.
+// AnalyticsCollector is the interface that backend analytics adapters implement.
 type AnalyticsCollector = analytics_domain.Collector
 
 // AnalyticsEvent carries the data for a single backend analytics event.
@@ -45,18 +44,17 @@ const (
 	// EventAction is fired when a server action executes.
 	EventAction = analytics_dto.EventAction
 
-	// EventCustom is a user-defined event fired manually from action
-	// handlers.
+	// EventCustom is a user-defined event fired manually from action handlers.
 	EventCustom = analytics_dto.EventCustom
 
-	// maxAnalyticsProperties is the maximum number of custom
-	// properties per event to prevent unbounded map growth.
+	// maxAnalyticsProperties is the maximum number of custom properties per event to prevent
+	// unbounded map growth.
 	maxAnalyticsProperties = 64
 )
 
-// TrackAnalyticsEvent sends a custom analytics event to all registered
-// collectors. The event is enriched with request context (ClientIP,
-// Locale, UserID, etc.) from the PikoRequestCtx if available.
+// TrackAnalyticsEvent sends a custom analytics event to all registered collectors. The
+// event is enriched with request context (ClientIP, Locale, UserID, etc.) from the
+// PikoRequestCtx if available.
 //
 // When no collectors are registered, this is a no-op.
 //
@@ -66,8 +64,8 @@ func TrackAnalyticsEvent(ctx context.Context, event *AnalyticsEvent) {
 		return
 	}
 
-	svc := bootstrap.GetGlobalAnalyticsService()
-	if svc == nil {
+	service := bootstrap.GetGlobalAnalyticsService()
+	if service == nil {
 		return
 	}
 
@@ -75,14 +73,14 @@ func TrackAnalyticsEvent(ctx context.Context, event *AnalyticsEvent) {
 		enrichEventFromRequestCtx(event, pctx)
 	}
 
-	svc.Track(ctx, event)
+	service.Track(ctx, event)
 }
 
-// SetAnalyticsRevenue attaches revenue data to the automatic
-// analytics event for the current request.
+// SetAnalyticsRevenue attaches revenue data to the automatic analytics event for the
+// current request.
 //
-// The middleware copies the value into the pageview event after the
-// handler returns. No-op when called outside a request context.
+// The middleware copies the value into the pageview event after the handler returns.
+// No-op when called outside a request context.
 //
 // Takes revenue (maths.Money) which is the monetary value to record.
 func SetAnalyticsRevenue(ctx context.Context, revenue maths.Money) {
@@ -91,11 +89,11 @@ func SetAnalyticsRevenue(ctx context.Context, revenue maths.Money) {
 	}
 }
 
-// AddAnalyticsProperty attaches a key-value property to the automatic
-// analytics event for the current request.
+// AddAnalyticsProperty attaches a key-value property to the automatic analytics event for
+// the current request.
 //
-// The middleware merges all properties into the event after the
-// handler returns. No-op when called outside a request context.
+// The middleware merges all properties into the event after the handler returns. No-op
+// when called outside a request context.
 //
 // Takes key (string) which is the property name.
 // Takes value (string) which is the property value.
@@ -113,11 +111,11 @@ func AddAnalyticsProperty(ctx context.Context, key, value string) {
 	pctx.AnalyticsProperties[key] = value
 }
 
-// SetAnalyticsEventName changes the automatic analytics event from a
-// page view to a named custom event.
+// SetAnalyticsEventName changes the automatic analytics event from a page view to a named
+// custom event.
 //
-// When set, the middleware promotes the event type from pageview to
-// custom. No-op when called outside a request context.
+// When set, the middleware promotes the event type from pageview to custom. No-op when
+// called outside a request context.
 //
 // Takes name (string) which is the event name.
 func SetAnalyticsEventName(ctx context.Context, name string) {
@@ -126,9 +124,9 @@ func SetAnalyticsEventName(ctx context.Context, name string) {
 	}
 }
 
-// enrichEventFromRequestCtx fills in empty event fields from the
-// per-request carrier so that custom events fired from action
-// handlers inherit request-level context automatically.
+// enrichEventFromRequestCtx fills in empty event fields from the per-request carrier so
+// that custom events fired from action handlers inherit request-level context
+// automatically.
 //
 // Takes event (*AnalyticsEvent) which is the event to enrich.
 // Takes pctx (*daemon_dto.PikoRequestCtx) which provides the request-level values.

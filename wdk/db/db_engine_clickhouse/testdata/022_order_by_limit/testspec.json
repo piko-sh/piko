@@ -1,0 +1,3 @@
+{
+  "description": "ORDER BY + LIMIT + OFFSET clauses. Verifies they parse and do not interfere with output column resolution."
+}

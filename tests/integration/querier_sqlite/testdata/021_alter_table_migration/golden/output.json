@@ -1,14 +1,14 @@
 {
   "account_with_email": {
-    "Active": true,
-    "Email": "alice@example.com",
-    "ID": 1,
-    "Username": "alice"
+    "active": true,
+    "email": "alice@example.com",
+    "id": 1,
+    "username": "alice"
   },
   "account_without_email": {
-    "Active": false,
-    "Email": null,
-    "ID": 2,
-    "Username": "bob"
+    "active": false,
+    "email": null,
+    "id": 2,
+    "username": "bob"
   }
 }

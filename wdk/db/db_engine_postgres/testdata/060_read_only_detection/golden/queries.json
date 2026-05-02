@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "accounts.sql",
-    "SQL": "-- piko.name: GetAccount\n-- piko.command: one\nSELECT id, name, balance FROM accounts WHERE id = $1;",
+    "SQL": "-- piko.query(name: GetAccount, command: one)\nSELECT id, name, balance FROM accounts WHERE id = $1;",
     "Name": "GetAccount",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "accounts",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "accounts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "accounts",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "accounts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "balance",
         "SourceTable": "accounts",
+        "SourceSchema": "",
         "SourceColumn": "balance",
+        "SourceQualifier": "accounts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -91,7 +105,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -112,16 +127,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "accounts.sql",
-    "SQL": "-- piko.name: LockAccount\n-- piko.command: one\nSELECT id, name, balance FROM accounts WHERE id = $1 FOR UPDATE;",
+    "SQL": "-- piko.query(name: LockAccount, command: one)\nSELECT id, name, balance FROM accounts WHERE id = $1 FOR UPDATE;",
     "Name": "LockAccount",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -139,20 +157,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "accounts",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "accounts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -165,16 +188,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "accounts",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "accounts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -187,16 +214,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "balance",
         "SourceTable": "accounts",
+        "SourceSchema": "",
         "SourceColumn": "balance",
+        "SourceQualifier": "accounts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -209,7 +240,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -229,17 +261,20 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "accounts",
     "Filename": "accounts.sql",
-    "SQL": "-- piko.name: CreateAccount\n-- piko.command: one\nINSERT INTO accounts (name, balance) VALUES ($1, $2) RETURNING id;",
+    "SQL": "-- piko.query(name: CreateAccount, command: one)\nINSERT INTO accounts (name, balance) VALUES ($1, $2) RETURNING id;",
     "Name": "CreateAccount",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -257,13 +292,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -281,20 +318,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "accounts",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "accounts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -307,7 +349,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -330,17 +373,20 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 9,
-    "IsDynamic": false,
+    "Line": 7,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "accounts.sql",
-    "SQL": "-- piko.name: ArchiveAccount\n-- piko.command: exec\nWITH deleted AS (\n    DELETE FROM accounts WHERE id = $1 RETURNING id\n)\nSELECT id FROM deleted;",
+    "SQL": "-- piko.query(name: ArchiveAccount, command: exec)\nWITH deleted AS (\n    DELETE FROM accounts WHERE id = $1 RETURNING id\n)\nSELECT id FROM deleted;",
     "Name": "ArchiveAccount",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -358,20 +404,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "deleted",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "deleted",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -384,7 +435,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -404,10 +456,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 13,
-    "IsDynamic": false,
+    "Line": 10,
     "Command": 2,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

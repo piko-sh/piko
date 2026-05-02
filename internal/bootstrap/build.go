@@ -495,7 +495,6 @@ func (op *buildOperation) discoverEntryPoints(ctx context.Context) error {
 // discoverDirectory scans a source directory and appends EntryPoint objects to the
 // operation's list.
 //
-// Takes ctx (context.Context) which carries cancellation and logging context.
 // Takes sourceDir (string) which specifies the directory path to scan.
 // Takes isPotentiallyPage (bool) which indicates if entries may be pages.
 // Takes isPotentiallyEmail (bool) which indicates if entries may be emails.
@@ -541,7 +540,6 @@ func (op *buildOperation) discoverDirectory(ctx context.Context, sourceDir strin
 // checkSourceDirectory checks if the source directory exists and decides whether to
 // process it.
 //
-// Takes ctx (context.Context) which carries the logging context.
 // Takes sourceDir (string) which is the relative source directory name.
 // Takes sourceRoot (string) which is the absolute path to the source directory.
 // Takes isPotentiallyPage (bool) which is true if this is a pages directory.
@@ -590,7 +588,6 @@ func (op *buildOperation) checkSourceDirectory(ctx context.Context, sourceDir, s
 
 // processWalkEntry handles a single entry during directory walking.
 //
-// Takes ctx (context.Context) which carries cancellation and logging context.
 // Takes absPath (string) which is the absolute path to the entry.
 // Takes d (os.DirEntry) which provides entry metadata.
 // Takes walkErr (error) which is any error from the walk operation.
@@ -980,7 +977,7 @@ func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name strin
 
 	service, serviceErr := querier_domain.NewQuerierService(querier_domain.QuerierPorts{
 		Engine:     reg.EngineConfig.Engine,
-		Emitter:    emitter_go_sql.NewSQLEmitter(),
+		Emitter:    emitter_go_sql.NewSQLEmitterForDialect(reg.EngineConfig.Engine.Dialect()),
 		FileReader: migration_sql.NewFSFileReader(reg.QueryFS),
 	})
 	if serviceErr != nil {
@@ -992,7 +989,7 @@ func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name strin
 		QueryDirectory:     stringOrDefault(reg.QueryDirectory, "queries"),
 	}
 
-	result, genErr := service.GenerateDatabase(ctx, stringOrDefault(reg.GeneratedPackageName, "generated"), config, "")
+	result, genErr := service.GenerateDatabase(ctx, stringOrDefault(reg.GeneratedPackageName, "generated"), config)
 	if genErr != nil {
 		return 0, fmt.Errorf("generating code for database %q: %w", name, genErr)
 	}

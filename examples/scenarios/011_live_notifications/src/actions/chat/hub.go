@@ -31,8 +31,8 @@ var hub = &chatHub{
 	subscribers: make(map[uint64]chan Message),
 }
 
-// Subscribe registers a new listener. Returns a receive channel and
-// an unsubscribe function. The channel is buffered to absorb bursts.
+// Subscribe registers a new listener. Returns a receive channel and an unsubscribe
+// function. The channel is buffered to absorb bursts.
 func (h *chatHub) Subscribe() (<-chan Message, func()) {
 	h.mu.Lock()
 	defer h.mu.Unlock()

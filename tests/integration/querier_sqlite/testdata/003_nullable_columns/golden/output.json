@@ -1,28 +1,28 @@
 {
   "all_profiles": [
     {
-      "Age": 30,
-      "Biography": "Software engineer",
-      "ID": 1,
-      "Name": "Alice"
+      "age": 30,
+      "biography": "Software engineer",
+      "id": 1,
+      "name": "Alice"
     },
     {
-      "Age": null,
-      "Biography": null,
-      "ID": 2,
-      "Name": "Bob"
+      "age": null,
+      "biography": null,
+      "id": 2,
+      "name": "Bob"
     }
   ],
   "profile_with_nulls": {
-    "Age": null,
-    "Biography": null,
-    "ID": 2,
-    "Name": "Bob"
+    "age": null,
+    "biography": null,
+    "id": 2,
+    "name": "Bob"
   },
   "profile_with_values": {
-    "Age": 30,
-    "Biography": "Software engineer",
-    "ID": 1,
-    "Name": "Alice"
+    "age": 30,
+    "biography": "Software engineer",
+    "id": 1,
+    "name": "Alice"
   }
 }

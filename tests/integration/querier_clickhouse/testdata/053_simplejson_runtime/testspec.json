@@ -1,0 +1,3 @@
+{
+  "description": "simpleJSONExtractString and simpleJSONExtractInt parse single-level JSON-encoded strings without building a full JSON object. The fixture seeds payload rows with `{\"name\":..., \"age\":...}` bodies and verifies both extractors against the catalogue's (String, String) -> (String|Int64) overloads."
+}

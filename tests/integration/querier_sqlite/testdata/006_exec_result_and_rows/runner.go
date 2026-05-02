@@ -37,15 +37,15 @@ func main() {
 	queries := db.New(conn)
 
 	updatedRows, err := queries.UpdateUserEmail(ctx, db.UpdateUserEmailParams{
-		P1: "alice-new@example.com",
-		P2: int32(1),
+		Email: "alice-new@example.com",
+		ID:    int64(1),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	deleteResult, err := queries.DeleteUser(ctx, int32(3))
+	deleteResult, err := queries.DeleteUser(ctx, int64(3))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

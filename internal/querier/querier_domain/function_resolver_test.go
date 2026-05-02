@@ -50,12 +50,87 @@ func funcSig(name string, returnType querier_dto.SQLType, args ...querier_dto.Fu
 }
 
 var (
-	intType = sqlType("integer", querier_dto.TypeCategoryInteger)
-	textType = sqlType("text", querier_dto.TypeCategoryText)
-	floatType = sqlType("float8", querier_dto.TypeCategoryFloat)
-	boolType = sqlType("boolean", querier_dto.TypeCategoryBoolean)
+	intType     = sqlType("integer", querier_dto.TypeCategoryInteger)
+	textType    = sqlType("text", querier_dto.TypeCategoryText)
+	floatType   = sqlType("float8", querier_dto.TypeCategoryFloat)
+	boolType    = sqlType("boolean", querier_dto.TypeCategoryBoolean)
 	unknownType = sqlType("", querier_dto.TypeCategoryUnknown)
 )
+
+func TestFunctionResolver_ArgumentType(t *testing.T) {
+	t.Parallel()
+
+	uuidV4 := sqlType("uuid_v4", querier_dto.TypeCategoryText)
+	uuidV7 := sqlType("uuid_v7", querier_dto.TypeCategoryText)
+
+	newResolver := func(sigs ...*querier_dto.FunctionSignature) *functionResolver {
+		catalogue := newTestCatalogue("content")
+		for _, sig := range sigs {
+			catalogue.Schemas["content"].Functions[sig.Name] = append(catalogue.Schemas["content"].Functions[sig.Name], sig)
+		}
+		return newFunctionResolver(&querier_dto.FunctionCatalogue{}, catalogue, &mockEngine{})
+	}
+
+	t.Run("single overload returns the declared argument type by ordinal", func(t *testing.T) {
+		t.Parallel()
+		sig := funcSig("get_pages_with_latest_version", intType,
+			funcArg("_environment_id", uuidV4), funcArg("_time_boundary", uuidV7), funcArg("_published", boolType))
+		sig.Schema = "content"
+		resolver := newResolver(sig)
+
+		typ0, ok0 := resolver.ArgumentType("content.get_pages_with_latest_version", 0)
+		require.True(t, ok0)
+		assert.Equal(t, "uuid_v4", typ0.EngineName)
+		typ1, ok1 := resolver.ArgumentType("content.get_pages_with_latest_version", 1)
+		require.True(t, ok1)
+		assert.Equal(t, "uuid_v7", typ1.EngineName)
+		typ2, ok2 := resolver.ArgumentType("content.get_pages_with_latest_version", 2)
+		require.True(t, ok2)
+		assert.Equal(t, querier_dto.TypeCategoryBoolean, typ2.Category)
+	})
+
+	t.Run("bare (unqualified) name resolves", func(t *testing.T) {
+		t.Parallel()
+		resolver := newResolver(funcSig("string_to_array", intType, funcArg("input", textType), funcArg("delim", textType)))
+		typ, ok := resolver.ArgumentType("string_to_array", 0)
+		require.True(t, ok)
+		assert.Equal(t, querier_dto.TypeCategoryText, typ.Category)
+	})
+
+	t.Run("ordinal beyond arity for non-variadic declines", func(t *testing.T) {
+		t.Parallel()
+		resolver := newResolver(funcSig("f", intType, funcArg("a", intType)))
+		_, ok := resolver.ArgumentType("f", 1)
+		assert.False(t, ok)
+	})
+
+	t.Run("variadic clamps ordinal to the last declared slot", func(t *testing.T) {
+		t.Parallel()
+		sig := funcSig("greatest", intType, funcArg("first", intType))
+		sig.IsVariadic = true
+		resolver := newResolver(sig)
+		typ, ok := resolver.ArgumentType("greatest", 5)
+		require.True(t, ok)
+		assert.Equal(t, querier_dto.TypeCategoryInteger, typ.Category)
+	})
+
+	t.Run("ambiguous overloads disagreeing at the ordinal decline", func(t *testing.T) {
+		t.Parallel()
+		resolver := newResolver(
+			funcSig("f", intType, funcArg("a", intType)),
+			funcSig("f", textType, funcArg("a", textType)),
+		)
+		_, ok := resolver.ArgumentType("f", 0)
+		assert.False(t, ok, "competing overloads with different types at ordinal 0 must decline")
+	})
+
+	t.Run("unknown function declines", func(t *testing.T) {
+		t.Parallel()
+		resolver := newResolver()
+		_, ok := resolver.ArgumentType("nope", 0)
+		assert.False(t, ok)
+	})
+}
 
 func TestNewFunctionResolver(t *testing.T) {
 	t.Parallel()

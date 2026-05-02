@@ -80,32 +80,62 @@ func main() {
 	}
 	result["table_still_exists"] = afterDropCheck
 
-	result["where_column_injection"] = expectPanic(func() {
-		queries.SearchUsers(ctx).Where("id; DROP TABLE users; --", "=", 1).All(ctx)
+	result["where_column_injection"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).Where("id; DROP TABLE users; --", "=", 1).All(ctx)
+		return err
 	})
 
-	result["where_column_subquery"] = expectPanic(func() {
-		queries.SearchUsers(ctx).Where("(SELECT secret FROM users LIMIT 1)", "=", 1).All(ctx)
+	result["where_column_subquery"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).Where("(SELECT secret FROM users LIMIT 1)", "=", 1).All(ctx)
+		return err
 	})
 
-	result["where_operator_injection"] = expectPanic(func() {
-		queries.SearchUsers(ctx).Where("id", "= 1 OR 1=1; --", 1).All(ctx)
+	result["where_operator_injection"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).Where("id", "= 1 OR 1=1; --", 1).All(ctx)
+		return err
 	})
 
-	result["orderby_column_injection"] = expectPanic(func() {
-		queries.SearchUsers(ctx).OrderBy("id; DROP TABLE users; --", "ASC").All(ctx)
+	result["orderby_column_injection"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).OrderBy("id; DROP TABLE users; --", "ASC").All(ctx)
+		return err
 	})
 
-	result["orderby_column_subquery"] = expectPanic(func() {
-		queries.SearchUsers(ctx).OrderBy("(CASE WHEN (SELECT 1) THEN id ELSE name END)", "ASC").All(ctx)
+	result["orderby_column_subquery"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).OrderBy("(CASE WHEN (SELECT 1) THEN id ELSE name END)", "ASC").All(ctx)
+		return err
 	})
 
-	result["orderby_direction_injection"] = expectPanic(func() {
-		queries.SearchUsers(ctx).OrderBy("id", "ASC; DROP TABLE users; --").All(ctx)
+	result["orderby_direction_injection"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).OrderBy("id", "ASC; DROP TABLE users; --").All(ctx)
+		return err
 	})
 
-	result["orderby_direction_subquery"] = expectPanic(func() {
-		queries.SearchUsers(ctx).OrderBy("id", "ASC, (SELECT secret FROM users LIMIT 1)").All(ctx)
+	result["orderby_direction_subquery"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).OrderBy("id", "ASC, (SELECT secret FROM users LIMIT 1)").All(ctx)
+		return err
+	})
+
+	// Hidden-column abuse: SearchUsers selects only id, name, role, so the `secret` column
+	// (present on the users table but never projected) must not be reachable as a filter
+	// oracle, a LIKE prefix oracle, an ORDER BY side-channel, or through a json/cast wrapper.
+	result["where_hidden_column_equality"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).Where("secret", "=", "hunter2").All(ctx)
+		return err
+	})
+
+	result["where_hidden_column_like_oracle"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).Where("secret", "LIKE", "h%").All(ctx)
+		return err
+	})
+
+	result["orderby_hidden_column"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).OrderBy("secret", "ASC").All(ctx)
+		return err
+	})
+
+	result["where_hidden_column_json_wrapper"] = expectRejection(func() error {
+		_, err := queries.SearchUsers(ctx).Where("json_extract(secret, '$.x')", "=", "y").All(ctx)
+		return err
 	})
 
 	encoder := json.NewEncoder(os.Stdout)
@@ -116,22 +146,28 @@ func main() {
 	}
 }
 
-func expectPanic(function func()) map[string]any {
-	recovered := false
+func expectRejection(run func() error) map[string]any {
+	rejected := false
+	panicked := false
 	message := ""
 
 	func() {
 		defer func() {
 			if recovery := recover(); recovery != nil {
-				recovered = true
+				panicked = true
+				rejected = true
 				message = fmt.Sprintf("%v", recovery)
 			}
 		}()
-		function()
+		if err := run(); err != nil {
+			rejected = true
+			message = err.Error()
+		}
 	}()
 
 	return map[string]any{
-		"panicked": recovered,
+		"rejected": rejected,
+		"panicked": panicked,
 		"message":  message,
 	}
 }

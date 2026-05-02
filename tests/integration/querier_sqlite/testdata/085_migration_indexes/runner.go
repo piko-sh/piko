@@ -73,8 +73,8 @@ func main() {
 	}
 
 	byCategoryAndPrice, err := queries.ListByCategoryAndMaxPrice(ctx, db.ListByCategoryAndMaxPriceParams{
-		P1: "electronics",
-		P2: int32(500),
+		Category: "electronics",
+		Price:    int32(500),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ListByCategoryAndMaxPrice:", err)

@@ -1,3 +1,2 @@
--- piko.name: SelectOID
--- piko.command: many
+-- piko.query(name: SelectOID, command: many)
 SELECT _rowid_, name FROM items

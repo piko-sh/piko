@@ -8,6 +8,7 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/lib/pq"
 
 	"querier_test_runner/db"
 )
@@ -34,9 +35,9 @@ func main() {
 	queries := db.New(conn)
 
 	article1, err := queries.InsertArticle(ctx, db.InsertArticleParams{
-		P1: "Go Generics",
-		P2: "{go,generics,programming}",
-		P3: "{95,88,92}",
+		Title:  "Go Generics",
+		Tags:   pq.StringArray{"go", "generics", "programming"},
+		Scores: pq.Int32Array{95, 88, 92},
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -44,9 +45,9 @@ func main() {
 	}
 
 	article2, err := queries.InsertArticle(ctx, db.InsertArticleParams{
-		P1: "Rust Ownership",
-		P2: "{rust,memory,programming}",
-		P3: "{90,85}",
+		Title:  "Rust Ownership",
+		Tags:   pq.StringArray{"rust", "memory", "programming"},
+		Scores: pq.Int32Array{90, 85},
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

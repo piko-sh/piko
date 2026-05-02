@@ -160,8 +160,8 @@ func createBucket(ctx context.Context, endpoint string) {
 		panic(fmt.Sprintf("creating bucket: %v", err))
 	}
 
-	// Allow cross-origin PUT requests so the browser can upload directly
-	// to LocalStack via presigned URLs.
+	// Allow cross-origin PUT requests so the browser can upload directly to LocalStack via
+	// presigned URLs.
 	_, err = client.PutBucketCors(ctx, &s3.PutBucketCorsInput{
 		Bucket: aws.String(bucketName),
 		CORSConfiguration: &s3types.CORSConfiguration{

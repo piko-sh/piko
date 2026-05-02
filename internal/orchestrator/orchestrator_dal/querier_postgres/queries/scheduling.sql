@@ -1,5 +1,4 @@
--- piko.name: PromoteScheduledTasks
--- piko.command: execrows
+-- piko.query(name: PromoteScheduledTasks, command: execrows)
 UPDATE orchestrator_tasks
 SET
     status = 'PENDING',
@@ -8,7 +7,6 @@ WHERE
     status = 'SCHEDULED'
     AND execute_at <= $2;
 
--- piko.name: PendingTaskCount
--- piko.command: one
+-- piko.query(name: PendingTaskCount, command: one)
 SELECT COUNT(*) FROM orchestrator_tasks
 WHERE status IN ('PENDING', 'SCHEDULED', 'RETRYING');

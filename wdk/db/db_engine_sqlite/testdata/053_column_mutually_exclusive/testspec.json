@@ -1,0 +1,6 @@
+{
+  "description": "piko.column with both `type:` and `go_type:` is rejected with Q038.",
+  "diagnostics": [
+    { "severity": "error", "code": "Q038", "messageContains": "mutually exclusive" }
+  ]
+}

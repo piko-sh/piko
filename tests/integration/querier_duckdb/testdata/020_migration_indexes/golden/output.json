@@ -1,25 +1,25 @@
 {
   "get_by_sku": {
-    "Category": "stationery",
-    "ID": 3,
-    "Name": "Notebook",
-    "Price": 499,
-    "Sku": "ST-001"
+    "category": "stationery",
+    "id": 3,
+    "name": "Notebook",
+    "price": 499,
+    "sku": "ST-001"
   },
   "list_by_category": [
     {
-      "Category": "hardware",
-      "ID": 1,
-      "Name": "Widget",
-      "Price": 1999,
-      "Sku": "HW-001"
+      "category": "hardware",
+      "id": 1,
+      "name": "Widget",
+      "price": 1999,
+      "sku": "HW-001"
     },
     {
-      "Category": "hardware",
-      "ID": 2,
-      "Name": "Gadget",
-      "Price": 2999,
-      "Sku": "HW-002"
+      "category": "hardware",
+      "id": 2,
+      "name": "Gadget",
+      "price": 2999,
+      "sku": "HW-002"
     }
   ]
 }

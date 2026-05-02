@@ -36,10 +36,10 @@ func main() {
 	queries := db.New(conn)
 
 	err = queries.InsertLog(ctx, db.InsertLogParams{
-		P1: int32(1),
-		P2: "start",
-		P3: "2025-01-15 10:00:00",
-		P4: int32(1736935200),
+		ID:        int64(1),
+		Message:   "start",
+		CreatedAt: "2025-01-15 10:00:00",
+		UnixTs:    int32(1736935200),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertLog 1:", err)
@@ -47,10 +47,10 @@ func main() {
 	}
 
 	err = queries.InsertLog(ctx, db.InsertLogParams{
-		P1: int32(2),
-		P2: "middle",
-		P3: "2025-06-15 12:00:00",
-		P4: int32(1750075200),
+		ID:        int64(2),
+		Message:   "middle",
+		CreatedAt: "2025-06-15 12:00:00",
+		UnixTs:    int32(1750075200),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertLog 2:", err)
@@ -58,17 +58,17 @@ func main() {
 	}
 
 	err = queries.InsertLog(ctx, db.InsertLogParams{
-		P1: int32(3),
-		P2: "end",
-		P3: "2025-12-01 08:00:00",
-		P4: int32(1764576000),
+		ID:        int64(3),
+		Message:   "end",
+		CreatedAt: "2025-12-01 08:00:00",
+		UnixTs:    int32(1764576000),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertLog 3:", err)
 		os.Exit(1)
 	}
 
-	log, err := queries.GetLog(ctx, int32(1))
+	log, err := queries.GetLog(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetLog:", err)
 		os.Exit(1)
@@ -83,7 +83,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	formatted, err := queries.FormatDate(ctx, int32(2))
+	formatted, err := queries.FormatDate(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "FormatDate:", err)
 		os.Exit(1)

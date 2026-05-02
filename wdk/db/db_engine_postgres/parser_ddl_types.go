@@ -19,9 +19,21 @@
 package db_engine_postgres
 
 import (
+	"fmt"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
+)
+
+const (
+	// maxReturnsTableColumns caps the number of columns recorded for CREATE FUNCTION ...
+	// RETURNS TABLE(...).
+	//
+	// Postgres caps composite types at 1664 attributes, so accepting more than that cannot
+	// reflect a real schema and only inflates downstream allocations. Excess columns are
+	// dropped after the limit is reached; the remaining tokens are skipped to keep parser
+	// state consistent.
+	maxReturnsTableColumns = 1664
 )
 
 // parseCreateType parses a CREATE TYPE statement and dispatches by kind.
@@ -96,6 +108,9 @@ func (p *parser) parseEnumValues() []string {
 
 // parseCreateCompositeType parses a CREATE TYPE ... AS (field type, ...) body.
 //
+// Excess fields beyond maxReturnsTableColumns are dropped after the limit is reached; the
+// remaining tokens are still consumed to keep parser state consistent.
+//
 // Takes engine (*PostgresEngine) which supplies type-resolution context.
 // Takes schema (string) which is the schema name of the new type.
 // Takes typeName (string) which is the composite type name.
@@ -106,6 +121,12 @@ func (p *parser) parseCreateCompositeType(
 	engine *PostgresEngine,
 	schema, typeName string,
 ) (*querier_dto.CatalogueMutation, error) {
+	if p.ddlDepth >= maxDDLDepth {
+		return nil, errDDLDepthExceeded
+	}
+	p.ddlDepth++
+	defer func() { p.ddlDepth-- }()
+
 	p.advance()
 
 	var columns []querier_dto.Column
@@ -115,13 +136,15 @@ func (p *parser) parseCreateCompositeType(
 			return nil, fieldError
 		}
 		fieldType, arrayDimensions := p.parseColumnType(engine)
-		columns = append(columns, querier_dto.Column{
-			Name:            fieldName,
-			SQLType:         fieldType,
-			Nullable:        true,
-			IsArray:         arrayDimensions > 0,
-			ArrayDimensions: arrayDimensions,
-		})
+		if len(columns) < maxReturnsTableColumns {
+			columns = append(columns, querier_dto.Column{
+				Name:            fieldName,
+				SQLType:         fieldType,
+				Nullable:        true,
+				IsArray:         arrayDimensions > 0,
+				ArrayDimensions: arrayDimensions,
+			})
+		}
 
 		if p.current().kind == tokenComma {
 			p.advance()
@@ -284,12 +307,13 @@ func (p *parser) parseCreateFunction(engine *PostgresEngine) (*querier_dto.Catal
 	}
 	p.lastArgumentWasVariadic = false
 
-	p.parseFunctionBody(engine, signature)
+	tableColumns := p.parseFunctionBody(engine, signature)
 
 	return &querier_dto.CatalogueMutation{
 		Kind:              querier_dto.MutationCreateFunction,
 		SchemaName:        schema,
 		FunctionSignature: signature,
+		Columns:           tableColumns,
 	}, nil
 }
 
@@ -307,6 +331,7 @@ func (p *parser) parseFunctionArgumentList(engine *PostgresEngine) ([]querier_dt
 
 	var arguments []querier_dto.FunctionArgument
 	for !p.atEnd() && p.current().kind != tokenRightParen {
+		startPosition := p.position
 		argument, argumentError := p.parseFunctionArgument(engine)
 		if argumentError != nil {
 			return nil, argumentError
@@ -316,6 +341,10 @@ func (p *parser) parseFunctionArgumentList(engine *PostgresEngine) ([]querier_dt
 		if p.current().kind == tokenComma {
 			p.advance()
 		}
+
+		if p.position == startPosition {
+			return nil, fmt.Errorf("malformed function argument list: no progress at position %d", p.current().position)
+		}
 	}
 	if p.current().kind == tokenRightParen {
 		p.advance()
@@ -324,17 +353,31 @@ func (p *parser) parseFunctionArgumentList(engine *PostgresEngine) ([]querier_dt
 	return arguments, nil
 }
 
-// parseFunctionBody walks the function body clauses populating signature.
+// parseFunctionBody scans the trailing portion of a CREATE FUNCTION statement (RETURNS
+// clause, LANGUAGE, volatility, AS body, etc.).
 //
 // Takes engine (*PostgresEngine) which supplies type-resolution context.
 // Takes signature (*querier_dto.FunctionSignature) which is populated as clauses are
 // recognised.
-func (p *parser) parseFunctionBody(engine *PostgresEngine, signature *querier_dto.FunctionSignature) {
+//
+// Returns []querier_dto.Column which holds the inline column definitions captured from a
+// table-returning clause, or nil for scalar / SETOF composite return forms.
+func (p *parser) parseFunctionBody(
+	engine *PostgresEngine,
+	signature *querier_dto.FunctionSignature,
+) []querier_dto.Column {
+	var tableColumns []querier_dto.Column
 	for !p.atEnd() && p.current().kind != tokenSemicolon && p.current().kind != tokenEOF {
-		if !p.parseFunctionBodyClause(engine, signature) {
+		columns, matched := p.parseFunctionBodyClause(engine, signature)
+		if !matched {
 			p.advance()
+			continue
+		}
+		if columns != nil {
+			tableColumns = columns
 		}
 	}
+	return tableColumns
 }
 
 // parseFunctionBodyClause parses one CREATE FUNCTION body clause.
@@ -343,31 +386,34 @@ func (p *parser) parseFunctionBody(engine *PostgresEngine, signature *querier_dt
 // Takes signature (*querier_dto.FunctionSignature) which is populated when a clause is
 // recognised.
 //
+// Returns []querier_dto.Column which holds the RETURNS TABLE column definitions when the
+// clause was a RETURNS TABLE, else nil.
 // Returns bool which is true when a clause was consumed.
 func (p *parser) parseFunctionBodyClause(
 	engine *PostgresEngine,
 	signature *querier_dto.FunctionSignature,
-) bool {
+) ([]querier_dto.Column, bool) {
 	if p.matchKeyword("RETURNS") {
-		return p.parseFunctionReturnsOrStrict(engine, signature)
+		columns := p.parseFunctionReturnsOrStrict(engine, signature)
+		return columns, true
 	}
 	if p.matchKeyword("LANGUAGE") {
 		if !p.atEnd() {
 			signature.Language = strings.ToLower(p.advance().value)
 		}
-		return true
+		return nil, true
 	}
 	if p.parseFunctionVolatilityAttribute(signature) {
-		return true
+		return nil, true
 	}
 	if p.parseFunctionNullInputAttribute(signature) {
-		return true
+		return nil, true
 	}
 	if p.current().kind == tokenDollarString || p.current().kind == tokenString || p.current().kind == tokenEscapeString {
 		signature.BodySQL = p.advance().value
-		return true
+		return nil, true
 	}
-	return false
+	return nil, false
 }
 
 // parseFunctionReturnsOrStrict parses RETURNS or RETURNS NULL ON NULL INPUT.
@@ -376,20 +422,20 @@ func (p *parser) parseFunctionBodyClause(
 // Takes signature (*querier_dto.FunctionSignature) which receives the parsed return
 // information.
 //
-// Returns bool which is always true; signals the clause was consumed.
+// Returns []querier_dto.Column which holds the RETURNS TABLE column definitions, or nil
+// for the strict form and scalar / SETOF return forms.
 func (p *parser) parseFunctionReturnsOrStrict(
 	engine *PostgresEngine,
 	signature *querier_dto.FunctionSignature,
-) bool {
+) []querier_dto.Column {
 	if p.matchKeyword("NULL") {
 		p.matchKeyword("ON")
 		p.matchKeyword("NULL")
 		p.matchKeyword("INPUT")
 		signature.IsStrict = true
-		return true
+		return nil
 	}
-	p.parseFunctionReturns(engine, signature)
-	return true
+	return p.parseFunctionReturns(engine, signature)
 }
 
 // parseFunctionVolatilityAttribute parses IMMUTABLE, STABLE, or VOLATILE.
@@ -434,32 +480,96 @@ func (p *parser) parseFunctionNullInputAttribute(signature *querier_dto.Function
 	return false
 }
 
-// parseFunctionReturns parses the RETURNS clause body.
+// parseFunctionReturns parses the RETURNS clause of a CREATE FUNCTION statement.
+//
+// For RETURNS TABLE (col1 type1, ...) it captures the inline column definitions and
+// returns them; for RETURNS SETOF type or RETURNS type it records the type on the
+// signature and returns nil.
 //
 // Takes engine (*PostgresEngine) which supplies type-resolution context.
-// Takes signature (*querier_dto.FunctionSignature) which receives the return type and set
-// flag.
-func (p *parser) parseFunctionReturns(engine *PostgresEngine, signature *querier_dto.FunctionSignature) {
+// Takes signature (*querier_dto.FunctionSignature) which receives the return type and
+// SETOF flag.
+//
+// Returns []querier_dto.Column which holds the RETURNS TABLE column definitions, or nil
+// for scalar and SETOF return forms.
+func (p *parser) parseFunctionReturns(
+	engine *PostgresEngine,
+	signature *querier_dto.FunctionSignature,
+) []querier_dto.Column {
 	if p.matchKeyword(keywordTABLE) {
 		signature.ReturnsSet = true
 		if p.current().kind == tokenLeftParen {
-			p.mustSkipParenthesised()
+			return p.parseFunctionReturnsTableColumns(engine)
 		}
-		return
+		return nil
 	}
 	if p.matchKeyword("SETOF") {
 		signature.ReturnsSet = true
 	}
 	returnType, _ := p.parseColumnType(engine)
 	signature.ReturnType = returnType
+	return nil
 }
 
-// parseFunctionArgument parses a single function argument declaration.
+// parseFunctionReturnsTableColumns parses the column list inside a RETURNS TABLE (col
+// type, col type, ...) clause.
+//
+// Excess columns beyond maxReturnsTableColumns are dropped after the limit is reached;
+// the remaining tokens are still consumed to keep parser state consistent. It increments
+// ddlDepth around the inner parseColumnType walk so a pathologically nested type cannot
+// blow the goroutine stack via this path.
 //
 // Takes engine (*PostgresEngine) which supplies type-resolution context.
 //
-// Returns querier_dto.FunctionArgument which describes the parsed argument.
-// Returns error which is always nil; declared for caller uniformity.
+// Returns []querier_dto.Column which holds the parsed RETURNS TABLE columns.
+func (p *parser) parseFunctionReturnsTableColumns(engine *PostgresEngine) []querier_dto.Column {
+	if p.ddlDepth >= maxDDLDepth {
+		return nil
+	}
+	p.ddlDepth++
+	defer func() { p.ddlDepth-- }()
+
+	if p.current().kind != tokenLeftParen {
+		return nil
+	}
+	p.advance()
+
+	columns := make([]querier_dto.Column, 0)
+	for !p.atEnd() && p.current().kind != tokenRightParen {
+		fieldName, fieldError := p.parseIdentifierOrKeyword()
+		if fieldError != nil {
+			p.advance()
+			continue
+		}
+		fieldType, arrayDimensions := p.parseColumnType(engine)
+		if len(columns) < maxReturnsTableColumns {
+			columns = append(columns, querier_dto.Column{
+				Name:            fieldName,
+				SQLType:         fieldType,
+				Nullable:        true,
+				IsArray:         arrayDimensions > 0,
+				ArrayDimensions: arrayDimensions,
+			})
+		}
+
+		if p.current().kind == tokenComma {
+			p.advance()
+		}
+	}
+	if p.current().kind == tokenRightParen {
+		p.advance()
+	}
+	return columns
+}
+
+// parseFunctionArgument parses a single CREATE FUNCTION argument, including any
+// IN/OUT/INOUT or VARIADIC mode, an optional argument name, its type, and a DEFAULT
+// marker.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+//
+// Returns querier_dto.FunctionArgument which is the parsed argument.
+// Returns error when the argument type fails to parse.
 func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.FunctionArgument, error) {
 	p.matchKeyword("IN")
 	p.matchKeyword("OUT")
@@ -474,10 +584,10 @@ func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.Func
 	if p.current().kind == tokenIdentifier && !p.isPostgresColumnConstraintKeyword() &&
 		!p.isAnyKeyword(keywordDEFAULT, "COMMA") &&
 		p.current().kind != tokenComma && p.current().kind != tokenRightParen {
-		argumentType, _ := p.parseColumnType(engine)
+		argumentType, arrayDimensions := p.parseColumnType(engine)
 		argument := querier_dto.FunctionArgument{
 			Name: possibleName,
-			Type: argumentType,
+			Type: functionArgumentArrayType(argumentType, arrayDimensions),
 		}
 
 		if p.matchKeyword(keywordDEFAULT) {
@@ -489,9 +599,9 @@ func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.Func
 	}
 
 	p.position = savedPosition
-	argumentType, _ := p.parseColumnType(engine)
+	argumentType, arrayDimensions := p.parseColumnType(engine)
 	argument := querier_dto.FunctionArgument{
-		Type: argumentType,
+		Type: functionArgumentArrayType(argumentType, arrayDimensions),
 	}
 
 	if p.matchKeyword(keywordDEFAULT) {
@@ -500,6 +610,32 @@ func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.Func
 	}
 
 	return argument, nil
+}
+
+// functionArgumentArrayType wraps a parsed scalar argument type in an array type once per
+// array dimension declared on a CREATE FUNCTION argument such as text[] or text[][].
+//
+// Function arguments carry their array-ness in the SQLType itself, unlike table columns
+// which record it on Column.IsArray/ArrayDimensions, so the overload resolver can tell a
+// call to f(text) from a call to f(text[]). The element type is preserved verbatim, so a
+// schema-qualified or modified base type keeps its identity. A zero dimension count
+// returns the element type unchanged.
+//
+// Takes elementType (querier_dto.SQLType) which is the scalar (non-array) argument type.
+// Takes dimensions (int) which is the number of trailing [] suffixes on the argument.
+//
+// Returns querier_dto.SQLType which is elementType wrapped in that many array layers.
+func functionArgumentArrayType(elementType querier_dto.SQLType, dimensions int) querier_dto.SQLType {
+	wrapped := elementType
+	for range dimensions {
+		element := wrapped
+		wrapped = querier_dto.SQLType{
+			Category:    querier_dto.TypeCategoryArray,
+			EngineName:  element.EngineName + "[]",
+			ElementType: &element,
+		}
+	}
+	return wrapped
 }
 
 // skipFunctionDefault advances past a DEFAULT expression value.

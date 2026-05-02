@@ -130,10 +130,14 @@ func mergeCatalogueFunctions(
 	if catalogue == nil {
 		return
 	}
-	for _, schema := range catalogue.Schemas {
-		for name, signatures := range schema.Functions {
+	for _, schemaName := range sortedKeys(catalogue.Schemas) {
+		schema := catalogue.Schemas[schemaName]
+		if schema == nil {
+			continue
+		}
+		for _, name := range sortedKeys(schema.Functions) {
 			key := strings.ToLower(name)
-			for _, signature := range signatures {
+			for _, signature := range schema.Functions[name] {
 				merged[key] = mergeOrAppendSignature(merged[key], signature)
 			}
 		}
@@ -165,13 +169,11 @@ func mergeOrAppendSignature(
 // Resolve finds the best matching function overload for the given name and argument
 // types.
 //
-// Resolution algorithm (follows PostgreSQL's func_match):
-//  1. Filter candidates by name (case-insensitive).
-//  2. Filter by arity (number of arguments).
-//  3. Score each candidate: exact type match (3), same category (2), implicit cast
-//     possible (1), no match (0).
-//  4. Highest total score wins; ties broken by most exact matches.
-//  5. No candidate matches -> Q005 error.
+// The resolution algorithm follows PostgreSQL's func_match. It filters candidates by name
+// (case-insensitive) and then by arity, scores each candidate (exact type match scores 3,
+// same category 2, implicit cast possible 1, no match 0), and the highest total score
+// wins with ties broken by the most exact matches. When no candidate matches it produces
+// a Q005 error.
 //
 // Takes name (string) which is the function name to resolve.
 // Takes schema (string) which is the schema qualifier, or empty for unqualified calls.
@@ -189,8 +191,8 @@ func (r *functionResolver) Resolve(
 	key := strings.ToLower(name)
 	candidates, exists := r.functions[key]
 	if !exists || len(candidates) == 0 {
-		if resolved := r.tryEngineResolver(name, schema, argumentTypes); resolved != nil {
-			return resolved, nil
+		if resolved, diagnostic := r.tryEngineResolver(name, schema, argumentTypes); resolved != nil {
+			return resolved, diagnostic
 		}
 		return nil, &querier_dto.SourceError{
 			Message:  fmt.Sprintf("unknown function %q", name),
@@ -202,8 +204,8 @@ func (r *functionResolver) Resolve(
 	bestMatch := r.findBestCandidate(candidates, schema, argumentTypes)
 
 	if bestMatch == nil {
-		if resolved := r.tryEngineResolver(name, schema, argumentTypes); resolved != nil {
-			return resolved, nil
+		if resolved, diagnostic := r.tryEngineResolver(name, schema, argumentTypes); resolved != nil {
+			return resolved, diagnostic
 		}
 		return nil, &querier_dto.SourceError{
 			Message: fmt.Sprintf(
@@ -216,8 +218,8 @@ func (r *functionResolver) Resolve(
 	}
 
 	if bestMatch.ReturnType.Category == querier_dto.TypeCategoryUnknown && bestMatch.ReturnType.EngineName == "" {
-		if resolved := r.tryEngineResolver(name, schema, argumentTypes); resolved != nil {
-			return resolved, nil
+		if resolved, diagnostic := r.tryEngineResolver(name, schema, argumentTypes); resolved != nil {
+			return resolved, diagnostic
 		}
 	}
 
@@ -230,8 +232,114 @@ func (r *functionResolver) Resolve(
 	}, nil
 }
 
-// findBestCandidate iterates over the candidate overloads, scores each one against the
-// actual argument types, and returns the highest-scoring match.
+// ArgumentType returns the declared type of the ordinal-th argument of the function.
+//
+// It back-propagates a declared parameter type onto a placeholder passed as that arg (for
+// example $1 in get_pages_with_latest_version($3, $1, $2)). The call site rarely knows
+// the other argument types, so this does not score overloads. It returns a type only when
+// the name (optionally schema-qualified) resolves to a single applicable overload, or
+// when every applicable overload declares the same type at that ordinal. Otherwise it
+// returns false and the caller keeps the conservative unknown fallback.
+//
+// Takes name (string) which is the function name, optionally "schema.name".
+// Takes ordinal (int) which is the zero-based call-site argument slot.
+//
+// Returns querier_dto.SQLType which is the declared argument type when resolved.
+// Returns bool which is true when a unique applicable argument type was found.
+func (r *functionResolver) ArgumentType(name string, ordinal int) (querier_dto.SQLType, bool) {
+	if ordinal < 0 {
+		return querier_dto.SQLType{}, false
+	}
+	schema, bareName := splitFunctionName(name)
+	candidates := r.functions[strings.ToLower(bareName)]
+	if len(candidates) == 0 {
+		return querier_dto.SQLType{}, false
+	}
+
+	var resolved *querier_dto.SQLType
+	for _, candidate := range candidates {
+		if schema != "" && candidate.Schema != "" && !strings.EqualFold(candidate.Schema, schema) {
+			continue
+		}
+		slot, ok := functionArgumentSlot(candidate, ordinal)
+		if !ok {
+			continue
+		}
+		argumentType := candidate.Arguments[slot].Type
+		if resolved != nil && !functionArgumentTypesEqual(*resolved, argumentType) {
+			return querier_dto.SQLType{}, false
+		}
+		resolved = new(argumentType)
+	}
+
+	if resolved == nil {
+		return querier_dto.SQLType{}, false
+	}
+	return *resolved, true
+}
+
+// functionArgumentSlot maps a zero-based call-site ordinal to a signature's declared
+// argument index.
+//
+// It honours optional (DEFAULT) and variadic arguments the same way the arity check in
+// scoreCandidate does, so an ordinal at or beyond the last declared argument is valid
+// only for a variadic function, where it clamps to the final (variadic) slot.
+//
+// Takes signature (*querier_dto.FunctionSignature) which is the overload to inspect.
+// Takes ordinal (int) which is the zero-based call-site argument slot.
+//
+// Returns int which is the declared-argument index.
+// Returns bool which is true when the ordinal is within the overload's accepted arity.
+func functionArgumentSlot(signature *querier_dto.FunctionSignature, ordinal int) (int, bool) {
+	if len(signature.Arguments) == 0 {
+		return 0, false
+	}
+	maxArguments := len(signature.Arguments)
+	if signature.IsVariadic {
+		maxArguments = math.MaxInt
+	}
+	if ordinal >= maxArguments {
+		return 0, false
+	}
+	if ordinal >= len(signature.Arguments) {
+		return len(signature.Arguments) - 1, true
+	}
+	return ordinal, true
+}
+
+// functionArgumentTypesEqual reports whether two declared argument types are the same
+// when deciding whether competing overloads agree at an ordinal. Category plus engine
+// name is sufficient: two arguments sharing both are interchangeable for
+// back-propagation.
+//
+// Takes left (querier_dto.SQLType) and right (querier_dto.SQLType) which are compared.
+//
+// Returns bool which is true when the two types match by category and engine name.
+func functionArgumentTypesEqual(left querier_dto.SQLType, right querier_dto.SQLType) bool {
+	return left.Category == right.Category && strings.EqualFold(left.EngineName, right.EngineName)
+}
+
+// splitFunctionName splits an optionally schema-qualified function name into its schema
+// and bare-name parts on the last dot. A name with no dot yields an empty schema.
+//
+// Takes name (string) which is the function name, optionally "schema.name".
+//
+// Returns schema (string) which is the schema, empty when unqualified.
+// Returns bareName (string) which is the function name without the schema qualifier.
+func splitFunctionName(name string) (schema string, bareName string) {
+	if index := strings.LastIndex(name, "."); index >= 0 {
+		return name[:index], name[index+1:]
+	}
+	return "", name
+}
+
+// findBestCandidate scores each candidate overload against the actual argument types and
+// returns the highest-scoring match.
+//
+// When two viable overloads tie on both total score and exact-match count the first such
+// candidate in iteration order is kept (the strict greater-than comparisons below never
+// replace an equal incumbent), so a residual tie resolves to the earliest-considered
+// overload rather than erroring.
 //
 // Takes candidates ([]*querier_dto.FunctionSignature) which holds the overloads to
 // evaluate.
@@ -285,7 +393,7 @@ func (r *functionResolver) scoreCandidate(
 ) (totalScore int, exactCount int, viable bool) {
 	minArguments := candidate.MinArguments
 	if minArguments == 0 {
-		minArguments = len(candidate.Arguments)
+		minArguments = querier_dto.MinimumArguments(candidate.Arguments)
 	}
 	maxArguments := len(candidate.Arguments)
 	if candidate.IsVariadic && len(candidate.Arguments) > 0 {
@@ -333,26 +441,39 @@ func (r *functionResolver) scoreCandidate(
 //
 // Returns *functionMatch which holds the resolved overload metadata, or nil if the engine
 // does not support function resolution or resolution fails.
+// Returns *querier_dto.SourceError which describes a resolution failure, or nil on
+// success.
 func (r *functionResolver) tryEngineResolver(
 	name string,
 	schema string,
 	argumentTypes []querier_dto.SQLType,
-) *functionMatch {
+) (*functionMatch, *querier_dto.SourceError) {
 	engineResolver, ok := r.engine.(FunctionResolverPort)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	resolution, resolveError := engineResolver.ResolveFunctionCall(r.catalogue, name, schema, argumentTypes)
 	if resolveError != nil || resolution == nil {
-		return nil
+		return nil, nil
+	}
+
+	dataAccess := resolution.DataAccess
+	var diagnostic *querier_dto.SourceError
+	if dataAccess == querier_dto.DataAccessUnknown {
+		dataAccess = querier_dto.DataAccessReadOnly
+		diagnostic = &querier_dto.SourceError{
+			Message:  fmt.Sprintf("engine resolver returned function %q without a declared data access; defaulting to read-only", name),
+			Severity: querier_dto.SeverityWarning,
+			Code:     querier_dto.CodeFunctionDataAccessUndeclared,
+		}
 	}
 	return &functionMatch{
 		returnType:        resolution.ReturnType,
 		nullableBehaviour: resolution.NullableBehaviour,
-		dataAccess:        resolution.DataAccess,
+		dataAccess:        dataAccess,
 		isAggregate:       resolution.IsAggregate,
 		returnsSet:        resolution.ReturnsSet,
-	}
+	}, diagnostic
 }
 
 // scoreArgument scores how well an actual argument type matches an expected parameter
@@ -366,6 +487,14 @@ func (r *functionResolver) tryEngineResolver(
 //
 // Returns int which is the match score from 0 (no match) to 3 (exact match).
 func (r *functionResolver) scoreArgument(expected querier_dto.SQLType, actual querier_dto.SQLType) int {
+	if actual.Category == querier_dto.TypeCategoryUnknown && expected.Category == querier_dto.TypeCategoryUnknown &&
+		actual.EngineName != "" && expected.EngineName != "" {
+		if strings.EqualFold(actual.EngineName, expected.EngineName) {
+			return argumentScoreExactMatch
+		}
+		return 1
+	}
+
 	if actual.Category == querier_dto.TypeCategoryUnknown {
 		return 2
 	}

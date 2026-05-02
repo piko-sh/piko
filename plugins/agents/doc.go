@@ -16,11 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package agents embeds the AI agent integration files for use by
-// the scaffold wizard and the "piko agents update" command.
+// Package agents embeds the AI agent integration files for use by the scaffold wizard and
+// the "piko agents update" command.
 //
-// The embedded [FS] contains AGENTS.md, SKILL.md, the
-// .claude-plugin directory, .lsp.json, and reference documentation.
-// These files configure AI coding assistants to work effectively
-// with Piko projects.
+// The embedded [FS] contains AGENTS.md, SKILL.md, the .claude-plugin directory,
+// .lsp.json, and reference documentation. These files configure AI coding assistants to
+// work effectively with Piko projects.
 package agents

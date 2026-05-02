@@ -1,0 +1,4 @@
+{
+  "description": "CHECK TABLE x returns UInt8 (1 = healthy, 0 = corrupt) per part. The runner bypasses the generated query API and drives the statement directly through sql.DB to scan the integrity flag. Verifies that the table is healthy after a clean insert.",
+  "skip": false
+}

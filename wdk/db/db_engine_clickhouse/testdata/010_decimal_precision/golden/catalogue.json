@@ -1,0 +1,159 @@
+{
+  "Schemas": {
+    "default": {
+      "Tables": {
+        "prices": {
+          "Name": "prices",
+          "Schema": "default",
+          "Comment": "",
+          "VirtualModuleName": "",
+          "Columns": [
+            {
+              "Name": "id",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "UInt64",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "amount",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": 18,
+                "Scale": 4,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Decimal",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 2,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "fee",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": 18,
+                "Scale": 2,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Decimal64",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 2,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "micro_amount",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": 38,
+                "Scale": 8,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Decimal128",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 2,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "id"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Origin": {
+            "Filename": "001_schema.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": false,
+          "IsWithoutRowID": false
+        }
+      },
+      "Views": {},
+      "Enums": {},
+      "Functions": {},
+      "CompositeTypes": {},
+      "Sequences": {},
+      "Name": "default"
+    }
+  },
+  "Extensions": {},
+  "DefaultSchema": "default"
+}

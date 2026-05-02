@@ -2,8 +2,9 @@
   {
     "InsertTable": "items",
     "Filename": "items.sql",
-    "SQL": "-- piko.name: InsertItemReturningID\n-- piko.command: one\nINSERT INTO items (id, name, price) VALUES ($1, $2, $3) RETURNING id;",
+    "SQL": "-- piko.query(name: InsertItemReturningID, command: one)\nINSERT INTO items (id, name, price) VALUES ($1, $2, $3) RETURNING id;",
     "Name": "InsertItemReturningID",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -45,13 +48,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -69,20 +74,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Number": 3,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -95,7 +105,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -120,16 +131,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "items",
     "Filename": "items.sql",
-    "SQL": "-- piko.name: InsertItemReturningAll\n-- piko.command: one\nINSERT INTO items (id, name, price) VALUES ($1, $2, $3) RETURNING *;",
+    "SQL": "-- piko.query(name: InsertItemReturningAll, command: one)\nINSERT INTO items (id, name, price) VALUES ($1, $2, $3) RETURNING *;",
     "Name": "InsertItemReturningAll",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -147,13 +161,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -171,13 +187,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -195,20 +213,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Number": 3,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -221,16 +244,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -243,16 +270,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "price",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "price",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 10,
@@ -265,7 +296,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -289,10 +321,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

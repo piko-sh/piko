@@ -1,3 +1,2 @@
--- piko.name: ReadOnlyWrapperPure
--- piko.command: one
+-- piko.query(name: ReadOnlyWrapperPure, command: one)
 SELECT wrapper_pure(42) AS result;

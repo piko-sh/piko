@@ -23,8 +23,8 @@ type ToggleInput struct {
 	ID int32 `json:"id" validate:"required"`
 }
 
-// ToggleResponse is returned after a successful toggle. It is intentionally
-// empty because the client reloads the page to reflect the change.
+// ToggleResponse is returned after a successful toggle. It is intentionally empty because
+// the client reloads the page to reflect the change.
 type ToggleResponse struct{}
 
 // Call flips the completed flag on the specified task.

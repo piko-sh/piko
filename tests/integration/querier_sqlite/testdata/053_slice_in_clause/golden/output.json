@@ -1,52 +1,52 @@
 {
   "count_many_statuses": {
-    "Total": 5
+    "total": 5
   },
   "count_one_status": {
-    "Total": 1
+    "total": 1
   },
   "deleted_count": 2,
   "fetch_by_statuses": [
     {
-      "ID": "t2",
-      "Priority": 3,
-      "Status": "PENDING",
-      "Title": "High pending"
+      "id": "t2",
+      "priority": 3,
+      "status": "PENDING",
+      "title": "High pending"
     },
     {
-      "ID": "t6",
-      "Priority": 2,
-      "Status": "RETRYING",
-      "Title": "Mid retrying"
+      "id": "t6",
+      "priority": 2,
+      "status": "RETRYING",
+      "title": "Mid retrying"
     },
     {
-      "ID": "t1",
-      "Priority": 1,
-      "Status": "PENDING",
-      "Title": "Low pending"
+      "id": "t1",
+      "priority": 1,
+      "status": "PENDING",
+      "title": "Low pending"
     }
   ],
   "fetch_by_statuses_and_priority": [
     {
-      "ID": "t2",
-      "Priority": 3,
-      "Status": "PENDING",
-      "Title": "High pending"
+      "id": "t2",
+      "priority": 3,
+      "status": "PENDING",
+      "title": "High pending"
     },
     {
-      "ID": "t3",
-      "Priority": 2,
-      "Status": "PROCESSING",
-      "Title": "Mid processing"
+      "id": "t3",
+      "priority": 2,
+      "status": "PROCESSING",
+      "title": "Mid processing"
     },
     {
-      "ID": "t6",
-      "Priority": 2,
-      "Status": "RETRYING",
-      "Title": "Mid retrying"
+      "id": "t6",
+      "priority": 2,
+      "status": "RETRYING",
+      "title": "Mid retrying"
     }
   ],
   "remaining_after_delete": {
-    "Total": 4
+    "total": 4
   }
 }

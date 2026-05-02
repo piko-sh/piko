@@ -35,10 +35,10 @@ func main() {
 
 	queries := db.New(conn)
 	err = queries.InsertAccount(ctx, db.InsertAccountParams{
-		P1: int32(1),
-		P2: "Alice",
-		P3: int32(100),
-		P4: "active",
+		ID:      int64(1),
+		Name:    "Alice",
+		Balance: int32(100),
+		Status:  "active",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert Alice:", err)
@@ -46,10 +46,10 @@ func main() {
 	}
 
 	err = queries.InsertAccount(ctx, db.InsertAccountParams{
-		P1: int32(2),
-		P2: "Bob",
-		P3: int32(0),
-		P4: "inactive",
+		ID:      int64(2),
+		Name:    "Bob",
+		Balance: int32(0),
+		Status:  "inactive",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert Bob:", err)
@@ -57,25 +57,25 @@ func main() {
 	}
 	negativeBalanceError := false
 	err = queries.InsertAccount(ctx, db.InsertAccountParams{
-		P1: int32(3),
-		P2: "Charlie",
-		P3: int32(-50),
-		P4: "active",
+		ID:      int64(3),
+		Name:    "Charlie",
+		Balance: int32(-50),
+		Status:  "active",
 	})
 	if err != nil {
 		negativeBalanceError = true
 	}
 	invalidStatusError := false
 	err = queries.InsertAccount(ctx, db.InsertAccountParams{
-		P1: int32(4),
-		P2: "Diana",
-		P3: int32(200),
-		P4: "banned",
+		ID:      int64(4),
+		Name:    "Diana",
+		Balance: int32(200),
+		Status:  "banned",
 	})
 	if err != nil {
 		invalidStatusError = true
 	}
-	validAccount, err := queries.GetAccount(ctx, int32(1))
+	validAccount, err := queries.GetAccount(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetAccount:", err)
 		os.Exit(1)

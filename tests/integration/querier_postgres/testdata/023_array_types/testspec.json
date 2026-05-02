@@ -1,3 +1,9 @@
 {
-  "description": "INTEGER[] and TEXT[] columns with = ANY(), array_agg(), and array literals"
+  "description": "INTEGER[] and TEXT[] columns with = ANY(), array_agg(), and array literals",
+  "typeOverrides": [
+    {"SQLTypeName": "text[]", "GoPackage": "github.com/lib/pq", "GoName": "StringArray"},
+    {"SQLTypeName": "integer[]", "GoPackage": "github.com/lib/pq", "GoName": "Int32Array"},
+    {"SQLTypeName": "int4[]", "GoPackage": "github.com/lib/pq", "GoName": "Int32Array"},
+    {"SQLTypeName": "[]", "GoPackage": "github.com/lib/pq", "GoName": "StringArray"}
+  ]
 }

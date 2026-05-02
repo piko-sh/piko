@@ -35,21 +35,19 @@ import (
 	"github.com/d5/tengo/v2/stdlib"
 )
 
-// tengoOSArgsMu guards the global os.Args swap done inside Run so that
-// concurrent tengo invocations (which the harness does not currently
-// do anyway) cannot interleave. Defensive.
+// tengoOSArgsMu guards the global os.Args swap done inside Run so that concurrent tengo
+// invocations (which the harness does not currently do anyway) cannot interleave.
+// Defensive.
 var tengoOSArgsMu sync.Mutex
 
-// TengoRunner executes a benchmark via the tengo Go library
-// (github.com/d5/tengo/v2). This is an in-process runner: compile is
-// timed separately from execute via tengo's Script.Compile/Compiled.Run
-// API split. Benchmarks without a `tengo/script.tengo` file return
-// StatusSkipped; benchmarks tengo cannot express (no goroutines, no
-// uint64) opt out via spec.SkipRunners.
+// TengoRunner executes a benchmark via the tengo Go library (github.com/d5/tengo/v2).
+// This is an in-process runner: compile is timed separately from execute via tengo's
+// Script.Compile/Compiled.Run API split. Benchmarks without a `tengo/script.tengo` file
+// return StatusSkipped; benchmarks tengo cannot express (no goroutines, no uint64) opt
+// out via spec.SkipRunners.
 type TengoRunner struct{}
 
-// NewTengoRunner returns a Runner that drives the tengo library
-// in-process.
+// NewTengoRunner returns a Runner that drives the tengo library in-process.
 func NewTengoRunner() *TengoRunner { return &TengoRunner{} }
 
 // Kind reports the runner identity used in results.
@@ -64,10 +62,9 @@ func (runner *TengoRunner) Available(ctx context.Context) (bool, string) {
 // Close is a no-op.
 func (runner *TengoRunner) Close(ctx context.Context) error { _ = ctx; return nil }
 
-// Run reads the benchmark's tengo/script.tengo, compiles it via
-// tengo.NewScript/Compile (timed as compile_nanos), then runs the
-// compiled program (timed as wall_nanos). The tengo script's own
-// timing of its inner loop is parsed off stderr.
+// Run reads the benchmark's tengo/script.tengo, compiles it via tengo.NewScript/Compile
+// (timed as compile_nanos), then runs the compiled program (timed as wall_nanos). The
+// tengo script's own timing of its inner loop is parsed off stderr.
 func (runner *TengoRunner) Run(parent context.Context, spec BenchSpec, mode RunMode, benchmarkDir string) (Result, error) {
 	scriptPath := filepath.Join(benchmarkDir, "tengo", "script.tengo")
 	if _, statErr := os.Stat(scriptPath); statErr != nil {
@@ -121,10 +118,9 @@ func (runner *TengoRunner) Run(parent context.Context, spec BenchSpec, mode RunM
 	}, nil
 }
 
-// runTengoScript wires stdout/stderr capture pipes, swaps os.Args so the
-// tengo script's `os.args()` sees our --mode/--k flags, then drives the
-// compile/run split. Returns stdout, stderr, compile nanos, wall nanos
-// for the Run() call, and any setup/run error.
+// runTengoScript wires stdout/stderr capture pipes, swaps os.Args so the tengo script's
+// `os.args()` sees our --mode/--k flags, then drives the compile/run split. Returns
+// stdout, stderr, compile nanos, wall nanos for the Run() call, and any setup/run error.
 func runTengoScript(
 	ctx context.Context,
 	source []byte,
@@ -219,10 +215,9 @@ func runTengoScript(
 	return stdoutResult.buf, stderrResult.buf, compileNanos, wallNanos, nil
 }
 
-// buildTengoArgv shapes the os.Args slice that the tengo script's
-// `os.args()` call returns. We mirror what the standalone `tengo`
-// binary would see: argv[0] is the binary name, argv[1] is the script
-// path, then the mode/k flags.
+// buildTengoArgv shapes the os.Args slice that the tengo script's `os.args()` call
+// returns. We mirror what the standalone `tengo` binary would see: argv[0] is the binary
+// name, argv[1] is the script path, then the mode/k flags.
 func buildTengoArgv(scriptPath string, mode RunMode, spec BenchSpec) []string {
 	args := []string{"tengo-bench", scriptPath}
 	if mode == ModeInnerLoop {
@@ -234,12 +229,11 @@ func buildTengoArgv(scriptPath string, mode RunMode, spec BenchSpec) []string {
 	return args
 }
 
-// tengoSha256Sum is the host implementation behind the `sha256_sum`
-// builtin exposed to tengo scripts. It accepts a single byte-slice
-// argument and returns the 32-byte SHA-256 digest as a tengo Bytes
-// value. Mirrors crypto/sha256.Sum256 on the Go-family runners and
-// hashlib.sha256(b).digest() on the Python runners; we register it as
-// a script global because tengo's stdlib does not bundle SHA-256.
+// tengoSha256Sum is the host implementation behind the `sha256_sum` builtin exposed to
+// tengo scripts. It accepts a single byte-slice argument and returns the 32-byte SHA-256
+// digest as a tengo Bytes value. Mirrors crypto/sha256.Sum256 on the Go-family runners
+// and hashlib.sha256(b).digest() on the Python runners; we register it as a script global
+// because tengo's stdlib does not bundle SHA-256.
 func tengoSha256Sum(args ...tengo.Object) (tengo.Object, error) {
 	if len(args) != 1 {
 		return nil, tengo.ErrWrongNumArguments

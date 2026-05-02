@@ -11,10 +11,13 @@
             {
               "Name": "id",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -26,7 +29,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": false,
@@ -38,10 +42,13 @@
             {
               "Name": "tiny_val",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -53,7 +60,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -65,10 +73,13 @@
             {
               "Name": "small_val",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -80,7 +91,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -92,10 +104,13 @@
             {
               "Name": "big_val",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -107,7 +122,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -119,10 +135,13 @@
             {
               "Name": "huge_val",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -134,7 +153,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -146,10 +166,13 @@
             {
               "Name": "utiny_val",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -161,7 +184,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -173,10 +197,13 @@
             {
               "Name": "usmall_val",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -188,7 +215,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -200,10 +228,13 @@
             {
               "Name": "uint_val",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -215,7 +246,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -227,10 +259,13 @@
             {
               "Name": "ubig_val",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -242,7 +277,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -254,10 +290,13 @@
             {
               "Name": "blob_val",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -269,7 +308,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 5
+                "Category": 5,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -281,10 +321,13 @@
             {
               "Name": "ts_s",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -296,7 +339,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 6
+                "Category": 6,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -308,10 +352,13 @@
             {
               "Name": "ts_ms",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -323,7 +370,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 6
+                "Category": 6,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -335,10 +383,13 @@
             {
               "Name": "ts_ns",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -350,7 +401,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 6
+                "Category": 6,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,

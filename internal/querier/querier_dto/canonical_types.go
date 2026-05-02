@@ -63,4 +63,7 @@ const (
 
 	// CanonicalInterval represents a time duration.
 	CanonicalInterval = "interval"
+
+	// CanonicalJSON represents a JSON document type (json or jsonb).
+	CanonicalJSON = "json"
 )

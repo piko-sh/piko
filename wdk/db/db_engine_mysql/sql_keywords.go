@@ -252,4 +252,12 @@ const (
 
 	// decimalBase is the base used when parsing decimal integer literals.
 	decimalBase = 10
+
+	// maxTypeModifier bounds a parsed numeric type modifier (length, precision, or scale).
+	//
+	// MySQL's largest practical modifier (the BLOB/TEXT 16 MiB cap and the 65535-byte row
+	// limit) sits far below this bound, so any larger value is clamped here rather than
+	// allowed to overflow into a wrapped (and thus garbage) integer. The bound also fits a
+	// 32-bit int so the constant is portable.
+	maxTypeModifier = 1 << 30
 )

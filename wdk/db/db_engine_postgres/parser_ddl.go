@@ -26,14 +26,33 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+const (
+	// maxArrayDimensions caps the recorded depth of an array type. Postgres itself caps
+	// arrays at 6 dimensions; we accept the same upper bound and silently stop counting
+	// beyond it so a maliciously deep `[][][]...` suffix cannot inflate downstream
+	// allocations.
+	maxArrayDimensions = 6
+)
+
 // parseCreateTable parses a CREATE TABLE statement into a catalogue mutation.
+//
+// Increments ddlDepth around the column / constraint walk so a pathologically deep CREATE
+// TABLE (e.g. a column whose type is a composite of a composite of a composite of ...)
+// cannot blow the goroutine stack via parseColumnType recursion.
 //
 // Takes engine (*PostgresEngine) which resolves column type names against the dialect's
 // type catalogue.
 //
 // Returns *querier_dto.CatalogueMutation which describes the new table.
-// Returns error when the statement is malformed.
+// Returns error when the statement is malformed or DDL recursion exceeds the maxDDLDepth
+// cap (errDDLDepthExceeded).
 func (p *parser) parseCreateTable(engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+	if p.ddlDepth >= maxDDLDepth {
+		return nil, errDDLDepthExceeded
+	}
+	p.ddlDepth++
+	defer func() { p.ddlDepth-- }()
+
 	p.mustKeyword(keywordCREATE)
 
 	p.matchKeyword("TEMP")
@@ -460,9 +479,11 @@ func (p *parser) parseColumnTypeInner(engine *PostgresEngine) (querier_dto.SQLTy
 	return sqlType, arrayDimensions
 }
 
-// parseArrayDimensions consumes trailing array dimension brackets.
+// parseArrayDimensions consumes trailing array subscript brackets after a type name,
+// counting how many dimensions were declared. Counting stops at maxArrayDimensions so a
+// pathologically deep bracket suffix cannot inflate downstream allocations.
 //
-// Returns int which is the number of dimensions consumed.
+// Returns int which is the number of array dimensions, capped at maxArrayDimensions.
 func (p *parser) parseArrayDimensions() int {
 	dimensions := 0
 	for p.current().kind == tokenLeftBracket {
@@ -473,7 +494,9 @@ func (p *parser) parseArrayDimensions() int {
 		if p.current().kind == tokenRightBracket {
 			p.advance()
 		}
-		dimensions++
+		if dimensions < maxArrayDimensions {
+			dimensions++
+		}
 	}
 	return dimensions
 }
@@ -552,13 +575,7 @@ func (p *parser) parseTypeModifiers() []int {
 	var modifiers []int
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		if p.current().kind == tokenNumber {
-			value := 0
-			for _, char := range p.current().value {
-				if char >= '0' && char <= '9' {
-					value = value*decimalBase + int(char-'0')
-				}
-			}
-			modifiers = append(modifiers, value)
+			modifiers = append(modifiers, parseModifierValue(p.current().value))
 		}
 		p.advance()
 	}
@@ -567,6 +584,27 @@ func (p *parser) parseTypeModifiers() []int {
 	}
 
 	return modifiers
+}
+
+// parseModifierValue accumulates the decimal digits of a numeric type modifier, clamping
+// the result at maxTypeModifierValue so an over-long digit run cannot overflow int
+// silently.
+//
+// Takes literal (string) which is the numeric token text.
+//
+// Returns int which is the parsed value, capped at maxTypeModifierValue.
+func parseModifierValue(literal string) int {
+	value := 0
+	for _, char := range literal {
+		if char < '0' || char > '9' {
+			continue
+		}
+		value = value*decimalBase + int(char-'0')
+		if value >= maxTypeModifierValue {
+			return maxTypeModifierValue
+		}
+	}
+	return value
 }
 
 // isPostgresColumnConstraintKeyword reports whether the current token starts a
@@ -848,7 +886,7 @@ func (p *parser) skipPostgresDefaultValue() {
 
 // skipPostgresForeignKeyClause consumes the trailing options of a FOREIGN KEY.
 func (p *parser) skipPostgresForeignKeyClause() {
-	if p.current().kind == tokenIdentifier {
+	if p.current().kind == tokenIdentifier && !p.isPostgresForeignKeyActionKeyword() {
 		p.mustSchemaQualifiedName()
 	}
 	if p.current().kind == tokenLeftParen {
@@ -857,8 +895,18 @@ func (p *parser) skipPostgresForeignKeyClause() {
 	for p.matchKeyword(keywordON) || p.matchKeyword("MATCH") || p.matchKeyword(keywordNOT) ||
 		p.matchKeyword("DEFERRABLE") || p.matchKeyword("INITIALLY") {
 		for !p.atEnd() && p.current().kind != tokenComma && p.current().kind != tokenRightParen &&
-			!p.isAnyKeyword(keywordON, "MATCH", keywordNOT, "DEFERRABLE", "INITIALLY") {
+			!p.isPostgresForeignKeyActionKeyword() {
 			p.advance()
 		}
 	}
+}
+
+// isPostgresForeignKeyActionKeyword reports whether the current token begins (or
+// terminates) a foreign-key action clause. Used by skipPostgresForeignKeyClause to
+// recognise the boundary between the REFERENCES <table>(cols) prefix and the ON / MATCH /
+// NOT / DEFERRABLE / INITIALLY action clauses that may follow it.
+//
+// Returns bool which is true when the current keyword starts a FK action clause.
+func (p *parser) isPostgresForeignKeyActionKeyword() bool {
+	return p.isAnyKeyword(keywordON, "MATCH", keywordNOT, "DEFERRABLE", "INITIALLY")
 }

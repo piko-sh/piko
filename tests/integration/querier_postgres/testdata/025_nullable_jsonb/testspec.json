@@ -1,0 +1,3 @@
+{
+  "description": "Nullable JSONB column: a NULL row scans into dbjson.JSON as nil without error, and a populated row round-trips its bytes"
+}

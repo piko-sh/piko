@@ -33,8 +33,8 @@ func main() {
 		panic(err)
 	}
 
-	// Apply schema and seed data directly since DuckDB has no migration
-	// dialect in the querier system.
+	// Apply schema and seed data directly since DuckDB has no migration dialect in the
+	// querier system.
 	schema, readErr := fs.ReadFile(salesdb.Migrations, "migrations/001_sales.up.sql")
 	if readErr != nil {
 		panic("reading schema: " + readErr.Error())

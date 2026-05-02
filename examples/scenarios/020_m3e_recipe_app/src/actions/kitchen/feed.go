@@ -27,7 +27,7 @@ import (
 	"piko.sh/piko"
 )
 
-// FeedInput is empty  - the feed takes no parameters.
+// FeedInput is empty - the feed takes no parameters.
 type FeedInput struct{}
 
 // FeedOutput is the non-streaming fallback response.
@@ -45,21 +45,20 @@ func (*FeedAction) Call(_ FeedInput) (FeedOutput, error) {
 	return FeedOutput{Active: true}, nil
 }
 
-// StreamProgress draws events from two independent pools (sequences
-// and standalone) and streams them to the client. Each item is removed
-// from its pool after being sent, so nothing repeats until the entire
-// pool is exhausted  - at which point that pool alone is recreated and
-// reshuffled. The two pools refill independently.
+// StreamProgress draws events from two independent pools (sequences and standalone) and
+// streams them to the client. Each item is removed from its pool after being sent, so
+// nothing repeats until the entire pool is exhausted - at which point that pool alone is
+// recreated and reshuffled. The two pools refill independently.
 func (*FeedAction) StreamProgress(stream *piko.SSEStream) error {
 	seqs := newSequencePool()
 	singles := newStandalonePool()
 
-	// activeSeq holds the remaining events of a sequence currently
-	// being played out one event at a time.
+	// activeSeq holds the remaining events of a sequence currently being played out one
+	// event at a time.
 	var activeSeq kitchen.Sequence
 
-	// standaloneGap counts how many standalone events to send
-	// before the next sequence begins.
+	// standaloneGap counts how many standalone events to send before the next sequence
+	// begins.
 	standaloneGap := 3 + rand.IntN(3) //nolint:gosec // not security
 	gapSent := 0
 

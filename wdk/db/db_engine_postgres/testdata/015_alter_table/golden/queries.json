@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "get_product.sql",
-    "SQL": "-- piko.name: GetProduct\n-- piko.command: one\nSELECT id, name, price, description, active FROM products WHERE id = $1;",
+    "SQL": "-- piko.query(name: GetProduct, command: one)\nSELECT id, name, price, description, active FROM products WHERE id = $1;",
     "Name": "GetProduct",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "price",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "price",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 10,
@@ -91,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "description",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "description",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -113,16 +131,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "active",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "active",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -135,7 +157,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 3
+          "Category": 3,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -156,9 +179,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

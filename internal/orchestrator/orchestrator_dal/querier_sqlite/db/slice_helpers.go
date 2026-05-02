@@ -3,6 +3,8 @@
 package db
 
 import (
+	"cmp"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -13,17 +15,15 @@ type pikoSliceExpansionSpec struct {
 	Count       int
 }
 
-func pikoExpandSlicePlaceholders(query string, specs []pikoSliceExpansionSpec) string {
+func pikoExpandSlicePlaceholders(query string, specs []pikoSliceExpansionSpec) (string, error) {
 	if len(specs) == 0 {
-		return query
+		return query, nil
 	}
-
 	sorted := make([]pikoSliceExpansionSpec, len(specs))
 	copy(sorted, specs)
 	slices.SortFunc(sorted, func(a, b pikoSliceExpansionSpec) int {
-		return a.Placeholder - b.Placeholder
+		return cmp.Compare(a.Placeholder, b.Placeholder)
 	})
-
 	type mapping struct {
 		newStart int
 		count    int
@@ -36,18 +36,53 @@ func pikoExpandSlicePlaceholders(query string, specs []pikoSliceExpansionSpec) s
 			pos += spec.Count
 		}
 	}
-
+	if totalBindCount := pos - 1; totalBindCount > pikoMaxBindVariables {
+		return "", fmt.Errorf("piko: expanded query of %d bind variables exceeds the limit of %d: %w", totalBindCount, pikoMaxBindVariables, errPikoTooManyBindVariables)
+	}
 	type occurrence struct {
 		start       int
 		end         int
 		originalNum int
 		inParens    bool
 	}
-
 	var occurrences []occurrence
 	i := 0
 	for i < len(query) {
-		if query[i] == '?' && i+1 < len(query) && query[i+1] >= '1' && query[i+1] <= '9' {
+		if query[i] == '\'' {
+			i++
+			for i < len(query) {
+				if query[i] == '\'' {
+					i++
+					if i < len(query) && query[i] == '\'' {
+						i++
+						continue
+					}
+					break
+				}
+				i++
+			}
+		} else if query[i] == '-' && i+1 < len(query) && query[i+1] == '-' {
+			for i < len(query) && query[i] != '\n' {
+				i++
+			}
+			if i < len(query) {
+				i++
+			}
+		} else if query[i] == '/' && i+1 < len(query) && query[i+1] == '*' {
+			i += 2
+			closed := false
+			for i+1 < len(query) {
+				if query[i] == '*' && query[i+1] == '/' {
+					i += 2
+					closed = true
+					break
+				}
+				i++
+			}
+			if !closed {
+				i = len(query)
+			}
+		} else if query[i] == '?' && i+1 < len(query) && query[i+1] >= '1' && query[i+1] <= '9' {
 			start := i
 			i++
 			numStart := i
@@ -61,11 +96,9 @@ func pikoExpandSlicePlaceholders(query string, specs []pikoSliceExpansionSpec) s
 			i++
 		}
 	}
-
 	if len(occurrences) == 0 {
-		return query
+		return query, nil
 	}
-
 	var b strings.Builder
 	b.Grow(len(query) + len(occurrences)*4)
 	prevEnd := 0
@@ -105,5 +138,5 @@ func pikoExpandSlicePlaceholders(query string, specs []pikoSliceExpansionSpec) s
 		prevEnd = replEnd
 	}
 	b.WriteString(query[prevEnd:])
-	return b.String()
+	return b.String(), nil
 }

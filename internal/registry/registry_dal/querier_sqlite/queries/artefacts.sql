@@ -1,22 +1,18 @@
--- piko.name: GetArtefact
--- piko.command: one
+-- piko.query(name: GetArtefact, command: one)
 SELECT id, source_path, created_at, updated_at, data_fbs
 FROM artefact
 WHERE id = ?;
 
--- piko.name: ListAllArtefactIDs
--- piko.command: many
+-- piko.query(name: ListAllArtefactIDs, command: many)
 SELECT id FROM artefact;
 
--- piko.name: GetMultipleArtefacts
--- piko.command: many
--- ?1 as piko.slice(ids)
+-- piko.query(name: GetMultipleArtefacts, command: many)
+-- ?1 as piko.param(ids, kind: slice)
 SELECT id, source_path, created_at, updated_at, data_fbs
 FROM artefact
 WHERE id IN (?1);
 
--- piko.name: UpsertArtefact
--- piko.command: exec
+-- piko.query(name: UpsertArtefact, command: exec)
 INSERT INTO artefact (id, source_path, created_at, updated_at, data_fbs)
 VALUES (?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
@@ -24,6 +20,5 @@ ON CONFLICT(id) DO UPDATE SET
   updated_at = excluded.updated_at,
   data_fbs = excluded.data_fbs;
 
--- piko.name: DeleteArtefact
--- piko.command: exec
+-- piko.query(name: DeleteArtefact, command: exec)
 DELETE FROM artefact WHERE id = ?;

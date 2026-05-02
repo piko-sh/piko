@@ -23,8 +23,8 @@ import (
 )
 
 type recordingCodeEmitter struct {
-	queries   []*querier_dto.AnalysedQuery
 	catalogue *querier_dto.Catalogue
+	queries   []*querier_dto.AnalysedQuery
 }
 
 func (emitter *recordingCodeEmitter) EmitModels(

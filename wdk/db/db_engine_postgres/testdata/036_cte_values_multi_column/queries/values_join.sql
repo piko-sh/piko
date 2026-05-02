@@ -1,5 +1,4 @@
--- piko.name: ValuesJoin
--- piko.command: many
+-- piko.query(name: ValuesJoin, command: many)
 WITH filter(target_id, target_status) AS (VALUES (1, 'active'), (2, 'pending'))
 SELECT i.id, i.name, i.status
 FROM items i

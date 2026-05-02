@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "like_collision.sql",
-    "SQL": "-- piko.name: SearchNameCollision\n-- piko.command: many\nSELECT id FROM users WHERE name LIKE $1 OR name LIKE $2;",
+    "SQL": "-- piko.query(name: SearchNameCollision, command: many)\nSELECT id FROM users WHERE name LIKE $1 OR name LIKE $2;",
     "Name": "SearchNameCollision",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 8
       },
       {
         "DefaultLimit": null,
@@ -45,20 +48,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 8
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -71,7 +79,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -92,16 +101,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "like_complex_lhs.sql",
-    "SQL": "-- piko.name: SearchByConcat\n-- piko.command: many\nSELECT role FROM users WHERE (name || ' ' || role) LIKE $1;",
+    "SQL": "-- piko.query(name: SearchByConcat, command: many)\nSELECT role FROM users WHERE (name || ' ' || role) LIKE $1;",
     "Name": "SearchByConcat",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -119,20 +131,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 8
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "role",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "role",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -145,7 +162,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -166,16 +184,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "like_simple.sql",
-    "SQL": "-- piko.name: SearchByName\n-- piko.command: many\nSELECT email FROM users WHERE name LIKE $1;",
+    "SQL": "-- piko.query(name: SearchByName, command: many)\nSELECT email FROM users WHERE name LIKE $1;",
     "Name": "SearchByName",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -193,20 +214,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 8
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "email",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "email",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -219,7 +245,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -240,9 +267,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

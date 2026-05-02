@@ -1,42 +1,42 @@
 {
   "after_insert": [
     {
-      "ID": 1,
-      "LookupKey": "colour",
-      "Value": "red",
-      "Version": 1
+      "id": 1,
+      "lookup_key": "colour",
+      "value": "red",
+      "version": 1
     },
     {
-      "ID": 2,
-      "LookupKey": "language",
-      "Value": "Go",
-      "Version": 1
+      "id": 2,
+      "lookup_key": "language",
+      "value": "Go",
+      "version": 1
     }
   ],
   "after_second_upsert": {
-    "ID": 1,
-    "LookupKey": "colour",
-    "Value": "green",
-    "Version": 3
+    "id": 1,
+    "lookup_key": "colour",
+    "value": "green",
+    "version": 3
   },
   "after_upsert": {
-    "ID": 1,
-    "LookupKey": "colour",
-    "Value": "blue",
-    "Version": 2
+    "id": 1,
+    "lookup_key": "colour",
+    "value": "blue",
+    "version": 2
   },
   "all_entries": [
     {
-      "ID": 1,
-      "LookupKey": "colour",
-      "Value": "green",
-      "Version": 3
+      "id": 1,
+      "lookup_key": "colour",
+      "value": "green",
+      "version": 3
     },
     {
-      "ID": 2,
-      "LookupKey": "language",
-      "Value": "Go",
-      "Version": 1
+      "id": 2,
+      "lookup_key": "language",
+      "value": "Go",
+      "version": 1
     }
   ]
 }

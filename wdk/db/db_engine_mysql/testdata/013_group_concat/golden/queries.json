@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "tags_per_item.sql",
-    "SQL": "-- piko.name: TagsPerItem\n-- piko.command: many\nSELECT\n    item_id,\n    GROUP_CONCAT(tag_name ORDER BY tag_name SEPARATOR ', ') AS all_tags\nFROM tags\nGROUP BY item_id;",
+    "SQL": "-- piko.query(name: TagsPerItem, command: many)\nSELECT\n    item_id,\n    GROUP_CONCAT(tag_name ORDER BY tag_name SEPARATOR ', ') AS all_tags\nFROM tags\nGROUP BY item_id;",
     "Name": "TagsPerItem",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "item_id",
         "SourceTable": "tags",
+        "SourceSchema": "",
         "SourceColumn": "item_id",
+        "SourceQualifier": "tags",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "all_tags",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,7 +52,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -65,9 +74,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

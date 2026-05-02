@@ -1,0 +1,111 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "events.sql",
+    "SQL": "-- piko.query(GetEvent, one)\nSELECT id, ts FROM analytics.events WHERE id = {eid:UInt64};",
+    "Name": "GetEvent",
+    "CountSQL": "",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "eid",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0,
+        "Context": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "id",
+        "SourceTable": "events",
+        "SourceSchema": "analytics",
+        "SourceColumn": "id",
+        "SourceQualifier": "events",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "ts",
+        "SourceTable": "events",
+        "SourceSchema": "analytics",
+        "SourceColumn": "ts",
+        "SourceQualifier": "events",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "DateTime",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 6,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "Command": 0,
+    "IsDynamic": false,
+    "DynamicRuntime": false,
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
+  }
+]

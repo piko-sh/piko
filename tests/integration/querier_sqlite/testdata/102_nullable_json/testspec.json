@@ -1,0 +1,3 @@
+{
+  "description": "Nullable JSON column on SQLite: a NULL row scans into dbjson.JSON as nil, and a populated row (returned by the driver as a string) round-trips its bytes"
+}

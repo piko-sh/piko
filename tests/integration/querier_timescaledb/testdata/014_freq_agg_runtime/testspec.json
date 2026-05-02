@@ -1,0 +1,4 @@
+{
+  "description": "freq_agg(min_freq, value_column) builds a space-saving aggregate state that retains every value occurring above the threshold frequency. The topn(state, n) accessor returns the top-n values; max_frequency / min_frequency surface the per-value frequency bounds. The fixture seeds a skewed device distribution and verifies the heavy hitters surface in descending frequency order.",
+  "skip": false
+}

@@ -9,6 +9,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"piko.sh/piko/wdk/db/dbjson"
+
 	"querier_test_runner/db"
 )
 
@@ -55,7 +57,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	byAttributes, err := queries.FindByAttributes(ctx, `{"colour": "red"}`)
+	byAttributes, err := queries.FindByAttributes(ctx, dbjson.JSON(`{"colour": "red"}`))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

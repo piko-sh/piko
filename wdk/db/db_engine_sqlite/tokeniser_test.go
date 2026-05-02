@@ -152,6 +152,68 @@ func TestTokenise_Identifiers(t *testing.T) {
 	}
 }
 
+func TestTokenise_UnicodeIdentifiers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		expected []token
+	}{
+		{
+			name:  "accented latin identifier",
+			input: "café",
+			expected: []token{
+				{kind: tokenIdentifier, value: "café", position: 0},
+			},
+		},
+		{
+			name:  "diaeresis identifier",
+			input: "naïve",
+			expected: []token{
+				{kind: tokenIdentifier, value: "naïve", position: 0},
+			},
+		},
+		{
+			name:  "cjk identifier",
+			input: "名前",
+			expected: []token{
+				{kind: tokenIdentifier, value: "名前", position: 0},
+			},
+		},
+		{
+			name:  "mixed ascii underscore unicode and digit",
+			input: "user_café2",
+			expected: []token{
+				{kind: tokenIdentifier, value: "user_café2", position: 0},
+			},
+		},
+		{
+			name:  "ascii identifier remains unchanged",
+			input: "plain_column1",
+			expected: []token{
+				{kind: tokenIdentifier, value: "plain_column1", position: 0},
+			},
+		},
+		{
+			name:  "unicode identifiers separated by dot",
+			input: "café.名前",
+			expected: []token{
+				{kind: tokenIdentifier, value: "café", position: 0},
+				{kind: tokenDot, value: ".", position: 5},
+				{kind: tokenIdentifier, value: "名前", position: 6},
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			requireTokens(t, testCase.input, testCase.expected)
+		})
+	}
+}
+
 func TestTokenise_Numbers(t *testing.T) {
 	t.Parallel()
 

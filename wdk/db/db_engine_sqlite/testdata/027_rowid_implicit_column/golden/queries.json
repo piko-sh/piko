@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "select_oid.sql",
-    "SQL": "-- piko.name: SelectOID\n-- piko.command: many\nSELECT _rowid_, name FROM items",
+    "SQL": "-- piko.query(name: SelectOID, command: many)\nSELECT _rowid_, name FROM items",
     "Name": "SelectOID",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "_rowid_",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "_rowid_",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,7 +52,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -65,16 +74,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "select_rowid.sql",
-    "SQL": "-- piko.name: SelectRowID\n-- piko.command: many\nSELECT rowid, name FROM items WHERE rowid \u003e ?",
+    "SQL": "-- piko.query(name: SelectRowID, command: many)\nSELECT rowid, name FROM items WHERE rowid \u003e ?",
     "Name": "SelectRowID",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -92,20 +104,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "rowid",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "rowid",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -118,16 +135,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -140,7 +161,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -161,9 +183,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

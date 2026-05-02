@@ -247,8 +247,8 @@ func ClassesFromMapStringBool(classes map[string]bool) string {
 // MergeClasses combines class attributes from multiple values using reflection.
 //
 // The Piko emitter will try to call a more specific helper first (such as
-// MergeClassesFromMapStringBool) if the type is known at compile time. MergeClasses
-// is the fallback for dynamic types like any or interface{}.
+// MergeClassesFromMapStringBool) if the type is known at compile time. MergeClasses is
+// the fallback for dynamic types like any or interface{}.
 //
 // When values is empty, returns an empty string.
 //
@@ -1379,8 +1379,8 @@ func buildStyleString(stylesMap map[string]string) string {
 	return string(buffer)
 }
 
-// toKebabCase converts a string from camelCase to kebab-case. Normalises style
-// property names.
+// toKebabCase converts a string from camelCase to kebab-case. Normalises style property
+// names.
 //
 // Takes s (string) which is the input string to convert.
 //

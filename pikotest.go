@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/internal/pikotest/pikotest_dto"
 )
 
-// ActionTester provides a test harness for server actions.
-// Create one using NewActionTester with an ActionHandlerEntry.
+// ActionTester provides a test harness for server actions. Create one using
+// NewActionTester with an ActionHandlerEntry.
 type ActionTester = pikotest_domain.ActionTester
 
 // ActionResultView wraps the result of an action invocation for assertions.
@@ -36,16 +36,16 @@ type ActionResultView = pikotest_domain.ActionResultView
 // ActionResult holds the raw result of a server action invocation.
 type ActionResult = pikotest_dto.ActionResult
 
-// ComponentTester manages the testing of a compiled Piko component.
-// Create one using NewComponentTester with your component's BuildAST function.
+// ComponentTester manages the testing of a compiled Piko component. Create one using
+// NewComponentTester with your component's BuildAST function.
 type ComponentTester = pikotest_domain.ComponentTester
 
-// TestView wraps the result of a component render and provides methods to
-// check state, metadata, and DOM structure.
+// TestView wraps the result of a component render and provides methods to check state,
+// metadata, and DOM structure.
 type TestView = pikotest_domain.TestView
 
-// ASTQueryResult wraps a set of AST nodes from a CSS selector query and
-// provides fluent assertion methods.
+// ASTQueryResult wraps a set of AST nodes from a CSS selector query and provides fluent
+// assertion methods.
 type ASTQueryResult = pikotest_domain.ASTQueryResult
 
 // BuildASTFunc is the signature of the generated BuildAST function in compiled
@@ -55,38 +55,32 @@ type BuildASTFunc = pikotest_dto.BuildASTFunc
 // ComponentOption sets optional behaviour for the ComponentTester.
 type ComponentOption = pikotest_dto.ComponentOption
 
-// RequestBuilder builds RequestData for tests.
-// Use NewTestRequest to create a builder.
+// RequestBuilder builds RequestData for tests. Use NewTestRequest to create a builder.
 type RequestBuilder = pikotest_domain.RequestBuilder
 
-// NewActionTester creates a new ActionTester for the given action handler
-// entry.
+// NewActionTester creates a new ActionTester for the given action handler entry.
 //
 // Takes tb (testing.TB) which is the test instance for error reporting.
 // Takes entry (ActionHandlerEntry) which describes the action to test.
 //
 // Returns *ActionTester ready for invoking and asserting.
 //
-// Example:
-// tester := piko.NewActionTester(t, CustomerCreate)
-// result := tester.Invoke(ctx, map[string]any{"name": "Acme Corp"})
-// result.AssertSuccess()
+// Example: tester := piko.NewActionTester(t, CustomerCreate) result := tester.Invoke(ctx,
+// map[string]any{"name": "Acme Corp"}) result.AssertSuccess()
 func NewActionTester(tb testing.TB, entry ActionHandlerEntry) *ActionTester {
 	return pikotest_domain.NewActionTester(tb, entry)
 }
 
-// NewTestRequest creates a new RequestBuilder for the specified HTTP method
-// and path. This is the primary entry point for building test requests with
-// proper context injection.
+// NewTestRequest creates a new RequestBuilder for the specified HTTP method and path.
+// This is the primary entry point for building test requests with proper context
+// injection.
 //
 // Takes method (string) which specifies the HTTP method (GET, POST, etc.).
 // Takes path (string) which specifies the request path.
 //
-// Returns *RequestBuilder which provides a fluent interface for building test
-// requests.
+// Returns *RequestBuilder which provides a fluent interface for building test requests.
 //
-// Example:
-// request := piko.NewTestRequest("GET", "/customers").
+// Example: request := piko.NewTestRequest("GET", "/customers").
 //
 //	WithQueryParam("sort", "desc").
 //	Build(ctx)
@@ -94,11 +88,10 @@ func NewTestRequest(method, path string) *RequestBuilder {
 	return pikotest_domain.NewRequest(method, path)
 }
 
-// NewComponentTester creates a new ComponentTester for the given component's
-// BuildAST function.
+// NewComponentTester creates a new ComponentTester for the given component's BuildAST
+// function.
 //
-// Example:
-// import "myapp/dist/pages/customers"
+// Example: import "myapp/dist/pages/customers"
 //
 //	func TestCustomersPage(t *testing.T) {
 //	    tester := piko.NewComponentTester(t, customers.BuildAST)
@@ -114,18 +107,16 @@ func NewComponentTester(tb testing.TB, buildAST BuildASTFunc, opts ...ComponentO
 	return pikotest_domain.NewComponentTester(tb, buildAST, opts...)
 }
 
-// WithRenderer attaches a RenderService to enable full HTML rendering in tests.
-// Most tests should use AST queries instead, which do not require a renderer.
+// WithRenderer attaches a RenderService to enable full HTML rendering in tests. Most
+// tests should use AST queries instead, which do not require a renderer.
 //
-// Returns ComponentOption which logs an error at apply-time without
-// configuring the renderer. The piko package cannot reference the internal
-// RenderService type without inducing an import cycle, so this stub exists
-// for surface compatibility only.
+// Returns ComponentOption which logs an error at apply-time without configuring the
+// renderer. The piko package cannot reference the internal RenderService type without
+// inducing an import cycle, so this stub exists for surface compatibility only.
 //
-// Deprecated: Use pikotest_domain.WithRenderer directly. Calling this
-// function emits an error via slog and does not attach a renderer; HTML()
-// assertions on the resulting TestView will fail with a missing-renderer
-// diagnostic.
+// Deprecated: Use pikotest_domain.WithRenderer directly. Calling this function emits an
+// error via slog and does not attach a renderer; HTML() assertions on the resulting
+// TestView will fail with a missing-renderer diagnostic.
 func WithRenderer(_ any) ComponentOption {
 	return func(_ *pikotest_dto.ComponentConfig) {
 		slog.Error(

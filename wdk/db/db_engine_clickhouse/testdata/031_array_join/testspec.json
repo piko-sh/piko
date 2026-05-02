@@ -1,0 +1,3 @@
+{
+  "description": "ARRAY JOIN clause to pivot an array column into scalar rows. Currently parsed and skipped (no scope alteration in v1)."
+}

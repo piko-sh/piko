@@ -30,7 +30,6 @@ import (
 
 // introspectViews fills the schema's Views map.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schema (*querier_dto.Schema) which receives the views.
 //
 // Returns error when any query or column introspection fails.
@@ -68,6 +67,9 @@ func (provider *PgIntrospectionProvider) introspectViews(
 	}
 
 	for _, entry := range views {
+		if cancelError := ctx.Err(); cancelError != nil {
+			return cancelError
+		}
 		columns, columnError := provider.introspectColumns(ctx, schema.Name, entry.name)
 		if columnError != nil {
 			return fmt.Errorf("introspecting view columns for %s: %w", entry.name, columnError)
@@ -86,7 +88,6 @@ func (provider *PgIntrospectionProvider) introspectViews(
 
 // introspectEnums fills the schema's Enums map.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schema (*querier_dto.Schema) which receives the enums.
 //
 // Returns error when the query or scan fails.
@@ -150,7 +151,6 @@ type compositeField struct {
 
 // introspectCompositeTypes fills the schema's CompositeTypes map.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schema (*querier_dto.Schema) which receives the composites.
 //
 // Returns error when the query or scan fails.
@@ -196,7 +196,6 @@ func (provider *PgIntrospectionProvider) introspectCompositeTypes(
 
 // queryCompositeTypes runs the pg_type composite-attribute query.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the owning schema.
 //
 // Returns *sql.Rows which the caller must close.
@@ -252,7 +251,6 @@ func (provider *PgIntrospectionProvider) assembleCompositeTypes(
 
 // introspectFunctions fills the schema's Functions map.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schema (*querier_dto.Schema) which receives the functions.
 //
 // Returns error when the query or scan fails.
@@ -279,7 +277,6 @@ func (provider *PgIntrospectionProvider) introspectFunctions(
 
 // queryFunctions runs the pg_proc lookup query for one schema.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the owning schema.
 //
 // Returns *sql.Rows which the caller must close.
@@ -294,7 +291,6 @@ func (provider *PgIntrospectionProvider) queryFunctions(
 			pg_get_function_arguments(p.oid) AS arguments,
 			pg_get_function_result(p.oid) AS return_type,
 			p.prokind,
-			p.provolatile,
 			p.proisstrict
 		 FROM pg_proc p
 		 JOIN pg_namespace n ON p.pronamespace = n.oid
@@ -318,18 +314,15 @@ func (provider *PgIntrospectionProvider) scanFunctionRow(
 	var argumentsString string
 	var returnTypeString string
 	var procKind string
-	var volatility string
 	var isStrict bool
 
 	scanError := rows.Scan(
 		&functionName, &argumentsString, &returnTypeString,
-		&procKind, &volatility, &isStrict,
+		&procKind, &isStrict,
 	)
 	if scanError != nil {
 		return nil, scanError
 	}
-
-	_ = volatility
 
 	arguments := parseFunctionArguments(argumentsString, provider.typeNormaliser)
 	returnType, returnsSet := parseReturnType(returnTypeString, provider.typeNormaliser)
@@ -507,7 +500,6 @@ func looksLikeTypeName(token string) bool {
 //
 // Ignores the built-in plpgsql extension because it is always present.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes catalogue (*querier_dto.Catalogue) which receives entries.
 //
 // Returns error when the query or scan fails.

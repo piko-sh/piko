@@ -42,8 +42,8 @@ func TestScanMigrationReadOnlyOverrides(t *testing.T) {
 			expected:      map[string]*bool{},
 		},
 		{
-			name: "piko.readonly before CREATE FUNCTION returns map with function name true",
-			content: `-- piko.readonly
+			name: "piko.migration(readonly: true) before CREATE FUNCTION returns map with function name true",
+			content: `-- piko.migration(readonly: true)
 CREATE FUNCTION my_func() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;`,
 			commentPrefix: "--",
 			expected: map[string]*bool{
@@ -51,8 +51,8 @@ CREATE FUNCTION my_func() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;`,
 			},
 		},
 		{
-			name: "piko.readonly(false) before CREATE FUNCTION returns map with function name false",
-			content: `-- piko.readonly(false)
+			name: "piko.migration(readonly: false) before CREATE FUNCTION returns map with function name false",
+			content: `-- piko.migration(readonly: false)
 CREATE FUNCTION my_writer() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;`,
 			commentPrefix: "--",
 			expected: map[string]*bool{
@@ -61,7 +61,7 @@ CREATE FUNCTION my_writer() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;`,
 		},
 		{
 			name: "directive not followed by CREATE FUNCTION is ignored",
-			content: `-- piko.readonly
+			content: `-- piko.migration(readonly: true)
 SELECT 1;
 CREATE FUNCTION after_select() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;`,
 			commentPrefix: "--",
@@ -69,14 +69,43 @@ CREATE FUNCTION after_select() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql
 		},
 		{
 			name: "multiple functions with overrides returns all",
-			content: `-- piko.readonly
+			content: `-- piko.migration(readonly: true)
 CREATE FUNCTION reader() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;
--- piko.readonly(false)
+-- piko.migration(readonly: false)
 CREATE FUNCTION writer() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;`,
 			commentPrefix: "--",
 			expected: map[string]*bool{
 				"reader": new(true),
 				"writer": new(false),
+			},
+		},
+		{
+			name: "intervening comment clears the pending override",
+			content: `-- piko.migration(readonly: true)
+-- an unrelated descriptive comment
+CREATE FUNCTION distant() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;`,
+			commentPrefix: "--",
+			expected:      map[string]*bool{},
+		},
+		{
+			name: "blank line between directive and function preserves the override",
+			content: `-- piko.migration(readonly: true)
+
+CREATE FUNCTION spaced() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;`,
+			commentPrefix: "--",
+			expected: map[string]*bool{
+				"spaced": new(true),
+			},
+		},
+		{
+			name: "later readonly directive after an intervening comment still applies",
+			content: `-- piko.migration(readonly: true)
+-- unrelated comment that breaks the first directive
+-- piko.migration(readonly: false)
+CREATE FUNCTION rebound() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;`,
+			commentPrefix: "--",
+			expected: map[string]*bool{
+				"rebound": new(false),
 			},
 		},
 	}

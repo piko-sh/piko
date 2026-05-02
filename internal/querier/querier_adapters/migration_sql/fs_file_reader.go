@@ -105,8 +105,13 @@ func NewFSFileReader(filesystem fs.FS, opts ...FSFileReaderOption) *FSFileReader
 // Takes path (string) which is the file path relative to the filesystem root.
 //
 // Returns []byte which holds the file contents.
-// Returns error when the file cannot be read or exceeds the size cap.
-func (reader *FSFileReader) ReadFile(_ context.Context, path string) ([]byte, error) {
+// Returns error when ctx is cancelled, the file cannot be read, or the size cap is
+// exceeded.
+func (reader *FSFileReader) ReadFile(ctx context.Context, path string) ([]byte, error) {
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
+	}
+
 	maxBytes := reader.effectiveMaxFileBytes()
 	file, openErr := reader.filesystem.Open(path)
 	if openErr != nil {
@@ -124,6 +129,9 @@ func (reader *FSFileReader) ReadFile(_ context.Context, path string) ([]byte, er
 	if readErr != nil {
 		return nil, fmt.Errorf("reading migration file %q: %w", path, readErr)
 	}
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
+	}
 	if int64(len(content)) > maxBytes {
 		return nil, fmt.Errorf("file %q exceeds %d bytes: %w",
 			path, maxBytes, ErrMigrationFileTooLarge)
@@ -133,11 +141,19 @@ func (reader *FSFileReader) ReadFile(_ context.Context, path string) ([]byte, er
 
 // ReadDir reads the directory entries from the embedded filesystem, sorted by name.
 //
+// Context cancellation is honoured before the synchronous fs.ReadDir call dispatches; the
+// underlying io/fs.FS interface has no cancellation hook so an in-flight read runs to
+// completion.
+//
 // Takes directory (string) which is the directory path relative to the filesystem root.
 //
 // Returns []os.DirEntry which holds the directory entries.
-// Returns error when the directory cannot be read.
-func (reader *FSFileReader) ReadDir(_ context.Context, directory string) ([]os.DirEntry, error) {
+// Returns error when ctx is cancelled or the directory cannot be read.
+func (reader *FSFileReader) ReadDir(ctx context.Context, directory string) ([]os.DirEntry, error) {
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
+	}
+
 	entries, readError := fs.ReadDir(reader.filesystem, directory)
 	if readError != nil {
 		return nil, fmt.Errorf("reading directory %q: %w", directory, readError)

@@ -1,19 +1,19 @@
 {
   "get_user": {
-    "Email": "alice@example.com",
-    "ID": 1,
-    "Name": "Alice"
+    "email": "alice@example.com",
+    "id": 1,
+    "name": "Alice"
   },
   "list_users": [
     {
-      "Email": "alice@example.com",
-      "ID": 1,
-      "Name": "Alice"
+      "email": "alice@example.com",
+      "id": 1,
+      "name": "Alice"
     },
     {
-      "Email": "bob@example.com",
-      "ID": 2,
-      "Name": "Bob"
+      "email": "bob@example.com",
+      "id": 2,
+      "name": "Bob"
     }
   ]
 }

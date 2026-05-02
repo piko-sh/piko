@@ -65,7 +65,9 @@ type GoType struct {
 }
 
 // AnalysedQuery is the fully resolved result of query analysis, with all types and
-// nullability propagated.
+// nullability propagated. Fields are ordered for natural Go alignment: strings first,
+// then slices, then the Directives struct, then ints, then the QueryCommand enum, and
+// finally booleans grouped at the end to minimise padding.
 type AnalysedQuery struct {
 	// InsertTable is the target table for :copyfrom queries.
 	InsertTable string
@@ -78,6 +80,11 @@ type AnalysedQuery struct {
 
 	// Name is the query name from the piko.name directive.
 	Name string
+
+	// CountSQL is the pre-derived `SELECT COUNT(*) ...` form of the query for use by the
+	// runtime builder's .Count(ctx) terminal. Empty when the query is not piko.dynamic:
+	// runtime or when count rewriting is not applicable.
+	CountSQL string
 
 	// Parameters holds the fully typed query parameters.
 	Parameters []QueryParameter
@@ -101,11 +108,11 @@ type AnalysedQuery struct {
 	// Line is the line number of the query in the source file.
 	Line int
 
-	// IsDynamic indicates the query has optional WHERE or ORDER BY clauses.
-	IsDynamic bool
-
 	// Command is the execution pattern from the piko.command directive.
 	Command QueryCommand
+
+	// IsDynamic indicates the query has optional WHERE or ORDER BY clauses.
+	IsDynamic bool
 
 	// DynamicRuntime indicates this query uses piko.dynamic: runtime to generate a fluent
 	// runtime builder instead of a standard method.
@@ -114,12 +121,32 @@ type AnalysedQuery struct {
 	// ReadOnly indicates the query does not modify data. Downstream consumers can use this
 	// to route read-only queries to read replicas.
 	ReadOnly bool
+
+	// BaseQueryHasWhereClause indicates that the SQL written in the .sql file already
+	// carries a WHERE clause.
+	//
+	// The runtime query builder uses this to emit " AND " instead of " WHERE " when
+	// appending runtime predicates, so a base query that filters by environment_id (or any
+	// other static predicate) does not produce a duplicate-WHERE syntax error.
+	BaseQueryHasWhereClause bool
+
+	// CountSQLWrapped reports whether the count rewriter wrapped the original query in
+	// `SELECT COUNT(*) FROM (<original>) sub` because of GROUP BY, DISTINCT, or
+	// window-function semantics. Used by the diagnostic pass to emit Q023 so the webdev
+	// understands the count is over outer rows.
+	CountSQLWrapped bool
 }
 
 // AllowedColumn represents a column available for runtime query building.
 type AllowedColumn struct {
-	// Name is the column name.
+	// Name is the column's output (result-set) name, which is what a caller passes to the
+	// runtime builder's Where and OrderBy methods.
 	Name string
+
+	// SourceExpression is the qualified source reference the builder emits into the SQL in
+	// place of the caller's text (for example "users.email"). It is unambiguous across joins
+	// and references the real column behind an aliased projection.
+	SourceExpression string
 
 	// SQLType is the column's resolved SQL type.
 	SQLType SQLType
@@ -127,14 +154,34 @@ type AllowedColumn struct {
 
 // OutputColumn is a fully typed output column.
 type OutputColumn struct {
+	// GoTypeOverride, when non-nil, carries the custom Go destination type declared via a
+	// piko.column(name, go_type: ...) directive (either in the query header for a per-query
+	// override or propagated from the catalogue for a migration-level override). When set,
+	// the emitter uses this directly instead of mapping SQLType through the engine type
+	// registry.
+	GoTypeOverride *GoType
+
 	// Name is the column name or alias.
 	Name string
 
 	// SourceTable is the source table, if this is a direct column reference.
 	SourceTable string
 
+	// SourceSchema is the schema of SourceTable, when known, so a lookup against the
+	// catalogue is unambiguous even when two schemas hold a table of the same name. Empty
+	// for CTE/derived sources or when the schema could not be attributed.
+	SourceSchema string
+
 	// SourceColumn is the source column name, if this is a direct reference.
 	SourceColumn string
+
+	// SourceQualifier is the table reference that qualifies SourceColumn in the FROM clause.
+	//
+	// Holds the alias when the query aliased the table, otherwise the table or CTE name. The
+	// dynamic runtime builder emits "<SourceQualifier>.<SourceColumn>" so a filter or
+	// ordering on a projected column is unambiguous across joins and references the real
+	// column rather than the caller's text. Empty when no qualifier is known.
+	SourceQualifier string
 
 	// EmbedTable is the table name for embedded columns.
 	EmbedTable string
@@ -157,10 +204,12 @@ type OutputColumn struct {
 
 // QueryParameter is a fully typed query parameter.
 type QueryParameter struct {
-	// DefaultLimit holds the default value for a piko.limit parameter.
+	// DefaultLimit holds the default value applied when the caller omits a numeric parameter
+	// (e.g. a LIMIT page size), from piko.param's default: quality.
 	DefaultLimit *int
 
-	// MaxLimit holds the maximum allowed value for a piko.limit parameter.
+	// MaxLimit holds the inclusive maximum enforced at call time for a numeric parameter
+	// (e.g. a LIMIT cap), from piko.param's max: quality.
 	MaxLimit *int
 
 	// Name is the parameter name from piko.param directive, or inferred from the column
@@ -180,14 +229,19 @@ type QueryParameter struct {
 	// Nullable indicates whether the parameter accepts NULL values.
 	Nullable bool
 
-	// IsSlice indicates the parameter expands to multiple values (piko.slice).
+	// IsSlice indicates the parameter expands to multiple values (piko.param kind: slice).
 	IsSlice bool
 
-	// IsOptional indicates the parameter is for a dynamic WHERE clause (piko.optional).
+	// IsOptional indicates the parameter is for a dynamic WHERE clause (piko.param optional:
+	// true).
 	IsOptional bool
 
 	// Kind identifies the directive kind that declared this parameter.
 	Kind ParameterDirectiveKind
+
+	// Context records the SQL clause the parameter was found in. LIMIT/OFFSET contexts drive
+	// integer typing, the non-negative clamp, and the generated `int` field type.
+	Context ParameterContext
 }
 
 // QueryDirectives holds all parsed piko. directives for a query.
@@ -295,3 +349,12 @@ const (
 	// SeverityHint indicates a suggestion for improvement.
 	SeverityHint
 )
+
+// IsPaginationBound reports whether the parameter binds a LIMIT or OFFSET clause, which
+// makes it a non-negative integer with a generated `int` field and optional default/max
+// clamping.
+//
+// Returns bool which is true when the parameter binds a LIMIT or OFFSET clause.
+func (p QueryParameter) IsPaginationBound() bool {
+	return p.Context == ParameterContextLimit || p.Context == ParameterContextOffset
+}

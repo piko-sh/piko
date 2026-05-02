@@ -1,0 +1,3 @@
+{
+  "description": "Slice parameter expanded to a numbered IN list over TimescaleDB's postgres $N placeholders"
+}

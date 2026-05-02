@@ -1,0 +1,3 @@
+{
+  "description": "ClickHouse `database.table` qualification. Verifies schema-qualified DDL and query references."
+}

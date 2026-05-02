@@ -62,7 +62,11 @@ func (*PgxEmitter) EmitQuerier(packageName string, _ querier_dto.QueryCapabiliti
 }
 
 // buildDBTXInterface constructs the DBTX interface type declaration for the pgx runtime,
-// including Exec, Query, QueryRow, SendBatch, and CopyFrom.
+// including Exec, Query, QueryRow, SendBatch, CopyFrom, and Begin.
+//
+// Begin is required by the generated RunInTx method; every pgx connection handle that
+// satisfies DBTX (*pgxpool.Pool, *pgx.Conn, pgx.Tx) provides Begin(ctx) (pgx.Tx, error),
+// so including it keeps RunInTx well-typed against the interface.
 //
 // Returns *ast.GenDecl which is the type DBTX interface { ... } declaration.
 func buildDBTXInterface() *ast.GenDecl {
@@ -74,9 +78,29 @@ func buildDBTXInterface() *ast.GenDecl {
 				buildDBTXQueryRowMethod(),
 				buildDBTXSendBatchMethod(),
 				buildDBTXCopyFromMethod(),
+				buildDBTXBeginMethod(),
 			},
 		},
 	})
+}
+
+// buildDBTXBeginMethod constructs the Begin(ctx) (pgx.Tx, error) interface method that
+// RunInTx relies on to open a transaction.
+//
+// Returns *ast.Field which is the Begin method declaration.
+func buildDBTXBeginMethod() *ast.Field {
+	return &ast.Field{
+		Names: []*ast.Ident{goastutil.CachedIdent("Begin")},
+		Type: &ast.FuncType{
+			Params: goastutil.FieldList(
+				goastutil.Field(emitter_shared.IdentCtx, goastutil.SelectorExpr(emitter_shared.IdentContext, emitter_shared.IdentContextType)),
+			),
+			Results: goastutil.FieldList(
+				goastutil.Field("", goastutil.SelectorExpr(identPgx, "Tx")),
+				goastutil.Field("", goastutil.CachedIdent(identError)),
+			),
+		},
+	}
 }
 
 // buildDBTXExecMethod constructs the Exec(ctx, sql, args...) (pgconn.CommandTag, error)
@@ -90,7 +114,7 @@ func buildDBTXExecMethod() *ast.Field {
 			Params: buildDBTXCommonParams(),
 			Results: goastutil.FieldList(
 				goastutil.Field("", goastutil.SelectorExpr(identPgconn, "CommandTag")),
-				goastutil.Field("", goastutil.CachedIdent("error")),
+				goastutil.Field("", goastutil.CachedIdent(identError)),
 			),
 		},
 	}
@@ -107,7 +131,7 @@ func buildDBTXQueryMethod() *ast.Field {
 			Params: buildDBTXCommonParams(),
 			Results: goastutil.FieldList(
 				goastutil.Field("", goastutil.SelectorExpr(identPgx, "Rows")),
-				goastutil.Field("", goastutil.CachedIdent("error")),
+				goastutil.Field("", goastutil.CachedIdent(identError)),
 			),
 		},
 	}
@@ -164,7 +188,7 @@ func buildDBTXCopyFromMethod() *ast.Field {
 			),
 			Results: goastutil.FieldList(
 				goastutil.Field("", goastutil.CachedIdent("int64")),
-				goastutil.Field("", goastutil.CachedIdent("error")),
+				goastutil.Field("", goastutil.CachedIdent(identError)),
 			),
 		},
 	}

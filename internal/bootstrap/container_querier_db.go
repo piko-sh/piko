@@ -33,6 +33,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
@@ -69,6 +71,15 @@ const (
 	// poolUtilisationUnhealthyThreshold defines the connection pool utilisation ratio above
 	// which the health state is reported as unhealthy.
 	poolUtilisationUnhealthyThreshold = 0.95
+
+	// databaseHealthPingTimeout caps each individual liveness/readiness ping so one
+	// unresponsive database cannot consume the whole probe's time budget; the remaining
+	// connections are still checked within their own deadlines.
+	databaseHealthPingTimeout = 2 * time.Second
+
+	// maxConcurrentHealthPings bounds how many database liveness pings run at once so a
+	// deployment with many connections does not open an unbounded burst of probe queries.
+	maxConcurrentHealthPings = 8
 )
 
 var (
@@ -87,6 +98,11 @@ var (
 	// ErrNoSeedFilesystem is returned when GetQuerierSeedService is called for a database
 	// that has no seed filesystem configured.
 	ErrNoSeedFilesystem = errors.New("no seed filesystem configured")
+
+	// errDatabaseHealthPingTimeout is the cause attached to each per-ping deadline so a
+	// caller inspecting context.Cause can tell a ping that exceeded
+	// databaseHealthPingTimeout apart from an unrelated cancellation of the parent context.
+	errDatabaseHealthPingTimeout = errors.New("database health ping timed out")
 )
 
 // DatabaseHealthDiagnostic is a single diagnostic measurement from an engine-specific
@@ -313,6 +329,11 @@ type databaseInstance struct {
 
 	// replicaCount holds the number of configured read replicas for this database instance.
 	replicaCount int
+
+	// externallyOwned is true when the primary db was supplied pre-opened by the caller
+	// (reg.DB != nil). The container must not close such a connection -- neither via the
+	// shutdown hook (which is skipped at open time) nor during startup-rollback cleanup.
+	externallyOwned bool
 }
 
 // replicaBalancer distributes read queries across a pool of connections using lock-free
@@ -328,7 +349,6 @@ type replicaBalancer struct {
 
 // ExecContext executes a query on the next replica without returning any rows.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
 // Takes query (string) which is the SQL query to execute.
 // Takes args (...any) which are the query parameters.
 //
@@ -340,7 +360,6 @@ func (balancer *replicaBalancer) ExecContext(ctx context.Context, query string, 
 
 // QueryContext executes a query on the next replica that returns rows.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
 // Takes query (string) which is the SQL query to execute.
 // Takes args (...any) which are the query parameters.
 //
@@ -352,7 +371,6 @@ func (balancer *replicaBalancer) QueryContext(ctx context.Context, query string,
 
 // QueryRowContext executes a query on the next replica that returns at most one row.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
 // Takes query (string) which is the SQL query to execute.
 // Takes args (...any) which are the query parameters.
 //
@@ -387,7 +405,6 @@ func (*databaseService) Name() string {
 // checks ping all connections and readiness checks additionally report connection pool
 // statistics and engine-specific diagnostics.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
 // Takes checkType (healthprobe_dto.CheckType) which controls the depth of the check:
 // liveness is a simple ping; readiness includes pool stats and engine diagnostics.
 //
@@ -402,55 +419,50 @@ func (s *databaseService) Check(ctx context.Context, checkType healthprobe_dto.C
 	return s.checkReadiness(ctx, startTime)
 }
 
-// checkLiveness pings all primaries and replicas, returning immediately on first failure.
+// checkLiveness pings every primary and replica connection and aggregates their state.
+// The pings run concurrently under a bounded worker limit so a deployment with many
+// connections is checked in parallel, and each ping carries its own deadline (see
+// pingConnection) so one unresponsive database cannot stall the whole probe.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
+// Takes startTime (time.Time) which is when the probe began.
 //
 // Returns healthprobe_dto.Status which indicates the liveness state of all database
 // connections.
 func (s *databaseService) checkLiveness(ctx context.Context, startTime time.Time) healthprobe_dto.Status {
-	overallState := healthprobe_dto.StateHealthy
-	dependencies := make([]*healthprobe_dto.Status, 0, len(s.instances))
+	names := make([]string, 0, len(s.instances))
+	for name := range s.instances {
+		names = append(names, name)
+	}
+	slices.Sort(names)
 
-	for name, instance := range s.instances {
-		instanceState := healthprobe_dto.StateHealthy
-		message := "ping successful"
-
-		if pingError := instance.db.PingContext(ctx); pingError != nil {
-			instanceState = healthprobe_dto.StateUnhealthy
-			message = fmt.Sprintf("ping failed: %v", pingError)
-		}
-
-		replicaDependencies := make([]*healthprobe_dto.Status, 0, len(instance.replicas))
-		for replicaIndex, replica := range instance.replicas {
-			replicaState := healthprobe_dto.StateHealthy
-			replicaMessage := "ping successful"
-
-			if pingError := replica.PingContext(ctx); pingError != nil {
-				replicaState = healthprobe_dto.StateUnhealthy
-				replicaMessage = fmt.Sprintf("ping failed: %v", pingError)
-			}
-
-			replicaDependencies = append(replicaDependencies, &healthprobe_dto.Status{
-				Name:    fmt.Sprintf("replica-%d", replicaIndex),
-				State:   replicaState,
-				Message: replicaMessage,
-			})
-			instanceState = aggregateState(instanceState, replicaState)
-		}
-
-		dependencies = append(dependencies, &healthprobe_dto.Status{
-			Name:         fmt.Sprintf("Database:%s", name),
-			State:        instanceState,
-			Message:      message,
-			Dependencies: replicaDependencies,
+	dependencies := make([]*healthprobe_dto.Status, len(names))
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(maxConcurrentHealthPings)
+	for index, name := range names {
+		instance := s.instances[name]
+		group.Go(func() error {
+			dependencies[index] = s.livenessForInstance(groupCtx, name, instance)
+			return nil
 		})
-		overallState = aggregateState(overallState, instanceState)
 	}
 
-	slices.SortFunc(dependencies, func(a, b *healthprobe_dto.Status) int {
-		return cmp.Compare(a.Name, b.Name)
-	})
+	_ = group.Wait()
+
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return healthprobe_dto.Status{
+			Name:         databaseServiceName,
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      "liveness check cancelled: " + ctxErr.Error(),
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: dependencies,
+		}
+	}
+
+	overallState := healthprobe_dto.StateHealthy
+	for _, dependency := range dependencies {
+		overallState = aggregateState(overallState, dependency.State)
+	}
 
 	message := "all databases alive"
 	if overallState != healthprobe_dto.StateHealthy {
@@ -467,10 +479,71 @@ func (s *databaseService) checkLiveness(ctx context.Context, startTime time.Time
 	}
 }
 
+// livenessForInstance pings a single database and its replicas, returning the aggregated
+// dependency status. Each ping is bounded and panic-isolated via pingConnection.
+//
+// Takes name (string) which identifies the database instance.
+// Takes instance (*databaseInstance) which holds the primary and replica connections.
+//
+// Returns *healthprobe_dto.Status describing the instance's liveness.
+func (*databaseService) livenessForInstance(
+	ctx context.Context,
+	name string,
+	instance *databaseInstance,
+) *healthprobe_dto.Status {
+	instanceState := healthprobe_dto.StateHealthy
+	message := "ping successful"
+	if pingError := pingConnection(ctx, instance.db); pingError != nil {
+		instanceState = healthprobe_dto.StateUnhealthy
+		message = fmt.Sprintf("ping failed: %v", pingError)
+	}
+
+	replicaDependencies := make([]*healthprobe_dto.Status, 0, len(instance.replicas))
+	for replicaIndex, replica := range instance.replicas {
+		replicaState := healthprobe_dto.StateHealthy
+		replicaMessage := "ping successful"
+		if pingError := pingConnection(ctx, replica); pingError != nil {
+			replicaState = healthprobe_dto.StateUnhealthy
+			replicaMessage = fmt.Sprintf("ping failed: %v", pingError)
+		}
+		replicaDependencies = append(replicaDependencies, &healthprobe_dto.Status{
+			Name:    fmt.Sprintf("replica-%d", replicaIndex),
+			State:   replicaState,
+			Message: replicaMessage,
+		})
+		instanceState = aggregateState(instanceState, replicaState)
+	}
+
+	return &healthprobe_dto.Status{
+		Name:         fmt.Sprintf("Database:%s", name),
+		State:        instanceState,
+		Message:      message,
+		Dependencies: replicaDependencies,
+	}
+}
+
+// pingConnection verifies a single database connection is reachable.
+//
+// The ping carries its own deadline so one unresponsive database cannot consume the whole
+// probe's budget, and it runs under goroutine.SafeCall so a driver panic becomes an error
+// rather than crashing the health endpoint. The deadline's cause is
+// errDatabaseHealthPingTimeout for diagnostics.
+//
+// Takes database (*sql.DB) which is the connection to ping.
+//
+// Returns error when the ping fails, times out, or panics.
+func pingConnection(ctx context.Context, database *sql.DB) error {
+	pingCtx, cancel := context.WithTimeoutCause(ctx, databaseHealthPingTimeout, errDatabaseHealthPingTimeout)
+	defer cancel()
+	return goroutine.SafeCall(pingCtx, "database health ping", func() error {
+		return database.PingContext(pingCtx)
+	})
+}
+
 // checkReadiness builds a full hierarchical status with pool stats and engine-specific
 // diagnostics for each connection.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
+// Takes startTime (time.Time) which is when the probe began.
 //
 // Returns healthprobe_dto.Status which indicates the readiness state of all database
 // connections.
@@ -506,7 +579,6 @@ func (s *databaseService) checkReadiness(ctx context.Context, startTime time.Tim
 // buildInstanceReadiness builds the readiness status for a single named database,
 // including its primary and all replicas.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
 // Takes name (string) which identifies the database instance.
 //
 // Returns *healthprobe_dto.Status which indicates the readiness state of the database
@@ -546,7 +618,6 @@ func (*databaseService) buildInstanceReadiness(
 // buildConnectionReadiness builds the readiness status for a single database connection,
 // including ping, pool stats, and optional engine diagnostics.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
 // Takes name (string) which identifies the connection.
 // Takes database (*sql.DB) which is the database connection to check.
 //
@@ -560,7 +631,7 @@ func buildConnectionReadiness(
 	connectionState := healthprobe_dto.StateHealthy
 	message := "ping successful"
 
-	if pingError := database.PingContext(ctx); pingError != nil {
+	if pingError := pingConnection(ctx, database); pingError != nil {
 		return &healthprobe_dto.Status{
 			Name:    name,
 			State:   healthprobe_dto.StateUnhealthy,
@@ -645,7 +716,6 @@ func poolUtilisationState(stats sql.DBStats) (healthprobe_dto.State, string) {
 // translateDiagnostics calls the engine health checker and converts each
 // DatabaseHealthDiagnostic into a healthprobe_dto.Status.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
 // Takes database (*sql.DB) which is the database connection to diagnose.
 //
 // Returns []*healthprobe_dto.Status which holds the translated diagnostic results.
@@ -756,6 +826,37 @@ func (c *Container) GetDatabaseConnection(name string) (*sql.DB, error) {
 		return nil, fmt.Errorf(errorFormatDatabaseLookup, name, ErrDatabaseNotRegistered)
 	}
 	return inst.db, nil
+}
+
+// GetDatabaseDriver returns the resolved database/sql driver name for a named database
+// (for example "postgres" or "sqlite"), used to select the dialect-specific DAL adapter.
+//
+// Takes name (string) which identifies the database registered via AddDatabase.
+//
+// Returns string which is the resolved driver name.
+// Returns error when the database service cannot be created or the name is not
+// registered.
+func (c *Container) GetDatabaseDriver(name string) (string, error) {
+	svc, err := c.GetDatabaseService()
+	if err != nil {
+		return "", fmt.Errorf("get database driver %q: %w", name, err)
+	}
+
+	inst, ok := svc.instances[name]
+	if !ok {
+		return "", fmt.Errorf(errorFormatDatabaseLookup, name, ErrDatabaseNotRegistered)
+	}
+	return inst.driverName, nil
+}
+
+// isPostgresDriver reports whether the given database/sql driver name selects the
+// postgres dialect DAL adapter. Both "postgres" and "pgx" map to postgres.
+//
+// Takes driver (string) which is the resolved database/sql driver name.
+//
+// Returns bool which is true when the driver is a postgres driver name.
+func isPostgresDriver(driver string) bool {
+	return driver == "postgres" || driver == "pgx"
 }
 
 // GetDatabaseReader returns the DBTX for reading from a named database, where replicas
@@ -915,7 +1016,6 @@ func (c *Container) createDatabaseService() {
 // openDatabaseInstance opens a single database connection and optionally creates a
 // migration service.
 //
-// Takes ctx (context.Context) for shutdown registration.
 // Takes name (string) which identifies the database.
 // Takes reg (DatabaseRegistration) which provides connection configuration.
 //
@@ -931,16 +1031,19 @@ func (c *Container) openDatabaseInstance(
 		return nil, err
 	}
 
-	shutdown.Register(ctx, "Database-"+name, func(_ context.Context) error {
-		return database.Close()
-	})
+	if reg.DB == nil {
+		shutdown.Register(ctx, "Database-"+name, func(_ context.Context) error {
+			return database.Close()
+		})
+	}
 
 	instance := &databaseInstance{
-		db:           database,
-		reader:       database,
-		writer:       database,
-		driverName:   resolveDriverName(reg),
-		replicaCount: len(reg.Replicas),
+		db:              database,
+		reader:          database,
+		writer:          database,
+		driverName:      resolveDriverName(reg),
+		replicaCount:    len(reg.Replicas),
+		externallyOwned: reg.DB != nil,
 	}
 
 	if checker, ok := reg.EngineConfig.Engine.(DatabaseHealthChecker); ok {
@@ -966,7 +1069,6 @@ func (c *Container) openDatabaseInstance(
 // acquireConnection returns a live *sql.DB for the registration, either reusing a
 // pre-opened connection or opening a new one with pool settings.
 //
-// Takes ctx (context.Context) for ping verification.
 // Takes name (string) which identifies the database for logging.
 // Takes reg (*DatabaseRegistration) which provides connection configuration.
 //
@@ -986,7 +1088,6 @@ func (*Container) acquireConnection(
 // verifyPreOpenedConnection pings a caller-supplied *sql.DB and returns it when
 // reachable.
 //
-// Takes ctx (context.Context) for ping verification.
 // Takes name (string) which identifies the database for logging.
 // Takes database (*sql.DB) which is the pre-opened connection to verify.
 //
@@ -1007,7 +1108,6 @@ func verifyPreOpenedConnection(ctx context.Context, name string, database *sql.D
 // openNewConnection opens a fresh database connection using the registration's DSN and
 // driver, applies pool settings, and verifies reachability with a ping.
 //
-// Takes ctx (context.Context) for ping verification.
 // Takes name (string) which identifies the database for logging.
 // Takes reg (*DatabaseRegistration) which provides DSN, driver, and pool settings.
 //
@@ -1113,7 +1213,6 @@ func resolveDriverName(reg *DatabaseRegistration) string {
 // attachReplicas opens replica connections when configured and attaches them to the
 // instance. Closes the primary connection on failure.
 //
-// Takes ctx (context.Context) for shutdown registration and logging.
 // Takes name (string) which identifies the database for logging.
 // Takes reg (*DatabaseRegistration) which provides replica configuration.
 // Takes database (*sql.DB) which is the primary connection, closed on error.
@@ -1151,7 +1250,6 @@ func (c *Container) attachReplicas(
 // createMigrationServiceForInstance creates a migration service for a database instance
 // if a migration filesystem is configured.
 //
-// Takes ctx (context.Context) for logging context.
 // Takes database (*sql.DB) which is the database connection for migrations.
 // Takes name (string) which identifies the database for logging.
 //
@@ -1195,7 +1293,6 @@ func (*Container) createMigrationServiceForInstance(
 // createSeedServiceForInstance creates a seed service from the registration's SeedFS, or
 // returns nil when no seed filesystem is configured.
 //
-// Takes ctx (context.Context) for logging.
 // Takes database (*sql.DB) which is the open database connection.
 // Takes name (string) which identifies the database for logging.
 // Takes reg (*DatabaseRegistration) which provides seed configuration.
@@ -1238,7 +1335,6 @@ func (*Container) createSeedServiceForInstance(
 // as both a flat slice of *sql.DB (for health checks and cleanup) and a weighted pool of
 // DBTX (for the balancer).
 //
-// Takes ctx (context.Context) for shutdown registration and logging.
 // Takes name (string) which identifies the database for logging.
 // Takes driverName (string) which is the database/sql driver name.
 //
@@ -1307,6 +1403,9 @@ func closeAllInstances(ctx context.Context, instances map[string]*databaseInstan
 	_, l := logger_domain.From(ctx, log)
 	for name, instance := range instances {
 		closeAllConnections(instance.replicas)
+		if instance.externallyOwned {
+			continue
+		}
 		if closeError := instance.db.Close(); closeError != nil {
 			l.Error("Failed to close database during rollback",
 				logger_domain.String(logFieldDatabaseName, name),

@@ -1,96 +1,110 @@
 {
   "all_published": [
     {
-      "Category": "tech",
-      "ID": 1,
-      "Title": "Go Tips",
-      "Views": 100
+      "category": "tech",
+      "id": 1,
+      "published": 1,
+      "title": "Go Tips",
+      "views": 100
     },
     {
-      "Category": "tech",
-      "ID": 2,
-      "Title": "Rust Guide",
-      "Views": 200
+      "category": "tech",
+      "id": 2,
+      "published": 1,
+      "title": "Rust Guide",
+      "views": 200
     },
     {
-      "Category": "food",
-      "ID": 3,
-      "Title": "Cooking",
-      "Views": 50
+      "category": "food",
+      "id": 3,
+      "published": 1,
+      "title": "Cooking",
+      "views": 50
     },
     {
-      "Category": "tech",
-      "ID": 5,
-      "Title": "Go Advanced",
-      "Views": 150
+      "category": "tech",
+      "id": 5,
+      "published": 1,
+      "title": "Go Advanced",
+      "views": 150
     }
   ],
   "combined": [
     {
-      "Category": "tech",
-      "ID": 2,
-      "Title": "Rust Guide",
-      "Views": 200
+      "category": "tech",
+      "id": 2,
+      "published": 1,
+      "title": "Rust Guide",
+      "views": 200
     },
     {
-      "Category": "tech",
-      "ID": 5,
-      "Title": "Go Advanced",
-      "Views": 150
+      "category": "tech",
+      "id": 5,
+      "published": 1,
+      "title": "Go Advanced",
+      "views": 150
     }
   ],
   "limited": [
     {
-      "Category": "tech",
-      "ID": 1,
-      "Title": "Go Tips",
-      "Views": 100
+      "category": "tech",
+      "id": 1,
+      "published": 1,
+      "title": "Go Tips",
+      "views": 100
     },
     {
-      "Category": "tech",
-      "ID": 2,
-      "Title": "Rust Guide",
-      "Views": 200
+      "category": "tech",
+      "id": 2,
+      "published": 1,
+      "title": "Rust Guide",
+      "views": 200
     }
   ],
   "tech_by_views": [
     {
-      "Category": "tech",
-      "ID": 2,
-      "Title": "Rust Guide",
-      "Views": 200
+      "category": "tech",
+      "id": 2,
+      "published": 1,
+      "title": "Rust Guide",
+      "views": 200
     },
     {
-      "Category": "tech",
-      "ID": 5,
-      "Title": "Go Advanced",
-      "Views": 150
+      "category": "tech",
+      "id": 5,
+      "published": 1,
+      "title": "Go Advanced",
+      "views": 150
     },
     {
-      "Category": "tech",
-      "ID": 1,
-      "Title": "Go Tips",
-      "Views": 100
+      "category": "tech",
+      "id": 1,
+      "published": 1,
+      "title": "Go Tips",
+      "views": 100
     }
   ],
   "tech_posts": [
     {
-      "Category": "tech",
-      "ID": 1,
-      "Title": "Go Tips",
-      "Views": 100
+      "category": "tech",
+      "id": 1,
+      "published": 1,
+      "title": "Go Tips",
+      "views": 100
     },
     {
-      "Category": "tech",
-      "ID": 2,
-      "Title": "Rust Guide",
-      "Views": 200
+      "category": "tech",
+      "id": 2,
+      "published": 1,
+      "title": "Rust Guide",
+      "views": 200
     },
     {
-      "Category": "tech",
-      "ID": 5,
-      "Title": "Go Advanced",
-      "Views": 150
+      "category": "tech",
+      "id": 5,
+      "published": 1,
+      "title": "Go Advanced",
+      "views": 150
     }
   ]
 }

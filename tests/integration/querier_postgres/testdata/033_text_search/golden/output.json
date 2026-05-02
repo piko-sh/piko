@@ -1,26 +1,26 @@
 {
   "headlines": [
     {
-      "Headline": "<b>PostgreSQL</b> is a powerful open source relational <b>database</b> system with strong reliability",
-      "ID": 1,
-      "Title": "Introduction to PostgreSQL"
+      "headline": "PostgreSQL is a powerful open source relational \u003cb\u003edatabase\u003c/b\u003e system with strong reliability.",
+      "id": 1,
+      "title": "Introduction to PostgreSQL"
     },
     {
-      "Headline": "Indexing strategies for <b>PostgreSQL</b> including B-tree, GIN, and GiST indexes improve query performance",
-      "ID": 2,
-      "Title": "Advanced Database Indexing"
+      "headline": "Indexing strategies for PostgreSQL including B-tree, GIN, and GiST",
+      "id": 2,
+      "title": "Advanced Database Indexing"
     }
   ],
   "search_results": [
     {
-      "ID": 1,
-      "Rank": 0.075990885,
-      "Title": "Introduction to PostgreSQL"
+      "id": 1,
+      "rank": 0.075990885,
+      "title": "Introduction to PostgreSQL"
     },
     {
-      "ID": 2,
-      "Rank": 0.06079271,
-      "Title": "Advanced Database Indexing"
+      "id": 2,
+      "rank": 0.06079271,
+      "title": "Advanced Database Indexing"
     }
   ]
 }

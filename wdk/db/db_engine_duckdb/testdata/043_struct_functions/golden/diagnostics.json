@@ -4,7 +4,7 @@
     "Message": "Q001: unknown column \"id\"",
     "Code": "Q001",
     "Suggestion": "",
-    "Line": 5,
+    "Line": 4,
     "Column": 1,
     "EndLine": 0,
     "EndColumn": 0,

@@ -1,0 +1,13 @@
+{
+  "by_empty": null,
+  "by_ids": [
+    {
+      "id": 1,
+      "name": "Alpha"
+    },
+    {
+      "id": 3,
+      "name": "Gamma"
+    }
+  ]
+}

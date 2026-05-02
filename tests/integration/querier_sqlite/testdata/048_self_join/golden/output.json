@@ -1,24 +1,24 @@
 {
   "employees": [
     {
-      "EmployeeName": "Alice",
-      "ID": 1,
-      "ManagerName": null
+      "employee_name": "Alice",
+      "id": 1,
+      "manager_name": null
     },
     {
-      "EmployeeName": "Bob",
-      "ID": 2,
-      "ManagerName": "Alice"
+      "employee_name": "Bob",
+      "id": 2,
+      "manager_name": "Alice"
     },
     {
-      "EmployeeName": "Charlie",
-      "ID": 3,
-      "ManagerName": "Alice"
+      "employee_name": "Charlie",
+      "id": 3,
+      "manager_name": "Alice"
     },
     {
-      "EmployeeName": "Diana",
-      "ID": 4,
-      "ManagerName": "Bob"
+      "employee_name": "Diana",
+      "id": 4,
+      "manager_name": "Bob"
     }
   ]
 }

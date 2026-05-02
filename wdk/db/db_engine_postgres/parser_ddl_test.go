@@ -19,6 +19,9 @@
 package db_engine_postgres
 
 import (
+	"context"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,10 +38,44 @@ func applyDDL(t *testing.T, sql string) *querier_dto.CatalogueMutation {
 	require.NoError(t, err)
 	require.NotEmpty(t, stmts)
 
-	mutation, err := engine.ApplyDDL(stmts[0])
+	mutation, err := engine.ApplyDDL(context.Background(), stmts[0])
 	require.NoError(t, err)
 
 	return mutation
+}
+
+func applyDDLExpectError(t *testing.T, sql string) error {
+	t.Helper()
+
+	engine := NewPostgresEngine()
+	stmts, err := engine.ParseStatements(sql)
+	require.NoError(t, err)
+	require.NotEmpty(t, stmts)
+
+	_, applyError := engine.ApplyDDL(context.Background(), stmts[0])
+	return applyError
+}
+
+func TestApplyDDL_CreateFunction_MalformedArgListDoesNotHang(t *testing.T) {
+	t.Parallel()
+
+	for _, sql := range []string{
+		"CREATE FUNCTION f($1 int) RETURNS int AS $$ $$ LANGUAGE sql",
+		"CREATE FUNCTION f(= int) RETURNS int AS $$ $$ LANGUAGE sql",
+		"CREATE FUNCTION f(123 int) RETURNS int AS $$ $$ LANGUAGE sql",
+	} {
+		err := applyDDLExpectError(t, sql)
+		require.Error(t, err, "expected a parse error (not a hang) for %q", sql)
+	}
+}
+
+func TestApplyDDL_AlterTable_RejectsConsecutiveCommas(t *testing.T) {
+	t.Parallel()
+
+	err := applyDDLExpectError(t, "ALTER TABLE users ADD COLUMN a text, , ADD COLUMN b text")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "consecutive commas")
 }
 
 func TestApplyDDL_CreateTable(t *testing.T) {
@@ -437,6 +474,50 @@ func TestApplyDDL_CreateTable(t *testing.T) {
 				assert.Equal(t, querier_dto.MutationCreateTable, m.Kind)
 				require.Len(t, m.Constraints, 1)
 				assert.Equal(t, querier_dto.ConstraintForeignKey, m.Constraints[0].Kind)
+
+				require.Len(t, m.Columns, 2, "ON DELETE clause leaked into the column list")
+			},
+		},
+		{
+
+			name: "two table-level FOREIGN KEYs with ON DELETE CASCADE",
+			sql: `CREATE TABLE identity.oauth_tokens (
+                id uuid PRIMARY KEY,
+                account_id uuid NOT NULL,
+                authentication_method_id uuid NOT NULL,
+                created_at timestamptz NOT NULL,
+                FOREIGN KEY (account_id) REFERENCES identity.accounts (id) ON DELETE CASCADE,
+                FOREIGN KEY (authentication_method_id) REFERENCES identity.authentication_methods (id) ON DELETE CASCADE
+            )`,
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateTable, m.Kind)
+				require.Len(t, m.Columns, 4, "ON DELETE CASCADE leaked into the column list")
+				columnNames := make([]string, len(m.Columns))
+				for i, column := range m.Columns {
+					columnNames[i] = column.Name
+				}
+				assert.Equal(t, []string{"id", "account_id", "authentication_method_id", "created_at"}, columnNames)
+				require.Len(t, m.Constraints, 2)
+				assert.Equal(t, querier_dto.ConstraintForeignKey, m.Constraints[0].Kind)
+				assert.Equal(t, querier_dto.ConstraintForeignKey, m.Constraints[1].Kind)
+			},
+		},
+		{
+
+			name: "inline REFERENCES ON DELETE CASCADE then trailing columns",
+			sql: `CREATE TABLE t (
+                id uuid PRIMARY KEY,
+                user_id uuid REFERENCES users (id) ON DELETE CASCADE,
+                created_at timestamptz NOT NULL
+            )`,
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateTable, m.Kind)
+				require.Len(t, m.Columns, 3)
+				columnNames := make([]string, len(m.Columns))
+				for i, column := range m.Columns {
+					columnNames[i] = column.Name
+				}
+				assert.Equal(t, []string{"id", "user_id", "created_at"}, columnNames)
 			},
 		},
 		{
@@ -609,6 +690,85 @@ func TestApplyDDL_AlterTable(t *testing.T) {
 				require.Len(t, m.Constraints, 1)
 				assert.Equal(t, querier_dto.ConstraintCheck, m.Constraints[0].Kind)
 				assert.Equal(t, "chk_positive", m.Constraints[0].Name)
+			},
+		},
+		{
+			name: "multi-action ADD COLUMN, ADD COLUMN merges columns",
+			sql:  "ALTER TABLE users ADD COLUMN nickname text, ADD COLUMN bio text",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationAlterTableAddColumn, m.Kind)
+				require.Len(t, m.Columns, 2)
+				assert.Equal(t, "nickname", m.Columns[0].Name)
+				assert.Equal(t, "bio", m.Columns[1].Name)
+				assert.Empty(t, m.AdditionalMutations)
+			},
+		},
+		{
+			name: "multi-action ADD COLUMN then ADD CONSTRAINT preserves both",
+			sql:  "ALTER TABLE users ADD COLUMN code text, ADD CONSTRAINT uq_code UNIQUE (code)",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationAlterTableAddColumn, m.Kind)
+				require.Len(t, m.Columns, 1)
+				assert.Equal(t, "code", m.Columns[0].Name)
+				require.Len(t, m.AdditionalMutations, 1)
+				followUp := m.AdditionalMutations[0]
+				assert.Equal(t, querier_dto.MutationAlterTableAddConstraint, followUp.Kind)
+				require.Len(t, followUp.Constraints, 1)
+				assert.Equal(t, "uq_code", followUp.Constraints[0].Name)
+			},
+		},
+		{
+			name: "multi-action ADD CONSTRAINT then ADD COLUMN preserves both",
+			sql:  "ALTER TABLE users ADD CONSTRAINT chk_age CHECK (age >= 0), ADD COLUMN bio text",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationAlterTableAddConstraint, m.Kind)
+				require.Len(t, m.Constraints, 1)
+				assert.Equal(t, "chk_age", m.Constraints[0].Name)
+				require.Len(t, m.AdditionalMutations, 1)
+				followUp := m.AdditionalMutations[0]
+				assert.Equal(t, querier_dto.MutationAlterTableAddColumn, followUp.Kind)
+				require.Len(t, followUp.Columns, 1)
+				assert.Equal(t, "bio", followUp.Columns[0].Name)
+			},
+		},
+		{
+			name: "multi-action merges consecutive AddColumns after constraint",
+			sql:  "ALTER TABLE users ADD CONSTRAINT uq_email UNIQUE (email), ADD COLUMN bio text, ADD COLUMN locale text",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationAlterTableAddConstraint, m.Kind)
+				require.Len(t, m.AdditionalMutations, 1)
+				addColumns := m.AdditionalMutations[0]
+				assert.Equal(t, querier_dto.MutationAlterTableAddColumn, addColumns.Kind)
+				require.Len(t, addColumns.Columns, 2)
+				assert.Equal(t, "bio", addColumns.Columns[0].Name)
+				assert.Equal(t, "locale", addColumns.Columns[1].Name)
+			},
+		},
+		{
+			name: "multi-action merges consecutive AddColumns after constraint and non-AddColumn",
+			sql:  "ALTER TABLE users ADD COLUMN a text, ADD CONSTRAINT uq UNIQUE (a), ADD COLUMN b text, ADD COLUMN c text",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationAlterTableAddColumn, m.Kind)
+				require.Len(t, m.Columns, 1)
+				assert.Equal(t, "a", m.Columns[0].Name)
+				require.Len(t, m.AdditionalMutations, 2)
+			},
+		},
+		{
+			name: "multi-action merges AddColumns across interleaved AddConstraint",
+			sql:  "ALTER TABLE users ADD COLUMN a text, ADD CONSTRAINT uq UNIQUE (a), ADD COLUMN b text, ADD COLUMN c text",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationAlterTableAddColumn, m.Kind)
+				require.Len(t, m.Columns, 1)
+				assert.Equal(t, "a", m.Columns[0].Name)
+				require.Len(t, m.AdditionalMutations, 2)
+				addConstraint := m.AdditionalMutations[0]
+				assert.Equal(t, querier_dto.MutationAlterTableAddConstraint, addConstraint.Kind)
+				addBC := m.AdditionalMutations[1]
+				assert.Equal(t, querier_dto.MutationAlterTableAddColumn, addBC.Kind)
+				require.Len(t, addBC.Columns, 2)
+				assert.Equal(t, "b", addBC.Columns[0].Name)
+				assert.Equal(t, "c", addBC.Columns[1].Name)
 			},
 		},
 	}
@@ -927,6 +1087,30 @@ func TestApplyDDL_CreateType(t *testing.T) {
 		assert.Equal(t, "city", mutation.Columns[1].Name)
 		assert.Equal(t, "postcode", mutation.Columns[2].Name)
 	})
+
+	t.Run("composite type caps field count", func(t *testing.T) {
+		t.Parallel()
+
+		var builder strings.Builder
+		builder.WriteString("CREATE TYPE wide AS (")
+		const fieldCount = maxReturnsTableColumns + 50
+		for index := range fieldCount {
+			if index > 0 {
+				builder.WriteString(", ")
+			}
+			builder.WriteString("f")
+			builder.WriteString(strconv.Itoa(index))
+			builder.WriteString(" text")
+		}
+		builder.WriteString(")")
+
+		mutation := applyDDL(t, builder.String())
+
+		require.NotNil(t, mutation)
+		assert.Equal(t, querier_dto.MutationCreateCompositeType, mutation.Kind)
+		assert.Len(t, mutation.Columns, maxReturnsTableColumns,
+			"composite type column count should be capped at maxReturnsTableColumns")
+	})
 }
 
 func TestApplyDDL_AlterType(t *testing.T) {
@@ -1023,6 +1207,21 @@ func TestApplyDDL_CreateFunction(t *testing.T) {
 				assert.Equal(t, "b", m.FunctionSignature.Arguments[1].Name)
 				assert.Equal(t, querier_dto.TypeCategoryInteger, m.FunctionSignature.ReturnType.Category)
 				assert.Equal(t, "sql", m.FunctionSignature.Language)
+			},
+		},
+		{
+			name: "function with array argument keeps the array type",
+			sql:  `CREATE FUNCTION filter_tags(names text[]) RETURNS boolean LANGUAGE sql AS 'SELECT true'`,
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				require.NotNil(t, m.FunctionSignature)
+				require.Len(t, m.FunctionSignature.Arguments, 1)
+				argument := m.FunctionSignature.Arguments[0]
+				assert.Equal(t, "names", argument.Name)
+				assert.Equal(t, querier_dto.TypeCategoryArray, argument.Type.Category,
+					"text[] argument must be an array type, not scalar text")
+				assert.Equal(t, "text[]", argument.Type.EngineName)
+				require.NotNil(t, argument.Type.ElementType)
+				assert.Equal(t, querier_dto.TypeCategoryText, argument.Type.ElementType.Category)
 			},
 		},
 		{
@@ -1615,7 +1814,7 @@ func TestApplyDDL_DropExtension(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, stmts)
 
-	mutation, err := engine.ApplyDDL(stmts[0])
+	mutation, err := engine.ApplyDDL(context.Background(), stmts[0])
 	require.NoError(t, err)
 
 	assert.Nil(t, mutation)

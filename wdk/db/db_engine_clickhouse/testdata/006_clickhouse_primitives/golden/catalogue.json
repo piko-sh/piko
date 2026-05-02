@@ -1,0 +1,500 @@
+{
+  "Schemas": {
+    "default": {
+      "Tables": {
+        "primitives": {
+          "Name": "primitives",
+          "Schema": "default",
+          "Comment": "",
+          "VirtualModuleName": "",
+          "Columns": [
+            {
+              "Name": "u8",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "UInt8",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "u16",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "UInt16",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "u32",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "UInt32",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "u64",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "UInt64",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "i8",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Int8",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "i16",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Int16",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "i32",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Int32",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "i64",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Int64",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 0,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "f32",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Float32",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 1,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "f64",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Float64",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 1,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "s",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "String",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 4,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "b",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Bool",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 3,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "d",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "Date",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 6,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "dt",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "DateTime",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 6,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            },
+            {
+              "Name": "u",
+              "Comment": "",
+              "SQLTypeOverride": "",
+              "Origin": {
+                "Filename": "001_schema.up.sql",
+                "Index": 0
+              },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
+              "SQLType": {
+                "Precision": null,
+                "Scale": null,
+                "Length": null,
+                "ElementType": null,
+                "EngineName": "UUID",
+                "Schema": "",
+                "EnumValues": null,
+                "StructFields": null,
+                "KeyType": null,
+                "UnionMembers": null,
+                "Category": 8,
+                "Nullable": false
+              },
+              "ArrayDimensions": 0,
+              "Nullable": false,
+              "HasDefault": false,
+              "IsGenerated": false,
+              "GeneratedKind": 0,
+              "IsArray": false
+            }
+          ],
+          "PrimaryKey": [
+            "u64"
+          ],
+          "Indexes": null,
+          "Constraints": null,
+          "Origin": {
+            "Filename": "001_schema.up.sql",
+            "Index": 0
+          },
+          "IsVirtual": false,
+          "IsWithoutRowID": false
+        }
+      },
+      "Views": {},
+      "Enums": {},
+      "Functions": {},
+      "CompositeTypes": {},
+      "Sequences": {},
+      "Name": "default"
+    }
+  },
+  "Extensions": {},
+  "DefaultSchema": "default"
+}

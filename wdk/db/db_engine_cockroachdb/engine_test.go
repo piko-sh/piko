@@ -19,6 +19,7 @@
 package db_engine_cockroachdb
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,6 +35,23 @@ func TestNewCockroachDBEngine(t *testing.T) {
 
 	require.NotNil(t, engine, "engine should not be nil")
 	assert.Equal(t, "cockroachdb", engine.Dialect(), "dialect should be cockroachdb")
+}
+
+func TestCockroachDB_DDLColumnTypes_StringAndBytes(t *testing.T) {
+	t.Parallel()
+
+	engine := NewCockroachDBEngine()
+	statements, parseError := engine.ParseStatements("CREATE TABLE t (a STRING, b BYTES, c STRING(50))")
+	require.NoError(t, parseError)
+	require.NotEmpty(t, statements)
+
+	mutation, applyError := engine.ApplyDDL(context.Background(), statements[0])
+	require.NoError(t, applyError)
+	require.Len(t, mutation.Columns, 3)
+
+	assert.Equal(t, querier_dto.TypeCategoryText, mutation.Columns[0].SQLType.Category, "STRING should be text")
+	assert.Equal(t, querier_dto.TypeCategoryBytea, mutation.Columns[1].SQLType.Category, "BYTES should be bytea")
+	assert.Equal(t, querier_dto.TypeCategoryText, mutation.Columns[2].SQLType.Category, "STRING(50) should be text")
 }
 
 func TestCockroachDB_NormaliseTypeName_ExtraTypes(t *testing.T) {
@@ -101,28 +119,35 @@ func TestCockroachDB_BuiltinFunctions_ExtraFunctions(t *testing.T) {
 	catalogue := engine.BuiltinFunctions()
 	require.NotNil(t, catalogue, "function catalogue should not be nil")
 
-	expectedFunctions := []string{
-		"unique_rowid",
-		"cluster_logical_timestamp",
-		"crdb_internal.cluster_id",
-		"gateway_region",
-		"rehome_row",
-		"crdb_internal.node_id",
-		"crdb_internal.is_admin",
-		"crdb_internal.locality_value",
-		"from_ip",
-		"to_ip",
-		"experimental_strftime",
-		"experimental_strptime",
+	type expectedFunction struct {
+		key    string
+		schema string
 	}
 
-	for _, functionName := range expectedFunctions {
-		t.Run(functionName, func(t *testing.T) {
+	expectedFunctions := []expectedFunction{
+		{key: "unique_rowid", schema: ""},
+		{key: "cluster_logical_timestamp", schema: ""},
+		{key: "cluster_id", schema: crdbInternalSchema},
+		{key: "gateway_region", schema: ""},
+		{key: "rehome_row", schema: ""},
+		{key: "node_id", schema: crdbInternalSchema},
+		{key: "is_admin", schema: crdbInternalSchema},
+		{key: "locality_value", schema: crdbInternalSchema},
+		{key: "from_ip", schema: ""},
+		{key: "to_ip", schema: ""},
+		{key: "experimental_strftime", schema: ""},
+		{key: "experimental_strptime", schema: ""},
+	}
+
+	for _, function := range expectedFunctions {
+		t.Run(function.key, func(t *testing.T) {
 			t.Parallel()
 
-			signatures, exists := catalogue.Functions[functionName]
-			assert.True(t, exists, "function %q should exist in the catalogue", functionName)
-			assert.NotEmpty(t, signatures, "function %q should have at least one signature", functionName)
+			signatures, exists := catalogue.Functions[function.key]
+			require.True(t, exists, "function %q should exist in the catalogue", function.key)
+			require.NotEmpty(t, signatures, "function %q should have at least one signature", function.key)
+			assert.Equal(t, function.schema, signatures[0].Schema,
+				"function %q should be registered with schema %q", function.key, function.schema)
 		})
 	}
 }

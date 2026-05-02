@@ -1,5 +1,4 @@
--- piko.name: ProlificAuthors
--- piko.command: many
+-- piko.query(name: ProlificAuthors, command: many)
 WITH book_counts AS (
     SELECT author_id, COUNT(*) AS book_count
     FROM books

@@ -190,8 +190,8 @@ func validateAttributeConflicts(node *TemplateNode, tree *TemplateAST) {
 // isMergedAttribute reports whether a dynamic binding for the named attribute is
 // value-merged rather than overwritten.
 //
-// class and style are merged via MergeClasses and MergeStyles, so a static value alongside a
-// dynamic :class or :style is not a conflict and must not be reported.
+// class and style are merged via MergeClasses and MergeStyles, so a static value
+// alongside a dynamic :class or :style is not a conflict and must not be reported.
 //
 // Takes name (string) which is the attribute name.
 //

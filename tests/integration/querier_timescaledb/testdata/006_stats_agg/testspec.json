@@ -1,0 +1,3 @@
+{
+  "description": "Build a statssummary1d aggregate state per group via stats_agg, then extract scalar statistics with the average / stddev / variance / num_vals accessors. Exercises the hyperfunctions toolkit aggregate-state opaque type pipeline."
+}

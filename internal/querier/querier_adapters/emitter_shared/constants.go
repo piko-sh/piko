@@ -67,6 +67,10 @@ const (
 	// IdentInt represents the int built-in type name.
 	IdentInt = "int"
 
+	// identPlaceholderField is the Placeholder field name on the slice-expansion remap entry
+	// referenced by the generated slice helper.
+	identPlaceholderField = "Placeholder"
+
 	// IdentWhereArgs represents the whereArgs variable name for dynamic WHERE clause
 	// arguments.
 	IdentWhereArgs = "whereArgs"
@@ -74,6 +78,19 @@ const (
 	// IdentWhereClauses represents the whereClauses variable name for dynamic WHERE clause
 	// fragments.
 	IdentWhereClauses = "whereClauses"
+
+	// IdentOrderByClauses represents the orderByClauses variable name for dynamic ORDER BY
+	// clause fragments.
+	IdentOrderByClauses = "orderByClauses"
+
+	// IdentArgs represents the local args slice built inside buildQuery() that holds
+	// whereArgs plus any limit/offset values. Decoupled from IdentWhereArgs so buildQuery
+	// does not mutate the builder's persisted whereArgs state.
+	IdentArgs = "args"
+
+	// IdentParameterCount represents the local parameterCount counter used inside
+	// buildQuery() when assigning numbered placeholders to LIMIT and OFFSET.
+	IdentParameterCount = "parameterCount"
 
 	// IdentContext represents the context package name.
 	IdentContext = "context"
@@ -98,4 +115,19 @@ const (
 
 	// IdentOrderDirection holds the identifier name for the OrderDirection type.
 	IdentOrderDirection = "OrderDirection"
+
+	// IdentAny holds the identifier name for the built-in any (alias of interface{}) type,
+	// used by the AST emitters for generic value holders.
+	IdentAny = "any"
+
+	// IdentBool holds the identifier name for the built-in bool type.
+	IdentBool = "bool"
+
+	// defaultMaxBindVariablesFallback is the cap used by the runtime helper emitter when a
+	// strategy returns a non-positive MaxBindVariables().
+	//
+	// 65535 sits at the union of the major engines' real limits (PostgreSQL parameter slots,
+	// SQLite default, MariaDB/MySQL prepared statement caps) so the generated guard stays a
+	// true safety net rather than the typical operating limit.
+	defaultMaxBindVariablesFallback = 65535
 )

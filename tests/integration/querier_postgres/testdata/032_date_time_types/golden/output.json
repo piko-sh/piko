@@ -1,36 +1,36 @@
 {
   "event_duration": [
     {
-      "Duration": "08:00:00",
-      "ID": 1,
-      "Name": "Conference"
+      "duration": "08:00:00",
+      "id": 1,
+      "name": "Conference"
     },
     {
-      "Duration": "02:30:00",
-      "ID": 2,
-      "Name": "Workshop"
+      "duration": "02:30:00",
+      "id": 2,
+      "name": "Workshop"
     },
     {
-      "Duration": "02:00:00",
-      "ID": 3,
-      "Name": "Meetup"
+      "duration": "02:00:00",
+      "id": 3,
+      "name": "Meetup"
     }
   ],
   "extract_parts": {
-    "EventDay": 15,
-    "ID": 1,
-    "Name": "Conference",
-    "StartMonth": 3,
-    "StartYear": 2025
+    "event_day": 15,
+    "id": 1,
+    "name": "Conference",
+    "start_month": 3,
+    "start_year": 2025
   },
   "truncate_to_month": [
     {
-      "EventCount": 2,
-      "Month": "2025-03-01T00:00:00Z"
+      "event_count": 2,
+      "month": "2025-03-01T00:00:00Z"
     },
     {
-      "EventCount": 1,
-      "Month": "2025-04-01T00:00:00Z"
+      "event_count": 1,
+      "month": "2025-04-01T00:00:00Z"
     }
   ]
 }

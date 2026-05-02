@@ -1,5 +1,4 @@
--- piko.name: GetFilteredTasks
--- piko.command: many
+-- piko.query(name: GetFilteredTasks, command: many)
 SELECT
   id,
   priority > 5 as is_high,

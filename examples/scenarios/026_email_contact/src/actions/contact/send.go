@@ -9,9 +9,9 @@ import (
 	"testmodule/internal/dto"
 )
 
-// SendAction handles contact form submissions and sends two emails:
-// a plain HTML confirmation to the user, and a PML (Outlook-compatible)
-// notification to the site owner.
+// SendAction handles contact form submissions and sends two emails: a plain HTML
+// confirmation to the user, and a PML (Outlook-compatible) notification to the site
+// owner.
 //
 //	action.contact.Send($form)
 type SendAction struct {
@@ -31,8 +31,8 @@ type SendResponse struct {
 	Detail  string `json:"detail"`
 }
 
-// Call sends a confirmation email to the user and a notification email to the
-// site owner. Both are rendered from .pk templates with typed props.
+// Call sends a confirmation email to the user and a notification email to the site owner.
+// Both are rendered from .pk templates with typed props.
 func (a SendAction) Call(input SendInput) (SendResponse, error) {
 	ctx := a.Ctx()
 

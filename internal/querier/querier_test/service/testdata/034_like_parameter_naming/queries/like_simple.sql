@@ -1,3 +1,2 @@
--- piko.name: SearchByName
--- piko.command: many
+-- piko.query(name: SearchByName, command: many)
 SELECT email FROM users WHERE name LIKE $1;

@@ -21,6 +21,8 @@ package querier_domain
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -33,6 +35,16 @@ const (
 
 	// errorCodePrefixLength holds the number of characters in a Q-code prefix (e.g. "Q001").
 	errorCodePrefixLength = 4
+
+	// maxInferExpressionNameDepth caps how deep CAST and COALESCE chains may recurse during
+	// column-name inference. Hand-crafted SQL can never push past a handful of levels in
+	// practice, but a maliciously deep parser output should not blow the Go stack here.
+	maxInferExpressionNameDepth = 64
+
+	// maxExpressionResolveDepth bounds recursion through resolveExpressionType. A deeply
+	// nested expression tree (mirroring the engine parse-depth cap) would otherwise overflow
+	// the stack.
+	maxExpressionResolveDepth = 256
 )
 
 // typeResolver performs bottom-up expression type inference, resolving raw output columns
@@ -48,6 +60,12 @@ type typeResolver struct {
 
 	// engine holds the engine adapter for type normalisation, promotion, and casting rules.
 	engine EngineTypeSystemPort
+
+	// expressionDepth bounds recursion through resolveExpressionType so a deeply nested
+	// expression tree cannot overflow the goroutine stack (a fatal, non-recoverable error).
+	// The increment/decrement is balanced per call, so reusing a resolver across queries is
+	// safe.
+	expressionDepth int
 }
 
 // catalogueColumnMatch holds the type information for a column found by a catalogue-wide
@@ -87,7 +105,6 @@ func newTypeResolver(
 // typed output columns using the scope chain for column lookups and function resolver for
 // expression types.
 //
-// Takes ctx (context.Context) which specifies the context for tracing.
 // Takes rawColumns ([]querier_dto.RawOutputColumn) which specifies the unresolved output
 // columns.
 //
@@ -99,7 +116,7 @@ func (r *typeResolver) ResolveOutputColumns(
 	rawColumns []querier_dto.RawOutputColumn,
 	scope *scopeChain,
 ) ([]querier_dto.OutputColumn, bool, []querier_dto.SourceError) {
-	_, span, _ := log.Span(ctx, "TypeResolver.ResolveOutputColumns")
+	ctx, span, _ := log.Span(ctx, "TypeResolver.ResolveOutputColumns")
 	defer span.End()
 
 	var resolved []querier_dto.OutputColumn
@@ -107,11 +124,19 @@ func (r *typeResolver) ResolveOutputColumns(
 	var dataModifying bool
 
 	for _, raw := range rawColumns {
+		if err := ctx.Err(); err != nil {
+			diagnostics = append(diagnostics, querier_dto.SourceError{
+				Message:  fmt.Sprintf("output column resolution stopped before completion: %v", err),
+				Severity: querier_dto.SeverityWarning,
+				Code:     querier_dto.CodeInternalNilGuard,
+			})
+			return resolved, dataModifying, diagnostics
+		}
 		columns, diagnostic := r.resolveSingleOutputColumn(raw, scope, &dataModifying)
 		if diagnostic != nil {
 			diagnostics = append(diagnostics, *diagnostic)
-			continue
 		}
+
 		resolved = append(resolved, columns...)
 	}
 
@@ -122,9 +147,8 @@ func (r *typeResolver) ResolveOutputColumns(
 // typed query parameters using the scope chain for context-based type inference and
 // directive declarations for overrides.
 //
-// Takes ctx (context.Context) which specifies the context for tracing.
-// Takes rawParameters ([]querier_dto.RawParameterReference) which specifies the
-// unresolved parameter references.
+// Takes rawAnalysis (*querier_dto.RawQueryAnalysis) which holds the unresolved query: its
+// flat parameter list plus the subqueries whose parameters need their own scope.
 // Takes parameterDirectives ([]*querier_dto.ParameterDirective) which specifies the
 // directive overrides for parameters.
 //
@@ -133,11 +157,11 @@ func (r *typeResolver) ResolveOutputColumns(
 // Returns []querier_dto.SourceError which holds any diagnostics from resolution failures.
 func (r *typeResolver) ResolveParameters(
 	ctx context.Context,
-	rawParameters []querier_dto.RawParameterReference,
+	rawAnalysis *querier_dto.RawQueryAnalysis,
 	scope *scopeChain,
 	parameterDirectives []*querier_dto.ParameterDirective,
 ) ([]querier_dto.QueryParameter, []querier_dto.SourceError) {
-	_, span, _ := log.Span(ctx, "TypeResolver.ResolveParameters")
+	ctx, span, _ := log.Span(ctx, "TypeResolver.ResolveParameters")
 	defer span.End()
 
 	directiveNumberMap := make(map[int]*querier_dto.ParameterDirective, len(parameterDirectives))
@@ -149,7 +173,24 @@ func (r *typeResolver) ResolveParameters(
 		}
 	}
 
-	parameterTypes, diagnostics := r.mergeRawParameters(rawParameters, scope, directiveNumberMap, directiveNameMap)
+	parameterTypes := make(map[int]*querier_dto.QueryParameter)
+
+	var rawParameters []querier_dto.RawParameterReference
+	if rawAnalysis != nil {
+		rawParameters = rawAnalysis.ParameterReferences
+	}
+
+	subqueryParameters := make(map[int]bool)
+	pass := &subqueryParameterPass{
+		parameterTypes:     parameterTypes,
+		directiveNumberMap: directiveNumberMap,
+		directiveNameMap:   directiveNameMap,
+		handled:            subqueryParameters,
+		rootIdentities:     parameterIdentitySet(rawParameters),
+	}
+	diagnostics := r.resolveSubqueryParameters(ctx, rawAnalysis, scope, pass, 0)
+
+	diagnostics = append(diagnostics, r.mergeRawParameters(rawParameters, scope, directiveNumberMap, directiveNameMap, parameterTypes, subqueryParameters)...)
 
 	r.applyParameterDirectives(parameterTypes, parameterDirectives)
 
@@ -229,16 +270,22 @@ func (*typeResolver) resolveColumnRefOutput(
 	}
 
 	sourceTable := ""
+	sourceSchema := ""
+	sourceQualifier := ""
 	if table != nil {
 		sourceTable = table.Name
+		sourceSchema = table.Schema
+		sourceQualifier = table.Alias
 	}
 
 	return []querier_dto.OutputColumn{{
-		Name:         outputName,
-		SQLType:      column.SQLType,
-		Nullable:     column.Nullable,
-		SourceTable:  sourceTable,
-		SourceColumn: column.Name,
+		Name:            outputName,
+		SQLType:         column.SQLType,
+		Nullable:        column.Nullable,
+		SourceTable:     sourceTable,
+		SourceSchema:    sourceSchema,
+		SourceColumn:    column.Name,
+		SourceQualifier: sourceQualifier,
 	}}, nil
 }
 
@@ -259,8 +306,12 @@ func (r *typeResolver) resolveExpressionOutput(
 	dataModifying *bool,
 ) ([]querier_dto.OutputColumn, *querier_dto.SourceError) {
 	sqlType, nullable, expressionError := r.resolveExpressionType(raw.Expression, scope, dataModifying)
+
+	var diagnostic *querier_dto.SourceError
 	if expressionError != nil {
-		return nil, &querier_dto.SourceError{
+		sqlType = querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+		nullable = true
+		diagnostic = &querier_dto.SourceError{
 			Message:  expressionError.Error(),
 			Severity: querier_dto.SeverityWarning,
 			Code:     querier_dto.CodeExpressionTypeError,
@@ -269,18 +320,189 @@ func (r *typeResolver) resolveExpressionOutput(
 
 	outputName := raw.Name
 	if outputName == "" {
+		outputName = inferExpressionName(raw.Expression)
+	}
+	if outputName == "" {
 		outputName = "?column?"
 	}
 
-	return []querier_dto.OutputColumn{{
+	output := querier_dto.OutputColumn{
 		Name:     outputName,
 		SQLType:  sqlType,
 		Nullable: nullable,
-	}}, nil
+	}
+	applyCastColumnSource(&output, raw.Expression, scope)
+
+	return []querier_dto.OutputColumn{output}, diagnostic
 }
 
-// mergeRawParameters merges raw parameter references into a map of query parameters,
-// combining multiple references to the same parameter number by promoting types.
+// applyCastColumnSource records the underlying source column of an output expression that
+// is a column reference wrapped in nothing but CASTs, so a cast-only projection such as
+// page_id::content.uuid_v4 keeps the source metadata a bare column reference would carry.
+//
+// A CAST only relabels a column's type, so a cast over a column remains the same filterable
+// and orderable column: it must stay in a dynamic runtime builder's allow-list and resolve
+// the same nullability and array-wrap source as the bare column would. Any other expression
+// shape, such as a function call, an arithmetic operand or a COALESCE, is not the column and
+// is left without a source.
+//
+// Takes output (*querier_dto.OutputColumn) which receives the resolved source metadata.
+// Takes expression (querier_dto.Expression) which is the output column's expression.
+// Takes scope (*scopeChain) which resolves the underlying column.
+func applyCastColumnSource(
+	output *querier_dto.OutputColumn,
+	expression querier_dto.Expression,
+	scope *scopeChain,
+) {
+	reference := unwrapCastToColumnRef(expression)
+	if reference == nil {
+		return
+	}
+	column, table, resolveError := scope.ResolveColumn(reference.TableAlias, reference.ColumnName)
+	if resolveError != nil || column == nil {
+		return
+	}
+	output.SourceColumn = column.Name
+	if table != nil {
+		output.SourceTable = table.Name
+		output.SourceSchema = table.Schema
+		output.SourceQualifier = table.Alias
+	}
+}
+
+// unwrapCastToColumnRef peels any chain of CAST expressions and returns the column
+// reference they wrap, or nil when the expression is not a column reference behind zero or
+// more casts.
+//
+// Takes expression (querier_dto.Expression) which is the expression to peel.
+//
+// Returns *querier_dto.ColumnRefExpression which is the wrapped column reference, or nil
+// when the expression is not a column behind zero or more casts.
+func unwrapCastToColumnRef(expression querier_dto.Expression) *querier_dto.ColumnRefExpression {
+	for range maxExpressionResolveDepth {
+		switch typed := expression.(type) {
+		case *querier_dto.ColumnRefExpression:
+			return typed
+		case *querier_dto.CastExpression:
+			expression = typed.Inner
+		default:
+			return nil
+		}
+	}
+	return nil
+}
+
+// inferExpressionName produces a reasonable column name for an unaliased SELECT
+// expression.
+//
+// SQL does not require expressions in the projection to have a name, and PostgreSQL falls
+// back to the literal placeholder "?column?", which is not a valid Go identifier. To keep
+// generated row structs usable, this helper walks common expression shapes (column refs,
+// casts, COALESCE, function calls) and lifts the most descriptive underlying name.
+// Callers fall back to "?column?" when this returns the empty string.
+//
+// Takes expression (querier_dto.Expression) which is the unaliased SELECT expression.
+//
+// Returns string which is the inferred column name, or empty when no sensible name can be
+// derived.
+func inferExpressionName(expression querier_dto.Expression) string {
+	return inferExpressionNameDepth(expression, 0)
+}
+
+// inferExpressionNameDepth walks an expression to infer a column name, stopping once the
+// recursion depth reaches maxInferExpressionNameDepth.
+//
+// Takes expression (querier_dto.Expression) which is the expression to inspect.
+// Takes depth (int) which is the current recursion depth.
+//
+// Returns string which is the inferred column name, or empty when none applies.
+func inferExpressionNameDepth(expression querier_dto.Expression, depth int) string {
+	if depth >= maxInferExpressionNameDepth {
+		return ""
+	}
+	if expression == nil {
+		return ""
+	}
+	switch expr := expression.(type) {
+	case *querier_dto.ColumnRefExpression:
+		return inferColumnRefName(expr)
+	case *querier_dto.CastExpression:
+		return inferCastName(expr, depth)
+	case *querier_dto.CoalesceExpression:
+		return inferCoalesceName(expr, depth)
+	case *querier_dto.FunctionCallExpression:
+		return inferFunctionCallName(expr)
+	default:
+		return ""
+	}
+}
+
+// inferColumnRefName returns the column name carried by a column reference, or empty when
+// the expression is nil.
+//
+// Takes expr (*querier_dto.ColumnRefExpression) which is the column reference.
+//
+// Returns string which is the column name, or empty when expr is nil.
+func inferColumnRefName(expr *querier_dto.ColumnRefExpression) string {
+	if expr == nil {
+		return ""
+	}
+	return expr.ColumnName
+}
+
+// inferCastName recurses into the inner expression of a CAST so the resulting column
+// inherits the inner reference's name where possible.
+//
+// Takes expr (*querier_dto.CastExpression) which is the cast expression.
+// Takes depth (int) which is the current recursion depth.
+//
+// Returns string which is the inner expression's name, or empty when none applies.
+func inferCastName(expr *querier_dto.CastExpression, depth int) string {
+	if expr == nil {
+		return ""
+	}
+	return inferExpressionNameDepth(expr.Inner, depth+1)
+}
+
+// inferCoalesceName returns the first non-empty name found by recursing into a COALESCE
+// argument list. Mirrors the convention that COALESCE inherits the name of its first
+// defaulted column.
+//
+// Takes expr (*querier_dto.CoalesceExpression) which is the COALESCE expression.
+// Takes depth (int) which is the current recursion depth.
+//
+// Returns string which is the first non-empty argument name, or empty when none applies.
+func inferCoalesceName(expr *querier_dto.CoalesceExpression, depth int) string {
+	if expr == nil {
+		return ""
+	}
+	for _, argument := range expr.Arguments {
+		if name := inferExpressionNameDepth(argument, depth+1); name != "" {
+			return name
+		}
+	}
+	return ""
+}
+
+// inferFunctionCallName returns the function name as the inferred column name. This
+// matches the common Postgres convention where an unaliased function-call projection gets
+// the function name.
+//
+// Takes expr (*querier_dto.FunctionCallExpression) which is the function call.
+//
+// Returns string which is the function name, or empty when expr is nil.
+func inferFunctionCallName(expr *querier_dto.FunctionCallExpression) string {
+	if expr == nil {
+		return ""
+	}
+	return expr.FunctionName
+}
+
+// mergeRawParameters resolves a flat list of raw parameter references against scope and
+// merges the results into parameterTypes, combining multiple references to the same
+// parameter number by promoting types. Numbers present in skip are ignored: those belong
+// to a subquery and were already typed against their own scope by
+// resolveSubqueryParameters.
 //
 // Takes rawParameters ([]querier_dto.RawParameterReference) which specifies the
 // unresolved references.
@@ -289,20 +511,25 @@ func (r *typeResolver) resolveExpressionOutput(
 // directives keyed by number.
 // Takes directiveNameMap (map[string]*querier_dto.ParameterDirective) which specifies
 // directives keyed by name.
+// Takes parameterTypes (map[int]*querier_dto.QueryParameter) which accumulates the merged
+// parameters keyed by number.
+// Takes skip (map[int]bool) which holds parameter numbers to leave to the subquery pass.
 //
-// Returns map[int]*querier_dto.QueryParameter which holds the merged parameters keyed by
-// number.
 // Returns []querier_dto.SourceError which holds any diagnostics from resolution failures.
 func (r *typeResolver) mergeRawParameters(
 	rawParameters []querier_dto.RawParameterReference,
 	scope *scopeChain,
 	directiveNumberMap map[int]*querier_dto.ParameterDirective,
 	directiveNameMap map[string]*querier_dto.ParameterDirective,
-) (map[int]*querier_dto.QueryParameter, []querier_dto.SourceError) {
-	parameterTypes := make(map[int]*querier_dto.QueryParameter)
+	parameterTypes map[int]*querier_dto.QueryParameter,
+	skip map[int]bool,
+) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
 
 	for _, raw := range rawParameters {
+		if skip[raw.Number] {
+			continue
+		}
 		sqlType, nullable, resolveError := r.resolveParameterType(raw, scope)
 		if resolveError != nil {
 			diagnostics = append(diagnostics, querier_dto.SourceError{
@@ -311,22 +538,51 @@ func (r *typeResolver) mergeRawParameters(
 				Code:     extractErrorCode(resolveError),
 			})
 		}
-
-		if existing, exists := parameterTypes[raw.Number]; exists {
-			r.mergeExistingParameterType(existing, sqlType, nullable, raw.CastType != nil)
-			continue
-		}
-
-		name := resolveParameterName(raw, directiveNumberMap, directiveNameMap)
-		parameterTypes[raw.Number] = &querier_dto.QueryParameter{
-			Number:   raw.Number,
-			Name:     name,
-			SQLType:  sqlType,
-			Nullable: nullable,
-		}
+		r.upsertParameterType(parameterTypes, raw, sqlType, nullable, directiveNumberMap, directiveNameMap)
 	}
 
-	return parameterTypes, diagnostics
+	return diagnostics
+}
+
+// upsertParameterType records a resolved parameter in parameterTypes by number: it merges
+// the type into an existing entry following cast and promotion rules, or inserts a new
+// entry with the resolved display name. The flat outer pass and the subquery pass share
+// it for identical merge semantics.
+//
+// Takes parameterTypes (map[int]*querier_dto.QueryParameter) which accumulates
+// parameters.
+// Takes raw (querier_dto.RawParameterReference) which is the parameter being recorded.
+// Takes sqlType (querier_dto.SQLType) which is the resolved type.
+// Takes nullable (bool) which indicates whether the reference context is nullable.
+// Takes directiveNumberMap (map[int]*querier_dto.ParameterDirective) which specifies
+// directives keyed by number.
+// Takes directiveNameMap (map[string]*querier_dto.ParameterDirective) which specifies
+// directives keyed by name.
+func (r *typeResolver) upsertParameterType(
+	parameterTypes map[int]*querier_dto.QueryParameter,
+	raw querier_dto.RawParameterReference,
+	sqlType querier_dto.SQLType,
+	nullable bool,
+	directiveNumberMap map[int]*querier_dto.ParameterDirective,
+	directiveNameMap map[string]*querier_dto.ParameterDirective,
+) {
+	if existing, exists := parameterTypes[raw.Number]; exists {
+		r.mergeExistingParameterType(existing, sqlType, nullable, raw.CastType != nil)
+
+		if raw.Context == querier_dto.ParameterContextLimit || raw.Context == querier_dto.ParameterContextOffset {
+			if existing.IsPaginationBound() || existing.SQLType.Category == querier_dto.TypeCategoryUnknown {
+				existing.Context = raw.Context
+			}
+		}
+		return
+	}
+	parameterTypes[raw.Number] = &querier_dto.QueryParameter{
+		Number:   raw.Number,
+		Name:     resolveParameterName(raw, directiveNumberMap, directiveNameMap),
+		SQLType:  sqlType,
+		Nullable: nullable,
+		Context:  raw.Context,
+	}
 }
 
 // mergeExistingParameterType merges a newly resolved type into an existing parameter
@@ -429,6 +685,38 @@ func disambiguateParameterNames(parameters []querier_dto.QueryParameter) {
 	}
 }
 
+// assignSortableNumbers gives each standalone sortable directive a parameter number after
+// the highest bound placeholder (and any other directive) so sortable inputs appear last
+// in the generated params struct and never collide with a bound placeholder. Sortable
+// directives bind no placeholder, so they start with number zero until assigned here.
+//
+// Takes parameterTypes (map[int]*querier_dto.QueryParameter) whose keys are the bound
+// placeholder numbers resolved so far.
+// Takes parameterDirectives ([]*querier_dto.ParameterDirective) which are mutated in
+// place.
+func assignSortableNumbers(
+	parameterTypes map[int]*querier_dto.QueryParameter,
+	parameterDirectives []*querier_dto.ParameterDirective,
+) {
+	maxNumber := 0
+	for number := range parameterTypes {
+		if number > maxNumber {
+			maxNumber = number
+		}
+	}
+	for _, directive := range parameterDirectives {
+		if directive.Kind != querier_dto.ParameterDirectiveSortable && directive.Number > maxNumber {
+			maxNumber = directive.Number
+		}
+	}
+	for _, directive := range parameterDirectives {
+		if directive.Kind == querier_dto.ParameterDirectiveSortable {
+			maxNumber++
+			directive.Number = maxNumber
+		}
+	}
+}
+
 // applyParameterDirectives applies directive overrides (type hints, nullability, kind) to
 // the merged parameter map. Directives for parameters not yet in the map create new
 // entries.
@@ -441,6 +729,8 @@ func (r *typeResolver) applyParameterDirectives(
 	parameterTypes map[int]*querier_dto.QueryParameter,
 	parameterDirectives []*querier_dto.ParameterDirective,
 ) {
+	assignSortableNumbers(parameterTypes, parameterDirectives)
+
 	for _, directive := range parameterDirectives {
 		if _, exists := parameterTypes[directive.Number]; !exists {
 			parameterTypes[directive.Number] = &querier_dto.QueryParameter{
@@ -461,6 +751,18 @@ func (r *typeResolver) applyParameterDirectives(
 			parameter.Nullable = *directive.Nullable
 		}
 
+		parameter.IsSlice = directive.IsSlice
+		parameter.IsOptional = directive.IsOptional
+		if directive.IsOptional {
+			parameter.Nullable = true
+		}
+		if directive.DefaultVal != nil {
+			parameter.DefaultLimit = directive.DefaultVal
+		}
+		if directive.MaxVal != nil {
+			parameter.MaxLimit = directive.MaxVal
+		}
+
 		parameter.Kind = directive.Kind
 		r.applyDirectiveKind(parameter, directive)
 	}
@@ -476,28 +778,8 @@ func (*typeResolver) applyDirectiveKind(
 	parameter *querier_dto.QueryParameter,
 	directive *querier_dto.ParameterDirective,
 ) {
-	switch directive.Kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-	case querier_dto.ParameterDirectiveOptional:
-		parameter.IsOptional = true
-		parameter.Nullable = true
-	case querier_dto.ParameterDirectiveSlice:
-		parameter.IsSlice = true
-	case querier_dto.ParameterDirectiveSortable:
+	if directive.Kind == querier_dto.ParameterDirectiveSortable {
 		parameter.SortableColumns = directive.Columns
-		parameter.Nullable = false
-	case querier_dto.ParameterDirectiveLimit:
-		parameter.SQLType = querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryInteger,
-			EngineName: querier_dto.CanonicalInt4,
-		}
-		parameter.Nullable = false
-		parameter.DefaultLimit = directive.DefaultVal
-		parameter.MaxLimit = directive.MaxVal
-	case querier_dto.ParameterDirectiveOffset:
-		parameter.SQLType = querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryInteger,
-			EngineName: querier_dto.CanonicalInt4,
-		}
 		parameter.Nullable = false
 	}
 }
@@ -510,18 +792,10 @@ func (*typeResolver) applyDirectiveKind(
 //
 // Returns []querier_dto.QueryParameter which holds the parameters in ordinal order.
 func collectParameters(parameterTypes map[int]*querier_dto.QueryParameter) []querier_dto.QueryParameter {
-	maxNumber := 0
-	for number := range parameterTypes {
-		if number > maxNumber {
-			maxNumber = number
-		}
-	}
-
-	result := make([]querier_dto.QueryParameter, 0, maxNumber)
-	for i := 1; i <= maxNumber; i++ {
-		if parameter, exists := parameterTypes[i]; exists {
-			result = append(result, *parameter)
-		}
+	numbers := slices.Sorted(maps.Keys(parameterTypes))
+	result := make([]querier_dto.QueryParameter, 0, len(numbers))
+	for _, number := range numbers {
+		result = append(result, *parameterTypes[number])
 	}
 
 	return result
@@ -544,11 +818,13 @@ func (*typeResolver) expandStar(
 			outputColumns := make([]querier_dto.OutputColumn, len(table.Columns))
 			for i := range table.Columns {
 				outputColumns[i] = querier_dto.OutputColumn{
-					Name:         table.Columns[i].Name,
-					SQLType:      table.Columns[i].SQLType,
-					Nullable:     table.Columns[i].Nullable,
-					SourceTable:  table.Name,
-					SourceColumn: table.Columns[i].Name,
+					Name:            table.Columns[i].Name,
+					SQLType:         table.Columns[i].SQLType,
+					Nullable:        table.Columns[i].Nullable,
+					SourceTable:     table.Name,
+					SourceSchema:    table.Schema,
+					SourceColumn:    table.Columns[i].Name,
+					SourceQualifier: table.Alias,
 				}
 			}
 			return outputColumns, nil
@@ -557,27 +833,37 @@ func (*typeResolver) expandStar(
 			outputColumns := make([]querier_dto.OutputColumn, len(cte.columns))
 			for i := range cte.columns {
 				outputColumns[i] = querier_dto.OutputColumn{
-					Name:         cte.columns[i].Name,
-					SQLType:      cte.columns[i].SQLType,
-					Nullable:     cte.columns[i].Nullable,
-					SourceTable:  cte.name,
-					SourceColumn: cte.columns[i].Name,
+					Name:            cte.columns[i].Name,
+					SQLType:         cte.columns[i].SQLType,
+					Nullable:        cte.columns[i].Nullable,
+					SourceTable:     cte.name,
+					SourceColumn:    cte.columns[i].Name,
+					SourceQualifier: tableAlias,
 				}
 			}
 			return outputColumns, nil
 		}
-		return nil, fmt.Errorf("Q003: unknown table %q in SELECT *", tableAlias)
+		return nil, fmt.Errorf("%s: unknown table %q in SELECT *", querier_dto.CodeUnknownTable, tableAlias)
 	}
 
+	tableAliases := make([]string, 0, len(scope.tables))
+	for alias := range scope.tables {
+		tableAliases = append(tableAliases, alias)
+	}
+	slices.Sort(tableAliases)
+
 	var outputColumns []querier_dto.OutputColumn
-	for _, table := range scope.tables {
+	for _, alias := range tableAliases {
+		table := scope.tables[alias]
 		for i := range table.Columns {
 			outputColumns = append(outputColumns, querier_dto.OutputColumn{
-				Name:         table.Columns[i].Name,
-				SQLType:      table.Columns[i].SQLType,
-				Nullable:     table.Columns[i].Nullable,
-				SourceTable:  table.Name,
-				SourceColumn: table.Columns[i].Name,
+				Name:            table.Columns[i].Name,
+				SQLType:         table.Columns[i].SQLType,
+				Nullable:        table.Columns[i].Nullable,
+				SourceTable:     table.Name,
+				SourceSchema:    table.Schema,
+				SourceColumn:    table.Columns[i].Name,
+				SourceQualifier: table.Alias,
 			})
 		}
 	}
@@ -613,6 +899,12 @@ func (r *typeResolver) resolveParameterType(
 	if raw.ColumnReference != nil {
 		return r.resolveColumnReferencedParameterType(raw.ColumnReference, scope)
 	}
+
+	if raw.Context == querier_dto.ParameterContextFunctionArgument && raw.EnclosingFunctionName != "" {
+		if argumentType, resolved := r.functionResolver.ArgumentType(raw.EnclosingFunctionName, raw.ArgumentOrdinal); resolved {
+			return r.resolveCustomType(argumentType), false, nil
+		}
+	}
 	return resolveContextOnlyParameterType(raw.Context), false, nil
 }
 
@@ -644,6 +936,9 @@ func (r *typeResolver) resolveLikeParameterType(
 	if _, ok := r.findColumnInCatalogue(raw.ColumnReference); ok {
 		return likeType, false, nil
 	}
+	if _, ok := resolveBareColumnFallback(scope, raw.ColumnReference); ok {
+		return likeType, false, nil
+	}
 	return likeType, false, err
 }
 
@@ -670,12 +965,44 @@ func (r *typeResolver) resolveColumnReferencedParameterType(
 		if fallback, ok := r.findColumnInCatalogue(reference); ok {
 			return fallback.sqlType, fallback.nullable, nil
 		}
+		if bare, ok := resolveBareColumnFallback(scope, reference); ok {
+			return bare.SQLType, bare.Nullable, nil
+		}
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, false, err
 	}
 	if column == nil {
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, false, nil
 	}
 	return column.SQLType, column.Nullable, nil
+}
+
+// resolveBareColumnFallback retries an unqualified column lookup when a qualified
+// parameter reference fails to resolve.
+//
+// A parameter hoisted out of a subquery keeps that subquery's local table alias, which is
+// absent from the parent scope, so the qualified lookup wrongly fails. If the bare column
+// name then resolves unambiguously in the current scope, the parameter is typed from it
+// and the spurious Q001/Q002 is suppressed. A reference that was already unqualified, or
+// whose bare column is ambiguous or unknown, returns ok=false so the original diagnostic
+// stands.
+//
+// Takes scope (*scopeChain) which specifies the active scope chain.
+// Takes reference (*querier_dto.ColumnReference) which is the parameter's target column.
+//
+// Returns *querier_dto.ScopedColumn which holds the unambiguously resolved column.
+// Returns bool which reports whether such a column was found.
+func resolveBareColumnFallback(
+	scope *scopeChain,
+	reference *querier_dto.ColumnReference,
+) (*querier_dto.ScopedColumn, bool) {
+	if reference.TableAlias == "" {
+		return nil, false
+	}
+	column, _, err := scope.ResolveColumn("", reference.ColumnName)
+	if err != nil || column == nil {
+		return nil, false
+	}
+	return column, true
 }
 
 // resolveContextOnlyParameterType returns the type that a parameter takes from its
@@ -713,13 +1040,32 @@ func resolveContextOnlyParameterType(parameterContext querier_dto.ParameterConte
 func (r *typeResolver) findColumnInCatalogue(
 	reference *querier_dto.ColumnReference,
 ) (catalogueColumnMatch, bool) {
-	if r.catalogue == nil || reference == nil || reference.ColumnName == "" {
+	return findColumnInCatalogueFor(r.catalogue, reference)
+}
+
+// findColumnInCatalogueFor is the catalogue-wide column lookup shared by the type
+// resolver's parameter path and the column-existence diagnostic pass. Holding a
+// single body keeps the match, ambiguity-refusal and view-skip rules identical for
+// both callers.
+//
+// Takes catalogue (*querier_dto.Catalogue) which holds the schema state to search.
+// Takes reference (*querier_dto.ColumnReference) which specifies the column to look
+// up.
+//
+// Returns catalogueColumnMatch which holds the matched column's type and nullability
+// when ok is true.
+// Returns bool which is true when exactly one column matched.
+func findColumnInCatalogueFor(
+	catalogue *querier_dto.Catalogue,
+	reference *querier_dto.ColumnReference,
+) (catalogueColumnMatch, bool) {
+	if catalogue == nil || reference == nil || reference.ColumnName == "" {
 		return catalogueColumnMatch{}, false
 	}
 
 	var found catalogueColumnMatch
 	matchCount := 0
-	for _, schema := range r.catalogue.Schemas {
+	for _, schema := range catalogue.Schemas {
 		if schema == nil {
 			continue
 		}
@@ -792,7 +1138,7 @@ func findColumnInTable(table *querier_dto.Table, columnName string) (catalogueCo
 	for i := range table.Columns {
 		if strings.EqualFold(table.Columns[i].Name, columnName) {
 			return catalogueColumnMatch{
-				sqlType:  table.Columns[i].SQLType,
+				sqlType:  arrayWrappedSQLType(&table.Columns[i]),
 				nullable: table.Columns[i].Nullable,
 			}, true
 		}

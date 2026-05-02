@@ -16,10 +16,9 @@ import (
 func main() {
 	logger.AddPrettyOutput()
 
-	// Serve WASM artefacts from bin/wasm/ (built by `make build-wasm`) on a
-	// separate port. The playground page fetches these from this server.
-	// Serves pre-compressed brotli or gzip variants when the client supports
-	// them, falling back to the uncompressed binary.
+	// Serve WASM artefacts from bin/wasm/ (built by `make build-wasm`) on a separate port.
+	// The playground page fetches these from this server. Serves pre-compressed brotli or
+	// gzip variants when the client supports them, falling back to the uncompressed binary.
 	wasmDir := findWASMDir()
 	go func() {
 		mux := http.NewServeMux()
@@ -69,15 +68,15 @@ func main() {
 	}
 }
 
-// serveWASM returns a handler that serves the WASM binary with content
-// negotiation for pre-compressed variants. Prefers brotli, then gzip,
-// falling back to the uncompressed binary.
+// serveWASM returns a handler that serves the WASM binary with content negotiation for
+// pre-compressed variants. Prefers brotli, then gzip, falling back to the uncompressed
+// binary.
 func serveWASM(wasmDir string) http.HandlerFunc {
 	return servePrecompressed(wasmDir, "piko.final.wasm", "application/wasm")
 }
 
-// servePrecompressed returns a handler that serves a file from wasmDir,
-// preferring pre-compressed .br or .gz variants based on Accept-Encoding.
+// servePrecompressed returns a handler that serves a file from wasmDir, preferring
+// pre-compressed .br or .gz variants based on Accept-Encoding.
 func servePrecompressed(wasmDir, filename, contentType string) http.HandlerFunc {
 	rawPath := filepath.Join(wasmDir, filename)
 	brPath := rawPath + ".br"
@@ -122,8 +121,8 @@ func fileExists(path string) bool {
 	return err == nil && !info.IsDir()
 }
 
-// findWASMDir locates the bin/wasm/ directory by walking up from the
-// current working directory to find the repository root.
+// findWASMDir locates the bin/wasm/ directory by walking up from the current working
+// directory to find the repository root.
 func findWASMDir() string {
 	dir, err := os.Getwd()
 	if err != nil {

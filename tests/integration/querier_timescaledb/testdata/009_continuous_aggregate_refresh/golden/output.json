@@ -1,0 +1,31 @@
+{
+  "hourly_cagg": [
+    {
+      "bucket": "2026-01-01T00:00:00Z",
+      "sample_count": 2,
+      "source": 1,
+      "total_value": 22
+    },
+    {
+      "bucket": "2026-01-01T00:00:00Z",
+      "sample_count": 1,
+      "source": 2,
+      "total_value": 5
+    },
+    {
+      "bucket": "2026-01-01T01:00:00Z",
+      "sample_count": 1,
+      "source": 1,
+      "total_value": 14
+    },
+    {
+      "bucket": "2026-01-01T01:00:00Z",
+      "sample_count": 1,
+      "source": 2,
+      "total_value": 8
+    }
+  ],
+  "raw_row_count": {
+    "count": 5
+  }
+}

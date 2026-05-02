@@ -1,5 +1,4 @@
--- piko.name: SummaryStats
--- piko.command: one
+-- piko.query(name: SummaryStats, command: one)
 SELECT
   COUNT(*)::INTEGER                         AS total_orders,
   SUM(amount * quantity)::DECIMAL(12, 2)    AS total_revenue,
@@ -7,8 +6,7 @@ SELECT
   COUNT(DISTINCT product)::INTEGER          AS unique_products
 FROM sales;
 
--- piko.name: RevenueByCategory
--- piko.command: many
+-- piko.query(name: RevenueByCategory, command: many)
 SELECT
   category,
   SUM(amount * quantity)::DECIMAL(12, 2)  AS revenue,
@@ -17,8 +15,7 @@ FROM sales
 GROUP BY category
 ORDER BY revenue DESC;
 
--- piko.name: RevenueByRegion
--- piko.command: many
+-- piko.query(name: RevenueByRegion, command: many)
 SELECT
   region,
   SUM(amount * quantity)::DECIMAL(12, 2)  AS revenue,
@@ -27,8 +24,7 @@ FROM sales
 GROUP BY region
 ORDER BY revenue DESC;
 
--- piko.name: TopProducts
--- piko.command: many
+-- piko.query(name: TopProducts, command: many)
 SELECT
   product,
   category,
@@ -39,8 +35,7 @@ GROUP BY product, category
 ORDER BY total_revenue DESC
 LIMIT 5;
 
--- piko.name: MonthlySales
--- piko.command: many
+-- piko.query(name: MonthlySales, command: many)
 SELECT
   strftime('%Y-%m', sold_at)  AS month,
   SUM(amount * quantity)::DECIMAL(12, 2)  AS revenue,

@@ -1,0 +1,3 @@
+{
+  "description": "Modern TimescaleDB hypertable form: CREATE TABLE ... WITH (tsdb.hypertable, tsdb.partition_column='ts', tsdb.chunk_interval='1 day') replaces the legacy SELECT create_hypertable() call. The fixture writes rows that span multiple chunks and confirms the chunks were generated, proving the WITH-form post-parse hook lifted the hypertable metadata correctly."
+}

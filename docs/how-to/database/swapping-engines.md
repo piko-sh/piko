@@ -1,6 +1,6 @@
 ---
 title: How to swap database engines
-description: Change between SQLite, PostgreSQL, MySQL, MariaDB, CockroachDB, and DuckDB without touching application code.
+description: Change between SQLite, PostgreSQL, MySQL, MariaDB, CockroachDB, TimescaleDB, DuckDB, and ClickHouse without touching application code.
 nav:
   sidebar:
     section: "how-to"
@@ -10,11 +10,11 @@ nav:
 
 # How to swap database engines
 
-Piko supports SQLite, PostgreSQL, MySQL, MariaDB, CockroachDB, and DuckDB through swappable engine configs. A project picks the target at bootstrap, and the generator, migrator, and queries adapt to the chosen dialect. This guide covers what changes between engines and how to migrate a project from one to another. See the [querier reference](../../reference/querier.md) for the engine-config API.
+Piko supports SQLite, PostgreSQL, MySQL, MariaDB, CockroachDB, TimescaleDB, DuckDB, and ClickHouse through swappable engine configs. A project picks the target at bootstrap, and the generator, migrator, and queries adapt to the chosen dialect. This guide covers what changes between engines and how to migrate a project from one to another. See the [querier reference](../../reference/querier.md) for the engine-config API.
 
 ## What stays the same
 
-- `db/queries/*.sql` files with `piko.name` and `piko.command` annotations.
+- `db/queries/*.sql` files with `piko.query(...)` headers (the query name and command are the first two positionals, for example `-- piko.query(GetUser, one)`).
 - Generated `Queries` struct and method signatures (names and return types are dialect-neutral).
 - Call sites in actions and partials: `queries.ListTasks(ctx)` looks identical regardless of engine.
 - The `MigrationService` API.
@@ -39,7 +39,9 @@ Piko supports SQLite, PostgreSQL, MySQL, MariaDB, CockroachDB, and DuckDB throug
 | MySQL | `piko.sh/piko/wdk/db/db_engine_mysql` | `db_engine_mysql.MySQL()` | `db.MySQLDialect()` or `db.MySQLDialectWithDSN(dsn)` | `github.com/go-sql-driver/mysql` |
 | MariaDB | `piko.sh/piko/wdk/db/db_engine_mariadb` | `db_engine_mariadb.MariaDB()` | `db.MySQLDialect()` | `github.com/go-sql-driver/mysql` |
 | CockroachDB | `piko.sh/piko/wdk/db/db_engine_cockroachdb` | `db_engine_cockroachdb.CockroachDB()` | `db.PostgresDialect()` | `github.com/jackc/pgx/v5/stdlib` |
-| DuckDB | `piko.sh/piko/wdk/db/db_engine_duckdb` | `db_engine_duckdb.DuckDB()` | None - codegen-only engine; the `EngineConfig.MigrationDialect` is zero-valued, so do not point a `MigrationService` at a DuckDB connection. | `github.com/marcboeker/go-duckdb` |
+| TimescaleDB | `piko.sh/piko/wdk/db/db_engine_timescaledb` | `db_engine_timescaledb.TimescaleDB()` | `db.PostgresDialect()` (inherits postgres transactions and advisory locks) | `github.com/jackc/pgx/v5/stdlib` |
+| DuckDB | `piko.sh/piko/wdk/db/db_engine_duckdb` | `db_engine_duckdb.DuckDB()` | None. This is a codegen-only engine, so the `EngineConfig.MigrationDialect` is zero-valued. Do not point a `MigrationService` at a DuckDB connection. | `github.com/marcboeker/go-duckdb` |
+| ClickHouse | `piko.sh/piko/wdk/db/db_engine_clickhouse` | `db_engine_clickhouse.ClickHouse()` | None exported in `wdk/db`. The ClickHouse migration dialect uses a no-op lock and runs without transactions, so you must coordinate concurrent migrators externally (for example through a CI lock or a deployment gate). | `github.com/ClickHouse/clickhouse-go/v2` |
 
 Use `db_engine_postgres.PostgresPgBouncer()` when your application talks to PostgreSQL through PgBouncer in transaction-pooling mode. The pairing avoids advisory locks (which do not survive across pooled queries) and switches the migration runner to a table-based lock instead. `db_engine_mariadb.MariaDB()` ships as a MySQL variant - it returns the same `*MySQLEngine` underneath, with extra MariaDB-only function definitions registered.
 
@@ -95,7 +97,7 @@ Everything else in the codebase (action handlers, generated queries, partials) s
 
 ## Adjust the SQL
 
-The generator reads your `migrations/*.sql` and `queries/*.sql` files as-is. If you wrote them for SQLite and now target Postgres, six syntax differences matter:
+The generator reads your `db/migrations/*.sql` and `db/queries/*.sql` files as-is (these are the scaffolded project's chosen directories, configurable through `MigrationDirectory` and `QueryDirectory`). If you wrote them for SQLite and now target Postgres, six syntax differences matter:
 
 | Feature | SQLite | PostgreSQL | MySQL |
 |---|---|---|---|
@@ -104,8 +106,10 @@ The generator reads your `migrations/*.sql` and `queries/*.sql` files as-is. If 
 | Boolean | Stored as INTEGER | `BOOLEAN` | `TINYINT(1)` or `BOOLEAN` |
 | Timestamp | Stored as INTEGER (epoch) or TEXT | `TIMESTAMPTZ` | `DATETIME` or `TIMESTAMP` |
 | UPSERT | `ON CONFLICT ... DO UPDATE` | `ON CONFLICT ... DO UPDATE` | `ON DUPLICATE KEY UPDATE` |
-| RETURNING | Supported (SQLite 3.35+) | Supported | Not supported; use separate SELECT |
+| RETURNING | Supported (SQLite 3.35+) | Supported | Not supported, use a separate SELECT (but see the MariaDB note below) |
 | LIMIT with offset | `LIMIT n OFFSET m` | `LIMIT n OFFSET m` | `LIMIT m, n` |
+
+MariaDB, unlike standard MySQL, supports RETURNING. The `db_engine_mariadb` engine inherits the MySQL dialect but enables `WithReturningSupport(true)`, so a MariaDB target can use RETURNING where the MySQL column above says it cannot.
 
 When queries or migrations diverge, keep per-dialect variants in side-by-side files (for example, `users.postgres.sql` and `users.sqlite.sql`) or keep a single dialect-neutral subset where possible.
 
@@ -114,7 +118,7 @@ When queries or migrations diverge, keep per-dialect variants in side-by-side fi
 Migrations tracked against SQLite do not translate automatically to Postgres. Two paths:
 
 1. **Fresh database**: apply every migration from the start on the new engine. Appropriate during development or for projects that carry no production data yet.
-2. **Data migration**: export data from the source, recreate the schema on the target, import the data, then mark the equivalent migrations as applied on the target without rerunning them (using a one-off script that writes the appropriate rows to the migration-tracking table).
+2. **Data migration**: export data from the source, recreate the schema on the target, then import the data. Mark the equivalent migrations as applied on the target without rerunning them. Use a one-off script that writes the appropriate rows to the migration-tracking table.
 
 For production migrations, option 2 is the realistic path. Write it as a one-off tool outside the main binary and run it under a maintenance window.
 

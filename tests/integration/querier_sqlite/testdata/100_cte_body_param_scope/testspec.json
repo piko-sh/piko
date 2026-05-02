@@ -1,0 +1,4 @@
+{
+  "description": "Bug#3: a CTE body's unqualified parameter column (id < ?1) is flattened into the top-level parameter list. Previously it was resolved against the OUTER query scope, where the CTE appears as a derived table (alias l) alongside content_media_folders m and content_media_folder_versions v, all exposing id, so the bare id was reported ambiguous (Q002). Inside the CTE body's own single-table scope id is unambiguous. expectedDiagnostics:[] pins the false Q002 away, and the generated query selects the correct version row.",
+  "expectedDiagnostics": []
+}

@@ -37,15 +37,14 @@ import (
 )
 
 // MvmRunner executes benchmarks via the mvm in-process Go interpreter
-// (github.com/mvm-sh/mvm). Mvm compiles Go source to bytecode and runs
-// it on a stack-based VM. Like piko and scriggo, mvm runs in-process so
-// there is no subprocess startup cost.
+// (github.com/mvm-sh/mvm). Mvm compiles Go source to bytecode and runs it on a
+// stack-based VM. Like piko and scriggo, mvm runs in-process so there is no subprocess
+// startup cost.
 //
-// Mvm bundles its own stdlib bindings, so unlike scriggo we do not need
-// to register math / time / sync / os manually. Mvm captures stdout
-// directly through its SetIO API; the harness reads stdout and stderr
-// buffers after Eval returns, which matches the pattern the subprocess
-// runners (cpython, pypy) already use.
+// Mvm bundles its own stdlib bindings, so unlike scriggo we do not need to register math
+// / time / sync / os manually. Mvm captures stdout directly through its SetIO API; the
+// harness reads stdout and stderr buffers after Eval returns, which matches the pattern
+// the subprocess runners (cpython, pypy) already use.
 type MvmRunner struct{}
 
 // NewMvmRunner returns a Runner that drives the mvm library.
@@ -63,9 +62,9 @@ func (runner *MvmRunner) Available(ctx context.Context) (bool, string) {
 // Close is a no-op; mvm holds no global resources.
 func (runner *MvmRunner) Close(ctx context.Context) error { _ = ctx; return nil }
 
-// Run compiles the benchmark's piko_source.go together with a small
-// generated main() that calls Run() / RunInner(K) and writes the result
-// to stdout and (for inner-loop mode) the elapsed nanos to stderr.
+// Run compiles the benchmark's piko_source.go together with a small generated main() that
+// calls Run() / RunInner(K) and writes the result to stdout and (for inner-loop mode) the
+// elapsed nanos to stderr.
 func (runner *MvmRunner) Run(parent context.Context, spec BenchSpec, mode RunMode, benchmarkDir string) (Result, error) {
 	sourcePath := filepath.Join(benchmarkDir, "go", "piko_source.go")
 	sourceBytes, err := os.ReadFile(sourcePath)
@@ -137,11 +136,10 @@ func (runner *MvmRunner) Run(parent context.Context, spec BenchSpec, mode RunMod
 	}, nil
 }
 
-// mvmWrapperBody returns the body (no package / import lines) of a
-// `main()` that calls `Run()` or `RunInner(K)` and writes the result to
-// stdout (and elapsed nanos to stderr) the same way native_main.go
-// does. Mvm's bundled stdlib provides fmt and os, so the wrapper looks
-// like a real Go program.
+// mvmWrapperBody returns the body (no package / import lines) of a `main()` that calls
+// `Run()` or `RunInner(K)` and writes the result to stdout (and elapsed nanos to stderr)
+// the same way native_main.go does. Mvm's bundled stdlib provides fmt and os, so the
+// wrapper looks like a real Go program.
 func mvmWrapperBody(mode RunMode, kInner int) string {
 	if mode == ModeInnerLoop {
 		return fmt.Sprintf(`
@@ -159,11 +157,10 @@ func main() {
 `
 }
 
-// mergeMvmSource glues piko_source.go and the wrapper main() into a
-// single Go source file. Mvm parses one `package main` source string at
-// a time, so we strip the package + imports from piko_source.go,
-// collect every import we need (the union of the original imports plus
-// fmt and os for the wrapper), and emit the combined file.
+// mergeMvmSource glues piko_source.go and the wrapper main() into a single Go source
+// file. Mvm parses one `package main` source string at a time, so we strip the package +
+// imports from piko_source.go, collect every import we need (the union of the original
+// imports plus fmt and os for the wrapper), and emit the combined file.
 func mergeMvmSource(pikoSource string, wrapperBody string) string {
 	imports := map[string]struct{}{}
 	imports[`"fmt"`] = struct{}{}
@@ -186,10 +183,9 @@ func mergeMvmSource(pikoSource string, wrapperBody string) string {
 	return merged
 }
 
-// parseMvmInnerElapsedNanos extracts the `INNER_ELAPSED_NS=<int>` value
-// the wrapper main() writes to stderr in inner-loop mode. Returns zero
-// if the line is absent or malformed, matching the subprocess runner
-// behaviour.
+// parseMvmInnerElapsedNanos extracts the `INNER_ELAPSED_NS=<int>` value the wrapper
+// main() writes to stderr in inner-loop mode. Returns zero if the line is absent or
+// malformed, matching the subprocess runner behaviour.
 func parseMvmInnerElapsedNanos(stderrContent string) int64 {
 	for _, line := range strings.Split(stderrContent, "\n") {
 		trimmed := strings.TrimSpace(line)

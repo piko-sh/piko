@@ -174,7 +174,7 @@ func BuildGroupedManyMethod(
 		return BuildManyMethod(query, mappings, tracker, strategy)
 	}
 
-	keyGoType := ResolveGoType(keyColumn.SQLType, false, mappings)
+	keyGoType := ResolveGoType(keyColumn.SQLType, keyColumn.Nullable, mappings)
 	keyTypeExpression := tracker.AddType(keyGoType)
 
 	_, embedGroups := GroupColumnsByEmbed(query.OutputColumns)
@@ -200,7 +200,7 @@ func BuildGroupedManyMethod(
 
 	var queryArguments []ast.Expr
 	if !query.IsDynamic {
-		queryArguments = BuildQueryArgs(query)
+		queryArguments = BuildQueryArgs(query, strategy)
 	}
 	statements := BuildGroupedMethodBody(groupContext, queryArguments)
 
@@ -230,7 +230,7 @@ func BuildGroupedMethodBody(groupContext *GroupedContext, queryArguments []ast.E
 
 	if groupContext.Query.IsDynamic {
 		var dynamicStatements []ast.Stmt
-		dynamicStatements, queryArguments = BuildDynamicPreamble(groupContext.Query)
+		dynamicStatements, queryArguments = BuildDynamicPreamble(groupContext.Query, groupContext.Strategy)
 		statements = append(statements, dynamicStatements...)
 	}
 
@@ -256,17 +256,19 @@ func BuildGroupedMethodBody(groupContext *GroupedContext, queryArguments []ast.E
 // parameter initialisation and optional sort query init.
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed dynamic query.
+// Takes strategy (MethodStrategy) which exposes placeholder behaviour so the helper can
+// pick the right occurrence model.
 //
 // Returns []ast.Stmt which holds the preamble statements.
 // Returns []ast.Expr which holds the query argument expressions for the database call.
-func BuildDynamicPreamble(query *querier_dto.AnalysedQuery) ([]ast.Stmt, []ast.Expr) {
+func BuildDynamicPreamble(query *querier_dto.AnalysedQuery, strategy MethodStrategy) ([]ast.Stmt, []ast.Expr) {
 	statements := BuildParamsInitStatements(query)
 	sortParameter := FindSortableParameter(query)
 	if sortParameter != nil {
 		statements = append(statements, BuildSortableQueryInit(query, *sortParameter)...)
-		return statements, BuildSortableDynamicQueryArgs(query)
+		return statements, BuildSortableDynamicQueryArgs(query, strategy)
 	}
-	return statements, BuildDynamicQueryArgs(query)
+	return statements, BuildDynamicQueryArgs(query, strategy)
 }
 
 // BuildGroupedQueryExecution constructs the query execution, error check, defer close,

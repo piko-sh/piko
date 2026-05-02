@@ -63,7 +63,7 @@ type testEnv struct {
 }
 
 var (
-	globalEnv *testEnv
+	globalEnv      *testEnv
 	sharedProvider storage.ProviderPort
 )
 

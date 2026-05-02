@@ -1,5 +1,4 @@
--- piko.name: InventoryStatus
--- piko.command: many
+-- piko.query(name: InventoryStatus, command: many)
 SELECT
     id,
     item_name,

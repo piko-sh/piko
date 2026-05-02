@@ -1,5 +1,4 @@
--- piko.name: GetOrderStatus
--- piko.command: many
+-- piko.query(name: GetOrderStatus, command: many)
 SELECT
   id,
   CASE status WHEN 'active' THEN amount WHEN 'discounted' THEN discount ELSE 0 END as effective_amount,

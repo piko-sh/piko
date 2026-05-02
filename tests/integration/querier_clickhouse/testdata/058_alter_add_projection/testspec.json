@@ -1,0 +1,4 @@
+{
+  "description": "ALTER TABLE x ADD PROJECTION p (SELECT col, sum(...) GROUP BY col) declares an alternate storage layout that ClickHouse uses to satisfy matching aggregation queries. The migration also materialises the projection; the runtime query reads back the same aggregation form and verifies the totals. The parser treats ADD PROJECTION as a catalogue no-op so the migration applies cleanly without polluting the schema model.",
+  "skip": false
+}

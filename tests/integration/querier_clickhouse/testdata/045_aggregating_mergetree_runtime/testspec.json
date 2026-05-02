@@ -1,0 +1,3 @@
+{
+  "description": "AggregatingMergeTree engine with an AggregateFunction(uniq, String) column. The fixture writes incremental uniq states from raw inserts, then reads a uniqMerge over the AggregatingMergeTree to confirm that the engine accumulates the intermediate states across parts and the resolver round-trips the opaque AggregateFunction column type."
+}

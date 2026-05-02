@@ -1,0 +1,3 @@
+{
+  "description": "Date / time functions: now, toDate, formatDateTime, dateAdd. Verifies the temporal subset of the function catalogue."
+}

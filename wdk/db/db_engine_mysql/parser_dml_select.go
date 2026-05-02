@@ -107,6 +107,9 @@ func (p *parser) parseSingleCTEDefinition(isRecursive bool) (querier_dto.RawCTED
 // splice its parameter state.
 func (p *parser) analyseCTEBody(cteTokens []token) (*querier_dto.RawQueryAnalysis, *parser) {
 	cteParser := newParser(cteTokens)
+	cteParser.analysisDepth = p.analysisDepth
+	cteParser.expressionDepth = p.expressionDepth
+	cteParser.maxParseDepth = p.maxParseDepth
 	var cteAnalysis *querier_dto.RawQueryAnalysis
 	var analyseErr error
 
@@ -186,6 +189,8 @@ func (*parser) populateCTEDefinition(
 	definition.FromTables = analysis.FromTables
 	definition.JoinClauses = analysis.JoinClauses
 	definition.CompoundBranches = analysis.CompoundBranches
+
+	definition.ParameterReferences = analysis.ParameterReferences
 }
 
 // peekForAS reports whether the parenthesised group at the current position is followed
@@ -226,12 +231,20 @@ func (p *parser) peekForAS() bool {
 func (p *parser) parseOutputColumns() ([]querier_dto.RawOutputColumn, error) {
 	var columns []querier_dto.RawOutputColumn
 
+	if p.insertProjectionColumns != nil {
+		p.insertProjectionIndex = 0
+	}
+
 	for {
 		column, err := p.parseOneOutputColumn()
 		if err != nil {
 			return nil, err
 		}
 		columns = append(columns, column)
+
+		if p.insertProjectionColumns != nil {
+			p.insertProjectionIndex++
+		}
 
 		if p.current().kind != tokenComma {
 			break
@@ -460,7 +473,7 @@ func (p *parser) skipIndexHints() {
 // parseJoinCondition consumes an optional ON or USING clause following a JOIN.
 func (p *parser) parseJoinCondition() {
 	if p.matchKeyword(keywordON) {
-		p.parseWhereClause()
+		p.parseJoinConditionExpression()
 		return
 	}
 	if p.matchKeyword(keywordUSING) && p.current().kind == tokenLeftParen {
@@ -534,6 +547,9 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 
 	childParser := newParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
+	childParser.analysisDepth = p.analysisDepth
+	childParser.expressionDepth = p.expressionDepth
+	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
 		return analyseError
@@ -572,8 +588,11 @@ func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 	functionName := strings.ToLower(p.advance().value)
 	p.advance()
 
+	parameterCountBefore := p.parameterCount
+	var argumentBoundaries []int
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		p.parseExpression()
+		argumentBoundaries = append(argumentBoundaries, p.parameterCount)
 		if p.current().kind != tokenComma {
 			break
 		}
@@ -582,6 +601,8 @@ func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 	if p.current().kind == tokenRightParen {
 		p.advance()
 	}
+
+	p.markParametersAsFunctionArguments(parameterCountBefore, functionName, argumentBoundaries)
 
 	alias := functionName
 	var columnDefinitions []querier_dto.TVFColumnDefinition
@@ -617,10 +638,8 @@ func (p *parser) parseTVFColumnDefinitions() []querier_dto.TVFColumnDefinition {
 		}
 		name := p.advance().value
 		var typeName string
-		if p.current().kind == tokenIdentifier && p.current().kind != tokenRightParen {
-			if !p.isAnyKeyword(",") && p.current().kind != tokenComma {
-				typeName = p.parseCastTypeName()
-			}
+		if p.current().kind == tokenIdentifier {
+			typeName = p.parseCastTypeName()
 		}
 		definitions = append(definitions, querier_dto.TVFColumnDefinition{
 			Name:     name,

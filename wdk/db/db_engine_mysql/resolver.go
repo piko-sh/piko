@@ -87,22 +87,30 @@ func (*MySQLFunctionResolver) ResolveFunctionCall(
 		return resolveIf(argumentTypes)
 	case "ifnull":
 		return resolveIfNull(argumentTypes)
-	case "coalesce", "greatest", "least":
+	case "coalesce":
 		return resolveCoalesce(argumentTypes)
+	case "greatest", "least":
+		return resolveGreatestLeast(argumentTypes)
 	case "group_concat":
 		return resolveGroupConcat()
 	case "json_extract":
 		return resolveJSONExtract()
 	case "json_unquote", "concat", "concat_ws":
 		return resolveTextReturn()
+	case "floor", "ceil", "ceiling":
+		return resolveFloorCeil(argumentTypes)
+	case "mod":
+		return resolveMod(argumentTypes)
 	case "sum":
 		return resolveSum(argumentTypes)
 	case "avg":
 		return resolveAvg()
-	case "min", "max":
+	case "min", "max", "bit_and", "bit_or", "bit_xor":
 		return resolveIdentityAggregate(argumentTypes)
 	case "count":
 		return resolveCount()
+	case "nullif", "first_value", "last_value", "lag", "lead":
+		return resolveIdentityFunction(argumentTypes)
 	default:
 		return nil, nil
 	}
@@ -126,6 +134,7 @@ func resolveIf(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolu
 	return &querier_dto.FunctionResolution{
 		ReturnType:        returnType,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -147,18 +156,18 @@ func resolveIfNull(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 	return &querier_dto.FunctionResolution{
 		ReturnType:        returnType,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
-// resolveCoalesce computes the return type for COALESCE/GREATEST/LEAST.
+// promoteArgumentTypes promotes all non-unknown argument types to a single common type.
 //
 // Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
 // the call site.
 //
-// Returns *querier_dto.FunctionResolution which describes the promoted type across all
-// non-unknown arguments.
-// Returns error when resolution fails.
-func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
+// Returns querier_dto.SQLType which is the promoted type, or an unknown type when every
+// argument is unknown.
+func promoteArgumentTypes(argumentTypes []querier_dto.SQLType) querier_dto.SQLType {
 	var result querier_dto.SQLType
 	initialised := false
 
@@ -178,12 +187,47 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 	}
 
 	if !initialised {
-		result = querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""}
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""}
 	}
 
+	return result
+}
+
+// resolveCoalesce computes the return type for COALESCE.
+//
+// COALESCE returns its first non-NULL argument, so it is called even when arguments are
+// NULL.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which describes the promoted type across all
+// non-unknown arguments.
+// Returns error when resolution fails.
+func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
-		ReturnType:        result,
+		ReturnType:        promoteArgumentTypes(argumentTypes),
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
+	}, nil
+}
+
+// resolveGreatestLeast computes the return type for GREATEST/LEAST.
+//
+// Unlike COALESCE, GREATEST and LEAST return NULL whenever any argument is NULL, so the
+// resolution is modelled as returns-null-on-null.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which describes the promoted type across all
+// non-unknown arguments.
+// Returns error when resolution fails.
+func resolveGreatestLeast(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
+	return &querier_dto.FunctionResolution{
+		ReturnType:        promoteArgumentTypes(argumentTypes),
+		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -196,6 +240,7 @@ func resolveGroupConcat() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		IsAggregate:       true,
 	}, nil
 }
@@ -208,6 +253,7 @@ func resolveJSONExtract() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -219,7 +265,89 @@ func resolveTextReturn() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
+}
+
+// resolveFloorCeil computes the return type for FLOOR / CEIL / CEILING.
+//
+// The static catalogue declares these as INT, but MySQL returns a value with the same
+// numeric scale as the argument for floating-point input: FLOOR(double) and CEIL(double)
+// yield a DOUBLE, not an INT. Narrowing a double to int32 silently overflows for values
+// beyond the 32-bit range, so when the argument is a float the result echoes the float
+// type. Integer (and any other) arguments fall through to nil so the catalogue's INT
+// signature still applies; the decimal case is out of scope (MySQL errors on an implicit
+// Decimal-to-Int cast there).
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which echoes a float argument type, or nil to
+// defer to the catalogue signature.
+// Returns error when resolution fails.
+func resolveFloorCeil(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
+	if len(argumentTypes) < minArgumentsSingleArgFunction {
+		return nil, nil
+	}
+
+	if argumentTypes[0].Category != querier_dto.TypeCategoryFloat {
+		return nil, nil
+	}
+
+	return &querier_dto.FunctionResolution{
+		ReturnType:        argumentTypes[0],
+		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
+	}, nil
+}
+
+// resolveMod computes the return type for MOD.
+//
+// The static catalogue declares MOD as INT, but MySQL preserves the fractional part when
+// either operand is floating-point: MOD(double, double) yields a DOUBLE, so narrowing to
+// INT would drop the fraction. When either argument is a float the result promotes to the
+// wider float type; otherwise the call defers to the catalogue's INT signature.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which echoes the promoted float type, or nil to
+// defer to the catalogue signature.
+// Returns error when resolution fails.
+func resolveMod(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
+	if len(argumentTypes) < minArgumentsIfNull {
+		return nil, nil
+	}
+
+	leftIsFloat := argumentTypes[0].Category == querier_dto.TypeCategoryFloat
+	rightIsFloat := argumentTypes[1].Category == querier_dto.TypeCategoryFloat
+	if !leftIsFloat && !rightIsFloat {
+		return nil, nil
+	}
+
+	return &querier_dto.FunctionResolution{
+		ReturnType:        widerFloat(argumentTypes[0], argumentTypes[1]),
+		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
+	}, nil
+}
+
+// widerFloat returns the wider float result for a MOD whose operands include at least one
+// float. Any non-float operand contributes the DOUBLE width MySQL uses when mixing a
+// float with an integer, so the result is the wider of the two float widths (DOUBLE
+// unless both floats are FLOAT).
+//
+// Takes left (querier_dto.SQLType) which is the left operand type.
+// Takes right (querier_dto.SQLType) which is the right operand type.
+//
+// Returns querier_dto.SQLType which is the float type to use for the result.
+func widerFloat(left querier_dto.SQLType, right querier_dto.SQLType) querier_dto.SQLType {
+	bothFloat := left.Category == querier_dto.TypeCategoryFloat &&
+		right.Category == querier_dto.TypeCategoryFloat
+	if bothFloat && left.EngineName == "float" && right.EngineName == "float" {
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "float"}
+	}
+	return querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "double"}
 }
 
 // resolveSum computes the return type for the SUM aggregate.
@@ -248,6 +376,7 @@ func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 	return &querier_dto.FunctionResolution{
 		ReturnType:        returnType,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		IsAggregate:       true,
 	}, nil
 }
@@ -261,6 +390,7 @@ func resolveAvg() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		IsAggregate:       true,
 	}, nil
 }
@@ -281,7 +411,30 @@ func resolveIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto
 	return &querier_dto.FunctionResolution{
 		ReturnType:        argumentTypes[0],
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		IsAggregate:       true,
+	}, nil
+}
+
+// resolveIdentityFunction returns the first argument type for non-aggregate identity
+// functions such as NULLIF and the value window functions FIRST_VALUE, LAST_VALUE, LAG,
+// and LEAD.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which echoes the first argument type as the
+// result, or nil when no argument is present.
+// Returns error when resolution fails.
+func resolveIdentityFunction(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
+	if len(argumentTypes) < minArgumentsSingleArgFunction {
+		return nil, nil
+	}
+
+	return &querier_dto.FunctionResolution{
+		ReturnType:        argumentTypes[0],
+		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -293,6 +446,7 @@ func resolveCount() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
 		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		IsAggregate:       true,
 	}, nil
 }

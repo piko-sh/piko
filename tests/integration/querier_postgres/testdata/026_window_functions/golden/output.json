@@ -1,123 +1,123 @@
 {
   "lag_lead": [
     {
-      "Amount": 5000,
-      "Employee": "Alice",
-      "ID": 1,
-      "NextAmount": 7000,
-      "PrevAmount": null
+      "amount": 5000,
+      "employee": "Alice",
+      "id": 1,
+      "next_amount": 7000,
+      "prev_amount": null
     },
     {
-      "Amount": 7000,
-      "Employee": "Bob",
-      "ID": 2,
-      "NextAmount": 7000,
-      "PrevAmount": 5000
+      "amount": 7000,
+      "employee": "Bob",
+      "id": 2,
+      "next_amount": 7000,
+      "prev_amount": 5000
     },
     {
-      "Amount": 7000,
-      "Employee": "Charlie",
-      "ID": 3,
-      "NextAmount": 4000,
-      "PrevAmount": 7000
+      "amount": 7000,
+      "employee": "Charlie",
+      "id": 3,
+      "next_amount": 4000,
+      "prev_amount": 7000
     },
     {
-      "Amount": 4000,
-      "Employee": "Diana",
-      "ID": 4,
-      "NextAmount": 6000,
-      "PrevAmount": 7000
+      "amount": 4000,
+      "employee": "Diana",
+      "id": 4,
+      "next_amount": 6000,
+      "prev_amount": 7000
     },
     {
-      "Amount": 6000,
-      "Employee": "Eve",
-      "ID": 5,
-      "NextAmount": null,
-      "PrevAmount": 4000
+      "amount": 6000,
+      "employee": "Eve",
+      "id": 5,
+      "next_amount": null,
+      "prev_amount": 4000
     }
   ],
   "ranked": [
     {
-      "Amount": 7000,
-      "DenseRank": 1,
-      "Department": "engineering",
-      "Employee": "Bob",
-      "ID": 2,
-      "Rank": 1,
-      "RowNum": 1
+      "amount": 7000,
+      "dense_rank": 1,
+      "department": "engineering",
+      "employee": "Bob",
+      "id": 2,
+      "rank": 1,
+      "row_num": 1
     },
     {
-      "Amount": 7000,
-      "DenseRank": 1,
-      "Department": "engineering",
-      "Employee": "Charlie",
-      "ID": 3,
-      "Rank": 1,
-      "RowNum": 2
+      "amount": 7000,
+      "dense_rank": 1,
+      "department": "engineering",
+      "employee": "Charlie",
+      "id": 3,
+      "rank": 1,
+      "row_num": 2
     },
     {
-      "Amount": 5000,
-      "DenseRank": 2,
-      "Department": "engineering",
-      "Employee": "Alice",
-      "ID": 1,
-      "Rank": 3,
-      "RowNum": 3
+      "amount": 5000,
+      "dense_rank": 2,
+      "department": "engineering",
+      "employee": "Alice",
+      "id": 1,
+      "rank": 3,
+      "row_num": 3
     },
     {
-      "Amount": 6000,
-      "DenseRank": 1,
-      "Department": "marketing",
-      "Employee": "Eve",
-      "ID": 5,
-      "Rank": 1,
-      "RowNum": 1
+      "amount": 6000,
+      "dense_rank": 1,
+      "department": "marketing",
+      "employee": "Eve",
+      "id": 5,
+      "rank": 1,
+      "row_num": 1
     },
     {
-      "Amount": 4000,
-      "DenseRank": 2,
-      "Department": "marketing",
-      "Employee": "Diana",
-      "ID": 4,
-      "Rank": 2,
-      "RowNum": 2
+      "amount": 4000,
+      "dense_rank": 2,
+      "department": "marketing",
+      "employee": "Diana",
+      "id": 4,
+      "rank": 2,
+      "row_num": 2
     }
   ],
   "running_total": [
     {
-      "Amount": 5000,
-      "Department": "engineering",
-      "Employee": "Alice",
-      "ID": 1,
-      "RunningTotal": 5000
+      "amount": 5000,
+      "department": "engineering",
+      "employee": "Alice",
+      "id": 1,
+      "running_total": 5000
     },
     {
-      "Amount": 7000,
-      "Department": "engineering",
-      "Employee": "Bob",
-      "ID": 2,
-      "RunningTotal": 12000
+      "amount": 7000,
+      "department": "engineering",
+      "employee": "Bob",
+      "id": 2,
+      "running_total": 12000
     },
     {
-      "Amount": 7000,
-      "Department": "engineering",
-      "Employee": "Charlie",
-      "ID": 3,
-      "RunningTotal": 19000
+      "amount": 7000,
+      "department": "engineering",
+      "employee": "Charlie",
+      "id": 3,
+      "running_total": 19000
     },
     {
-      "Amount": 4000,
-      "Department": "marketing",
-      "Employee": "Diana",
-      "ID": 4,
-      "RunningTotal": 4000
+      "amount": 4000,
+      "department": "marketing",
+      "employee": "Diana",
+      "id": 4,
+      "running_total": 4000
     },
     {
-      "Amount": 6000,
-      "Department": "marketing",
-      "Employee": "Eve",
-      "ID": 5,
-      "RunningTotal": 10000
+      "amount": 6000,
+      "department": "marketing",
+      "employee": "Eve",
+      "id": 5,
+      "running_total": 10000
     }
   ]
 }

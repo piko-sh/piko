@@ -1,0 +1,3 @@
+{
+  "description": "DISTINCT ON (category) keeps its key list while the array column is wrapped in to_json() and decoded into a typed []string"
+}

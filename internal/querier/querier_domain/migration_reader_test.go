@@ -49,26 +49,26 @@ func TestSplitQueryFile(t *testing.T) {
 		},
 		{
 			name:  "two queries separated by piko.name directive returns two blocks",
-			input: "-- piko.name: GetUser\nSELECT * FROM users;\n-- piko.name: ListUsers\nSELECT * FROM users WHERE active;",
+			input: "-- piko.query(name: GetUser)\nSELECT * FROM users;\n-- piko.query(name: ListUsers)\nSELECT * FROM users WHERE active;",
 			want: []queryBlock{
-				{sql: "-- piko.name: GetUser\nSELECT * FROM users;", startLine: 1},
-				{sql: "-- piko.name: ListUsers\nSELECT * FROM users WHERE active;", startLine: 3},
+				{sql: "-- piko.query(name: GetUser)\nSELECT * FROM users;", startLine: 1},
+				{sql: "-- piko.query(name: ListUsers)\nSELECT * FROM users WHERE active;", startLine: 3},
 			},
 		},
 		{
 			name:  "line offsets are correct for second block",
-			input: "-- piko.name: First\nSELECT 1;\nSELECT 2;\n-- piko.name: Second\nSELECT 3;",
+			input: "-- piko.query(name: First)\nSELECT 1;\nSELECT 2;\n-- piko.query(name: Second)\nSELECT 3;",
 			want: []queryBlock{
-				{sql: "-- piko.name: First\nSELECT 1;\nSELECT 2;", startLine: 1},
-				{sql: "-- piko.name: Second\nSELECT 3;", startLine: 4},
+				{sql: "-- piko.query(name: First)\nSELECT 1;\nSELECT 2;", startLine: 1},
+				{sql: "-- piko.query(name: Second)\nSELECT 3;", startLine: 4},
 			},
 		},
 		{
 			name:  "empty content between queries is handled gracefully",
-			input: "-- piko.name: First\nSELECT 1;\n\n\n-- piko.name: Second\nSELECT 2;",
+			input: "-- piko.query(name: First)\nSELECT 1;\n\n\n-- piko.query(name: Second)\nSELECT 2;",
 			want: []queryBlock{
-				{sql: "-- piko.name: First\nSELECT 1;", startLine: 1},
-				{sql: "-- piko.name: Second\nSELECT 2;", startLine: 5},
+				{sql: "-- piko.query(name: First)\nSELECT 1;", startLine: 1},
+				{sql: "-- piko.query(name: Second)\nSELECT 2;", startLine: 5},
 			},
 		},
 	}
@@ -128,7 +128,7 @@ func TestQueryNamePrefixForStyle(t *testing.T) {
 
 	style := querier_dto.CommentStyle{LinePrefix: "--"}
 	got := queryNamePrefixForStyle(style)
-	assert.Equal(t, "-- piko.name:", got, "default SQL style should produce '-- piko.name:' prefix")
+	assert.Equal(t, "-- piko.query(", got, "default SQL style should produce '-- piko.query(' block opener prefix")
 }
 
 func TestReadMigrationFiles(t *testing.T) {

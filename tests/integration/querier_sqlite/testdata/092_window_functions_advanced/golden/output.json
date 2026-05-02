@@ -1,154 +1,154 @@
 {
   "lag_lead": [
     {
-      "Amount": 100,
-      "Employee": "Alice",
-      "ID": 1,
-      "NextAmount": 200,
-      "PrevAmount": null
+      "amount": 100,
+      "employee": "Alice",
+      "id": 1,
+      "next_amount": 200,
+      "prev_amount": null
     },
     {
-      "Amount": 200,
-      "Employee": "Bob",
-      "ID": 2,
-      "NextAmount": 150,
-      "PrevAmount": 100
+      "amount": 200,
+      "employee": "Bob",
+      "id": 2,
+      "next_amount": 150,
+      "prev_amount": 100
     },
     {
-      "Amount": 150,
-      "Employee": "Alice",
-      "ID": 3,
-      "NextAmount": 50,
-      "PrevAmount": 200
+      "amount": 150,
+      "employee": "Alice",
+      "id": 3,
+      "next_amount": 50,
+      "prev_amount": 200
     },
     {
-      "Amount": 50,
-      "Employee": "Bob",
-      "ID": 4,
-      "NextAmount": 300,
-      "PrevAmount": 150
+      "amount": 50,
+      "employee": "Bob",
+      "id": 4,
+      "next_amount": 300,
+      "prev_amount": 150
     },
     {
-      "Amount": 300,
-      "Employee": "Alice",
-      "ID": 5,
-      "NextAmount": 175,
-      "PrevAmount": 50
+      "amount": 300,
+      "employee": "Alice",
+      "id": 5,
+      "next_amount": 175,
+      "prev_amount": 50
     },
     {
-      "Amount": 175,
-      "Employee": "Bob",
-      "ID": 6,
-      "NextAmount": null,
-      "PrevAmount": 300
+      "amount": 175,
+      "employee": "Bob",
+      "id": 6,
+      "next_amount": null,
+      "prev_amount": 300
     }
   ],
   "ntile": [
     {
-      "Amount": 50,
-      "ID": 4,
-      "Quartile": 1
+      "amount": 50,
+      "id": 4,
+      "quartile": 1
     },
     {
-      "Amount": 100,
-      "ID": 1,
-      "Quartile": 1
+      "amount": 100,
+      "id": 1,
+      "quartile": 1
     },
     {
-      "Amount": 150,
-      "ID": 3,
-      "Quartile": 2
+      "amount": 150,
+      "id": 3,
+      "quartile": 2
     },
     {
-      "Amount": 175,
-      "ID": 6,
-      "Quartile": 2
+      "amount": 175,
+      "id": 6,
+      "quartile": 2
     },
     {
-      "Amount": 200,
-      "ID": 2,
-      "Quartile": 3
+      "amount": 200,
+      "id": 2,
+      "quartile": 3
     },
     {
-      "Amount": 300,
-      "ID": 5,
-      "Quartile": 3
+      "amount": 300,
+      "id": 5,
+      "quartile": 3
     }
   ],
   "rank_by_employee": [
     {
-      "Amount": 300,
-      "AmountRank": 1,
-      "Employee": "Alice",
-      "ID": 5
+      "amount": 300,
+      "amount_rank": 1,
+      "employee": "Alice",
+      "id": 5
     },
     {
-      "Amount": 150,
-      "AmountRank": 2,
-      "Employee": "Alice",
-      "ID": 3
+      "amount": 150,
+      "amount_rank": 2,
+      "employee": "Alice",
+      "id": 3
     },
     {
-      "Amount": 100,
-      "AmountRank": 3,
-      "Employee": "Alice",
-      "ID": 1
+      "amount": 100,
+      "amount_rank": 3,
+      "employee": "Alice",
+      "id": 1
     },
     {
-      "Amount": 200,
-      "AmountRank": 1,
-      "Employee": "Bob",
-      "ID": 2
+      "amount": 200,
+      "amount_rank": 1,
+      "employee": "Bob",
+      "id": 2
     },
     {
-      "Amount": 175,
-      "AmountRank": 2,
-      "Employee": "Bob",
-      "ID": 6
+      "amount": 175,
+      "amount_rank": 2,
+      "employee": "Bob",
+      "id": 6
     },
     {
-      "Amount": 50,
-      "AmountRank": 3,
-      "Employee": "Bob",
-      "ID": 4
+      "amount": 50,
+      "amount_rank": 3,
+      "employee": "Bob",
+      "id": 4
     }
   ],
   "running_total": [
     {
-      "Amount": 100,
-      "Employee": "Alice",
-      "ID": 1,
-      "RunningTotal": 100
+      "amount": 100,
+      "employee": "Alice",
+      "id": 1,
+      "running_total": 100
     },
     {
-      "Amount": 200,
-      "Employee": "Bob",
-      "ID": 2,
-      "RunningTotal": 300
+      "amount": 200,
+      "employee": "Bob",
+      "id": 2,
+      "running_total": 300
     },
     {
-      "Amount": 150,
-      "Employee": "Alice",
-      "ID": 3,
-      "RunningTotal": 450
+      "amount": 150,
+      "employee": "Alice",
+      "id": 3,
+      "running_total": 450
     },
     {
-      "Amount": 50,
-      "Employee": "Bob",
-      "ID": 4,
-      "RunningTotal": 500
+      "amount": 50,
+      "employee": "Bob",
+      "id": 4,
+      "running_total": 500
     },
     {
-      "Amount": 300,
-      "Employee": "Alice",
-      "ID": 5,
-      "RunningTotal": 800
+      "amount": 300,
+      "employee": "Alice",
+      "id": 5,
+      "running_total": 800
     },
     {
-      "Amount": 175,
-      "Employee": "Bob",
-      "ID": 6,
-      "RunningTotal": 975
+      "amount": 175,
+      "employee": "Bob",
+      "id": 6,
+      "running_total": 975
     }
   ]
 }

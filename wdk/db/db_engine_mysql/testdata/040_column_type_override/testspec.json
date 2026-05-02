@@ -1,0 +1,3 @@
+{
+  "description": "Query-level piko.column with `type:` pins a LOWER() result to text on MySQL."
+}

@@ -82,9 +82,9 @@ type RegistryInspector interface {
 
 	// ListRecentArtefacts returns the most recently updated artefacts.
 	//
-	// Takes limit (int32) which specifies the maximum number of artefacts to return.
+	// Takes limit (int) which specifies the maximum number of artefacts to return.
 	//
 	// Returns []ArtefactListItem which contains the artefact data for display.
 	// Returns error when the query fails.
-	ListRecentArtefacts(ctx context.Context, limit int32) ([]ArtefactListItem, error)
+	ListRecentArtefacts(ctx context.Context, limit int) ([]ArtefactListItem, error)
 }

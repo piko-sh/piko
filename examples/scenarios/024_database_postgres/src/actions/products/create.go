@@ -22,8 +22,8 @@ type CreateAction struct {
 
 // CreateInput defines the data the action expects to receive.
 //
-// The json tags map HTML form field names to struct fields. When the form
-// is submitted, Piko deserialises the form data using these tags.
+// The json tags map HTML form field names to struct fields. When the form is submitted,
+// Piko deserialises the form data using these tags.
 type CreateInput struct {
 	Name     string  `json:"name" validate:"required,min=1,max=255"`
 	Category string  `json:"category" validate:"required,min=1,max=100"`

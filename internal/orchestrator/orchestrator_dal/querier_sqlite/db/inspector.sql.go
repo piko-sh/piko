@@ -12,19 +12,19 @@ ORDER BY updated_at DESC
 LIMIT ?;`
 
 type ListRecentTasksRow struct {
-	ID         string
-	WorkflowID string
-	Executor   string
-	Status     string
-	Priority   int32
-	Attempt    int32
-	LastError  *string
-	CreatedAt  int32
-	UpdatedAt  int32
+	ID         string  `json:"id"`
+	WorkflowID string  `json:"workflow_id"`
+	Executor   string  `json:"executor"`
+	Status     string  `json:"status"`
+	Priority   int32   `json:"priority"`
+	Attempt    int32   `json:"attempt"`
+	LastError  *string `json:"last_error"`
+	CreatedAt  int64   `json:"created_at"`
+	UpdatedAt  int64   `json:"updated_at"`
 }
 
-func (queries *Queries) ListRecentTasks(ctx context.Context, p1 int32) ([]ListRecentTasksRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, listrecenttasks, p1)
+func (queries *Queries) ListRecentTasks(ctx context.Context, limit int) ([]ListRecentTasksRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, listrecenttasks, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +48,8 @@ FROM tasks
 GROUP BY status;`
 
 type ListTaskStatusCountsRow struct {
-	Status    string
-	TaskCount int32
+	Status    string `json:"status"`
+	TaskCount int64  `json:"task_count"`
 }
 
 func (queries *Queries) ListTaskStatusCounts(ctx context.Context) ([]ListTaskStatusCountsRow, error) {
@@ -86,17 +86,17 @@ ORDER BY MAX(updated_at) DESC
 LIMIT ?;`
 
 type ListWorkflowSummaryRow struct {
-	WorkflowID    string
-	TaskCount     int32
-	CompleteCount *int32
-	FailedCount   *int32
-	ActiveCount   *int32
-	CreatedAt     *int32
-	UpdatedAt     *int32
+	WorkflowID    string `json:"workflow_id"`
+	TaskCount     int64  `json:"task_count"`
+	CompleteCount *int64 `json:"complete_count"`
+	FailedCount   *int64 `json:"failed_count"`
+	ActiveCount   *int64 `json:"active_count"`
+	CreatedAt     *int64 `json:"created_at"`
+	UpdatedAt     *int64 `json:"updated_at"`
 }
 
-func (queries *Queries) ListWorkflowSummary(ctx context.Context, p1 int32) ([]ListWorkflowSummaryRow, error) {
-	rows, err := queries.writer.QueryContext(ctx, listworkflowsummary, p1)
+func (queries *Queries) ListWorkflowSummary(ctx context.Context, limit int) ([]ListWorkflowSummaryRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, listworkflowsummary, limit)
 	if err != nil {
 		return nil, err
 	}

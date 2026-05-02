@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "products.sql",
-    "SQL": "-- piko.name: UnnestNamesAndPrices\n-- piko.command: many\nSELECT * FROM UNNEST($1::text[], $2::numeric[]) AS t(name text, price numeric);",
+    "SQL": "-- piko.query(name: UnnestNamesAndPrices, command: many)\nSELECT * FROM UNNEST($1::text[], $2::numeric[]) AS t(name text, price numeric);",
     "Name": "UnnestNamesAndPrices",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -25,7 +26,8 @@
             "StructFields": null,
             "KeyType": null,
             "UnionMembers": null,
-            "Category": 4
+            "Category": 4,
+            "Nullable": false
           },
           "EngineName": "text[]",
           "Schema": "",
@@ -33,13 +35,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 13
+          "Category": 13,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 3
       },
       {
         "DefaultLimit": null,
@@ -61,7 +65,8 @@
             "StructFields": null,
             "KeyType": null,
             "UnionMembers": null,
-            "Category": 2
+            "Category": 2,
+            "Nullable": false
           },
           "EngineName": "numeric[]",
           "Schema": "",
@@ -69,20 +74,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 13
+          "Category": 13,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 3
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "t",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -95,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "price",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "price",
+        "SourceQualifier": "t",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -117,7 +131,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -138,9 +153,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

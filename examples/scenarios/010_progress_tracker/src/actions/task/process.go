@@ -16,9 +16,9 @@ type ProcessOutput struct {
 	Status   string `json:"status"`
 }
 
-// ProcessAction handles long-running tasks with SSE progress streaming.
-// When the client uses .withOnProgress().call(), Piko calls StreamProgress
-// instead of Call. See https://piko.sh/docs/reference/server-actions
+// ProcessAction handles long-running tasks with SSE progress streaming. When the client
+// uses .withOnProgress().call(), Piko calls StreamProgress instead of Call. See
+// https://piko.sh/docs/reference/server-actions
 type ProcessAction struct {
 	piko.ActionMetadata
 }
@@ -30,8 +30,8 @@ func (a *ProcessAction) Call(input ProcessInput) (ProcessOutput, error) {
 	}, nil
 }
 
-// StreamProgress sends progress events via SSE. stream.Send() pushes events
-// to the client; stream.SendComplete() sends the final event and closes.
+// StreamProgress sends progress events via SSE. stream.Send() pushes events to the
+// client; stream.SendComplete() sends the final event and closes.
 func (a *ProcessAction) StreamProgress(stream *piko.SSEStream) error {
 	steps := 5
 	for i := 1; i <= steps; i++ {

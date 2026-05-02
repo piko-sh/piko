@@ -1,7 +1,5 @@
--- piko.name: CountAll
--- piko.command: one
+-- piko.query(name: CountAll, command: one)
 SELECT count(*) AS total FROM counters;
 
--- piko.name: ListCounters
--- piko.command: many
+-- piko.query(name: ListCounters, command: many)
 SELECT id, name, value FROM counters ORDER BY id;

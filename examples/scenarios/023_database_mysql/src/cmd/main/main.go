@@ -33,8 +33,8 @@ func main() {
 		_ = container.Terminate(ctx)
 	}()
 
-	// Open the MySQL connection with retry, since the container may need a
-	// moment after reporting ready before it actually accepts connections.
+	// Open the MySQL connection with retry, since the container may need a moment after
+	// reporting ready before it actually accepts connections.
 	database, err := connectWithRetry("mysql", dsn, 10, 2*time.Second)
 	if err != nil {
 		panic(fmt.Sprintf("opening MySQL connection: %v", err))
@@ -83,8 +83,8 @@ func main() {
 	}
 }
 
-// startMySQL starts a MySQL 8 container and returns the container handle
-// alongside a DSN suitable for sql.Open.
+// startMySQL starts a MySQL 8 container and returns the container handle alongside a DSN
+// suitable for sql.Open.
 func startMySQL(ctx context.Context) (testcontainers.Container, string) {
 	request := testcontainers.ContainerRequest{
 		Image:        "mysql:8",
@@ -93,8 +93,8 @@ func startMySQL(ctx context.Context) (testcontainers.Container, string) {
 			"MYSQL_ROOT_PASSWORD": "password",
 			"MYSQL_DATABASE":      "blog",
 		},
-		// MySQL logs "ready for connections" twice: once during bootstrap and
-		// once when fully ready. Wait for the second occurrence.
+		// MySQL logs "ready for connections" twice: once during bootstrap and once when fully
+		// ready. Wait for the second occurrence.
 		WaitingFor: wait.ForLog("ready for connections").
 			WithOccurrence(2).
 			WithStartupTimeout(120 * time.Second),
@@ -124,9 +124,9 @@ func startMySQL(ctx context.Context) (testcontainers.Container, string) {
 	return container, dsn
 }
 
-// connectWithRetry attempts to open and ping a database connection, retrying
-// on failure. MySQL containers sometimes need a moment after the wait
-// condition passes before they truly accept connections.
+// connectWithRetry attempts to open and ping a database connection, retrying on failure.
+// MySQL containers sometimes need a moment after the wait condition passes before they
+// truly accept connections.
 func connectWithRetry(driverName, dsn string, maxAttempts int, delay time.Duration) (*sql.DB, error) {
 	var database *sql.DB
 	var err error

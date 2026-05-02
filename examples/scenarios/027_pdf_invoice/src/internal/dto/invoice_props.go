@@ -1,7 +1,7 @@
 package dto
 
-// InvoiceProps holds the data passed to the invoice PDF template.
-// The prop tags map to template variables accessed via {{ props.CustomerName }} etc.
+// InvoiceProps holds the data passed to the invoice PDF template. The prop tags map to
+// template variables accessed via {{ props.CustomerName }} etc.
 type InvoiceProps struct {
 	InvoiceNo    string `prop:"invoice_no"`
 	Date         string `prop:"date"`

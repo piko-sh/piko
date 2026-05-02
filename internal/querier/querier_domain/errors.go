@@ -20,9 +20,6 @@ package querier_domain
 
 import (
 	"errors"
-	"fmt"
-
-	"piko.sh/piko/internal/querier/querier_dto"
 )
 
 var (
@@ -37,132 +34,23 @@ var (
 	// ErrMissingFileReaderPort is returned when a querier service is created without a file
 	// reader adapter.
 	ErrMissingFileReaderPort = errors.New("querier service requires a file reader port")
+
+	// ErrMissingConfig is returned by GenerateDatabase when it is called with a nil database
+	// configuration.
+	//
+	// The configuration is the sole source of the engine, migration paths, and query paths
+	// the generator reads, so a nil value is rejected at the boundary rather than allowed to
+	// surface as an opaque nil-pointer dereference further into generation.
+	ErrMissingConfig = errors.New("querier service requires a database configuration")
+
+	// ErrAsyncExecNotSupported provides the canonical message text used by the async-exec
+	// diagnostic pass when a query declares the asyncexec command but the engine reports
+	// SupportsAsyncMutations() == false. The pass emits a SourceError diagnostic
+	// (CodeAsyncExecNotSupported, SeverityError) embedding this message so generation fails
+	// rather than silently downgrading to a synchronous Exec.
+	//
+	// NOTE: only the message text is surfaced (via .Error()); the sentinel is not propagated
+	// through Go's error chain, so consumers match the diagnostic by its Code
+	// (CodeAsyncExecNotSupported), not via errors.Is.
+	ErrAsyncExecNotSupported = errors.New("asyncexec is only supported on engines that surface asynchronous mutation semantics")
 )
-
-// CatalogueError represents a failure during migration replay.
-type CatalogueError struct {
-	// Cause holds the underlying error that triggered this catalogue error.
-	Cause error
-
-	// Filename holds the path of the migration file where the error occurred.
-	Filename string
-
-	// Message holds a human-readable description of what went wrong.
-	Message string
-
-	// Line holds the one-based line number in the migration file.
-	Line int
-
-	// MigrationIndex holds the zero-based index of the migration in the replay sequence.
-	MigrationIndex int
-}
-
-// NewCatalogueError creates a new catalogue error with source location.
-//
-// Takes filename (string) which specifies the migration file path.
-// Takes line (int) which specifies the one-based line number of the error.
-// Takes migrationIndex (int) which specifies the zero-based position in the replay
-// sequence.
-// Takes message (string) which specifies the human-readable error description.
-// Takes cause (error) which specifies the underlying error that triggered this failure.
-//
-// Returns *CatalogueError which holds the fully populated error with source location.
-func NewCatalogueError(filename string, line int, migrationIndex int, message string, cause error) *CatalogueError {
-	return &CatalogueError{
-		Filename:       filename,
-		Line:           line,
-		MigrationIndex: migrationIndex,
-		Message:        message,
-		Cause:          cause,
-	}
-}
-
-// Error returns a human-readable error message with source location.
-//
-// Returns string which holds the formatted error including filename and line number.
-func (e *CatalogueError) Error() string {
-	if e.Line > 0 {
-		return fmt.Sprintf("migration %s:%d: %s", e.Filename, e.Line, e.Message)
-	}
-	return fmt.Sprintf("migration %s: %s", e.Filename, e.Message)
-}
-
-// Unwrap returns the underlying cause for errors.Is/errors.As.
-//
-// Returns error which holds the wrapped cause, or nil if no cause was set.
-func (e *CatalogueError) Unwrap() error {
-	return e.Cause
-}
-
-// QueryAnalysisError wraps one or more SourceError diagnostics from query analysis.
-type QueryAnalysisError struct {
-	// Filename holds the path of the query file that produced the diagnostics.
-	Filename string
-
-	// Diagnostics holds the list of source errors found during analysis.
-	Diagnostics []querier_dto.SourceError
-}
-
-// NewQueryAnalysisError creates a new query analysis error wrapping diagnostics.
-//
-// Takes filename (string) which specifies the query file path.
-// Takes diagnostics ([]querier_dto.SourceError) which specifies the analysis errors
-// found.
-//
-// Returns *QueryAnalysisError which holds the error wrapping all diagnostics.
-func NewQueryAnalysisError(filename string, diagnostics []querier_dto.SourceError) *QueryAnalysisError {
-	return &QueryAnalysisError{
-		Filename:    filename,
-		Diagnostics: diagnostics,
-	}
-}
-
-// Error returns a summary of analysis errors found in the query file.
-//
-// Returns string which holds the formatted count and filename.
-func (e *QueryAnalysisError) Error() string {
-	return fmt.Sprintf("found %d analysis errors in %s", len(e.Diagnostics), e.Filename)
-}
-
-// DirectiveSyntaxError represents a malformed piko. directive in a SQL query file.
-type DirectiveSyntaxError struct {
-	// Filename holds the path of the query file containing the malformed directive.
-	Filename string
-
-	// Message holds a human-readable description of the syntax error.
-	Message string
-
-	// Code holds the diagnostic error code, e.g. "Q007".
-	Code string
-
-	// Line holds the one-based line number of the directive.
-	Line int
-
-	// Column holds the one-based column number within the line.
-	Column int
-}
-
-// NewDirectiveSyntaxError creates a new directive syntax error with source location.
-//
-// Takes filename (string) which specifies the query file path.
-// Takes line (int) which specifies the one-based line number.
-// Takes column (int) which specifies the one-based column number.
-// Takes message (string) which specifies the human-readable error description.
-//
-// Returns *DirectiveSyntaxError which holds the fully populated syntax error.
-func NewDirectiveSyntaxError(filename string, line int, column int, message string) *DirectiveSyntaxError {
-	return &DirectiveSyntaxError{
-		Filename: filename,
-		Line:     line,
-		Column:   column,
-		Message:  message,
-		Code:     querier_dto.CodeDirectiveSyntax,
-	}
-}
-
-// Error returns a formatted error message with source location and error code.
-//
-// Returns string which holds the error formatted as "file:line:col: code message".
-func (e *DirectiveSyntaxError) Error() string {
-	return fmt.Sprintf("%s:%d:%d: %s %s", e.Filename, e.Line, e.Column, e.Code, e.Message)
-}

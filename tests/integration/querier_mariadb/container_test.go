@@ -69,6 +69,6 @@ func startMariaDBContainer(ctx context.Context) (testcontainers.Container, strin
 		return nil, "", fmt.Errorf("getting port: %w", err)
 	}
 
-	connectionString := fmt.Sprintf("root:test@tcp(%s:%s)/piko_test?parseTime=true", host, port.Port())
+	connectionString := fmt.Sprintf("root:test@tcp(%s:%s)/piko_test?parseTime=true&multiStatements=true", host, port.Port())
 	return genericContainer, connectionString, nil
 }

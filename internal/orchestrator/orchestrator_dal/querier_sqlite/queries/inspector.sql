@@ -1,11 +1,9 @@
--- piko.name: ListTaskStatusCounts
--- piko.command: many
+-- piko.query(name: ListTaskStatusCounts, command: many)
 SELECT status, COUNT(*) AS task_count
 FROM tasks
 GROUP BY status;
 
--- piko.name: ListRecentTasks
--- piko.command: many
+-- piko.query(name: ListRecentTasks, command: many)
 SELECT
     id, workflow_id, executor, status, priority, attempt,
     last_error, created_at, updated_at
@@ -13,8 +11,7 @@ FROM tasks
 ORDER BY updated_at DESC
 LIMIT ?;
 
--- piko.name: ListWorkflowSummary
--- piko.command: many
+-- piko.query(name: ListWorkflowSummary, command: many)
 SELECT
     workflow_id,
     COUNT(*) AS task_count,

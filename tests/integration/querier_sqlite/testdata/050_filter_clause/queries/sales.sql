@@ -1,5 +1,4 @@
--- piko.name: GetCategorySummary
--- piko.command: many
+-- piko.query(name: GetCategorySummary, command: many)
 SELECT
   category,
   COUNT(*) AS total_count,

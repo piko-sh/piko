@@ -868,6 +868,37 @@ func TestResolveScalarSubqueryExpression(t *testing.T) {
 		assert.True(t, nullable)
 	})
 
+	t.Run("inner query WITH clause CTE resolves its own columns", func(t *testing.T) {
+		t.Parallel()
+
+		resolver, scope := newExpressionTestResolver(t)
+
+		expr := &querier_dto.ScalarSubqueryExpression{
+			InnerQuery: &querier_dto.RawQueryAnalysis{
+				CTEDefinitions: []querier_dto.RawCTEDefinition{
+					{
+						Name:       "c",
+						FromTables: []querier_dto.TableReference{{Name: "users"}},
+						OutputColumns: []querier_dto.RawOutputColumn{
+							{Expression: &querier_dto.ColumnRefExpression{ColumnName: "id"}},
+						},
+					},
+				},
+				FromTables: []querier_dto.TableReference{{Name: "c"}},
+				OutputColumns: []querier_dto.RawOutputColumn{
+					{Expression: &querier_dto.ColumnRefExpression{ColumnName: "id"}},
+				},
+			},
+		}
+
+		sqlType, nullable, err := resolver.resolveExpressionType(expr, scope, new(false))
+
+		require.NoError(t, err)
+		assert.Equal(t, querier_dto.TypeCategoryInteger, sqlType.Category,
+			"CTE column should resolve to the underlying integer type, not Unknown")
+		assert.True(t, nullable)
+	})
+
 	t.Run("nil inner query returns unknown type", func(t *testing.T) {
 		t.Parallel()
 
@@ -1762,8 +1793,6 @@ func TestBinaryOpExpression_JSONArrowWithJSONCategory(t *testing.T) {
 	dataModifying := false
 
 	t.Run("-> on JSON column returns JSON type", func(t *testing.T) {
-		t.Parallel()
-
 		expr := &querier_dto.BinaryOpExpression{
 			Left:     &querier_dto.ColumnRefExpression{TableAlias: "docs", ColumnName: "payload"},
 			Right:    &querier_dto.LiteralExpression{TypeName: "text"},
@@ -1779,8 +1808,6 @@ func TestBinaryOpExpression_JSONArrowWithJSONCategory(t *testing.T) {
 	})
 
 	t.Run("#> on JSON column returns JSON type", func(t *testing.T) {
-		t.Parallel()
-
 		expr := &querier_dto.BinaryOpExpression{
 			Left:     &querier_dto.ColumnRefExpression{TableAlias: "docs", ColumnName: "payload"},
 			Right:    &querier_dto.LiteralExpression{TypeName: "text"},
@@ -1809,6 +1836,7 @@ func TestBinaryOpExpression_JSONArrowWithNonJSONCategory(t *testing.T) {
 	sqlType, nullable, err := resolver.resolveExpressionType(expr, scope, new(false))
 
 	require.NoError(t, err)
+
 	assert.Equal(t, querier_dto.TypeCategoryText, sqlType.Category)
 	assert.Equal(t, "json", sqlType.EngineName)
 	assert.True(t, nullable)

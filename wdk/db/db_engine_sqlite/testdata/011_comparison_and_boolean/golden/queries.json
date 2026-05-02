@@ -2,36 +2,44 @@
   {
     "InsertTable": "",
     "Filename": "get_filtered.sql",
-    "SQL": "-- piko.name: GetFilteredTasks\n-- piko.command: many\nSELECT\n  id,\n  priority \u003e 5 as is_high,\n  assigned_to IS NOT NULL as is_assigned,\n  completed AND priority \u003e 3 as important_done\nFROM tasks",
+    "SQL": "-- piko.query(name: GetFilteredTasks, command: many)\nSELECT\n  id,\n  priority \u003e 5 as is_high,\n  assigned_to IS NOT NULL as is_assigned,\n  completed AND priority \u003e 3 as important_done\nFROM tasks",
     "Name": "GetFilteredTasks",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "tasks",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "tasks",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "is_high",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 3
+          "Category": 3,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "is_assigned",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,16 +78,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 3
+          "Category": 3,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "important_done",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -88,7 +104,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 3
+          "Category": 3,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -109,9 +126,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

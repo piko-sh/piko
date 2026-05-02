@@ -46,6 +46,10 @@ func TestSnakeToPascalCase(t *testing.T) {
 		{"single", "Single"},
 		{"ALREADY_UPPER", "AlreadyUpper"},
 		{"user_ids", "UserIDs"},
+
+		{"2fa_enabled", "_2faEnabled"},
+		{"123", "_123"},
+		{"4ever", "_4ever"},
 	}
 
 	for _, test := range tests {
@@ -79,4 +83,61 @@ func TestSnakeToCamelCase(t *testing.T) {
 			assert.Equal(t, test.expected, result)
 		})
 	}
+}
+
+func TestSnakeToCamelCaseSanitisesLeadingDigit(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"2fa_enabled", "_2faEnabled"},
+		{"123", "_123"},
+		{"4ever", "_4ever"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			assert.Equal(t, test.expected, SnakeToCamelCase(test.input))
+		})
+	}
+}
+
+func TestDisambiguateGoFieldNamesSuffixesCollisions(t *testing.T) {
+
+	names := []string{"foo_bar", "foo__bar", "foo_bar"}
+	result := DisambiguateGoFieldNames(names)
+	assert.Equal(t, []string{"FooBar", "FooBar2", "FooBar3"}, result)
+}
+
+func TestDisambiguateGoFieldNamesSuffixAvoidsLiteralCollision(t *testing.T) {
+
+	names := []string{"foo", "foo", "foo2"}
+	result := DisambiguateGoFieldNames(names)
+	assert.Equal(t, []string{"Foo", "Foo2", "Foo22"}, result)
+}
+
+func TestDisambiguateGoFieldNamesSuffixAvoidsEarlierConvertedName(t *testing.T) {
+
+	names := []string{"foo", "foo_2", "foo"}
+	result := DisambiguateGoFieldNames(names)
+	assert.Equal(t, []string{"Foo", "Foo2", "Foo3"}, result)
+}
+
+func TestDisambiguateGoFieldNamesCamelCase(t *testing.T) {
+	names := []string{"foo_bar", "foo__bar"}
+	result := DisambiguateGoFieldNamesCamelCase(names)
+	assert.Equal(t, []string{"fooBar", "fooBar2"}, result)
+}
+
+func TestDisambiguateGoFieldNamesLeavesUniqueNamesUntouched(t *testing.T) {
+	names := []string{"id", "user_id", "name"}
+	result := DisambiguateGoFieldNames(names)
+	assert.Equal(t, []string{"ID", "UserID", "Name"}, result)
+}
+
+func TestDisambiguateGoFieldNamesPrefixesLeadingDigitThenDisambiguates(t *testing.T) {
+
+	names := []string{"2fa", "2fa"}
+	result := DisambiguateGoFieldNames(names)
+	assert.Equal(t, []string{"_2fa", "_2fa2"}, result)
 }

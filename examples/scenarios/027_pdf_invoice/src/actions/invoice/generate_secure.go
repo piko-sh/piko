@@ -18,8 +18,8 @@ type GenerateSecureAction struct {
 	piko.ActionMetadata
 }
 
-// GenerateSecureInput defines the expected form fields. Includes a password
-// for the PDF encryption.
+// GenerateSecureInput defines the expected form fields. Includes a password for the PDF
+// encryption.
 type GenerateSecureInput struct {
 	CustomerName string `json:"customerName" validate:"required,min=1,max=200"`
 	ItemName     string `json:"itemName" validate:"required,min=1,max=200"`

@@ -19,6 +19,7 @@
 package db_engine_mysql
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -146,6 +147,50 @@ func TestNormaliseTypeName(t *testing.T) {
 			input:          "BigInt",
 			wantEngineName: "bigint",
 			wantCategory:   querier_dto.TypeCategoryInteger,
+		},
+		{
+
+			name:           "int unsigned normalises to int unsigned",
+			input:          "int unsigned",
+			wantEngineName: "int unsigned",
+			wantCategory:   querier_dto.TypeCategoryInteger,
+		},
+		{
+
+			name:           "decimal unsigned normalises to decimal",
+			input:          "decimal unsigned",
+			wantEngineName: "decimal",
+			wantCategory:   querier_dto.TypeCategoryDecimal,
+		},
+		{
+			name:           "numeric unsigned normalises to decimal",
+			input:          "numeric unsigned",
+			wantEngineName: "decimal",
+			wantCategory:   querier_dto.TypeCategoryDecimal,
+		},
+		{
+			name:           "float unsigned normalises to float",
+			input:          "float unsigned",
+			wantEngineName: "float",
+			wantCategory:   querier_dto.TypeCategoryFloat,
+		},
+		{
+			name:           "double unsigned normalises to double",
+			input:          "double unsigned",
+			wantEngineName: "double",
+			wantCategory:   querier_dto.TypeCategoryFloat,
+		},
+		{
+			name:           "double precision unsigned normalises to double",
+			input:          "double precision unsigned",
+			wantEngineName: "double",
+			wantCategory:   querier_dto.TypeCategoryFloat,
+		},
+		{
+			name:           "real unsigned normalises to double",
+			input:          "real unsigned",
+			wantEngineName: "double",
+			wantCategory:   querier_dto.TypeCategoryFloat,
 		},
 		{
 			name:           "unknown type falls back to unknown category",
@@ -328,6 +373,27 @@ func TestBuiltinFunctions(t *testing.T) {
 	}
 }
 
+func TestBuiltinFunctions_Inet6InBaseCatalogue(t *testing.T) {
+	t.Parallel()
+
+	engine := NewMySQLEngine()
+	catalogue := engine.BuiltinFunctions()
+
+	atonSignatures, atonExists := catalogue.Functions["inet6_aton"]
+	require.True(t, atonExists, "inet6_aton must be in the base MySQL catalogue")
+	require.NotEmpty(t, atonSignatures)
+	assert.Equal(t, querier_dto.TypeCategoryBytea, atonSignatures[0].ReturnType.Category,
+		"inet6_aton should return varbinary")
+	assert.Equal(t, "varbinary", atonSignatures[0].ReturnType.EngineName)
+
+	ntoaSignatures, ntoaExists := catalogue.Functions["inet6_ntoa"]
+	require.True(t, ntoaExists, "inet6_ntoa must be in the base MySQL catalogue")
+	require.NotEmpty(t, ntoaSignatures)
+	assert.Equal(t, querier_dto.TypeCategoryText, ntoaSignatures[0].ReturnType.Category,
+		"inet6_ntoa should return varchar")
+	assert.Equal(t, "varchar", ntoaSignatures[0].ReturnType.EngineName)
+}
+
 func TestBuiltinTypes(t *testing.T) {
 	t.Parallel()
 
@@ -417,7 +483,7 @@ func TestWithExtraFunctions(t *testing.T) {
 
 	engine := NewMySQLEngine(WithExtraFunctions(func(builder *FunctionCatalogueBuilder) {
 		builder.NullOnNull("custom_func",
-			builder.Args("x", builder.Integer()),
+			builder.Args(Arg{Name: "x", Type: builder.Integer()}),
 			builder.Integer(),
 		)
 	}))
@@ -425,13 +491,6 @@ func TestWithExtraFunctions(t *testing.T) {
 	catalogue := engine.BuiltinFunctions()
 	_, exists := catalogue.Functions["custom_func"]
 	assert.True(t, exists, "extra function should be registered")
-}
-
-func TestWithSequenceSupport(t *testing.T) {
-	t.Parallel()
-
-	engine := NewMySQLEngine(WithSequenceSupport(true))
-	assert.True(t, engine.dialect.SupportsSequences, "sequence support should be enabled")
 }
 
 func TestWithJSONTypeOverride(t *testing.T) {
@@ -527,6 +586,77 @@ func TestMySQLFunctionResolver_ResolveFunctionCall(t *testing.T) {
 
 		resolution, err := resolver.ResolveFunctionCall(nil, "IF", "", []querier_dto.SQLType{
 			{Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
+		})
+		require.NoError(t, err)
+		assert.Nil(t, resolution)
+	})
+
+	t.Run("FLOOR of a double widens to the double type", func(t *testing.T) {
+		t.Parallel()
+
+		resolution, err := resolver.ResolveFunctionCall(nil, "floor", "", []querier_dto.SQLType{
+			{Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resolution)
+		assert.Equal(t, querier_dto.TypeCategoryFloat, resolution.ReturnType.Category)
+		assert.Equal(t, "double", resolution.ReturnType.EngineName)
+	})
+
+	t.Run("CEIL of a double widens to the double type", func(t *testing.T) {
+		t.Parallel()
+
+		resolution, err := resolver.ResolveFunctionCall(nil, "ceil", "", []querier_dto.SQLType{
+			{Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resolution)
+		assert.Equal(t, querier_dto.TypeCategoryFloat, resolution.ReturnType.Category)
+		assert.Equal(t, "double", resolution.ReturnType.EngineName)
+	})
+
+	t.Run("FLOOR of an integer defers to the catalogue INT signature", func(t *testing.T) {
+		t.Parallel()
+
+		resolution, err := resolver.ResolveFunctionCall(nil, "floor", "", []querier_dto.SQLType{
+			{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
+		})
+		require.NoError(t, err)
+		assert.Nil(t, resolution)
+	})
+
+	t.Run("MOD of two doubles preserves the fraction (double)", func(t *testing.T) {
+		t.Parallel()
+
+		resolution, err := resolver.ResolveFunctionCall(nil, "mod", "", []querier_dto.SQLType{
+			{Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+			{Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resolution)
+		assert.Equal(t, querier_dto.TypeCategoryFloat, resolution.ReturnType.Category)
+		assert.Equal(t, "double", resolution.ReturnType.EngineName)
+	})
+
+	t.Run("MOD with a float operand widens to double", func(t *testing.T) {
+		t.Parallel()
+
+		resolution, err := resolver.ResolveFunctionCall(nil, "mod", "", []querier_dto.SQLType{
+			{Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
+			{Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resolution)
+		assert.Equal(t, querier_dto.TypeCategoryFloat, resolution.ReturnType.Category)
+		assert.Equal(t, "double", resolution.ReturnType.EngineName)
+	})
+
+	t.Run("MOD of two integers defers to the catalogue INT signature", func(t *testing.T) {
+		t.Parallel()
+
+		resolution, err := resolver.ResolveFunctionCall(nil, "mod", "", []querier_dto.SQLType{
+			{Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
+			{Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
 		})
 		require.NoError(t, err)
 		assert.Nil(t, resolution)
@@ -832,22 +962,22 @@ func TestFunctionCatalogueBuilder_TypeAccessors(t *testing.T) {
 
 	engine := NewMySQLEngine(WithExtraFunctions(func(builder *FunctionCatalogueBuilder) {
 
-		builder.NullOnNull("test_bigint", builder.Args("x", builder.Bigint()), builder.Bigint())
-		builder.NullOnNull("test_float", builder.Args("x", builder.Float()), builder.Float())
-		builder.NullOnNull("test_double", builder.Args("x", builder.Double()), builder.Double())
-		builder.NullOnNull("test_decimal", builder.Args("x", builder.Decimal()), builder.Decimal())
-		builder.NullOnNull("test_text", builder.Args("x", builder.Text()), builder.Text())
-		builder.NullOnNull("test_varchar", builder.Args("x", builder.Varchar()), builder.Varchar())
-		builder.NullOnNull("test_boolean", builder.Args("x", builder.Boolean()), builder.Boolean())
-		builder.NullOnNull("test_bytea", builder.Args("x", builder.Bytea()), builder.Bytea())
-		builder.NullOnNull("test_date", builder.Args("x", builder.Date()), builder.Date())
-		builder.NullOnNull("test_time", builder.Args("x", builder.Time()), builder.Time())
-		builder.NullOnNull("test_datetime", builder.Args("x", builder.Datetime()), builder.Datetime())
-		builder.NullOnNull("test_timestamp", builder.Args("x", builder.Timestamp()), builder.Timestamp())
-		builder.NullOnNull("test_json", builder.Args("x", builder.JSON()), builder.JSON())
-		builder.NullOnNull("test_geometry", builder.Args("x", builder.Geometry()), builder.Geometry())
+		builder.NullOnNull("test_bigint", builder.Args(Arg{Name: "x", Type: builder.Bigint()}), builder.Bigint())
+		builder.NullOnNull("test_float", builder.Args(Arg{Name: "x", Type: builder.Float()}), builder.Float())
+		builder.NullOnNull("test_double", builder.Args(Arg{Name: "x", Type: builder.Double()}), builder.Double())
+		builder.NullOnNull("test_decimal", builder.Args(Arg{Name: "x", Type: builder.Decimal()}), builder.Decimal())
+		builder.NullOnNull("test_text", builder.Args(Arg{Name: "x", Type: builder.Text()}), builder.Text())
+		builder.NullOnNull("test_varchar", builder.Args(Arg{Name: "x", Type: builder.Varchar()}), builder.Varchar())
+		builder.NullOnNull("test_boolean", builder.Args(Arg{Name: "x", Type: builder.Boolean()}), builder.Boolean())
+		builder.NullOnNull("test_bytea", builder.Args(Arg{Name: "x", Type: builder.Bytea()}), builder.Bytea())
+		builder.NullOnNull("test_date", builder.Args(Arg{Name: "x", Type: builder.Date()}), builder.Date())
+		builder.NullOnNull("test_time", builder.Args(Arg{Name: "x", Type: builder.Time()}), builder.Time())
+		builder.NullOnNull("test_datetime", builder.Args(Arg{Name: "x", Type: builder.Datetime()}), builder.Datetime())
+		builder.NullOnNull("test_timestamp", builder.Args(Arg{Name: "x", Type: builder.Timestamp()}), builder.Timestamp())
+		builder.NullOnNull("test_json", builder.Args(Arg{Name: "x", Type: builder.JSON()}), builder.JSON())
+		builder.NullOnNull("test_geometry", builder.Args(Arg{Name: "x", Type: builder.Geometry()}), builder.Geometry())
 		builder.Variadic("test_variadic",
-			builder.Args("values", builder.Text()),
+			builder.Args(Arg{Name: "values", Type: builder.Text()}),
 			1,
 			builder.Text(),
 		)
@@ -1011,7 +1141,7 @@ func TestApplyDDL_InvalidStatementType(t *testing.T) {
 	t.Parallel()
 
 	engine := NewMySQLEngine()
-	_, err := engine.ApplyDDL(querier_dto.ParsedStatement{
+	_, err := engine.ApplyDDL(context.Background(), querier_dto.ParsedStatement{
 		Raw: &fakeStatement{},
 	})
 	assert.Error(t, err, "non-parsedStatement should produce an error")
@@ -1036,4 +1166,62 @@ func TestResolveFunctionCall_ViaEngine(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resolution)
 	assert.Equal(t, "bigint", resolution.ReturnType.EngineName)
+}
+
+func TestAnalyseQuery_RecoversFromParserPanic(t *testing.T) {
+	t.Parallel()
+
+	engine := NewMySQLEngine()
+	statement := querier_dto.ParsedStatement{
+		Raw: &parsedStatement{
+			tokens: []token{{kind: tokenEOF}},
+			kind:   statementKindSelect,
+		},
+	}
+
+	analysis, err := engine.AnalyseQuery(nil, statement)
+
+	require.Error(t, err)
+	require.Nil(t, analysis)
+	assert.Contains(t, err.Error(), "panic while analysing query")
+	assert.Contains(t, err.Error(), "stack:")
+}
+
+func TestApplyDDL_RecoversFromPanic(t *testing.T) {
+	t.Parallel()
+
+	engine := NewMySQLEngine()
+	statement := querier_dto.ParsedStatement{
+		Raw: &parsedStatement{
+			tokens: []token{{kind: tokenEOF}},
+			kind:   statementKindDropTrigger,
+		},
+	}
+
+	mutation, err := engine.ApplyDDL(context.Background(), statement)
+
+	require.Error(t, err)
+	require.Nil(t, mutation)
+}
+
+func TestParseStatementsRecordsPerStatementByteLength(t *testing.T) {
+	t.Parallel()
+
+	const first = "SELECT 1"
+	const second = "SELECT 22"
+	sql := first + "; " + second
+
+	engine := NewMySQLEngine()
+	statements, err := engine.ParseStatements(sql)
+	require.NoError(t, err)
+	require.Len(t, statements, 2)
+
+	assert.Equal(t, 0, statements[0].Location)
+	assert.Equal(t, len(first), statements[0].Length,
+		"first statement Length should span only its own tokens, not the whole source")
+
+	secondLocation := len(first) + len("; ")
+	assert.Equal(t, secondLocation, statements[1].Location)
+	assert.Equal(t, len(second), statements[1].Length,
+		"second statement Length should span only its own tokens")
 }

@@ -1,7 +1,5 @@
--- piko.name: CreateArticle
--- piko.command: one
+-- piko.query(name: CreateArticle, command: one)
 INSERT INTO articles (title, body) VALUES (?, ?) RETURNING id, title;
 
--- piko.name: GetArticle
--- piko.command: one
+-- piko.query(name: GetArticle, command: one)
 SELECT id, title, body, published_at FROM articles WHERE id = ?;

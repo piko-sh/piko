@@ -16,9 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package crosslang holds the cross-language benchmark suite that compares
-// piko against CPython, PyPy and native Go on twelve algorithmic workloads.
-// The suite is opt-in via build tag `crosslang` plus environment variable
-// `RUN_CROSS_LANG_BENCH=1`; it never runs as part of the default test set.
-// See README.md for methodology and fairness rules.
+// Package crosslang holds the cross-language benchmark suite that compares piko against
+// CPython, PyPy and native Go on twelve algorithmic workloads. The suite is opt-in via
+// build tag `crosslang` plus environment variable `RUN_CROSS_LANG_BENCH=1`; it never runs
+// as part of the default test set. See README.md for methodology and fairness rules.
 package crosslang

@@ -11,12 +11,12 @@ const checkduplicateactivetask = `SELECT EXISTS(
 ) AS has_duplicate;`
 
 type CheckDuplicateActiveTaskRow struct {
-	HasDuplicate bool
+	HasDuplicate bool `json:"has_duplicate"`
 }
 
-func (queries *Queries) CheckDuplicateActiveTask(ctx context.Context, p1 any) (CheckDuplicateActiveTaskRow, error) {
+func (queries *Queries) CheckDuplicateActiveTask(ctx context.Context, deduplicationKey *string) (CheckDuplicateActiveTaskRow, error) {
 	var row CheckDuplicateActiveTaskRow
-	err := queries.reader.QueryRowContext(ctx, checkduplicateactivetask, p1).Scan(&row.HasDuplicate)
+	err := queries.reader.QueryRowContext(ctx, checkduplicateactivetask, deduplicationKey).Scan(&row.HasDuplicate)
 	if err != nil {
 		return CheckDuplicateActiveTaskRow{}, err
 	}

@@ -97,6 +97,20 @@ var (
 	}
 )
 
+// Every registered extension function is marked read-only. They are all scalars that read
+// but never modify table data, so a pure SELECT using one (similarity(),
+// gen_random_uuid(), nlevel(), ...) must classify as read-only and route to a read
+// replica. Without this they default to DataAccessUnknown, which the call-graph
+// propagation treats as data-modifying.
+
+func init() {
+	for _, signatures := range extensionRegistry {
+		for _, signature := range signatures {
+			signature.DataAccess = querier_dto.DataAccessReadOnly
+		}
+	}
+}
+
 // lookupExtensionFunctions returns the function signatures registered for an extension by
 // name.
 //

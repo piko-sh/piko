@@ -21,33 +21,40 @@ package querier_domain
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
 // computeDynamicFlags determines whether a query is dynamic and collects sortable column
-// names.
+// names from the resolved parameters.
 //
-// Takes parameters ([]*querier_dto.ParameterDirective) which holds the parsed parameter
-// directives for the query.
+// A query is dynamic when it has a sortable input, an optional parameter (the predicate
+// it appears in is dropped at runtime), or a LIMIT/OFFSET parameter that carries clamp
+// configuration (a default or max), which needs the params-struct / clamp path. A
+// LIMIT/OFFSET parameter without clamp config is a positional bind and does not make the
+// query dynamic.
+//
+// Takes parameters ([]querier_dto.QueryParameter) which holds the resolved parameters.
 //
 // Returns bool which indicates whether any parameter makes the query dynamic.
 //
-// Returns []string which holds the column names declared on sortable parameters.
-func computeDynamicFlags(parameters []*querier_dto.ParameterDirective) (bool, []string) {
+// Returns []string which holds the column names declared on sortable inputs.
+func computeDynamicFlags(parameters []querier_dto.QueryParameter) (bool, []string) {
 	isDynamic := false
 	var dynamicColumns []string
-	for _, parameter := range parameters {
-		switch parameter.Kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case querier_dto.ParameterDirectiveOptional,
-			querier_dto.ParameterDirectiveSortable,
-			querier_dto.ParameterDirectiveLimit,
-			querier_dto.ParameterDirectiveOffset:
+	for index := range parameters {
+		parameter := &parameters[index]
+		switch {
+		case parameter.Kind == querier_dto.ParameterDirectiveSortable:
 			isDynamic = true
-		}
-		if parameter.Kind == querier_dto.ParameterDirectiveSortable {
-			dynamicColumns = append(dynamicColumns, parameter.Columns...)
+			dynamicColumns = append(dynamicColumns, parameter.SortableColumns...)
+		case parameter.IsOptional:
+			isDynamic = true
+		case parameter.IsPaginationBound() && (parameter.DefaultLimit != nil || parameter.MaxLimit != nil):
+			isDynamic = true
 		}
 	}
 	return isDynamic, dynamicColumns
@@ -97,83 +104,87 @@ func (a *queryAnalyser) assembleQuery(input assembleQueryInput) *querier_dto.Ana
 	}
 
 	query := &querier_dto.AnalysedQuery{
-		Name:           input.queryName,
-		Command:        input.queryCommand,
-		SQL:            input.block.sql,
-		Filename:       input.filename,
-		Line:           input.block.startLine,
-		OutputColumns:  input.outputColumns,
-		Parameters:     input.parameters,
-		IsDynamic:      input.isDynamic,
-		GroupByKey:     input.directives.GroupByKeys,
-		Directives:     *input.directives,
-		InsertTable:    input.rawAnalysis.InsertTable,
-		InsertColumns:  input.rawAnalysis.InsertColumns,
-		DynamicRuntime: input.directives.DynamicRuntime,
-		ReadOnly:       readOnly,
+		Name:                    input.queryName,
+		Command:                 input.queryCommand,
+		SQL:                     input.block.sql,
+		Filename:                input.filename,
+		Line:                    input.block.startLine,
+		OutputColumns:           input.outputColumns,
+		Parameters:              input.parameters,
+		IsDynamic:               input.isDynamic,
+		GroupByKey:              input.directives.GroupByKeys,
+		Directives:              *input.directives,
+		InsertTable:             input.rawAnalysis.InsertTable,
+		InsertColumns:           input.rawAnalysis.InsertColumns,
+		DynamicRuntime:          input.directives.DynamicRuntime,
+		ReadOnly:                readOnly,
+		BaseQueryHasWhereClause: input.rawAnalysis.HasWhereClause,
 	}
 
 	if input.directives.DynamicRuntime {
-		query.AllowedColumns = a.extractAllowedColumns(input.rawAnalysis)
+		query.AllowedColumns = extractAllowedColumns(input.outputColumns)
+
+		countSQL, wrapped, rewriteErr := a.engine.RewriteSelectAsCount(input.block.sql, input.rawAnalysis)
+		if rewriteErr == nil {
+			query.CountSQL = countSQL
+			query.CountSQLWrapped = wrapped
+		}
 	}
 
 	return query
 }
 
-// extractAllowedColumns collects the columns from all FROM and JOIN tables for dynamic
-// runtime queries.
+// extractAllowedColumns returns the columns a dynamic runtime builder may filter and
+// order by, restricted to the query's SELECT projection.
 //
-// Takes raw (*querier_dto.RawQueryAnalysis) which holds the parsed table references.
+// A dynamic query can only be filtered and ordered over the data it already returns. Each
+// allowed column is keyed on its output (result-set) name, which is what a caller passes
+// to Where and OrderBy, and carries the qualified source expression the builder emits in
+// its place (for example output "email" -> "users.email"). Qualifying with the table
+// reference keeps the emitted filter unambiguous across joins and makes it reference the
+// real column rather than the caller's text. Output columns that are computed expressions
+// or aggregates carry no source column and are excluded, since they cannot be referenced
+// as a bare identifier in WHERE or ORDER BY. Scoping to the projection keeps the dynamic
+// surface from exposing a column the query never selects, so a sensitive column that is
+// present on a FROM or JOIN table but absent from the SELECT can never become a runtime
+// filter or ordering oracle.
+//
+// Takes outputColumns ([]querier_dto.OutputColumn) which holds the query's projected
+// columns.
 //
 // Returns []querier_dto.AllowedColumn which holds the deduplicated set of columns
-// available for dynamic ordering.
-func (a *queryAnalyser) extractAllowedColumns(raw *querier_dto.RawQueryAnalysis) []querier_dto.AllowedColumn {
+// available for dynamic filtering and ordering, keyed on output name.
+func extractAllowedColumns(outputColumns []querier_dto.OutputColumn) []querier_dto.AllowedColumn {
 	var allowed []querier_dto.AllowedColumn
 	seen := make(map[string]struct{})
 
-	for _, tableReference := range raw.FromTables {
-		table := a.findTable(tableReference.Schema, tableReference.Name)
-		allowed = appendUniqueColumns(allowed, seen, table)
-	}
-
-	for _, joinClause := range raw.JoinClauses {
-		table := a.findTable(joinClause.Table.Schema, joinClause.Table.Name)
-		allowed = appendUniqueColumns(allowed, seen, table)
-	}
-
-	return allowed
-}
-
-// appendUniqueColumns appends columns from the given table that have not already been
-// seen.
-//
-// Takes allowed ([]querier_dto.AllowedColumn) which holds the accumulated columns so far.
-//
-// Takes seen (map[string]struct{}) which tracks column names already added.
-//
-// Takes table (*querier_dto.Table) which holds the catalogue table whose columns are
-// appended.
-//
-// Returns []querier_dto.AllowedColumn which holds the updated column list with any new
-// entries appended.
-func appendUniqueColumns(
-	allowed []querier_dto.AllowedColumn,
-	seen map[string]struct{},
-	table *querier_dto.Table,
-) []querier_dto.AllowedColumn {
-	if table == nil {
-		return allowed
-	}
-	for j := range table.Columns {
-		if _, exists := seen[table.Columns[j].Name]; exists {
+	for index := range outputColumns {
+		column := &outputColumns[index]
+		if column.SourceColumn == "" {
 			continue
 		}
-		seen[table.Columns[j].Name] = struct{}{}
+
+		outputName := column.Name
+		if outputName == "" {
+			outputName = column.SourceColumn
+		}
+		if _, exists := seen[outputName]; exists {
+			continue
+		}
+		seen[outputName] = struct{}{}
+
+		sourceExpression := column.SourceColumn
+		if column.SourceQualifier != "" {
+			sourceExpression = column.SourceQualifier + "." + column.SourceColumn
+		}
+
 		allowed = append(allowed, querier_dto.AllowedColumn{
-			Name:    table.Columns[j].Name,
-			SQLType: table.Columns[j].SQLType,
+			Name:             outputName,
+			SourceExpression: sourceExpression,
+			SQLType:          column.SQLType,
 		})
 	}
+
 	return allowed
 }
 
@@ -224,6 +235,7 @@ func (a *queryAnalyser) buildScopeChain(
 			if !strings.EqualFold(alias, tableReference.Name) {
 				scope.AddCTE(alias, cte.columns)
 			}
+			scope.AddCTEAsTable(alias, cte.columns, querier_dto.JoinInner)
 			continue
 		}
 
@@ -272,6 +284,7 @@ func (a *queryAnalyser) resolveJoinClauses(
 				alias = joinClause.Table.Name
 			}
 			scope.AddCTE(alias, cte.columns)
+			scope.AddCTEAsTable(alias, cte.columns, joinClause.Kind)
 			continue
 		}
 
@@ -329,8 +342,6 @@ func (a *queryAnalyser) resolveTableReference(
 // resolveCTEs resolves each CTE definition in order and registers the results in the
 // scope chain.
 //
-// Takes ctx (context.Context) which controls cancellation of the resolution.
-//
 // Takes cteDefinitions ([]querier_dto.RawCTEDefinition) which holds the parsed CTE
 // definitions from the query.
 //
@@ -346,8 +357,11 @@ func (a *queryAnalyser) resolveCTEs(
 ) []querier_dto.SourceError {
 	diagnostics := make([]querier_dto.SourceError, 0, len(cteDefinitions))
 
-	for _, cteDefinition := range cteDefinitions {
-		diagnostics = append(diagnostics, a.resolveSingleCTE(ctx, cteDefinition, scope)...)
+	for index := range cteDefinitions {
+		if ctx.Err() != nil {
+			return diagnostics
+		}
+		diagnostics = append(diagnostics, a.resolveSingleCTE(ctx, &cteDefinitions[index], scope)...)
 	}
 
 	return diagnostics
@@ -355,8 +369,6 @@ func (a *queryAnalyser) resolveCTEs(
 
 // resolveSingleCTE resolves one CTE definition by building a child scope, resolving its
 // output columns, and registering it.
-//
-// Takes ctx (context.Context) which controls cancellation.
 //
 // Takes cteDefinition (querier_dto.RawCTEDefinition) which holds the parsed CTE
 // definition to resolve.
@@ -368,7 +380,7 @@ func (a *queryAnalyser) resolveCTEs(
 // resolution.
 func (a *queryAnalyser) resolveSingleCTE(
 	ctx context.Context,
-	cteDefinition querier_dto.RawCTEDefinition,
+	cteDefinition *querier_dto.RawCTEDefinition,
 	scope *scopeChain,
 ) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
@@ -386,7 +398,7 @@ func (a *queryAnalyser) resolveSingleCTE(
 	}
 
 	if len(cteDefinition.CompoundBranches) > 0 {
-		branchDiagnostics := a.resolveCompoundBranches(ctx, cteDefinition.CompoundBranches, cteColumns)
+		branchDiagnostics := a.resolveCompoundBranches(ctx, cteDefinition.CompoundBranches, cteColumns, scope)
 		diagnostics = append(diagnostics, branchDiagnostics...)
 	}
 
@@ -475,7 +487,7 @@ func (a *queryAnalyser) resolveTableValuedFunctions(
 ) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
 	for _, tvf := range tableValuedFunctions {
-		columns := a.resolveColumnDefinitionsOrLookup(tvf)
+		columns, columnDiagnostic := a.resolveColumnDefinitionsOrLookup(tvf)
 		if columns == nil {
 			diagnostics = append(diagnostics, querier_dto.SourceError{
 				Message:  fmt.Sprintf("%s: unknown table-valued function %q", querier_dto.CodeUnknownTable, tvf.FunctionName),
@@ -483,6 +495,9 @@ func (a *queryAnalyser) resolveTableValuedFunctions(
 				Code:     querier_dto.CodeUnknownTable,
 			})
 			continue
+		}
+		if columnDiagnostic != nil {
+			diagnostics = append(diagnostics, *columnDiagnostic)
 		}
 		scope.AddDerivedTable(querier_dto.DerivedTableReference{
 			Alias:    tvf.Alias,
@@ -494,17 +509,23 @@ func (a *queryAnalyser) resolveTableValuedFunctions(
 	return diagnostics
 }
 
-// resolveColumnDefinitionsOrLookup resolves columns for a table-valued function,
-// preferring explicit definitions over catalogue lookup.
+// resolveColumnDefinitionsOrLookup resolves columns for a table-valued function.
+//
+// Explicit definitions are preferred over catalogue lookup. When the call supplies more
+// alias-only column definitions than the looked-up function exposes, the surplus aliases
+// cannot be applied; the aliases that do fit are applied and a warning diagnostic reports
+// the mismatch rather than discarding every rename.
 //
 // Takes tvf (querier_dto.RawTableValuedFunctionReference) which holds the function
 // reference with optional column definitions.
 //
 // Returns []querier_dto.ScopedColumn which holds the resolved columns, or nil if the
 // function cannot be resolved.
+// Returns *querier_dto.SourceError which is non-nil when the alias count exceeds the
+// resolved column count.
 func (a *queryAnalyser) resolveColumnDefinitionsOrLookup(
 	tvf querier_dto.RawTableValuedFunctionReference,
-) []querier_dto.ScopedColumn {
+) ([]querier_dto.ScopedColumn, *querier_dto.SourceError) {
 	if len(tvf.ColumnDefinitions) > 0 && tvf.ColumnDefinitions[0].TypeName != "" {
 		columns := make([]querier_dto.ScopedColumn, len(tvf.ColumnDefinitions))
 		for i, definition := range tvf.ColumnDefinitions {
@@ -515,7 +536,7 @@ func (a *queryAnalyser) resolveColumnDefinitionsOrLookup(
 				Nullable: true,
 			}
 		}
-		return columns
+		return columns, nil
 	}
 
 	columns := a.engine.TableValuedFunctionColumns(tvf.FunctionName)
@@ -525,22 +546,48 @@ func (a *queryAnalyser) resolveColumnDefinitionsOrLookup(
 		}
 	}
 	if columns == nil {
+		return nil, nil
+	}
+
+	return columns, applyTableValuedFunctionAliases(tvf, columns)
+}
+
+// applyTableValuedFunctionAliases renames the resolved columns of a table-valued function
+// in place from the call's alias-only column definitions. Aliases beyond the resolved
+// column count cannot be applied; in that case the in-range aliases are still applied and
+// a warning diagnostic is returned describing the count mismatch.
+//
+// Takes tvf (querier_dto.RawTableValuedFunctionReference) which holds the alias
+// definitions.
+// Takes columns ([]querier_dto.ScopedColumn) which holds the resolved columns to rename.
+//
+// Returns *querier_dto.SourceError which is non-nil only when aliases outnumber columns.
+func applyTableValuedFunctionAliases(
+	tvf querier_dto.RawTableValuedFunctionReference,
+	columns []querier_dto.ScopedColumn,
+) *querier_dto.SourceError {
+	if len(tvf.ColumnDefinitions) == 0 {
 		return nil
 	}
-
-	if len(tvf.ColumnDefinitions) > 0 && len(tvf.ColumnDefinitions) <= len(columns) {
-		for i, definition := range tvf.ColumnDefinitions {
-			columns[i].Name = definition.Name
-		}
+	applied := min(len(tvf.ColumnDefinitions), len(columns))
+	for i := range applied {
+		columns[i].Name = tvf.ColumnDefinitions[i].Name
 	}
-
-	return columns
+	if len(tvf.ColumnDefinitions) <= len(columns) {
+		return nil
+	}
+	return &querier_dto.SourceError{
+		Message: fmt.Sprintf(
+			"%s: table-valued function %q exposes %d columns but %d column aliases were supplied; surplus aliases are ignored",
+			querier_dto.CodeCompoundColumnCount, tvf.FunctionName, len(columns), len(tvf.ColumnDefinitions),
+		),
+		Severity: querier_dto.SeverityWarning,
+		Code:     querier_dto.CodeCompoundColumnCount,
+	}
 }
 
 // resolveRawDerivedTables resolves subquery-based derived tables by recursively analysing
 // each inner query.
-//
-// Takes ctx (context.Context) which controls cancellation of the resolution.
 //
 // Takes rawDerivedTables ([]querier_dto.RawDerivedTableReference) which holds the parsed
 // derived table references.
@@ -558,6 +605,9 @@ func (a *queryAnalyser) resolveRawDerivedTables(
 	var diagnostics []querier_dto.SourceError
 
 	for _, rawDerived := range rawDerivedTables {
+		if ctx.Err() != nil {
+			return diagnostics
+		}
 		if rawDerived.InnerQuery == nil {
 			diagnostics = append(diagnostics, querier_dto.SourceError{
 				Message:  querier_dto.CodeInternalNilGuard + ": nil derived table query during type resolution",
@@ -597,10 +647,82 @@ func (a *queryAnalyser) resolveRawDerivedTables(
 	return diagnostics
 }
 
+// resolveArrayJoinClauses registers each ClickHouse-style ARRAY JOIN alias as a
+// single-column derived-table-style entry in the scope chain.
+//
+// The element type is looked up by walking the FROM tables in scope for a column matching
+// the source name; the array element type is extracted and exposed under the alias. LEFT
+// ARRAY JOIN entries promote the element type to Nullable because empty source arrays
+// surface as NULL rows rather than collapsing.
+//
+// Takes clauses ([]querier_dto.RawArrayJoinClause) which are the unresolved ARRAY JOIN
+// entries captured by the parser.
+// Takes scope (*scopeChain) which already contains the FROM tables the array source must
+// be looked up on.
+//
+// Returns []querier_dto.SourceError which holds Q001 diagnostics for any clause whose
+// source column cannot be found in the FROM scope.
+func (*queryAnalyser) resolveArrayJoinClauses(
+	clauses []querier_dto.RawArrayJoinClause,
+	scope *scopeChain,
+) []querier_dto.SourceError {
+	var diagnostics []querier_dto.SourceError
+	for _, clause := range clauses {
+		column, _, lookupErr := scope.ResolveColumn("", clause.SourceColumn)
+		if lookupErr != nil {
+			diagnostics = append(diagnostics, querier_dto.SourceError{
+				Message:  fmt.Sprintf("%s: array join source column %q", querier_dto.CodeUnknownColumn, clause.SourceColumn),
+				Severity: querier_dto.SeverityWarning,
+				Code:     querier_dto.CodeUnknownColumn,
+			})
+			continue
+		}
+		element := column.SQLType
+		if column.SQLType.Category == querier_dto.TypeCategoryArray && column.SQLType.ElementType != nil {
+			element = *column.SQLType.ElementType
+		}
+		joinKind := querier_dto.JoinInner
+		if clause.IsLeft {
+			joinKind = querier_dto.JoinLeft
+		}
+		scope.AddDerivedTable(querier_dto.DerivedTableReference{
+			Alias: clause.Alias,
+			Columns: []querier_dto.ScopedColumn{{
+				Name:     clause.Alias,
+				SQLType:  element,
+				Nullable: clause.IsLeft,
+			}},
+			JoinKind: joinKind,
+		})
+	}
+	return diagnostics
+}
+
+// inheritOuterCTEs copies CTE definitions from an outer scope into a compound branch
+// scope so that UNION/INTERSECT/EXCEPT branches can resolve table references to CTEs
+// declared in the enclosing WITH clause.
+//
+// Branches do not get parent-traversal because they share peer status with the primary
+// SELECT under a single compound expression, so we replicate the visible CTEs by value
+// into the branch scope.
+//
+// Takes outerScope (*scopeChain) which holds the enclosing query scope. May be nil.
+//
+// Takes branchScope (*scopeChain) which holds the branch scope to receive the CTE
+// entries.
+func inheritOuterCTEs(outerScope *scopeChain, branchScope *scopeChain) {
+	if outerScope == nil {
+		return
+	}
+	names := slices.Sorted(maps.Keys(outerScope.ctes))
+	for _, name := range names {
+		cte := outerScope.ctes[name]
+		branchScope.AddCTE(cte.name, cte.columns)
+	}
+}
+
 // resolveCompoundBranches resolves UNION, INTERSECT, and EXCEPT branches and promotes
 // types to match the primary SELECT.
-//
-// Takes ctx (context.Context) which controls cancellation.
 //
 // Takes branches ([]querier_dto.RawCompoundBranch) which holds the parsed compound query
 // branches.
@@ -608,16 +730,24 @@ func (a *queryAnalyser) resolveRawDerivedTables(
 // Takes primaryColumns ([]querier_dto.OutputColumn) which holds the primary SELECT
 // columns whose types are promoted in place.
 //
+// Takes outerScope (*scopeChain) which holds the scope chain of the enclosing query so
+// each branch can see CTEs declared at the outer WITH clause. May be nil when no outer
+// CTEs apply.
+//
 // Returns []querier_dto.SourceError which holds any diagnostics produced during branch
 // resolution.
 func (a *queryAnalyser) resolveCompoundBranches(
 	ctx context.Context,
 	branches []querier_dto.RawCompoundBranch,
 	primaryColumns []querier_dto.OutputColumn,
+	outerScope *scopeChain,
 ) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
 
 	for _, branch := range branches {
+		if ctx.Err() != nil {
+			return diagnostics
+		}
 		if branch.Query == nil {
 			diagnostics = append(diagnostics, querier_dto.SourceError{
 				Message:  querier_dto.CodeInternalNilGuard + ": nil compound branch query during type resolution",
@@ -628,6 +758,7 @@ func (a *queryAnalyser) resolveCompoundBranches(
 		}
 
 		branchScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+		inheritOuterCTEs(outerScope, branchScope)
 
 		cteDiagnostics := a.resolveCTEs(ctx, branch.Query.CTEDefinitions, branchScope)
 		diagnostics = append(diagnostics, cteDiagnostics...)
@@ -639,14 +770,16 @@ func (a *queryAnalyser) resolveCompoundBranches(
 		diagnostics = append(diagnostics, branchDiagnostics...)
 
 		if len(branchColumns) != len(primaryColumns) {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Message: fmt.Sprintf(
-					"compound query branch has %d columns, expected %d to match primary SELECT",
-					len(branchColumns), len(primaryColumns),
-				),
-				Severity: querier_dto.SeverityError,
-				Code:     querier_dto.CodeCompoundColumnCount,
-			})
+			if len(branchDiagnostics) == 0 {
+				diagnostics = append(diagnostics, querier_dto.SourceError{
+					Message: fmt.Sprintf(
+						"compound query branch has %d columns, expected %d to match primary SELECT",
+						len(branchColumns), len(primaryColumns),
+					),
+					Severity: querier_dto.SeverityError,
+					Code:     querier_dto.CodeCompoundColumnCount,
+				})
+			}
 			continue
 		}
 
@@ -749,7 +882,12 @@ func addFileLocation(
 // It sets IsEmbedded, EmbedTable, and EmbedIsOuter on each column whose SourceTable
 // matches an embed directive table name.
 //
-// Takes sql (string) which holds the raw SQL text to scan for embed comments.
+// Takes directiveBlock (*querier_dto.DirectiveBlock) which holds the parsed embed
+// declarations from the query header (the canonical source of embed metadata).
+//
+// Takes sql (string) which holds the raw SQL text. Kept for backward compatibility with
+// any inline embed markers still present in legacy fixtures; the parsed directive block
+// takes precedence when both forms are present.
 //
 // Takes outputColumns ([]querier_dto.OutputColumn) which holds the resolved output
 // columns to annotate.
@@ -760,11 +898,15 @@ func addFileLocation(
 // Returns []querier_dto.OutputColumn which holds the updated output columns with embed
 // annotations applied.
 func resolveEmbedDirectives(
+	directiveBlock *querier_dto.DirectiveBlock,
 	sql string,
 	outputColumns []querier_dto.OutputColumn,
 	scope *scopeChain,
 ) []querier_dto.OutputColumn {
-	embedTables := extractEmbedTableNames(sql)
+	embedTables := embedTablesFromDirectives(directiveBlock)
+	if len(embedTables) == 0 {
+		embedTables = extractEmbedTableNames(sql)
+	}
 	if len(embedTables) == 0 {
 		return outputColumns
 	}
@@ -786,6 +928,174 @@ func resolveEmbedDirectives(
 	}
 
 	return outputColumns
+}
+
+// applyQueryColumnOverrides applies each `-- piko.column(name, ...)` directive declared
+// in the query header to the resolved output columns.
+//
+// For each override the Name is matched case-insensitively against the output column
+// names, and a miss produces Q036 with a Levenshtein suggestion drawn from the actual
+// column names. When `type:` was declared, the engine normalises the value into a
+// structured SQLType that replaces the column's inferred type. When `nullable:` was
+// declared, the column's Nullable flag is replaced. When `go_type:` was declared, the
+// value is split on the last "." into Package and Name and stored on
+// OutputColumn.GoTypeOverride for the emitter to consume.
+//
+// Takes outputColumns ([]querier_dto.OutputColumn) which holds the resolved output
+// columns to override.
+// Takes directiveBlock (*querier_dto.DirectiveBlock) which holds the parsed column
+// overrides from the query header.
+// Takes filename (string) which is the source file path for diagnostic locations.
+// Takes diagnostics (*[]querier_dto.SourceError) which collects any unknown-column
+// diagnostics produced.
+//
+// Returns []querier_dto.OutputColumn which is the updated output column slice.
+func (a *queryAnalyser) applyQueryColumnOverrides(
+	outputColumns []querier_dto.OutputColumn,
+	directiveBlock *querier_dto.DirectiveBlock,
+	filename string,
+	diagnostics *[]querier_dto.SourceError,
+) []querier_dto.OutputColumn {
+	if directiveBlock == nil || len(directiveBlock.ColumnOverrides) == 0 {
+		return outputColumns
+	}
+
+	columnNames := make([]string, 0, len(outputColumns))
+	for index := range outputColumns {
+		columnNames = append(columnNames, outputColumns[index].Name)
+	}
+	errorBuilder := querier_dto.NewErrorBuilder(filename)
+
+	for _, override := range directiveBlock.ColumnOverrides {
+		matched := findOutputColumnByName(outputColumns, override.Name)
+		if matched == -1 {
+			*diagnostics = append(*diagnostics, errorBuilder.UnknownOverrideColumn(override.NameSpan, override.Name, columnNames))
+			continue
+		}
+		a.applyOverrideToColumn(&outputColumns[matched], override)
+	}
+	return outputColumns
+}
+
+// findOutputColumnByName scans outputColumns for the first entry whose Name matches
+// target case-insensitively.
+//
+// Takes outputColumns ([]querier_dto.OutputColumn) which holds the columns to scan.
+// Takes target (string) which is the column name to match.
+//
+// Returns int which is the matching index, or -1 when no match exists.
+func findOutputColumnByName(outputColumns []querier_dto.OutputColumn, target string) int {
+	for index := range outputColumns {
+		if strings.EqualFold(outputColumns[index].Name, target) {
+			return index
+		}
+	}
+	return -1
+}
+
+// applyOverrideToColumn copies the SQL type, nullable, and Go-type override fields from a
+// parsed query-level directive onto the matched output column. Empty values leave the
+// underlying column field unchanged, matching the directive parser's optionality.
+//
+// Takes column (*querier_dto.OutputColumn) which receives the override fields.
+// Takes override (*querier_dto.ColumnOverride) which holds the parsed directive values.
+func (a *queryAnalyser) applyOverrideToColumn(column *querier_dto.OutputColumn, override *querier_dto.ColumnOverride) {
+	if override.SQLType != "" {
+		column.SQLType = a.engine.NormaliseTypeName(override.SQLType)
+	}
+	if override.Nullable != nil {
+		column.Nullable = *override.Nullable
+	}
+	if override.GoType != "" {
+		lastDot := strings.LastIndex(override.GoType, ".")
+		if lastDot > 0 && lastDot < len(override.GoType)-1 {
+			column.GoTypeOverride = &querier_dto.GoType{
+				Package: override.GoType[:lastDot],
+				Name:    override.GoType[lastDot+1:],
+			}
+		}
+	}
+}
+
+// propagateCatalogueColumnOverrides walks the output columns and, for each one whose
+// lineage traces back to a catalogue column via direct projection (SourceTable +
+// SourceColumn both set), applies any migration-level override declared on the catalogue
+// column.
+//
+// Casts, function calls, and computed expressions leave SourceTable empty, so the
+// override drops on those. Query-level overrides already applied by
+// applyQueryColumnOverrides take precedence: this pass only fills slots that are still
+// unmodified by the directive block.
+//
+// Takes outputColumns ([]querier_dto.OutputColumn) which holds the resolved output
+// columns.
+// Takes directiveBlock (*querier_dto.DirectiveBlock) which holds the query-level
+// overrides that take precedence over catalogue overrides.
+//
+// Returns []querier_dto.OutputColumn which is the updated output column slice.
+func (a *queryAnalyser) propagateCatalogueColumnOverrides(
+	outputColumns []querier_dto.OutputColumn,
+	directiveBlock *querier_dto.DirectiveBlock,
+) []querier_dto.OutputColumn {
+	queryLevelNames := make(map[string]struct{}, len(directiveBlock.ColumnOverrides))
+	for _, override := range directiveBlock.ColumnOverrides {
+		queryLevelNames[strings.ToLower(override.Name)] = struct{}{}
+	}
+
+	for columnIndex := range outputColumns {
+		a.propagateOverrideToOutputColumn(&outputColumns[columnIndex], queryLevelNames)
+	}
+	return outputColumns
+}
+
+// propagateOverrideToOutputColumn applies any migration-level overrides declared on the
+// catalogue column to a single output column. Skips columns that lack a direct projection
+// lineage or have already been overridden at the query level (queryLevelNames lookup).
+//
+// Takes column (*querier_dto.OutputColumn) which receives the catalogue override.
+// Takes queryLevelNames (map[string]struct{}) which holds the lower-cased names already
+// overridden at the query level.
+func (a *queryAnalyser) propagateOverrideToOutputColumn(column *querier_dto.OutputColumn, queryLevelNames map[string]struct{}) {
+	if column.SourceTable == "" || column.SourceColumn == "" {
+		return
+	}
+	if _, queryOverridden := queryLevelNames[strings.ToLower(column.Name)]; queryOverridden {
+		return
+	}
+	catalogueColumn := findCatalogueColumn(a.catalogue, column.SourceTable, column.SourceColumn)
+	if catalogueColumn == nil {
+		return
+	}
+	if catalogueColumn.SQLTypeOverride != "" {
+		column.SQLType = a.engine.NormaliseTypeName(catalogueColumn.SQLTypeOverride)
+	}
+	if catalogueColumn.NullableOverride != nil {
+		column.Nullable = *catalogueColumn.NullableOverride
+	}
+	if catalogueColumn.GoTypeOverride != nil && column.GoTypeOverride == nil {
+		column.GoTypeOverride = new(*catalogueColumn.GoTypeOverride)
+	}
+}
+
+// embedTablesFromDirectives returns the table names declared by `-- piko.embed(table,
+// ...)` header directives on the parsed block.
+//
+// Takes directiveBlock (*querier_dto.DirectiveBlock) which holds the parsed embed
+// declarations.
+//
+// Returns []string which holds the declared embed table names, or nil when no embeds are
+// present.
+func embedTablesFromDirectives(directiveBlock *querier_dto.DirectiveBlock) []string {
+	if directiveBlock == nil || len(directiveBlock.Embeds) == 0 {
+		return nil
+	}
+	tables := make([]string, 0, len(directiveBlock.Embeds))
+	for _, embed := range directiveBlock.Embeds {
+		if embed != nil && embed.Table != "" {
+			tables = append(tables, embed.Table)
+		}
+	}
+	return tables
 }
 
 // extractEmbedTableNames finds all table names referenced by inline piko.embed comments

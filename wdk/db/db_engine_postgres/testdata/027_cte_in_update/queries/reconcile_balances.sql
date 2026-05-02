@@ -1,5 +1,4 @@
--- piko.name: ReconcileBalances
--- piko.command: many
+-- piko.query(name: ReconcileBalances, command: many)
 WITH account_totals AS (
     SELECT account_id, SUM(amount) AS total
     FROM transactions

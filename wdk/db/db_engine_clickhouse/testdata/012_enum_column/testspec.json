@@ -1,0 +1,3 @@
+{
+  "description": "Enum8 and Enum16 column types. Verifies the enum value list is captured on the SQLType."
+}

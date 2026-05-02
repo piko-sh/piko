@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "sensors.sql",
-    "SQL": "-- piko.name: ListSensors\n-- piko.command: many\nSELECT id, name, location FROM sensors;",
+    "SQL": "-- piko.query(name: ListSensors, command: many)\nSELECT id, name, location FROM sensors;",
     "Name": "ListSensors",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "sensors",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "sensors",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "sensors",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "sensors",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "location",
         "SourceTable": "sensors",
+        "SourceSchema": "",
         "SourceColumn": "location",
+        "SourceQualifier": "sensors",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -77,7 +89,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 1
+                "Category": 1,
+                "Nullable": false
               }
             },
             {
@@ -93,7 +106,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 1
+                "Category": 1,
+                "Nullable": false
               }
             },
             {
@@ -109,13 +123,15 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 4
+                "Category": 4,
+                "Nullable": false
               }
             }
           ],
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 15
+          "Category": 15,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -136,9 +152,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

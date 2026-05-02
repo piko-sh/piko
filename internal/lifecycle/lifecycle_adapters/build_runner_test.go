@@ -278,7 +278,7 @@ func (s *stubOrchestratorService) DispatchDirect(_ context.Context, _ *orchestra
 }
 
 var (
-	_ orchestrator_domain.TaskDispatcher = (*stubTaskDispatcher)(nil)
+	_ orchestrator_domain.TaskDispatcher      = (*stubTaskDispatcher)(nil)
 	_ orchestrator_domain.OrchestratorService = (*stubOrchestratorService)(nil)
 )
 

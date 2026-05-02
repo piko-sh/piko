@@ -2,95 +2,112 @@
   {
     "InsertTable": "",
     "Filename": "list_active.sql",
-    "SQL": "-- piko.name: ListActiveEmployees\n-- piko.command: many\nSELECT id, name, department, salary FROM active_employees",
+    "SQL": "-- piko.query(name: ListActiveEmployees, command: many)\nSELECT id, name, department, salary FROM active_employees",
     "Name": "ListActiveEmployees",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "active_employees",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "active_employees",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 0,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "active_employees",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "active_employees",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "text",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 4,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "department",
         "SourceTable": "active_employees",
+        "SourceSchema": "",
         "SourceColumn": "department",
+        "SourceQualifier": "active_employees",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "text",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 4,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "salary",
         "SourceTable": "active_employees",
+        "SourceSchema": "",
         "SourceColumn": "salary",
+        "SourceQualifier": "active_employees",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "real",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 1,
+          "Nullable": false
         },
-        "Nullable": true,
+        "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       }
@@ -109,9 +126,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

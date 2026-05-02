@@ -1,19 +1,11 @@
--- piko.name: BareReadOnly
--- piko.command: many
--- piko.readonly
+-- piko.query(name: BareReadOnly, command: many, readonly: true)
 SELECT id, name FROM items;
 
--- piko.name: ExplicitReadOnlyTrue
--- piko.command: many
--- piko.readonly(true)
+-- piko.query(name: ExplicitReadOnlyTrue, command: many, readonly: true)
 SELECT id, name FROM items;
 
--- piko.name: ExplicitReadOnlyFalse
--- piko.command: many
--- piko.readonly(false)
+-- piko.query(name: ExplicitReadOnlyFalse, command: many, readonly: false)
 SELECT id, name FROM items;
 
--- piko.name: InsertOverriddenToReadOnly
--- piko.command: exec
--- piko.readonly
+-- piko.query(name: InsertOverriddenToReadOnly, command: exec, readonly: true)
 INSERT INTO items (id, name, quantity) VALUES ($1, $2, $3);

@@ -21,9 +21,16 @@ package db_catalogue_postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"piko.sh/piko/internal/querier/querier_dto"
+)
+
+var (
+	// ErrProviderNotConfigured reports that the provider was created without a database
+	// connection or type normaliser and so cannot introspect.
+	ErrProviderNotConfigured = errors.New("postgres catalogue provider not configured")
 )
 
 // TypeNormaliser converts engine-specific type names to structured SQLType values. This
@@ -70,15 +77,18 @@ func NewPgIntrospectionProvider(
 //
 // Covers tables, views, indexes, enums, composite types, functions, and extensions.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
-//
 // Returns *querier_dto.Catalogue which holds the introspected schema.
-// Returns []querier_dto.SourceError which is always nil for this provider (reserved for
-// future per-object error reporting).
-// Returns error when any introspection query fails.
+// Returns []querier_dto.SourceError which is always nil for this provider, reserved for
+// per-object error reporting.
+// Returns error when the provider lacks a database or type normaliser (wrapping
+// ErrProviderNotConfigured), or when any introspection query fails.
 func (provider *PgIntrospectionProvider) BuildCatalogue(
 	ctx context.Context,
 ) (*querier_dto.Catalogue, []querier_dto.SourceError, error) {
+	if provider.database == nil || provider.typeNormaliser == nil {
+		return nil, nil, fmt.Errorf("building catalogue: %w", ErrProviderNotConfigured)
+	}
+
 	catalogue := &querier_dto.Catalogue{
 		DefaultSchema: "public",
 		Schemas:       make(map[string]*querier_dto.Schema),
@@ -105,7 +115,6 @@ func (provider *PgIntrospectionProvider) BuildCatalogue(
 
 // populateSchema introspects every object kind in a single schema.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes catalogue (*querier_dto.Catalogue) which receives the schema.
 // Takes schemaName (string) which is the target schema name.
 //
@@ -151,17 +160,30 @@ func (provider *PgIntrospectionProvider) populateSchema(
 
 // listSchemas returns user schemas, excluding the built-in ones.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
-//
 // Returns []string which lists the discovered schema names.
 // Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) listSchemas(
 	ctx context.Context,
 ) ([]string, error) {
-	rows, queryError := provider.database.QueryContext(ctx,
+	return provider.queryStringColumn(ctx,
 		`SELECT schema_name FROM information_schema.schemata
 		 WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
 		 ORDER BY schema_name`)
+}
+
+// queryStringColumn runs a single-column text query and collects values into a slice.
+//
+// Takes query (string) which is the SQL selecting one text column per row.
+// Takes args (...any) which are the positional query parameters.
+//
+// Returns []string which contains the scanned values in row order.
+// Returns error when the query, a scan, or row iteration fails.
+func (provider *PgIntrospectionProvider) queryStringColumn(
+	ctx context.Context,
+	query string,
+	args ...any,
+) ([]string, error) {
+	rows, queryError := provider.database.QueryContext(ctx, query, args...)
 	if queryError != nil {
 		return nil, queryError
 	}
@@ -181,7 +203,6 @@ func (provider *PgIntrospectionProvider) listSchemas(
 
 // introspectTables fills the schema's Tables map.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schema (*querier_dto.Schema) which receives the tables.
 //
 // Returns error when listing or introspecting any table fails.
@@ -195,6 +216,9 @@ func (provider *PgIntrospectionProvider) introspectTables(
 	}
 
 	for _, tableName := range tableNames {
+		if cancelError := ctx.Err(); cancelError != nil {
+			return cancelError
+		}
 		table, tableError := provider.introspectTable(ctx, schema.Name, tableName)
 		if tableError != nil {
 			return fmt.Errorf("introspecting table %s: %w", tableName, tableError)
@@ -207,7 +231,6 @@ func (provider *PgIntrospectionProvider) introspectTables(
 
 // listTables returns base and foreign table names for the schema.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the target schema.
 //
 // Returns []string which lists the discovered table names.
@@ -216,31 +239,15 @@ func (provider *PgIntrospectionProvider) listTables(
 	ctx context.Context,
 	schemaName string,
 ) ([]string, error) {
-	rows, queryError := provider.database.QueryContext(ctx,
+	return provider.queryStringColumn(ctx,
 		`SELECT table_name FROM information_schema.tables
 		 WHERE table_schema = $1 AND table_type IN ('BASE TABLE', 'FOREIGN TABLE')
 		 ORDER BY table_name`,
 		schemaName)
-	if queryError != nil {
-		return nil, queryError
-	}
-	defer rows.Close()
-
-	var names []string
-	for rows.Next() {
-		var name string
-		if scanError := rows.Scan(&name); scanError != nil {
-			return nil, scanError
-		}
-		names = append(names, name)
-	}
-
-	return names, rows.Err()
 }
 
 // introspectTable builds the Table DTO for a single relation.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the table.
 //
@@ -287,7 +294,6 @@ func (provider *PgIntrospectionProvider) introspectTable(
 
 // introspectColumns lists ordered columns for a table or view.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the relation.
 //
@@ -319,7 +325,6 @@ func (provider *PgIntrospectionProvider) introspectColumns(
 
 // queryColumns runs the information_schema.columns query.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the relation.
 //
@@ -339,6 +344,7 @@ func (provider *PgIntrospectionProvider) queryColumns(
 			c.character_maximum_length,
 			c.numeric_precision,
 			c.numeric_scale,
+			c.datetime_precision,
 			COALESCE(c.is_generated, 'NEVER') AS is_generated,
 			COALESCE(c.generation_expression, '') AS generation_expression,
 			COALESCE(c.is_identity, 'NO') AS is_identity,
@@ -383,6 +389,9 @@ type columnRow struct {
 
 	// numericScale is the declared scale for numeric types.
 	numericScale sql.NullInt64
+
+	// datetimePrecision is the declared fractional-seconds precision for temporal types.
+	datetimePrecision sql.NullInt64
 }
 
 // scanColumn decodes one column row and normalises its SQL type.
@@ -402,6 +411,7 @@ func (provider *PgIntrospectionProvider) scanColumn(rows *sql.Rows) (querier_dto
 		&row.characterMaximumLength,
 		&row.numericPrecision,
 		&row.numericScale,
+		&row.datetimePrecision,
 		&row.isGenerated,
 		&row.generationExpression,
 		&row.isIdentity,
@@ -429,11 +439,17 @@ func (provider *PgIntrospectionProvider) scanColumn(rows *sql.Rows) (querier_dto
 	return column, nil
 }
 
-// buildTypeModifiers collects declared precision and scale modifiers.
+// buildTypeModifiers collects the declared length, precision, and scale modifiers in the
+// order NormaliseTypeName expects for the column's type category.
+//
+// information_schema.columns populates only one of these field groups for any given
+// column (character length for text types, precision and scale for numeric types,
+// datetime precision for temporal types), so the assembled slice is unambiguous: a text
+// length can never be mistaken for a numeric precision and vice versa.
 //
 // Takes row (columnRow) which is the scanned information_schema row.
 //
-// Returns []int which lists the modifiers in declaration order.
+// Returns []int which lists the modifiers in the order NormaliseTypeName consumes them.
 func buildTypeModifiers(row columnRow) []int {
 	var modifiers []int
 	if row.characterMaximumLength.Valid {
@@ -444,6 +460,9 @@ func buildTypeModifiers(row columnRow) []int {
 	}
 	if row.numericScale.Valid {
 		modifiers = append(modifiers, int(row.numericScale.Int64))
+	}
+	if row.datetimePrecision.Valid {
+		modifiers = append(modifiers, int(row.datetimePrecision.Int64))
 	}
 	return modifiers
 }
@@ -459,7 +478,6 @@ type constraintEntry struct {
 
 // introspectConstraints returns primary-key and unique constraints.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the relation.
 //
@@ -513,7 +531,6 @@ func (provider *PgIntrospectionProvider) introspectConstraints(
 
 // queryConstraints runs the pg_constraint join query.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the relation.
 //
@@ -586,7 +603,6 @@ type indexEntry struct {
 
 // introspectIndexes lists indexes covering the table.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the relation.
 //
@@ -637,7 +653,6 @@ func (provider *PgIntrospectionProvider) introspectIndexes(
 
 // queryIndexes runs the pg_index join query.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the relation.
 //
@@ -667,6 +682,10 @@ func (provider *PgIntrospectionProvider) queryIndexes(
 
 // assembleIndexResults flattens the index map into ordered DTOs.
 //
+// Indexes that resolve to no simple-column members are skipped: the introspection query
+// only surfaces ordinary columns, so an index built purely over expressions would
+// otherwise produce an empty-column DTO. Expression index members are not captured.
+//
 // Takes indexMap (map[string]*indexEntry) which maps index name to its scanned entry.
 // Takes indexOrder ([]string) which preserves discovery order.
 //
@@ -678,6 +697,9 @@ func assembleIndexResults(
 	indexes := make([]querier_dto.Index, 0, len(indexOrder))
 	for _, indexName := range indexOrder {
 		entry := indexMap[indexName]
+		if len(entry.columns) == 0 {
+			continue
+		}
 		indexes = append(indexes, querier_dto.Index{
 			Name:      indexName,
 			Columns:   entry.columns,

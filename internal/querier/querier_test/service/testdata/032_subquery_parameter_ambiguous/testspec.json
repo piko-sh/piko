@@ -3,7 +3,7 @@
   "expectedDiagnosticCount": 1,
   "diagnostics": [
     {
-      "code": "Q004",
+      "code": "Q001",
       "severity": "warning",
       "messageContains": "unknown column"
     }

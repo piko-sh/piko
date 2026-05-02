@@ -79,10 +79,10 @@ func main() {
 
 	queries := db.New(conn)
 	err = queries.InsertUser(ctx, db.InsertUserParams{
-		P1: int32(1),
-		P2: "Alice",
-		P3: "alice@example.com",
-		P4: "admin",
+		ID:    int64(1),
+		Name:  "Alice",
+		Email: "alice@example.com",
+		Role:  "admin",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert user 1:", err)
@@ -90,10 +90,10 @@ func main() {
 	}
 
 	err = queries.InsertUser(ctx, db.InsertUserParams{
-		P1: int32(2),
-		P2: "Bob",
-		P3: "bob@example.com",
-		P4: "user",
+		ID:    int64(2),
+		Name:  "Bob",
+		Email: "bob@example.com",
+		Role:  "user",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert user 2:", err)
@@ -101,20 +101,20 @@ func main() {
 	}
 
 	err = queries.InsertUser(ctx, db.InsertUserParams{
-		P1: int32(3),
-		P2: "Charlie",
-		P3: "charlie@example.com",
-		P4: "user",
+		ID:    int64(3),
+		Name:  "Charlie",
+		Email: "charlie@example.com",
+		Role:  "user",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert user 3:", err)
 		os.Exit(1)
 	}
 	err = queries.InsertPost(ctx, db.InsertPostParams{
-		P1: int32(1),
-		P2: int32(1),
-		P3: "First Post",
-		P4: "Hello world",
+		ID:     int64(1),
+		UserID: int32(1),
+		Title:  "First Post",
+		Body:   "Hello world",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert post 1:", err)
@@ -122,10 +122,10 @@ func main() {
 	}
 
 	err = queries.InsertPost(ctx, db.InsertPostParams{
-		P1: int32(2),
-		P2: int32(1),
-		P3: "Second Post",
-		P4: "More content",
+		ID:     int64(2),
+		UserID: int32(1),
+		Title:  "Second Post",
+		Body:   "More content",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert post 2:", err)
@@ -133,10 +133,10 @@ func main() {
 	}
 
 	err = queries.InsertPost(ctx, db.InsertPostParams{
-		P1: int32(3),
-		P2: int32(2),
-		P3: "Bob's Post",
-		P4: "Bob writes here",
+		ID:     int64(3),
+		UserID: int32(2),
+		Title:  "Bob's Post",
+		Body:   "Bob writes here",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert post 3:", err)
@@ -144,10 +144,10 @@ func main() {
 	}
 
 	err = queries.InsertPost(ctx, db.InsertPostParams{
-		P1: int32(4),
-		P2: int32(2),
-		P3: "Another from Bob",
-		P4: "More from Bob",
+		ID:     int64(4),
+		UserID: int32(2),
+		Title:  "Another from Bob",
+		Body:   "More from Bob",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert post 4:", err)
@@ -155,10 +155,10 @@ func main() {
 	}
 
 	err = queries.InsertPost(ctx, db.InsertPostParams{
-		P1: int32(5),
-		P2: int32(3),
-		P3: "Charlie's Post",
-		P4: "Charlie joins in",
+		ID:     int64(5),
+		UserID: int32(3),
+		Title:  "Charlie's Post",
+		Body:   "Charlie joins in",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "insert post 5:", err)

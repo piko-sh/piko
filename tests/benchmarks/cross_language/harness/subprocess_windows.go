@@ -22,15 +22,14 @@ package harness
 
 import "os/exec"
 
-// applyProcessAttributes is a no-op on Windows: process groups work
-// differently and we rely on cmd.Process.Kill() via context cancellation.
+// applyProcessAttributes is a no-op on Windows: process groups work differently and we
+// rely on cmd.Process.Kill() via context cancellation.
 func applyProcessAttributes(command *exec.Cmd) {
 	command.WaitDelay = waitDelayAfterCancel
 }
 
-// platformPeakRSSKB has no portable implementation on Windows. Best-effort
-// mode: return -1 to signal "unknown". The methodology README documents
-// this caveat.
+// platformPeakRSSKB has no portable implementation on Windows. Best-effort mode: return
+// -1 to signal "unknown". The methodology README documents this caveat.
 func platformPeakRSSKB(usage any) int64 {
 	_ = usage
 	return -1

@@ -139,17 +139,108 @@ func (p *parser) parseCreateView() (mutation *querier_dto.CatalogueMutation, err
 		return nil, nameError
 	}
 
+	var columnNames []string
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		names, listError := p.parseColumnList()
+		if listError != nil {
+			return nil, listError
+		}
+		columnNames = names
 	}
 
-	p.skipToStatementEnd()
-
-	return &querier_dto.CatalogueMutation{
+	mutation = &querier_dto.CatalogueMutation{
 		Kind:       querier_dto.MutationCreateView,
 		SchemaName: schema,
 		TableName:  viewName,
-	}, nil
+	}
+
+	if p.matchKeyword(keywordAS) {
+		mutation.ViewDefinition = p.analyseViewBody(columnNames)
+	}
+	mutation.Columns = columnsFromNames(columnNames)
+
+	return mutation, nil
+}
+
+// analyseViewBody analyses the SELECT body of a CREATE VIEW so the catalogue can store
+// typed columns.
+//
+// When the body cannot be parsed the caller falls back to the declared column-name list.
+// Recovers from a panic in the inner analyser so a malformed view body cannot crash the
+// DDL apply.
+//
+// Takes columnNames ([]string) which are any explicitly declared view column names.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the analysed body, or nil on failure.
+func (p *parser) analyseViewBody(columnNames []string) (result *querier_dto.RawQueryAnalysis) {
+	remainingTokens := p.tokens[p.position:]
+	if len(remainingTokens) == 0 {
+		return nil
+	}
+	defer func() {
+		if recover() != nil {
+			result = nil
+		}
+	}()
+	viewParser := newParser(remainingTokens)
+	viewParser.analysisDepth = p.analysisDepth
+	viewParser.expressionDepth = p.expressionDepth
+	viewParser.maxParseDepth = p.maxParseDepth
+	if !viewParser.isKeyword(keywordSELECT) && !viewParser.isKeyword(keywordWITH) {
+		return nil
+	}
+	viewAnalysis, analyseError := viewParser.analyseSelect()
+	if analyseError != nil || viewAnalysis == nil {
+		return nil
+	}
+	if len(columnNames) > 0 {
+		overlayViewColumnNames(viewAnalysis, columnNames)
+	}
+	return viewAnalysis
+}
+
+// overlayViewColumnNames replaces the SELECT projection's inferred names with the
+// explicitly declared CREATE VIEW (col, ...) names, preserving each column's resolved
+// expression.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysed view body.
+// Takes columnNames ([]string) which are the declared column names.
+func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames []string) {
+	for columnIndex, name := range columnNames {
+		column := querier_dto.RawOutputColumn{Name: name}
+		if columnIndex < len(analysis.OutputColumns) {
+			column.Expression = analysis.OutputColumns[columnIndex].Expression
+			column.ColumnName = analysis.OutputColumns[columnIndex].ColumnName
+			column.TableAlias = analysis.OutputColumns[columnIndex].TableAlias
+			analysis.OutputColumns[columnIndex] = column
+			continue
+		}
+		analysis.OutputColumns = append(analysis.OutputColumns, column)
+	}
+	if len(columnNames) < len(analysis.OutputColumns) {
+		analysis.OutputColumns = analysis.OutputColumns[:len(columnNames)]
+	}
+}
+
+// columnsFromNames builds placeholder name-only column metadata, used as a fallback when
+// the view body cannot be fully typed.
+//
+// Takes names ([]string) which are the column names to materialise.
+//
+// Returns []querier_dto.Column which holds nullable unknown-typed columns.
+func columnsFromNames(names []string) []querier_dto.Column {
+	if len(names) == 0 {
+		return nil
+	}
+	columns := make([]querier_dto.Column, len(names))
+	for index, name := range names {
+		columns[index] = querier_dto.Column{
+			Name:     name,
+			SQLType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
+			Nullable: true,
+		}
+	}
+	return columns
 }
 
 // skipOrReplace consumes an optional OR REPLACE clause.

@@ -1,0 +1,3 @@
+{
+  "description": "View body uses WITH cte AS (SELECT DISTINCT ON ...) followed by a multi-JOIN SELECT. The catalogue must populate column metadata for the view either via full body analysis or the heuristic name-only fallback, so consumer queries can resolve column references."
+}

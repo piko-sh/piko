@@ -1,7 +1,5 @@
--- piko.name: InsertUser
--- piko.command: exec
+-- piko.query(name: InsertUser, command: exec)
 INSERT INTO users (id, name, email) VALUES (?, ?, ?);
 
--- piko.name: GetUser
--- piko.command: one
+-- piko.query(name: GetUser, command: one)
 SELECT id, name, email FROM users WHERE id = ?;

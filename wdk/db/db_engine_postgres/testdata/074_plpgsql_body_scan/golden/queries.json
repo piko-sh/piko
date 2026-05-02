@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "events.sql",
-    "SQL": "-- piko.name: GetEventCount\n-- piko.command: one\nSELECT count_events() AS total;",
+    "SQL": "-- piko.query(name: GetEventCount, command: one)\nSELECT count_events() AS total;",
     "Name": "GetEventCount",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "total",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,7 +26,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -43,22 +48,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "events.sql",
-    "SQL": "-- piko.name: ListEvents\n-- piko.command: many\nSELECT id, name, occurred_at FROM events;",
+    "SQL": "-- piko.query(name: ListEvents, command: many)\nSELECT id, name, occurred_at FROM events;",
     "Name": "ListEvents",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "events",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "events",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -71,16 +82,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "events",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "events",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +108,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "occurred_at",
         "SourceTable": "events",
+        "SourceSchema": "",
         "SourceColumn": "occurred_at",
+        "SourceQualifier": "events",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,7 +134,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -135,10 +155,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

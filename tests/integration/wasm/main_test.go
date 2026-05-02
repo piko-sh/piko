@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	wasmTestDir string
+	wasmTestDir     string
 	pikoProjectRoot string
 )
 

@@ -1,5 +1,4 @@
--- piko.name: ListRankedScores
--- piko.command: many
+-- piko.query(name: ListRankedScores, command: many)
 SELECT
     id,
     player,

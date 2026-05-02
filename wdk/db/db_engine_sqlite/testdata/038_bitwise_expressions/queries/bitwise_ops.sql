@@ -1,5 +1,4 @@
--- piko.name: GetBitwiseResults
--- piko.command: many
+-- piko.query(name: GetBitwiseResults, command: many)
 SELECT
   id,
   mask & bits AS masked,

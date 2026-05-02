@@ -9,6 +9,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"piko.sh/piko/wdk/db/dbjson"
+
 	"querier_test_runner/db"
 )
 
@@ -27,8 +29,8 @@ func main() {
 	queries := db.New(conn)
 
 	err = queries.InsertProduct(ctx, db.InsertProductParams{
-		P1: "Laptop",
-		P2: `{"price": 999, "category": "electronics", "tags": ["portable", "work"]}`,
+		Name: "Laptop",
+		Data: dbjson.JSON(`{"price": 999, "category": "electronics", "tags": ["portable", "work"]}`),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertProduct 1:", err)
@@ -36,8 +38,8 @@ func main() {
 	}
 
 	err = queries.InsertProduct(ctx, db.InsertProductParams{
-		P1: "T-Shirt",
-		P2: `{"price": 25, "category": "clothing", "tags": ["casual"]}`,
+		Name: "T-Shirt",
+		Data: dbjson.JSON(`{"price": 25, "category": "clothing", "tags": ["casual"]}`),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertProduct 2:", err)
@@ -45,8 +47,8 @@ func main() {
 	}
 
 	err = queries.InsertProduct(ctx, db.InsertProductParams{
-		P1: "Keyboard",
-		P2: `{"price": 75, "category": "electronics", "tags": ["peripheral"]}`,
+		Name: "Keyboard",
+		Data: dbjson.JSON(`{"price": 75, "category": "electronics", "tags": ["peripheral"]}`),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertProduct 3:", err)

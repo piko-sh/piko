@@ -35,17 +35,15 @@ import (
 	"github.com/open2b/scriggo/native"
 )
 
-// ScriggoRunner executes benchmarks via the scriggo in-process Go
-// interpreter (github.com/open2b/scriggo). Scriggo is a partial Go
-// implementation: method declarations, non-empty interfaces, generics,
-// and many native packages (sync, runtime, unsafe) are not supported
-// in the current release. Benchmarks using those features will fail
-// at scriggo.Build and report Status: failed.
+// ScriggoRunner executes benchmarks via the scriggo in-process Go interpreter
+// (github.com/open2b/scriggo). Scriggo is a partial Go implementation: method
+// declarations, non-empty interfaces, generics, and many native packages (sync, runtime,
+// unsafe) are not supported in the current release. Benchmarks using those features will
+// fail at scriggo.Build and report Status: failed.
 //
-// Like the piko runner, scriggo runs in-process: there is no
-// subprocess startup cost, but the host's os.Stdout / os.Stderr are
-// not redirected (we read scriggo's return values directly through a
-// pair of native capture functions).
+// Like the piko runner, scriggo runs in-process: there is no subprocess startup cost, but
+// the host's os.Stdout / os.Stderr are not redirected (we read scriggo's return values
+// directly through a pair of native capture functions).
 type ScriggoRunner struct{}
 
 // NewScriggoRunner returns a Runner that drives the scriggo library.
@@ -63,9 +61,9 @@ func (runner *ScriggoRunner) Available(ctx context.Context) (bool, string) {
 // Close is a no-op; scriggo holds no global resources.
 func (runner *ScriggoRunner) Close(ctx context.Context) error { _ = ctx; return nil }
 
-// Run compiles the benchmark's piko_source.go together with a small
-// generated wrapper that calls Run() / RunInner() and forwards the
-// result through registered capture functions, then invokes scriggo.
+// Run compiles the benchmark's piko_source.go together with a small generated wrapper
+// that calls Run() / RunInner() and forwards the result through registered capture
+// functions, then invokes scriggo.
 func (runner *ScriggoRunner) Run(parent context.Context, spec BenchSpec, mode RunMode, benchmarkDir string) (Result, error) {
 	sourcePath := filepath.Join(benchmarkDir, "go", "piko_source.go")
 	sourceBytes, err := os.ReadFile(sourcePath)
@@ -186,9 +184,9 @@ func (runner *ScriggoRunner) Run(parent context.Context, spec BenchSpec, mode Ru
 	}, nil
 }
 
-// scriggoWrapperBody returns the body (no package/import lines) of a
-// main() that calls Run() or RunInner(K) and forwards the result
-// through the __capture__ native package back to the host.
+// scriggoWrapperBody returns the body (no package/import lines) of a main() that calls
+// Run() or RunInner(K) and forwards the result through the __capture__ native package
+// back to the host.
 func scriggoWrapperBody(mode RunMode, kInner int) string {
 	if mode == ModeInnerLoop {
 		return fmt.Sprintf(`
@@ -206,14 +204,12 @@ func main() {
 `
 }
 
-// mergeScriggoSource glues piko_source.go and the wrapper main() into
-// a single Go source file with one package declaration and a unified
-// import block including "__capture__".
+// mergeScriggoSource glues piko_source.go and the wrapper main() into a single Go source
+// file with one package declaration and a unified import block including "__capture__".
 //
-// piko_source.go shape: starts with optional comments, then
-// `package main`, then optional imports, then declarations. It never
-// declares main() (that lives in native_main.go). We strip its
-// package + imports, capture the imports, then concatenate.
+// piko_source.go shape: starts with optional comments, then `package main`, then optional
+// imports, then declarations. It never declares main() (that lives in native_main.go). We
+// strip its package + imports, capture the imports, then concatenate.
 func mergeScriggoSource(pikoSource string, wrapperBody string) (string, error) {
 	imports := map[string]struct{}{}
 	imports[`"__capture__"`] = struct{}{}
@@ -236,6 +232,6 @@ func mergeScriggoSource(pikoSource string, wrapperBody string) (string, error) {
 	return merged, nil
 }
 
-// silence unused-import warning while we leave room to register
-// reflect-typed native values in future.
+// silence unused-import warning while we leave room to register reflect-typed native
+// values in future.
 var _ = reflect.TypeOf

@@ -1,0 +1,3 @@
+{
+  "description": "Basic WITH ... AS (SELECT ...) CTE. Verifies the CTE is captured in CTEDefinitions and downstream queries can reference it."
+}

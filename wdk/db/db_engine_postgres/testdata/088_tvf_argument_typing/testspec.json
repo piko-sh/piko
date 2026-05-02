@@ -1,0 +1,4 @@
+{
+  "description": "A bare positional placeholder passed as a table-valued function argument in the FROM clause is typed from the matched signature's declared argument: $1 -> int4 (_min_id INTEGER) and $2 -> bool (_active BOOLEAN). This exercises the P1 parser back-propagation of the enclosing function name and the call-site argument ordinal onto the placeholder, plus the shared resolver that consumes them. No explicit cast appears on either placeholder.",
+  "expectedDiagnosticCount": 0
+}

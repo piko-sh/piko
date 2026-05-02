@@ -1,0 +1,4 @@
+{
+  "description": "lttb(ts, value, n) downsamples a numeric time series to n representative points using the Largest-Triangle-Three-Buckets algorithm. The unnest(state) accessor unfolds the timevector summary into one row per retained point. The fixture seeds 100 samples, requests 10 buckets, and verifies that unnest produced exactly that many rows alongside the original input sample count.",
+  "skip": false
+}

@@ -77,6 +77,8 @@ func BuildQueryMethod(
 			return batchHandler.BuildCopyFromMethod(query, mappings, tracker)
 		}
 		return BuildExecMethod(query, mappings, tracker, strategy)
+	case querier_dto.QueryCommandAsyncExec:
+		return BuildAsyncExecMethod(query, mappings, tracker, strategy)
 	default:
 		return BuildExecMethod(query, mappings, tracker, strategy)
 	}
@@ -100,14 +102,14 @@ func BuildDynamicQueryMethod(
 ) ast.Decl {
 	switch query.Command {
 	case querier_dto.QueryCommandOne:
-		return BuildDynamicOneMethod(query, strategy)
+		return BuildDynamicOneMethod(query, strategy, mappings)
 	case querier_dto.QueryCommandMany:
 		if HasGroupByKey(query) {
 			return BuildGroupedManyMethod(query, mappings, tracker, strategy)
 		}
-		return BuildDynamicManyMethod(query, strategy)
+		return BuildDynamicManyMethod(query, strategy, mappings)
 	case querier_dto.QueryCommandStream:
-		return BuildDynamicStreamMethod(query, strategy)
+		return BuildDynamicStreamMethod(query, strategy, mappings)
 	case querier_dto.QueryCommandExecResult:
 		strategy.ExecResultImport(tracker)
 		return BuildDynamicExecResultMethod(query, strategy)
@@ -133,12 +135,12 @@ func BuildOneMethod(
 	strategy MethodStrategy,
 ) *ast.FuncDecl {
 	rowTypeName := query.Name + "Row"
-	scanArguments := BuildScanArgs(query)
+	scanArguments := BuildScanArgs(query, strategy, mappings)
 
 	statements := make([]ast.Stmt, 0, 4+len(query.OutputColumns))
 
 	if NeedsSliceExpansion(query, strategy) {
-		statements = append(statements, BuildSliceExpansionPreamble(query)...)
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy, goastutil.CompositeLit(goastutil.CachedIdent(rowTypeName)))...)
 		queryRowCall := &ast.CallExpr{
 			Fun: goastutil.SelectorExprFrom(
 				goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentQueriesReceiver), strategy.ConnectionField(query)),
@@ -149,7 +151,7 @@ func BuildOneMethod(
 		}
 		statements = append(statements, buildOneMethodScanStatements(rowTypeName, queryRowCall, scanArguments, query)...)
 	} else {
-		queryArguments := BuildQueryArgs(query)
+		queryArguments := BuildQueryArgs(query, strategy)
 		queryRowCall := goastutil.CallExpr(
 			goastutil.SelectorExprFrom(
 				goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentQueriesReceiver), strategy.ConnectionField(query)),
@@ -221,15 +223,15 @@ func BuildManyMethod(
 	strategy MethodStrategy,
 ) *ast.FuncDecl {
 	rowTypeName := query.Name + "Row"
-	scanArguments := BuildScanArgs(query)
+	scanArguments := BuildScanArgs(query, strategy, mappings)
 
 	var statements []ast.Stmt
 	if NeedsSliceExpansion(query, strategy) {
-		statements = append(statements, BuildSliceExpansionPreamble(query)...)
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy, goastutil.CachedIdent(IdentNil))...)
 		dbCall := SliceDBCall(strategy, query, strategy.QueryMethod())
 		statements = append(statements, BuildRowsIterationBodyFromSliceCall(rowTypeName, dbCall, scanArguments, query)...)
 	} else {
-		queryArguments := BuildQueryArgs(query)
+		queryArguments := BuildQueryArgs(query, strategy)
 		statements = BuildRowsIterationBody(rowTypeName, queryArguments, scanArguments, query, strategy)
 	}
 
@@ -410,22 +412,34 @@ func BuildExecMethod(
 	var statements []ast.Stmt
 
 	if NeedsSliceExpansion(query, strategy) {
-		statements = append(statements, BuildSliceExpansionPreamble(query)...)
-		statements = append(statements,
-			goastutil.DefineStmtMulti(
-				[]string{IdentBlank, IdentErr},
-				SliceDBCall(strategy, query, strategy.ExecMethod()),
-			),
-			goastutil.ReturnStmt(goastutil.CachedIdent(IdentErr)),
-		)
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy)...)
+		execCall := SliceDBCall(strategy, query, strategy.ExecMethod())
+		if strategy.ExecReturnsResult() {
+			statements = append(statements,
+				goastutil.DefineStmtMulti(
+					[]string{IdentBlank, IdentErr},
+					execCall,
+				),
+				goastutil.ReturnStmt(goastutil.CachedIdent(IdentErr)),
+			)
+		} else {
+			statements = append(statements, goastutil.ReturnStmt(execCall))
+		}
 	} else {
-		queryArguments := BuildQueryArgs(query)
-		statements = []ast.Stmt{
-			goastutil.DefineStmtMulti(
-				[]string{IdentBlank, IdentErr},
-				strategy.DBCall(strategy.ConnectionField(query), strategy.ExecMethod(), queryArguments),
-			),
-			goastutil.ReturnStmt(goastutil.CachedIdent(IdentErr)),
+		queryArguments := BuildQueryArgs(query, strategy)
+		execCall := strategy.DBCall(strategy.ConnectionField(query), strategy.ExecMethod(), queryArguments)
+		if strategy.ExecReturnsResult() {
+			statements = []ast.Stmt{
+				goastutil.DefineStmtMulti(
+					[]string{IdentBlank, IdentErr},
+					execCall,
+				),
+				goastutil.ReturnStmt(goastutil.CachedIdent(IdentErr)),
+			}
+		} else {
+			statements = []ast.Stmt{
+				goastutil.ReturnStmt(execCall),
+			}
 		}
 	}
 
@@ -439,6 +453,55 @@ func BuildExecMethod(
 			),
 		},
 		Body: goastutil.BlockStmt(statements...),
+	}
+}
+
+// BuildAsyncExecMethod constructs an :asyncexec query method.
+//
+// The body is identical to BuildExecMethod (issue the statement via Exec and return only
+// the error) because driver-level dispatch is the same. The distinction lives in the
+// attached doc comment that documents the fire-and-forget semantics so downstream callers
+// do not assume the mutation has finished applying when the call returns nil.
+//
+// Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
+// Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
+// Takes tracker (*ImportTracker) for import collection.
+// Takes strategy (MethodStrategy) which provides database-specific AST nodes.
+//
+// Returns *ast.FuncDecl which is the method declaration with the async-semantics doc
+// comment attached.
+func BuildAsyncExecMethod(
+	query *querier_dto.AnalysedQuery,
+	mappings *querier_dto.TypeMappingTable,
+	tracker *ImportTracker,
+	strategy MethodStrategy,
+) *ast.FuncDecl {
+	decl := BuildExecMethod(query, mappings, tracker, strategy)
+	decl.Doc = asyncExecDocComment(query.Name)
+	return decl
+}
+
+// asyncExecDocComment builds the doc comment block attached to every async-exec method.
+//
+// The comment warns that the returned error reflects only the acceptance step and the
+// server-side mutation may still be running, so callers must consult the engine's
+// mutation log (system.mutations on ClickHouse) to confirm completion. The comment opens
+// with the method name so go doc renders the binding cleanly.
+//
+// Takes name (string) which is the generated method name.
+//
+// Returns *ast.CommentGroup which carries the block ready to attach to a *ast.FuncDecl.
+func asyncExecDocComment(name string) *ast.CommentGroup {
+	return &ast.CommentGroup{
+		List: []*ast.Comment{
+			{Text: "// " + name + " issues an asynchronous mutation. The server accepts the"},
+			{Text: "// statement and returns when the mutation has been queued; the"},
+			{Text: "// background execution proceeds independently. Inspect the"},
+			{Text: "// engine's mutation log (system.mutations on ClickHouse) for"},
+			{Text: "// completion status. The returned error reflects only the"},
+			{Text: "// acceptance step; a nil error does NOT guarantee that the"},
+			{Text: "// mutation has finished applying."},
+		},
 	}
 }
 
@@ -460,12 +523,12 @@ func BuildExecResultMethod(
 	var statements []ast.Stmt
 
 	if NeedsSliceExpansion(query, strategy) {
-		statements = append(statements, BuildSliceExpansionPreamble(query)...)
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy, goastutil.CachedIdent(IdentNil))...)
 		statements = append(statements,
 			goastutil.ReturnStmt(SliceDBCall(strategy, query, strategy.ExecMethod())),
 		)
 	} else {
-		queryArguments := BuildQueryArgs(query)
+		queryArguments := BuildQueryArgs(query, strategy)
 		statements = []ast.Stmt{
 			goastutil.ReturnStmt(strategy.DBCall(strategy.ConnectionField(query), strategy.ExecMethod(), queryArguments)),
 		}
@@ -502,7 +565,7 @@ func BuildExecRowsMethod(
 	var bodyStatements []ast.Stmt
 
 	if NeedsSliceExpansion(query, strategy) {
-		bodyStatements = append(bodyStatements, BuildSliceExpansionPreamble(query)...)
+		bodyStatements = append(bodyStatements, BuildSliceExpansionPreamble(query, strategy, goastutil.IntLit(0))...)
 
 		dbCall := SliceDBCall(strategy, query, strategy.ExecMethod())
 		bodyStatements = append(bodyStatements,
@@ -518,7 +581,7 @@ func BuildExecRowsMethod(
 			),
 		)
 	} else {
-		queryArguments := BuildQueryArgs(query)
+		queryArguments := BuildQueryArgs(query, strategy)
 		bodyStatements = strategy.BuildExecRowsBody(queryArguments, strategy.ConnectionField(query))
 	}
 

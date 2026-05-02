@@ -20,8 +20,8 @@ package querier_domain
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -79,15 +79,15 @@ func (b *catalogueBuilder) ApplyMigration(
 	content []byte,
 	migrationIndex int,
 ) []querier_dto.SourceError {
-	_, span, _ := log.Span(ctx, "CatalogueBuilder.ApplyMigration")
+	ctx, span, _ := log.Span(ctx, "CatalogueBuilder.ApplyMigration")
 	defer span.End()
 
 	stripped := stripDownMigration(content)
 	strippedContent := string(stripped)
 
-	readOnlyOverrides := scanMigrationReadOnlyOverrides(
-		strippedContent, b.engine.CommentStyle().LinePrefix,
-	)
+	commentPrefix := b.engine.CommentStyle().LinePrefix
+	readOnlyOverrides := scanMigrationReadOnlyOverrides(strippedContent, commentPrefix)
+	columnOverrides := scanMigrationColumnOverrides(strippedContent, commentPrefix)
 
 	statements, parseError := b.engine.ParseStatements(strippedContent)
 	if parseError != nil {
@@ -96,7 +96,7 @@ func (b *catalogueBuilder) ApplyMigration(
 				Filename: filename,
 				Line:     1,
 				Column:   1,
-				Message:  fmt.Sprintf("failed to parse migration: %s", parseError.Error()),
+				Message:  fmt.Errorf("failed to parse migration: %w", parseError).Error(),
 				Severity: querier_dto.SeverityError,
 				Code:     querier_dto.CodeParseError,
 			},
@@ -108,7 +108,152 @@ func (b *catalogueBuilder) ApplyMigration(
 		Index:    migrationIndex,
 	}
 
-	return b.applyStatements(ctx, statements, origin, readOnlyOverrides, filename)
+	diagnostics := b.applyStatements(ctx, statements, origin, readOnlyOverrides, filename)
+	diagnostics = append(diagnostics, b.applyMigrationColumnOverrides(columnOverrides, filename)...)
+	diagnostics = append(diagnostics, migrationConsistencyWarnings(stripped, strippedContent, commentPrefix, filename, len(statements))...)
+
+	return diagnostics
+}
+
+// migrationConsistencyWarnings returns advisory diagnostics for a migration file: a Q044
+// for each misplaced piko.query header (ignored in migrations), and a Q043 when a non-
+// transactional statement is mixed with other statements (the whole migration then runs
+// without a transaction and is not atomic).
+//
+// Takes stripped ([]byte) and strippedContent (string) which are the down-stripped
+// migration content, commentPrefix (string) for the engine's line comment, filename
+// (string) for source mapping, and statementCount (int) the number of parsed statements.
+//
+// Returns []querier_dto.SourceError which holds the warnings, or nil when there are none.
+func migrationConsistencyWarnings(
+	stripped []byte,
+	strippedContent, commentPrefix, filename string,
+	statementCount int,
+) []querier_dto.SourceError {
+	var diagnostics []querier_dto.SourceError
+
+	for _, lineNumber := range scanMisplacedQueryDirectives(strippedContent, commentPrefix) {
+		diagnostics = append(diagnostics, querier_dto.SourceError{
+			Filename: filename,
+			Line:     lineNumber,
+			Column:   1,
+			Message: "piko.query is a query directive and is ignored in a migration file; use " +
+				"piko.migration for migration directives",
+			Severity: querier_dto.SeverityWarning,
+			Code:     querier_dto.CodeDirectiveWrongContext,
+		})
+	}
+
+	if hasNoTransactionDirective(stripped) && statementCount > 1 {
+		diagnostics = append(diagnostics, querier_dto.SourceError{
+			Filename: filename,
+			Line:     1,
+			Column:   1,
+			Message: "migration mixes a non-transactional statement (piko.migration(no_transaction: true) " +
+				"or an auto-detected statement such as CREATE INDEX CONCURRENTLY) with other statements; " +
+				"the whole migration runs without a transaction and is not atomic, so move the " +
+				"non-transactional statement into its own migration file",
+			Severity: querier_dto.SeverityWarning,
+			Code:     querier_dto.CodeMigrationMixedTransaction,
+		})
+	}
+
+	return diagnostics
+}
+
+// collectKnownTableColumns walks every schema's tables in the catalogue and produces the
+// full list of qualified table.column references in lowercase form. The result serves as
+// the Levenshtein candidate set for Q037.
+//
+// Takes catalogue (*querier_dto.Catalogue) which holds the schemas to walk.
+//
+// Returns []string which is the sorted list of lowercase table.column references.
+func collectKnownTableColumns(catalogue *querier_dto.Catalogue) []string {
+	if catalogue == nil {
+		return nil
+	}
+	var known []string
+	for _, schema := range catalogue.Schemas {
+		if schema == nil {
+			continue
+		}
+		for _, table := range schema.Tables {
+			if table == nil {
+				continue
+			}
+			for columnIndex := range table.Columns {
+				known = append(known, strings.ToLower(table.Name+"."+table.Columns[columnIndex].Name))
+			}
+		}
+	}
+
+	slices.Sort(known)
+	return known
+}
+
+// findCatalogueColumn walks the catalogue's schemas to find the column matching the given
+// (table, column) reference case-insensitively.
+//
+// Takes catalogue (*querier_dto.Catalogue) which holds the schemas to search.
+// Takes tableName (string) which is the table to match case-insensitively.
+// Takes columnName (string) which is the column to match case-insensitively.
+//
+// Returns *querier_dto.Column which is the matching column, or nil when no match exists.
+func findCatalogueColumn(catalogue *querier_dto.Catalogue, tableName, columnName string) *querier_dto.Column {
+	if catalogue == nil {
+		return nil
+	}
+
+	for _, schemaName := range sortedKeys(catalogue.Schemas) {
+		if column := findColumnInSchema(catalogue.Schemas[schemaName], tableName, columnName); column != nil {
+			return column
+		}
+	}
+	return nil
+}
+
+// findColumnInSchema is the per-schema slice of findCatalogueColumn.
+//
+// The helper is extracted so the outer loop stays flat and the cognitive-complexity
+// budget is respected.
+//
+// Takes schema (*querier_dto.Schema) which is the schema to search.
+// Takes tableName (string) which is the table to match case-insensitively.
+// Takes columnName (string) which is the column to match case-insensitively.
+//
+// Returns *querier_dto.Column which is the matching column, or nil when the schema is
+// unset or no matching table holds the column.
+func findColumnInSchema(schema *querier_dto.Schema, tableName, columnName string) *querier_dto.Column {
+	if schema == nil {
+		return nil
+	}
+	for _, table := range schema.Tables {
+		if column := findCatalogueColumnInTable(table, tableName, columnName); column != nil {
+			return column
+		}
+	}
+	return nil
+}
+
+// findCatalogueColumnInTable returns the column matching columnName when table itself
+// matches tableName case-insensitively. The pointer it returns aliases the underlying
+// slice element so callers can mutate the catalogue in place.
+//
+// Takes table (*querier_dto.Table) which is the candidate table to inspect.
+// Takes tableName (string) which is the table name to match case-insensitively.
+// Takes columnName (string) which is the column to match case-insensitively.
+//
+// Returns *querier_dto.Column which aliases the matching column, or nil when no match.
+func findCatalogueColumnInTable(table *querier_dto.Table, tableName, columnName string) *querier_dto.Column {
+	if table == nil || !strings.EqualFold(table.Name, tableName) {
+		return nil
+	}
+	for columnIndex := range table.Columns {
+		if strings.EqualFold(table.Columns[columnIndex].Name, columnName) {
+			return &table.Columns[columnIndex]
+		}
+	}
+	return nil
 }
 
 // Catalogue returns the built catalogue.
@@ -116,6 +261,69 @@ func (b *catalogueBuilder) ApplyMigration(
 // Returns *querier_dto.Catalogue which holds the accumulated schema state.
 func (b *catalogueBuilder) Catalogue() *querier_dto.Catalogue {
 	return b.catalogue
+}
+
+// applyMigrationColumnOverrides walks the parsed column-override directives and applies
+// each to its target Column in the catalogue. Unknown table.column references produce
+// Q037 diagnostics with a Levenshtein suggestion drawn from the catalogue's known
+// table.column references.
+//
+// Takes overrides ([]migrationColumnOverride) which are the parsed column overrides.
+// Takes filename (string) which identifies the file for diagnostic messages.
+//
+// Returns []querier_dto.SourceError which holds any override diagnostics, nil when none.
+func (b *catalogueBuilder) applyMigrationColumnOverrides(overrides []migrationColumnOverride, filename string) []querier_dto.SourceError {
+	if len(overrides) == 0 {
+		return nil
+	}
+
+	knownColumns := collectKnownTableColumns(b.catalogue)
+	errorBuilder := querier_dto.NewErrorBuilder(filename)
+
+	var diagnostics []querier_dto.SourceError
+	for _, override := range overrides {
+		column := findCatalogueColumn(b.catalogue, override.Table, override.Column)
+		if column == nil {
+			diagnostics = append(diagnostics, errorBuilder.UnknownOverrideMigrationColumn(
+				querier_dto.TextSpan{Line: 1, Column: 1, EndLine: 1, EndColumn: 1},
+				override.Table+"."+override.Column,
+				knownColumns,
+			))
+			continue
+		}
+
+		if override.SQLType != "" {
+			column.SQLTypeOverride = override.SQLType
+		}
+		if override.GoType != "" {
+			lastDot := strings.LastIndex(override.GoType, ".")
+			switch {
+			case lastDot < 0:
+				column.GoTypeOverride = &querier_dto.GoType{Name: override.GoType}
+			case lastDot > 0 && lastDot < len(override.GoType)-1:
+				column.GoTypeOverride = &querier_dto.GoType{
+					Package: override.GoType[:lastDot],
+					Name:    override.GoType[lastDot+1:],
+				}
+			default:
+				diagnostics = append(diagnostics, querier_dto.SourceError{
+					Filename: filename,
+					Line:     1,
+					Column:   1,
+					Message: fmt.Sprintf(
+						"migration go_type override %q for %s.%s is malformed (a leading or trailing dot is not a valid qualified type)",
+						override.GoType, override.Table, override.Column,
+					),
+					Severity: querier_dto.SeverityWarning,
+					Code:     querier_dto.CodeUnknownOverrideMigrationColumn,
+				})
+			}
+		}
+		if override.Nullable != nil {
+			column.NullableOverride = override.Nullable
+		}
+	}
+	return diagnostics
 }
 
 // applyStatements iterates over parsed DDL statements, interprets each one via the
@@ -143,13 +351,13 @@ func (b *catalogueBuilder) applyStatements(
 			return diagnostics
 		}
 
-		mutation, ddlError := b.engine.ApplyDDL(statement)
+		mutation, ddlError := b.engine.ApplyDDL(ctx, statement)
 		if ddlError != nil {
 			diagnostics = append(diagnostics, querier_dto.SourceError{
 				Filename: filename,
 				Line:     1,
 				Column:   1,
-				Message:  fmt.Sprintf("failed to interpret DDL: %s", ddlError.Error()),
+				Message:  fmt.Errorf("failed to interpret DDL: %w", ddlError).Error(),
 				Severity: querier_dto.SeverityError,
 				Code:     querier_dto.CodeParseError,
 			})
@@ -160,18 +368,25 @@ func (b *catalogueBuilder) applyStatements(
 			continue
 		}
 
-		mutation.Origin = origin
-		applyMigrationReadOnlyOverride(mutation, readOnlyOverrides)
+		mutations := append([]*querier_dto.CatalogueMutation{mutation}, mutation.AdditionalMutations...)
+		mutation.AdditionalMutations = nil
+		for _, next := range mutations {
+			if ctx.Err() != nil {
+				return diagnostics
+			}
+			next.Origin = origin
+			applyMigrationReadOnlyOverride(next, readOnlyOverrides)
 
-		if mutationError := b.applyMutation(ctx, mutation); mutationError != nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Filename: filename,
-				Line:     1,
-				Column:   1,
-				Message:  mutationError.Error(),
-				Severity: querier_dto.SeverityError,
-				Code:     querier_dto.CodeParseError,
-			})
+			if mutationError := b.applyMutation(ctx, next); mutationError != nil {
+				diagnostics = append(diagnostics, querier_dto.SourceError{
+					Filename: filename,
+					Line:     1,
+					Column:   1,
+					Message:  mutationError.Error(),
+					Severity: querier_dto.SeverityError,
+					Code:     querier_dto.CodeParseError,
+				})
+			}
 		}
 	}
 
@@ -180,8 +395,84 @@ func (b *catalogueBuilder) applyStatements(
 
 var (
 	// mutationHandlers maps DDL mutation kinds to their catalogue builder handler functions.
+	// Mutation kinds intentionally absent from this table fall through to the explicit
+	// switch in applyMutation (MutationCreateFunction, MutationCreateView) or are silently
+	// ignored as no-ops via catalogueMutationNoOp; see noOpMutations for the deliberate
+	// list.
 	mutationHandlers [querier_dto.MutationKindCount]func(*catalogueBuilder, *querier_dto.CatalogueMutation) error
+
+	// noOpMutations enumerates the mutation kinds the catalogue builder deliberately
+	// ignores.
+	//
+	// These kinds do not affect the catalogue-level schema state used for query analysis.
+	// CreateTrigger and DropTrigger fire at runtime and the analyser never inspects them.
+	// AsyncDataUpdate and AsyncDataDelete are data-plane operations that do not touch the
+	// catalogue's schema. CreateDictionary and DropDictionary cover ClickHouse dictionaries,
+	// which are opaque lookup tables accessed via dictGet() whose column structure the
+	// catalogue does not need. ExchangeTables is an atomic ClickHouse table swap, a runtime
+	// operation that does not change either table's schema. The ClickHouse projection,
+	// data-skipping index, statistics, partition, refresh, RBAC, attach, backup, and kill
+	// kinds are runtime-only or RBAC operations that do not affect the catalogue's column
+	// structure used for query analysis.
+	noOpMutations = [...]querier_dto.MutationKind{
+		querier_dto.MutationCreateTrigger,
+		querier_dto.MutationDropTrigger,
+		querier_dto.MutationAsyncDataUpdate,
+		querier_dto.MutationAsyncDataDelete,
+		querier_dto.MutationCreateDictionary,
+		querier_dto.MutationDropDictionary,
+		querier_dto.MutationExchangeTables,
+		querier_dto.MutationAlterTableAddProjection,
+		querier_dto.MutationAlterTableDropProjection,
+		querier_dto.MutationAlterTableMaterializeProjection,
+		querier_dto.MutationAlterTableAddSkippingIndex,
+		querier_dto.MutationAlterTableDropSkippingIndex,
+		querier_dto.MutationAlterTableMaterializeIndex,
+		querier_dto.MutationAlterTableAddStatistics,
+		querier_dto.MutationAlterTableDropStatistics,
+		querier_dto.MutationAlterTableMaterializeStatistics,
+		querier_dto.MutationAlterTableModifyStatistics,
+		querier_dto.MutationAlterTableMaterializeColumn,
+		querier_dto.MutationAlterTableModifyColumn,
+		querier_dto.MutationAlterTableModifyQuery,
+		querier_dto.MutationAlterTableModifyRefresh,
+		querier_dto.MutationAlterTablePartition,
+		querier_dto.MutationCreateUser,
+		querier_dto.MutationAlterUser,
+		querier_dto.MutationDropUser,
+		querier_dto.MutationCreateRole,
+		querier_dto.MutationAlterRole,
+		querier_dto.MutationDropRole,
+		querier_dto.MutationCreatePolicy,
+		querier_dto.MutationAlterPolicy,
+		querier_dto.MutationDropPolicy,
+		querier_dto.MutationCreateQuota,
+		querier_dto.MutationAlterQuota,
+		querier_dto.MutationDropQuota,
+		querier_dto.MutationCreateSettingsProfile,
+		querier_dto.MutationAlterSettingsProfile,
+		querier_dto.MutationDropSettingsProfile,
+		querier_dto.MutationGrantManagement,
+		querier_dto.MutationAttachTable,
+		querier_dto.MutationDetachTable,
+		querier_dto.MutationBackup,
+		querier_dto.MutationRestore,
+		querier_dto.MutationKillQuery,
+		querier_dto.MutationKillMutation,
+	}
 )
+
+// catalogueMutationNoOp is the shared handler for mutation kinds that the catalogue
+// builder deliberately ignores. Centralising the function pointer keeps mutationHandlers
+// compact and makes the intent of the no-op entries obvious at the call site.
+//
+// Takes builder (*catalogueBuilder) which is ignored by the no-op handler.
+// Takes mutation (*querier_dto.CatalogueMutation) which is ignored by the no-op handler.
+//
+// Returns error which is always nil.
+func catalogueMutationNoOp(*catalogueBuilder, *querier_dto.CatalogueMutation) error {
+	return nil
+}
 
 func init() {
 	mutationHandlers = [querier_dto.MutationKindCount]func(*catalogueBuilder, *querier_dto.CatalogueMutation) error{
@@ -207,12 +498,13 @@ func init() {
 		querier_dto.MutationDropIndex:                (*catalogueBuilder).applyDropIndex,
 		querier_dto.MutationCreateExtension:          (*catalogueBuilder).applyCreateExtension,
 		querier_dto.MutationComment:                  (*catalogueBuilder).applyComment,
-		querier_dto.MutationCreateTrigger:            func(*catalogueBuilder, *querier_dto.CatalogueMutation) error { return nil },
-		querier_dto.MutationDropTrigger:              func(*catalogueBuilder, *querier_dto.CatalogueMutation) error { return nil },
 		querier_dto.MutationAlterTableAddConstraint:  (*catalogueBuilder).applyAlterTableAddConstraint,
 		querier_dto.MutationAlterTableDropConstraint: (*catalogueBuilder).applyAlterTableDropConstraint,
 		querier_dto.MutationCreateSequence:           (*catalogueBuilder).applyCreateSequence,
 		querier_dto.MutationDropSequence:             (*catalogueBuilder).applyDropSequence,
+	}
+	for _, kind := range noOpMutations {
+		mutationHandlers[kind] = catalogueMutationNoOp
 	}
 }
 
@@ -236,666 +528,6 @@ func (b *catalogueBuilder) applyMutation(ctx context.Context, mutation *querier_
 	}
 }
 
-// applyCreateTable adds a new table to the catalogue, inheriting columns from parent
-// tables and resolving custom column types.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the table definition.
-//
-// Returns error when the table already exists.
-func (b *catalogueBuilder) applyCreateTable(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	if _, exists := schema.Tables[mutation.TableName]; exists {
-		return fmt.Errorf("table %s.%s already exists", schema.Name, mutation.TableName)
-	}
-
-	var inherited []querier_dto.Column
-	for _, parent := range mutation.InheritsTables {
-		parentTable, findError := b.findTable(parent.Schema, parent.Name)
-		if findError != nil {
-			continue
-		}
-		inherited = append(inherited, parentTable.Columns...)
-	}
-
-	childColumnNames := make(map[string]struct{}, len(mutation.Columns))
-	for i := range mutation.Columns {
-		childColumnNames[mutation.Columns[i].Name] = struct{}{}
-	}
-
-	var columns []querier_dto.Column
-	for i := range inherited {
-		if _, overridden := childColumnNames[inherited[i].Name]; !overridden {
-			columns = append(columns, inherited[i])
-		}
-	}
-	columns = append(columns, mutation.Columns...)
-
-	for i := range columns {
-		columns[i].Origin = mutation.Origin
-		b.resolveCustomColumnType(&columns[i])
-	}
-	for i := range mutation.Constraints {
-		mutation.Constraints[i].Origin = mutation.Origin
-	}
-	schema.Tables[mutation.TableName] = &querier_dto.Table{
-		Name:              mutation.TableName,
-		Schema:            schema.Name,
-		Columns:           columns,
-		PrimaryKey:        mutation.PrimaryKey,
-		Constraints:       mutation.Constraints,
-		IsVirtual:         mutation.IsVirtual,
-		VirtualModuleName: mutation.VirtualModuleName,
-		IsWithoutRowID:    mutation.IsWithoutRowID,
-		Origin:            mutation.Origin,
-	}
-	return nil
-}
-
-// applyDropTable removes a table from the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the table to drop.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyDropTable(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	delete(schema.Tables, mutation.TableName)
-	return nil
-}
-
-// applyAlterTableAddColumn appends new columns to an existing table.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the columns to add.
-//
-// Returns error when the target table is not found.
-func (b *catalogueBuilder) applyAlterTableAddColumn(mutation *querier_dto.CatalogueMutation) error {
-	table, err := b.findTable(mutation.SchemaName, mutation.TableName)
-	if err != nil {
-		return err
-	}
-	if len(mutation.Columns) > 0 {
-		for i := range mutation.Columns {
-			mutation.Columns[i].Origin = mutation.Origin
-			b.resolveCustomColumnType(&mutation.Columns[i])
-		}
-		table.Columns = append(table.Columns, mutation.Columns...)
-	}
-	return nil
-}
-
-// applyAlterTableDropColumn removes a column from an existing table.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the column to drop.
-//
-// Returns error when the target table is not found.
-func (b *catalogueBuilder) applyAlterTableDropColumn(mutation *querier_dto.CatalogueMutation) error {
-	table, err := b.findTable(mutation.SchemaName, mutation.TableName)
-	if err != nil {
-		return err
-	}
-	filtered := make([]querier_dto.Column, 0, len(table.Columns))
-	for i := range table.Columns {
-		if table.Columns[i].Name != mutation.ColumnName {
-			filtered = append(filtered, table.Columns[i])
-		}
-	}
-	table.Columns = filtered
-	return nil
-}
-
-// applyAlterTableAlterColumn replaces a column definition in an existing table.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the new column definition.
-//
-// Returns error when the target table or column is not found.
-func (b *catalogueBuilder) applyAlterTableAlterColumn(mutation *querier_dto.CatalogueMutation) error {
-	table, err := b.findTable(mutation.SchemaName, mutation.TableName)
-	if err != nil {
-		return err
-	}
-	if len(mutation.Columns) == 0 {
-		return nil
-	}
-	altered := mutation.Columns[0]
-	for i := range table.Columns {
-		if table.Columns[i].Name == mutation.ColumnName {
-			altered.Origin = table.Columns[i].Origin
-			table.Columns[i] = altered
-			return nil
-		}
-	}
-	return fmt.Errorf("column %s not found in table %s", mutation.ColumnName, mutation.TableName)
-}
-
-// applyAlterTableRenameColumn renames a column in an existing table.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the old and new column
-// names.
-//
-// Returns error when the target table or column is not found.
-func (b *catalogueBuilder) applyAlterTableRenameColumn(mutation *querier_dto.CatalogueMutation) error {
-	table, err := b.findTable(mutation.SchemaName, mutation.TableName)
-	if err != nil {
-		return err
-	}
-	for i := range table.Columns {
-		if table.Columns[i].Name == mutation.ColumnName {
-			table.Columns[i].Name = mutation.NewName
-			return nil
-		}
-	}
-	return fmt.Errorf("column %s not found in table %s", mutation.ColumnName, mutation.TableName)
-}
-
-// applyAlterTableRenameTable renames a table within its schema.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the old and new table
-// names.
-//
-// Returns error when the target table is not found.
-func (b *catalogueBuilder) applyAlterTableRenameTable(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	table, exists := schema.Tables[mutation.TableName]
-	if !exists {
-		return fmt.Errorf("table %s not found in schema %s", mutation.TableName, schema.Name)
-	}
-	delete(schema.Tables, mutation.TableName)
-	table.Name = mutation.NewName
-	schema.Tables[mutation.NewName] = table
-	return nil
-}
-
-// applyAlterTableSetSchema moves a table from one schema to another.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the source schema and
-// target schema names.
-//
-// Returns error when the target table is not found in the source schema.
-func (b *catalogueBuilder) applyAlterTableSetSchema(mutation *querier_dto.CatalogueMutation) error {
-	sourceSchema := b.resolveSchema(mutation.SchemaName)
-	table, exists := sourceSchema.Tables[mutation.TableName]
-	if !exists {
-		return fmt.Errorf("table %s not found in schema %s", mutation.TableName, sourceSchema.Name)
-	}
-	delete(sourceSchema.Tables, mutation.TableName)
-
-	targetSchema := b.resolveSchema(mutation.NewName)
-	table.Schema = targetSchema.Name
-	targetSchema.Tables[mutation.TableName] = table
-	return nil
-}
-
-// applyCreateSequence adds a new sequence to the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the sequence definition.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyCreateSequence(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	schema.Sequences[mutation.SequenceName] = &querier_dto.Sequence{
-		Name:          mutation.SequenceName,
-		Schema:        schema.Name,
-		OwnedByTable:  mutation.OwnedByTable,
-		OwnedByColumn: mutation.OwnedByColumn,
-		Origin:        mutation.Origin,
-	}
-	return nil
-}
-
-// applyDropSequence removes a sequence from the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the sequence to drop.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyDropSequence(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	delete(schema.Sequences, mutation.SequenceName)
-	return nil
-}
-
-// applyAlterTableAddConstraint appends new constraints to an existing table.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the constraints to add.
-//
-// Returns error when the target table is not found.
-func (b *catalogueBuilder) applyAlterTableAddConstraint(mutation *querier_dto.CatalogueMutation) error {
-	table, err := b.findTable(mutation.SchemaName, mutation.TableName)
-	if err != nil {
-		return err
-	}
-	for i := range mutation.Constraints {
-		mutation.Constraints[i].Origin = mutation.Origin
-	}
-	table.Constraints = append(table.Constraints, mutation.Constraints...)
-	return nil
-}
-
-// applyAlterTableDropConstraint removes a named constraint from an existing table.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the constraint to
-// drop.
-//
-// Returns error when the target table is not found.
-func (b *catalogueBuilder) applyAlterTableDropConstraint(mutation *querier_dto.CatalogueMutation) error {
-	table, err := b.findTable(mutation.SchemaName, mutation.TableName)
-	if err != nil {
-		return err
-	}
-	filtered := table.Constraints[:0]
-	for _, constraint := range table.Constraints {
-		if constraint.Name != mutation.ConstraintName {
-			filtered = append(filtered, constraint)
-		}
-	}
-	table.Constraints = filtered
-	return nil
-}
-
-// applyCreateEnum adds a new enum type to the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the enum name and values.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyCreateEnum(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	schema.Enums[mutation.EnumName] = &querier_dto.Enum{
-		Name:   mutation.EnumName,
-		Schema: schema.Name,
-		Values: mutation.EnumValues,
-		Origin: mutation.Origin,
-	}
-	return nil
-}
-
-// applyAlterEnumAddValue appends new values to an existing enum type.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the values to add.
-//
-// Returns error when the enum is not found.
-func (b *catalogueBuilder) applyAlterEnumAddValue(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	enum, exists := schema.Enums[mutation.EnumName]
-	if !exists {
-		return fmt.Errorf("enum %s not found in schema %s", mutation.EnumName, schema.Name)
-	}
-	enum.Values = append(enum.Values, mutation.EnumValues...)
-	return nil
-}
-
-// applyAlterEnumRenameValue renames a value within an existing enum type.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the old and new enum value
-// names.
-//
-// Returns error when the enum is not found.
-func (b *catalogueBuilder) applyAlterEnumRenameValue(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	enum, exists := schema.Enums[mutation.EnumName]
-	if !exists {
-		return fmt.Errorf("enum %s not found in schema %s", mutation.EnumName, schema.Name)
-	}
-	if len(mutation.EnumValues) >= 2 {
-		oldValue := mutation.EnumValues[0]
-		newValue := mutation.EnumValues[1]
-		for i, value := range enum.Values {
-			if value == oldValue {
-				enum.Values[i] = newValue
-				return nil
-			}
-		}
-	}
-	return nil
-}
-
-// applyDropEnum removes an enum type from the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the enum to drop.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyDropEnum(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	delete(schema.Enums, mutation.EnumName)
-	return nil
-}
-
-// applyCreateCompositeType adds a new composite type to the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the composite type
-// definition.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyCreateCompositeType(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	fields := mutation.Columns
-	for i := range fields {
-		fields[i].Origin = mutation.Origin
-	}
-	schema.CompositeTypes[mutation.EnumName] = &querier_dto.CompositeType{
-		Name:   mutation.EnumName,
-		Schema: schema.Name,
-		Fields: fields,
-		Origin: mutation.Origin,
-	}
-	return nil
-}
-
-// applyDropType removes a composite type or enum from the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the type to drop.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyDropType(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	delete(schema.CompositeTypes, mutation.EnumName)
-	delete(schema.Enums, mutation.EnumName)
-	return nil
-}
-
-// applyCreateFunction adds or replaces a function signature in the catalogue, resolving
-// the function body for SQL-language functions.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the function signature and
-// body.
-//
-// Returns error when the mutation is missing a function signature.
-func (b *catalogueBuilder) applyCreateFunction(ctx context.Context, mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	if mutation.FunctionSignature == nil {
-		return errors.New("CREATE FUNCTION mutation missing function signature")
-	}
-	mutation.FunctionSignature.Origin = mutation.Origin
-
-	if mutation.FunctionSignature.IsStrict {
-		mutation.FunctionSignature.NullableBehaviour = querier_dto.FunctionNullableReturnsNullOnNull
-	}
-
-	b.resolveFunctionBody(ctx, mutation.FunctionSignature)
-
-	functionName := mutation.FunctionSignature.Name
-	existing := schema.Functions[functionName]
-
-	for i, overload := range existing {
-		if argumentTypesMatch(overload.Arguments, mutation.FunctionSignature.Arguments) {
-			schema.Functions[functionName][i] = mutation.FunctionSignature
-			return nil
-		}
-	}
-
-	schema.Functions[functionName] = append(schema.Functions[functionName], mutation.FunctionSignature)
-	return nil
-}
-
-// resolveFunctionBody analyses the function body to determine data access level and
-// return type. SQL-language functions are fully parsed and analysed; other languages are
-// scanned for DML keywords.
-//
-// Takes signature (*querier_dto.FunctionSignature) which holds the function body and
-// metadata to populate.
-func (b *catalogueBuilder) resolveFunctionBody(ctx context.Context, signature *querier_dto.FunctionSignature) {
-	if signature.BodySQL == "" {
-		return
-	}
-
-	if strings.EqualFold(signature.Language, "sql") {
-		b.analyseSQLFunctionBody(ctx, signature)
-		return
-	}
-
-	if signature.DataAccess == querier_dto.DataAccessUnknown {
-		signature.DataAccess = scanBodyForDML(signature.BodySQL)
-	}
-}
-
-// analyseSQLFunctionBody parses and analyses a SQL-language function body to determine
-// called functions, data access level, and return type.
-//
-// Takes signature (*querier_dto.FunctionSignature) which holds the SQL body and receives
-// the analysis results.
-func (b *catalogueBuilder) analyseSQLFunctionBody(ctx context.Context, signature *querier_dto.FunctionSignature) {
-	statements, parseError := b.engine.ParseStatements(signature.BodySQL)
-	if parseError != nil || len(statements) == 0 {
-		return
-	}
-
-	primaryStatement := statements[len(statements)-1]
-	rawAnalysis, analysisError := b.engine.AnalyseQuery(b.catalogue, primaryStatement)
-	if analysisError != nil || rawAnalysis == nil {
-		return
-	}
-
-	signature.CalledFunctions = collectFunctionCalls(rawAnalysis)
-
-	if signature.DataAccess == querier_dto.DataAccessUnknown {
-		if rawAnalysis.ReadOnly {
-			signature.DataAccess = querier_dto.DataAccessReadOnly
-		} else {
-			signature.DataAccess = querier_dto.DataAccessModifiesData
-		}
-	}
-
-	if signature.ReturnType.Category != querier_dto.TypeCategoryUnknown || signature.ReturnsSet {
-		return
-	}
-
-	analyser := newQueryAnalyser(b.engine, b.catalogue)
-	scope := newScopeChain(querier_dto.ScopeKindQuery, nil)
-
-	_ = analyser.resolveCTEs(ctx, rawAnalysis.CTEDefinitions, scope)
-	_ = analyser.buildScopeChain(rawAnalysis, scope)
-	_ = analyser.resolveTableValuedFunctions(rawAnalysis.RawTableValuedFunctions, scope)
-	_ = analyser.resolveRawDerivedTables(ctx, rawAnalysis.RawDerivedTables, scope)
-
-	outputColumns, _, _ := analyser.typeResolver.ResolveOutputColumns(
-		ctx, rawAnalysis.OutputColumns, scope,
-	)
-
-	if len(outputColumns) == 1 {
-		signature.ReturnType = outputColumns[0].SQLType
-	}
-}
-
-// scanBodyForDML scans a function body string for DML keywords to determine the data
-// access level.
-//
-// Takes body (string) which holds the function body text to scan.
-//
-// Returns querier_dto.FunctionDataAccess which is DataAccessModifiesData if any DML
-// keyword is found, or DataAccessReadOnly otherwise.
-func scanBodyForDML(body string) querier_dto.FunctionDataAccess {
-	upper := strings.ToUpper(body)
-	dmlKeywords := [...]string{"INSERT ", "UPDATE ", "DELETE ", "TRUNCATE "}
-	for _, keyword := range dmlKeywords {
-		if strings.Contains(upper, keyword) {
-			return querier_dto.DataAccessModifiesData
-		}
-	}
-	return querier_dto.DataAccessReadOnly
-}
-
-// applyDropFunction removes a function or a specific overload from the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the function to drop.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyDropFunction(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	if mutation.FunctionSignature == nil {
-		delete(schema.Functions, mutation.TableName)
-		return nil
-	}
-	functionName := mutation.FunctionSignature.Name
-	if len(mutation.FunctionSignature.Arguments) == 0 {
-		delete(schema.Functions, functionName)
-		return nil
-	}
-	existing := schema.Functions[functionName]
-	filtered := make([]*querier_dto.FunctionSignature, 0, len(existing))
-	for _, overload := range existing {
-		if !argumentTypesMatch(overload.Arguments, mutation.FunctionSignature.Arguments) {
-			filtered = append(filtered, overload)
-		}
-	}
-	if len(filtered) == 0 {
-		delete(schema.Functions, functionName)
-	} else {
-		schema.Functions[functionName] = filtered
-	}
-	return nil
-}
-
-// applyCreateSchema adds a new empty schema to the catalogue if it does not already
-// exist.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the schema name.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyCreateSchema(mutation *querier_dto.CatalogueMutation) error {
-	if _, exists := b.catalogue.Schemas[mutation.SchemaName]; !exists {
-		b.catalogue.Schemas[mutation.SchemaName] = newEmptySchema(mutation.SchemaName)
-	}
-	return nil
-}
-
-// applyDropSchema removes a schema and all its contents from the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the schema to drop.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyDropSchema(mutation *querier_dto.CatalogueMutation) error {
-	delete(b.catalogue.Schemas, mutation.SchemaName)
-	return nil
-}
-
-// applyCreateView adds a new view to the catalogue, resolving its columns from the view
-// definition when available.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the view definition.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyCreateView(ctx context.Context, mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-
-	var columns []querier_dto.Column
-	if mutation.ViewDefinition != nil {
-		columns = b.resolveViewColumns(ctx, mutation.ViewDefinition)
-	} else {
-		columns = mutation.Columns
-	}
-
-	for i := range columns {
-		columns[i].Origin = mutation.Origin
-	}
-	schema.Views[mutation.TableName] = &querier_dto.View{
-		Name:    mutation.TableName,
-		Schema:  schema.Name,
-		Columns: columns,
-		Origin:  mutation.Origin,
-	}
-	return nil
-}
-
-// resolveViewColumns analyses a view definition query to determine the output column
-// names, types, and nullability.
-//
-// Takes definition (*querier_dto.RawQueryAnalysis) which holds the parsed view query.
-//
-// Returns []querier_dto.Column which holds the resolved view columns.
-func (b *catalogueBuilder) resolveViewColumns(ctx context.Context, definition *querier_dto.RawQueryAnalysis) []querier_dto.Column {
-	analyser := newQueryAnalyser(b.engine, b.catalogue)
-	scope := newScopeChain(querier_dto.ScopeKindQuery, nil)
-
-	_ = analyser.resolveCTEs(ctx, definition.CTEDefinitions, scope)
-	_ = analyser.buildScopeChain(definition, scope)
-	_ = analyser.resolveTableValuedFunctions(definition.RawTableValuedFunctions, scope)
-	_ = analyser.resolveRawDerivedTables(ctx, definition.RawDerivedTables, scope)
-
-	outputColumns, _, _ := analyser.typeResolver.ResolveOutputColumns(
-		ctx, definition.OutputColumns, scope,
-	)
-
-	if len(definition.CompoundBranches) > 0 {
-		_ = analyser.resolveCompoundBranches(ctx, definition.CompoundBranches, outputColumns)
-	}
-
-	columns := make([]querier_dto.Column, len(outputColumns))
-	for i := range outputColumns {
-		columns[i] = querier_dto.Column{
-			Name:     outputColumns[i].Name,
-			SQLType:  outputColumns[i].SQLType,
-			Nullable: outputColumns[i].Nullable,
-		}
-	}
-	return columns
-}
-
-// applyDropView removes a view from the catalogue.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the view to drop.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyDropView(mutation *querier_dto.CatalogueMutation) error {
-	schema := b.resolveSchema(mutation.SchemaName)
-	delete(schema.Views, mutation.TableName)
-	return nil
-}
-
-// applyCreateIndex adds an index record to the target table.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the index definition.
-//
-// Returns error (always nil, silently ignores missing tables).
-func (b *catalogueBuilder) applyCreateIndex(mutation *querier_dto.CatalogueMutation) error {
-	table, err := b.findTable(mutation.SchemaName, mutation.TableName)
-	if err != nil {
-		return nil
-	}
-	table.Indexes = append(table.Indexes, querier_dto.Index{
-		Name:   mutation.NewName,
-		Origin: mutation.Origin,
-	})
-	return nil
-}
-
-// applyDropIndex handles DROP INDEX mutations. Index tracking is not currently needed for
-// query analysis, so this is a no-op.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which identifies the index to drop.
-//
-// Returns error (always nil).
-func (*catalogueBuilder) applyDropIndex(_ *querier_dto.CatalogueMutation) error {
-	return nil
-}
-
-// applyCreateExtension registers an extension and loads any functions it provides via the
-// engine's extension loader.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the extension name.
-//
-// Returns error (always nil).
-func (b *catalogueBuilder) applyCreateExtension(mutation *querier_dto.CatalogueMutation) error {
-	b.catalogue.Extensions[mutation.TableName] = struct{}{}
-
-	if loader, ok := b.engine.(ExtensionLoaderPort); ok {
-		if functions := loader.LoadExtensionFunctions(mutation.TableName); len(functions) > 0 {
-			schema := b.resolveSchema(mutation.SchemaName)
-			for _, function := range functions {
-				schema.Functions[function.Name] = append(schema.Functions[function.Name], function)
-			}
-		}
-	}
-
-	return nil
-}
-
-// applyComment handles COMMENT ON mutations. Comment tracking is not currently needed for
-// query analysis, so this is a no-op.
-//
-// Takes mutation (*querier_dto.CatalogueMutation) which holds the comment details.
-//
-// Returns error (always nil).
-func (*catalogueBuilder) applyComment(_ *querier_dto.CatalogueMutation) error {
-	return nil
-}
-
 // resolveCustomColumnType resolves a column's type against known enums and composite
 // types when the type category is unknown.
 //
@@ -908,7 +540,9 @@ func (b *catalogueBuilder) resolveCustomColumnType(column *querier_dto.Column) {
 	if typeName == "" {
 		return
 	}
-	for _, schema := range b.catalogue.Schemas {
+
+	for _, schemaName := range sortedKeys(b.catalogue.Schemas) {
+		schema := b.catalogue.Schemas[schemaName]
 		if enum, exists := schema.Enums[typeName]; exists {
 			column.SQLType.Category = querier_dto.TypeCategoryEnum
 			column.SQLType.EnumValues = enum.Values
@@ -941,7 +575,25 @@ func (b *catalogueBuilder) resolveSchema(schemaName string) *querier_dto.Schema 
 	return schema
 }
 
-// findTable looks up a table by schema and name, returning an error if not found.
+// lookupSchema returns the schema for the given name without creating it.
+//
+// An empty name is treated as the default schema. The lookup is read-only, so a failed
+// search does not leave a phantom empty schema behind in the catalogue.
+//
+// Takes schemaName (string) which specifies the schema name to look up.
+//
+// Returns *querier_dto.Schema which is the matching schema, or nil when absent.
+// Returns string which is the resolved schema name (default schema substituted for
+// empty).
+func (b *catalogueBuilder) lookupSchema(schemaName string) (*querier_dto.Schema, string) {
+	if schemaName == "" {
+		schemaName = b.catalogue.DefaultSchema
+	}
+	return b.catalogue.Schemas[schemaName], schemaName
+}
+
+// findTable looks up a table by schema and name, returning an error if not found. The
+// lookup is read-only and never creates a schema.
 //
 // Takes schemaName (string) which specifies the schema to search in.
 // Takes tableName (string) which specifies the table to find.
@@ -949,10 +601,13 @@ func (b *catalogueBuilder) resolveSchema(schemaName string) *querier_dto.Schema 
 // Returns *querier_dto.Table which is the found table.
 // Returns error when the table does not exist.
 func (b *catalogueBuilder) findTable(schemaName string, tableName string) (*querier_dto.Table, error) {
-	schema := b.resolveSchema(schemaName)
+	schema, resolvedName := b.lookupSchema(schemaName)
+	if schema == nil {
+		return nil, fmt.Errorf("table %s not found in schema %s", tableName, resolvedName)
+	}
 	table, exists := schema.Tables[tableName]
 	if !exists {
-		return nil, fmt.Errorf("table %s not found in schema %s", tableName, schema.Name)
+		return nil, fmt.Errorf("table %s not found in schema %s", tableName, resolvedName)
 	}
 	return table, nil
 }
@@ -972,27 +627,4 @@ func newEmptySchema(name string) *querier_dto.Schema {
 		CompositeTypes: make(map[string]*querier_dto.CompositeType),
 		Sequences:      make(map[string]*querier_dto.Sequence),
 	}
-}
-
-// argumentTypesMatch checks whether two function argument lists have the same types by
-// comparing category and engine name.
-//
-// Takes left ([]querier_dto.FunctionArgument) which holds the first argument list.
-// Takes right ([]querier_dto.FunctionArgument) which holds the second argument list.
-//
-// Returns bool which is true if the argument lists have the same length and matching
-// types.
-func argumentTypesMatch(left []querier_dto.FunctionArgument, right []querier_dto.FunctionArgument) bool {
-	if len(left) != len(right) {
-		return false
-	}
-	for i := range left {
-		if left[i].Type.Category != right[i].Type.Category {
-			return false
-		}
-		if left[i].Type.EngineName != right[i].Type.EngineName {
-			return false
-		}
-	}
-	return true
 }

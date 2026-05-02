@@ -32,18 +32,17 @@ import (
 // QuerierServicePort defines the driving port for SQL analysis and code generation.
 type QuerierServicePort interface {
 	// GenerateDatabase analyses migration and query files for a named database connection
-	// and generates Go code into the output directory.
+	// and returns the generated Go source files (writing them to disk is the caller's
+	// responsibility).
 	//
 	// Takes name (string) which identifies the database connection (e.g. "main").
 	// Takes config (*querier_dto.DatabaseConfig) which specifies the engine, migration
 	// paths, query paths, and type overrides.
-	// Takes outputDirectory (string) which is the target directory for generated Go files
-	// (typically dist/databases/{name}/).
 	//
 	// Returns *querier_dto.GenerationResult which contains the generated files and any
 	// diagnostics.
 	// Returns error when generation fails fatally.
-	GenerateDatabase(ctx context.Context, name string, config *querier_dto.DatabaseConfig, outputDirectory string) (*querier_dto.GenerationResult, error)
+	GenerateDatabase(ctx context.Context, name string, config *querier_dto.DatabaseConfig) (*querier_dto.GenerationResult, error)
 }
 
 // EngineParserPort provides SQL parsing and DDL/DML analysis. Engine adapters implement
@@ -67,8 +66,9 @@ type EngineParserPort interface {
 	//
 	// Returns *querier_dto.CatalogueMutation which describes the schema change, or nil if
 	// the statement is not DDL.
-	// Returns error when the DDL is malformed or references non-existent objects.
-	ApplyDDL(statement querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error)
+	// Returns error when the DDL is malformed or references non-existent objects, or when
+	// the context was cancelled before dispatch.
+	ApplyDDL(ctx context.Context, statement querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error)
 
 	// AnalyseQuery analyses a DML query against the catalogue, producing a raw analysis
 	// result with output columns, parameter references, and scope information. The domain
@@ -81,6 +81,29 @@ type EngineParserPort interface {
 	// references for the domain to type-check.
 	// Returns error when the query references non-existent tables or has structural errors.
 	AnalyseQuery(catalogue *querier_dto.Catalogue, statement querier_dto.ParsedStatement) (*querier_dto.RawQueryAnalysis, error)
+
+	// RewriteSelectAsCount returns a SQL string that counts the rows the input SELECT would
+	// produce.
+	//
+	// The projection list is replaced with `COUNT(*)` while FROM, JOIN, WHERE, GROUP BY,
+	// HAVING, and CTE clauses are preserved. ORDER BY, LIMIT, and OFFSET are stripped
+	// because they cannot affect the count.
+	//
+	// When the input contains GROUP BY, SELECT DISTINCT, or a window function,
+	// implementations wrap the original (minus ORDER BY / LIMIT / OFFSET) in `SELECT
+	// COUNT(*) FROM (<original>) sub` so the count reflects the outer-result-row cardinality
+	// rather than the inner-table cardinality. The wrapped boolean reports whether wrapping
+	// was applied so the caller can emit a Q023 diagnostic.
+	//
+	// Takes originalSQL (string) which is the raw SQL text of the SELECT.
+	// Takes analysis (*querier_dto.RawQueryAnalysis) which carries structural hints (GROUP
+	// BY columns, etc.) that influence the wrapping decision.
+	//
+	// Returns countSQL (string) which is the rewritten SELECT COUNT(*) form.
+	// Returns wrapped (bool) which is true when the rewrite wrapped the original in a
+	// subquery.
+	// Returns error when the SQL cannot be rewritten safely.
+	RewriteSelectAsCount(originalSQL string, analysis *querier_dto.RawQueryAnalysis) (countSQL string, wrapped bool, err error)
 }
 
 // EngineTypeSystemPort provides type normalisation, promotion, and implicit casting
@@ -190,6 +213,16 @@ type EngineMetadataPort interface {
 	// Dialect returns an opaque string identifying this engine adapter (e.g. "postgres",
 	// "sqlite", "mysql").
 	Dialect() string
+
+	// SupportsAsyncMutations reports whether the engine surfaces mutations whose completion
+	// is server-side asynchronous, such as ClickHouse ALTER UPDATE and ALTER DELETE.
+	//
+	// Engines returning true may have queries paired with the asyncexec piko command, while
+	// engines returning false reject asyncexec at analysis time with a hard error.
+	//
+	// Returns bool which is true when the engine surfaces asynchronous mutations and
+	// supports the asyncexec command.
+	SupportsAsyncMutations() bool
 }
 
 // EnginePort defines the aggregate inbound adapter contract for SQL dialect parsers,
@@ -277,11 +310,16 @@ type ExtensionLoaderPort interface {
 // implementation replays migration DDL files, but alternative implementations can
 // introspect live databases, read declarative schemas, or use any other mechanism
 // appropriate for the target engine.
+//
+// Immutability contract: implementations MUST surrender ownership of the returned
+// *Catalogue to the caller. The caller may alias internal pointers (Tables, Views, Enums,
+// CompositeTypes, Sequences, Functions overload slices) and mutate them, so providers
+// that maintain a cache MUST deep-copy before returning, or document that subsequent
+// calls share state. CompositeCatalogueProvider relies on this contract to merge
+// catalogues without expensive deep copies.
 type CatalogueProviderPort interface {
 	// BuildCatalogue constructs the schema catalogue from whatever source this provider uses
 	// (migration files, database introspection, etc.).
-	//
-	// Takes ctx (context.Context) for cancellation.
 	//
 	// Returns *querier_dto.Catalogue which is the built schema state.
 	// Returns []querier_dto.SourceError which contains any diagnostics.
@@ -319,8 +357,8 @@ type CodeEmitterPort interface {
 	// implementation (database/sql vs pgx vs custom).
 	//
 	// Takes packageName (string) which is the Go package name for the generated code.
-	// Takes capabilities (querier_dto.QueryCapabilities) which is reserved for future use
-	// and may be ignored by emitter implementations.
+	// Takes capabilities (querier_dto.QueryCapabilities) which emitter implementations may
+	// ignore.
 	//
 	// Returns querier_dto.GeneratedFile which contains the querier source file.
 	// Returns error when code emission fails.
@@ -356,7 +394,6 @@ type CodeEmitterPort interface {
 type FileReaderPort interface {
 	// ReadFile reads the contents of a file at the given path.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes path (string) which is the file path to read.
 	//
 	// Returns []byte which contains the file contents.
@@ -365,7 +402,6 @@ type FileReaderPort interface {
 
 	// ReadDir reads the directory entries, sorted by name.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes directory (string) which is the directory path to read.
 	//
 	// Returns []os.DirEntry which contains the directory entries sorted by name.
@@ -379,8 +415,6 @@ type MigrationServicePort interface {
 	// Up applies all pending up migrations in version order. Returns the number of
 	// migrations applied.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns int which is the number of migrations applied.
 	// Returns error when a migration fails to apply or checksum validation fails.
 	Up(ctx context.Context) (int, error)
@@ -388,7 +422,6 @@ type MigrationServicePort interface {
 	// Down rolls back the last n applied migrations in reverse version order. Returns the
 	// number of migrations rolled back.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	// Takes steps (int) which is the number of migrations to roll back.
 	//
 	// Returns int which is the number of migrations rolled back.
@@ -398,8 +431,6 @@ type MigrationServicePort interface {
 	// Status returns the list of all known migrations and their applied state, combining
 	// on-disk files with the migration history table.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns []querier_dto.MigrationStatus which lists all migrations with their applied
 	// state, checksum match status, and down-migration availability.
 	// Returns error when the status cannot be determined.
@@ -408,7 +439,6 @@ type MigrationServicePort interface {
 	// UpTo applies pending up migrations up to and including the target version. Returns the
 	// number of migrations applied.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	// Takes targetVersion (int64) which is the maximum version to apply.
 	//
 	// Returns int which is the number of migrations applied.
@@ -418,7 +448,6 @@ type MigrationServicePort interface {
 	// DownTo rolls back applied migrations down to (but not including) the target version.
 	// Migrations with versions greater than targetVersion are rolled back in reverse order.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	// Takes targetVersion (int64) which is the version to roll back to.
 	//
 	// Returns int which is the number of migrations rolled back.
@@ -427,8 +456,6 @@ type MigrationServicePort interface {
 
 	// Validates that all applied migration checksums match their on-disk files without
 	// executing anything.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
 	// Returns error when any checksum mismatch is detected or files are missing.
 	Validate(ctx context.Context) error
@@ -440,14 +467,10 @@ type MigrationServicePort interface {
 type MigrationExecutorPort interface {
 	// EnsureMigrationTable creates the migration history table if it does not exist.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns error when the table cannot be created.
 	EnsureMigrationTable(ctx context.Context) error
 
 	// AcquireLock acquires an advisory lock to prevent concurrent migration runs.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
 	// Returns error when the lock cannot be acquired.
 	AcquireLock(ctx context.Context) error
@@ -456,22 +479,16 @@ type MigrationExecutorPort interface {
 	// Returns querier_domain.ErrLockNotAcquired immediately if the lock is already held by
 	// another process.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns error when the lock cannot be acquired or is already held.
 	TryAcquireLock(ctx context.Context) error
 
 	// ReleaseLock releases the advisory lock acquired by AcquireLock.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
 	// Returns error when the lock cannot be released.
 	ReleaseLock(ctx context.Context) error
 
 	// AppliedVersions returns all migration versions that have been applied, ordered by
 	// version number ascending.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
 	// Returns []querier_dto.AppliedMigration which lists all applied migrations in version
 	// order.
@@ -481,7 +498,6 @@ type MigrationExecutorPort interface {
 	// ExecuteMigration runs a single migration's SQL content and updates the history table
 	// accordingly.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	// Takes migration (querier_dto.MigrationRecord) which holds the version, name, SQL
 	// content, and checksum.
 	// Takes direction (querier_dto.MigrationDirection) which indicates whether this is an up
@@ -505,16 +521,12 @@ type SeedServicePort interface {
 	// Apply executes all pending seed files in version order, skipping those already applied
 	// and warning on checksum mismatches.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns int which is the number of seeds applied.
 	// Returns error when a seed fails to execute.
 	Apply(ctx context.Context) (int, error)
 
 	// Status returns the list of all known seeds and their applied state, combining on-disk
 	// files with the seed history table.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
 	// Returns []querier_dto.SeedStatus which lists all seeds with their applied state and
 	// checksum match status.
@@ -523,8 +535,6 @@ type SeedServicePort interface {
 
 	// Reseed clears the seed history table and re-applies all seed files. This is useful for
 	// development resets where seed data needs to be refreshed from scratch.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
 	// Returns int which is the number of seeds applied.
 	// Returns error when clearing history or applying seeds fails.
@@ -540,8 +550,6 @@ type SeedServicePort interface {
 type SeedExecutorPort interface {
 	// EnsureSeedTable creates the piko_seeds history table if it does not exist.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns error when the table cannot be created.
 	EnsureSeedTable(ctx context.Context) error
 
@@ -551,22 +559,16 @@ type SeedExecutorPort interface {
 	// independently. Implementations that require connection pinning hold a dedicated
 	// connection until ReleaseSeedLock is called.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns error when the lock cannot be acquired.
 	AcquireSeedLock(ctx context.Context) error
 
 	// ReleaseSeedLock releases the seed advisory lock previously acquired by
 	// AcquireSeedLock. Safe to call when no lock is held.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns error when the lock cannot be released.
 	ReleaseSeedLock(ctx context.Context) error
 
 	// AppliedSeeds returns all seeds that have been applied, ordered by version ascending.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
 	// Returns []querier_dto.AppliedSeed which lists all applied seeds.
 	// Returns error when the history cannot be read.
@@ -575,7 +577,6 @@ type SeedExecutorPort interface {
 	// ExecuteSeed runs a single seed's SQL content in a transaction and records it in the
 	// history table.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	// Takes seed (querier_dto.SeedRecord) which holds the version, name, SQL content, and
 	// checksum.
 	//
@@ -584,8 +585,6 @@ type SeedExecutorPort interface {
 
 	// ClearSeedHistory removes all records from the piko_seeds table, allowing seeds to be
 	// re-applied.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
 	// Returns error when the history cannot be cleared.
 	ClearSeedHistory(ctx context.Context) error

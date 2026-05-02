@@ -1,0 +1,10 @@
+{
+  "chunk_count_after": 3,
+  "chunk_count_before": 5,
+  "row_count_after": {
+    "count": 3
+  },
+  "row_count_before": {
+    "count": 5
+  }
+}

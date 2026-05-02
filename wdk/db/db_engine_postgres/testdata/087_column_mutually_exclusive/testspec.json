@@ -1,0 +1,6 @@
+{
+  "description": "piko.column with both `type:` and `go_type:` declared on the same directive is rejected with Q038. The mutual-exclusion check happens at parse time so downstream consumers never see both.",
+  "diagnostics": [
+    { "severity": "error", "code": "Q038", "messageContains": "mutually exclusive" }
+  ]
+}

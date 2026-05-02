@@ -19,8 +19,8 @@
 CREATE TABLE IF NOT EXISTS artefact (
   id TEXT PRIMARY KEY NOT NULL,
   source_path TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL,
   data_fbs BLOB NOT NULL
 );
 
@@ -49,9 +49,9 @@ CREATE TABLE IF NOT EXISTS variant (
   storage_key TEXT NOT NULL,
   storage_backend_id TEXT NOT NULL,
   mime_type TEXT NOT NULL,
-  size_bytes INTEGER NOT NULL,
+  size_bytes BIGINT NOT NULL,
   status TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
+  created_at BIGINT NOT NULL,
 
   FOREIGN KEY (artefact_id) REFERENCES artefact(id) ON DELETE CASCADE,
   UNIQUE(artefact_id, variant_id)
@@ -65,10 +65,10 @@ CREATE TABLE IF NOT EXISTS blob_reference (
   storage_backend_id TEXT NOT NULL,
   ref_count INTEGER NOT NULL DEFAULT 0,
   content_hash TEXT NOT NULL,
-  size_bytes INTEGER NOT NULL,
+  size_bytes BIGINT NOT NULL,
   mime_type TEXT NOT NULL DEFAULT 'application/octet-stream',
-  created_at INTEGER NOT NULL,
-  last_referenced_at INTEGER NOT NULL
+  created_at BIGINT NOT NULL,
+  last_referenced_at BIGINT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_blob_ref_backend ON blob_reference (storage_backend_id);
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS gc_hint (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   backend_id TEXT NOT NULL,
   storage_key TEXT NOT NULL,
-  created_at INTEGER NOT NULL
+  created_at BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS variant_chunk (

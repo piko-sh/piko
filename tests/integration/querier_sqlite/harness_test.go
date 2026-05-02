@@ -42,9 +42,10 @@ const (
 )
 
 type testSpec struct {
-	Description     string                             `json:"description"`
-	CustomFunctions []querier_dto.CustomFunctionConfig `json:"customFunctions,omitempty"`
-	TypeOverrides   []querier_dto.TypeOverride         `json:"typeOverrides,omitempty"`
+	Description         string                             `json:"description"`
+	CustomFunctions     []querier_dto.CustomFunctionConfig `json:"customFunctions,omitempty"`
+	TypeOverrides       []querier_dto.TypeOverride         `json:"typeOverrides,omitempty"`
+	ExpectedDiagnostics *[]string                          `json:"expectedDiagnostics,omitempty"`
 }
 
 type realFileReader struct{}
@@ -103,7 +104,7 @@ func generateCode(t *testing.T, testCaseDirectory string, spec testSpec) []queri
 		TypeOverrides:      spec.TypeOverrides,
 	}
 
-	result, generateError := service.GenerateDatabase(ctx, "db", databaseConfig, "")
+	result, generateError := service.GenerateDatabase(ctx, "db", databaseConfig)
 	require.NoError(t, generateError)
 	require.NotNil(t, result)
 
@@ -111,6 +112,15 @@ func generateCode(t *testing.T, testCaseDirectory string, spec testSpec) []queri
 		if diagnostic.Severity == querier_dto.SeverityError {
 			t.Fatalf("generation produced error diagnostic: %s", diagnostic.Message)
 		}
+	}
+
+	if spec.ExpectedDiagnostics != nil {
+		actualCodes := make([]string, 0, len(result.Diagnostics))
+		for _, diagnostic := range result.Diagnostics {
+			actualCodes = append(actualCodes, string(diagnostic.Code))
+		}
+		assert.ElementsMatch(t, *spec.ExpectedDiagnostics, actualCodes,
+			"generation diagnostic codes did not match expectedDiagnostics (got %v)", actualCodes)
 	}
 
 	require.NotEmpty(t, result.Files, "expected generated files")

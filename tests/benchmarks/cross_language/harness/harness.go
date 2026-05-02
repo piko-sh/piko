@@ -32,9 +32,8 @@ import (
 	"time"
 )
 
-// Runner is the per-language driver interface. Every implementation knows
-// how to probe its environment, execute one benchmark in a given mode, and
-// release any held resources.
+// Runner is the per-language driver interface. Every implementation knows how to probe
+// its environment, execute one benchmark in a given mode, and release any held resources.
 type Runner interface {
 	Kind() RunnerKind
 
@@ -45,11 +44,10 @@ type Runner interface {
 	Close(ctx context.Context) error
 }
 
-// Suite is the top-level orchestration object. Load() builds one;
-// Run(t) drives it through every (benchmark, runner, mode) combination
-// configured by the environment, writes the JSON+Markdown reports, and
-// fails the test if a required runner is unavailable or if the
-// regen-hashes flow detected drift.
+// Suite is the top-level orchestration object. Load() builds one; Run(t) drives it
+// through every (benchmark, runner, mode) combination configured by the environment,
+// writes the JSON+Markdown reports, and fails the test if a required runner is
+// unavailable or if the regen-hashes flow detected drift.
 type Suite struct {
 	BenchmarksDirectory string
 
@@ -64,9 +62,9 @@ type Suite struct {
 	hostInfo HostInfo
 }
 
-// Load discovers benchmarks under benchmarksDirectory, parses every
-// spec.json, and constructs the runner registry per SuiteConfig.
-// Filter/runner-set/mode env overrides are applied here.
+// Load discovers benchmarks under benchmarksDirectory, parses every spec.json, and
+// constructs the runner registry per SuiteConfig. Filter/runner-set/mode env overrides
+// are applied here.
 func Load(testingHandle *testing.T, benchmarksDirectory string) *Suite {
 	testingHandle.Helper()
 	config := LoadSuiteConfig()
@@ -92,10 +90,10 @@ func Load(testingHandle *testing.T, benchmarksDirectory string) *Suite {
 	}
 }
 
-// Run executes the full suite and writes reports. Each (benchmark, runner,
-// mode) cell yields Config.Runs Result records plus Config.Warmup discarded
-// records. Subtests are created per benchmark and per runner so partial
-// failures show up clearly in `go test -v` output.
+// Run executes the full suite and writes reports. Each (benchmark, runner, mode) cell
+// yields Config.Runs Result records plus Config.Warmup discarded records. Subtests are
+// created per benchmark and per runner so partial failures show up clearly in `go test
+// -v` output.
 func (suite *Suite) Run(testingHandle *testing.T) {
 	testingHandle.Helper()
 	context := context.Background()
@@ -162,9 +160,8 @@ func (suite *Suite) Run(testingHandle *testing.T) {
 	}
 }
 
-// executeCell runs warmup + measured iterations for a single (benchmark,
-// runner, mode) tuple. Warmup results are logged but not appended to the
-// global results slice.
+// executeCell runs warmup + measured iterations for a single (benchmark, runner, mode)
+// tuple. Warmup results are logged but not appended to the global results slice.
 func (suite *Suite) executeCell(
 	parent context.Context,
 	testingHandle *testing.T,
@@ -197,10 +194,10 @@ func (suite *Suite) executeCell(
 	return results
 }
 
-// regenerateHashes runs the native Go variant of every discovered benchmark
-// and rewrites each spec.json with the resulting stdout SHA plus the
-// current source-file SHAs. Used when adding a new benchmark or after
-// editing one. Native Go is the canonical truth for the expected output.
+// regenerateHashes runs the native Go variant of every discovered benchmark and rewrites
+// each spec.json with the resulting stdout SHA plus the current source-file SHAs. Used
+// when adding a new benchmark or after editing one. Native Go is the canonical truth for
+// the expected output.
 func (suite *Suite) regenerateHashes(ctx context.Context) error {
 	goRunner := NewGoRunner(filepath.Join(suite.BenchmarksDirectory, ".gocache"))
 	if available, message := goRunner.Available(ctx); !available {
@@ -230,11 +227,10 @@ func (suite *Suite) regenerateHashes(ctx context.Context) error {
 	return nil
 }
 
-// collectSourceSHAs walks the canonical source-file paths under a
-// benchmark directory and returns the per-file SHA map. Missing files are
-// silently omitted so a benchmark that legitimately lacks (say) a PyPy
-// variant does not crash regeneration. Any files under testdata/ are also
-// hashed and recorded under their relative path so committed corpora,
+// collectSourceSHAs walks the canonical source-file paths under a benchmark directory and
+// returns the per-file SHA map. Missing files are silently omitted so a benchmark that
+// legitimately lacks (say) a PyPy variant does not crash regeneration. Any files under
+// testdata/ are also hashed and recorded under their relative path so committed corpora,
 // fixtures, etc. participate in source-SHA verification.
 func collectSourceSHAs(benchmarkDirectory string) map[string]string {
 	relativePaths := []string{
@@ -255,10 +251,9 @@ func collectSourceSHAs(benchmarkDirectory string) map[string]string {
 	return out
 }
 
-// collectTestdataSHAs walks any testdata/ subdirectory under a benchmark
-// directory and adds every regular file's SHA to the map keyed by its
-// relative path (e.g. "testdata/corpus.txt"). If testdata/ is missing the
-// map is left unchanged.
+// collectTestdataSHAs walks any testdata/ subdirectory under a benchmark directory and
+// adds every regular file's SHA to the map keyed by its relative path (e.g.
+// "testdata/corpus.txt"). If testdata/ is missing the map is left unchanged.
 func collectTestdataSHAs(benchmarkDirectory string, out map[string]string) {
 	testdataRoot := filepath.Join(benchmarkDirectory, "testdata")
 	info, err := os.Stat(testdataRoot)
@@ -282,8 +277,8 @@ func collectTestdataSHAs(benchmarkDirectory string, out map[string]string) {
 	})
 }
 
-// checkRequiredRunners fails the test early if any runner marked required
-// via CROSS_LANG_REQUIRE is unavailable.
+// checkRequiredRunners fails the test early if any runner marked required via
+// CROSS_LANG_REQUIRE is unavailable.
 func (suite *Suite) checkRequiredRunners(testingHandle *testing.T, ctx context.Context) {
 	for _, runner := range suite.Runners {
 		if !suite.Config.RunnerRequired(runner.Kind()) {

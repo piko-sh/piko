@@ -114,7 +114,8 @@ func GetDefaultService() (Service, error) {
 //	err = builder.To("user@example.com").Subject("Hello").BodyHTML("<p>Hi!</p>").Do(ctx)
 func NewEmailBuilder(service Service) (*EmailBuilder, error) {
 	if service == nil {
-		return nil, errors.New("email: service must not be nil")
+		err := errors.New("email: service must not be nil")
+		return email_domain.NewFailedEmailBuilder(err), err
 	}
 	return service.NewEmail(), nil
 }
@@ -127,7 +128,8 @@ func NewEmailBuilder(service Service) (*EmailBuilder, error) {
 func NewEmailBuilderFromDefault() (*EmailBuilder, error) {
 	service, err := GetDefaultService()
 	if err != nil {
-		return nil, fmt.Errorf("email: get default service: %w", err)
+		wrapped := fmt.Errorf("email: get default service: %w", err)
+		return email_domain.NewFailedEmailBuilder(wrapped), wrapped
 	}
 	return NewEmailBuilder(service)
 }
@@ -160,11 +162,13 @@ func NewEmailBuilderFromDefault() (*EmailBuilder, error) {
 //	    Do(ctx)
 func NewTemplatedEmailBuilder[PropsT any](service Service) (*TemplatedEmailBuilder[PropsT], error) {
 	if service == nil {
-		return nil, errors.New("email: service must not be nil")
+		err := errors.New("email: service must not be nil")
+		return email_domain.NewFailedTemplatedEmail[PropsT](err), err
 	}
 	builder, err := email_domain.NewTemplatedEmail[PropsT](service)
 	if err != nil {
-		return nil, fmt.Errorf("email: %w", err)
+		wrapped := fmt.Errorf("email: %w", err)
+		return email_domain.NewFailedTemplatedEmail[PropsT](wrapped), wrapped
 	}
 	return builder, nil
 }
@@ -195,7 +199,8 @@ func NewTemplatedEmailBuilder[PropsT any](service Service) (*TemplatedEmailBuild
 func NewTemplatedEmailBuilderFromDefault[PropsT any]() (*TemplatedEmailBuilder[PropsT], error) {
 	service, err := GetDefaultService()
 	if err != nil {
-		return nil, fmt.Errorf("email: get default service for template: %w", err)
+		wrapped := fmt.Errorf("email: get default service for template: %w", err)
+		return email_domain.NewFailedTemplatedEmail[PropsT](wrapped), wrapped
 	}
 	return NewTemplatedEmailBuilder[PropsT](service)
 }

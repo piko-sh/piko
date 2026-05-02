@@ -27,8 +27,8 @@ type FinaliseUploadOutput struct {
 	Size       int64  `json:"size"`
 }
 
-// Call verifies the temp file exists in S3, copies it to a final location,
-// removes the temp file, and registers it in the file list.
+// Call verifies the temp file exists in S3, copies it to a final location, removes the
+// temp file, and registers it in the file list.
 func (a FinaliseUploadAction) Call(input FinaliseUploadInput) (FinaliseUploadOutput, error) {
 	ctx := a.Ctx()
 	service, err := storage.GetDefaultService()

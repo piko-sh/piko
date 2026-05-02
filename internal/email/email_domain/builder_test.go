@@ -391,6 +391,23 @@ func TestTemplatedEmailBuilder_Do_Success(t *testing.T) {
 	}
 }
 
+func TestNewFailedTemplatedEmail_ChainIsPanicSafeAndDoReportsError(t *testing.T) {
+	type TestProps struct{ Name string }
+	wantError := errors.New("no default email service registered")
+
+	builder := NewFailedTemplatedEmail[TestProps](wantError)
+
+	err := builder.
+		To("user@example.com").
+		From("noreply@example.com").
+		Subject("welcome").
+		Props(TestProps{Name: "Alice"}).
+		BodyTemplate("emails/welcome.pk").
+		Do(context.Background())
+
+	require.ErrorIs(t, err, wantError, "a failed builder must surface its build error from Do without panicking or sending")
+}
+
 func TestTemplatedEmailBuilder_Do_NoTemplater(t *testing.T) {
 	s := newTestService(&mockProvider{})
 

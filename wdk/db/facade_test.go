@@ -21,6 +21,8 @@ package db_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/wdk/db"
 )
 
@@ -97,3 +99,54 @@ func TestGetDatabaseReaderWithoutBootstrap(t *testing.T) {
 		t.Error("GetDatabaseReader must return error without bootstrap")
 	}
 }
+
+func TestNewSQLEmitter_ReturnsNonNil(t *testing.T) {
+	t.Parallel()
+
+	emitter := db.NewSQLEmitter()
+
+	require.NotNil(t, emitter)
+}
+
+func TestNewSQLEmitterForDialect_ReturnsNonNil(t *testing.T) {
+	t.Parallel()
+
+	for _, dialect := range []string{"postgres", "sqlite", "mysql", "duckdb", "clickhouse", ""} {
+		t.Run(dialect, func(t *testing.T) {
+			t.Parallel()
+
+			emitter := db.NewSQLEmitterForDialect(dialect)
+
+			require.NotNil(t, emitter)
+		})
+	}
+}
+
+func TestNewCompositeCatalogueProvider_AcceptsEmptyProviderSlice(t *testing.T) {
+	t.Parallel()
+
+	provider := db.NewCompositeCatalogueProvider(nil)
+
+	require.NotNil(t, provider)
+}
+
+func TestNewQuerierService_ReturnsErrorOnMissingPorts(t *testing.T) {
+	t.Parallel()
+
+	service, err := db.NewQuerierService(db.QuerierPorts{})
+
+	require.Error(t, err)
+	require.Nil(t, service)
+}
+
+func TestSeverityConstants_HaveExpectedOrdering(t *testing.T) {
+	t.Parallel()
+
+	assert.Less(t, db.SeverityError, db.SeverityWarning)
+	assert.Less(t, db.SeverityWarning, db.SeverityHint)
+}
+
+var (
+	_ db.CodeEmitterPort = db.NewSQLEmitter()
+	_ db.SourceError     = db.SourceError{}
+)

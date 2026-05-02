@@ -17,8 +17,8 @@ type SendResponse struct {
 	ID uint64 `json:"id"`
 }
 
-// SendAction handles posting a new chat message. The message is
-// broadcast to all active Listen streams via the hub.
+// SendAction handles posting a new chat message. The message is broadcast to all active
+// Listen streams via the hub.
 type SendAction struct {
 	piko.ActionMetadata
 }

@@ -1,0 +1,84 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "flags.sql",
+    "SQL": "-- piko.query(ListFlags, many)\nSELECT name, enabled FROM flags;",
+    "Name": "ListFlags",
+    "CountSQL": "",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "name",
+        "SourceTable": "flags",
+        "SourceSchema": "",
+        "SourceColumn": "name",
+        "SourceQualifier": "flags",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "String",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "enabled",
+        "SourceTable": "flags",
+        "SourceSchema": "",
+        "SourceColumn": "enabled",
+        "SourceQualifier": "flags",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "Bool",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 3,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "Command": 1,
+    "IsDynamic": false,
+    "DynamicRuntime": false,
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
+  }
+]

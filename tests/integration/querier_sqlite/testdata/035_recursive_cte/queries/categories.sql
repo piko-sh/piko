@@ -1,5 +1,4 @@
--- piko.name: GetCategoryTree
--- piko.command: many
+-- piko.query(name: GetCategoryTree, command: many)
 WITH RECURSIVE tree AS (
     SELECT id, name, parent_id, 0 AS depth
     FROM categories

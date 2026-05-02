@@ -68,7 +68,7 @@ func (p *parser) parseCreateTable(engine *SQLiteEngine) (*querier_dto.CatalogueM
 	}
 	p.advance()
 
-	columns, primaryKeyColumns, constraints, err := p.parseCreateTableBody(engine)
+	body, err := p.parseCreateTableBody(engine)
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +82,21 @@ func (p *parser) parseCreateTable(engine *SQLiteEngine) (*querier_dto.CatalogueM
 		p.matchKeyword("ROWID")
 		isWithoutRowID = true
 	}
-	p.matchKeyword("STRICT")
+	isStrict := p.matchKeyword("STRICT")
+
+	if err := validateStrictColumnTypes(&body, isStrict); err != nil {
+		return nil, err
+	}
+
+	widenRowidAlias(&body, isWithoutRowID)
+	widenStrictIntegers(&body, isStrict)
 
 	return &querier_dto.CatalogueMutation{
 		Kind:           querier_dto.MutationCreateTable,
 		TableName:      tableName,
-		Columns:        columns,
-		PrimaryKey:     primaryKeyColumns,
-		Constraints:    constraints,
+		Columns:        body.columns,
+		PrimaryKey:     body.primaryKey,
+		Constraints:    body.constraints,
 		IsWithoutRowID: isWithoutRowID,
 	}, nil
 }
@@ -97,6 +104,15 @@ func (p *parser) parseCreateTable(engine *SQLiteEngine) (*querier_dto.CatalogueM
 // tableBodyResult accumulates columns, primary key, and constraints extracted from a
 // CREATE TABLE body.
 type tableBodyResult struct {
+	// integerSpelled names the columns whose declared type is exactly "INTEGER", which is
+	// what makes a single-column primary key an alias for the 64-bit rowid.
+	integerSpelled map[string]bool
+
+	// declaredTypes maps each column name to its raw declared type spelling, used to
+	// validate a STRICT table's column datatypes against the spellings SQLite's STRICT mode
+	// permits.
+	declaredTypes map[string]string
+
 	// columns are the column definitions parsed from the body.
 	columns []querier_dto.Column
 
@@ -111,23 +127,22 @@ type tableBodyResult struct {
 //
 // Takes engine (*SQLiteEngine) which provides type normalisation.
 //
-// Returns []querier_dto.Column which are the parsed column definitions.
-// Returns []string which are the primary-key column names.
-// Returns []querier_dto.Constraint which are the table-level constraints.
+// Returns tableBodyResult which holds the columns, primary key, constraints, and the set
+// of integer-spelled columns used for rowid-alias widening.
 // Returns error when a body element fails to parse.
-func (p *parser) parseCreateTableBody(engine *SQLiteEngine) ([]querier_dto.Column, []string, []querier_dto.Constraint, error) {
-	var result tableBodyResult
+func (p *parser) parseCreateTableBody(engine *SQLiteEngine) (tableBodyResult, error) {
+	result := tableBodyResult{integerSpelled: map[string]bool{}, declaredTypes: map[string]string{}}
 
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		if err := p.parseTableBodyElement(engine, &result); err != nil {
-			return nil, nil, nil, err
+			return tableBodyResult{}, err
 		}
 		if p.current().kind == tokenComma {
 			p.advance()
 		}
 	}
 
-	return result.columns, result.primaryKey, result.constraints, nil
+	return result, nil
 }
 
 // parseTableBodyElement parses one column or table-level constraint.
@@ -170,13 +185,17 @@ func (p *parser) parseTableBodyConstraint(result *tableBodyResult) error {
 //
 // Returns error when the column fails to parse.
 func (p *parser) parseTableBodyColumn(engine *SQLiteEngine, result *tableBodyResult) error {
-	column, columnPrimaryKey, err := p.parseColumnDefinition(engine)
+	column, columnPrimaryKey, declaredType, err := p.parseColumnDefinition(engine)
 	if err != nil {
 		return err
 	}
 	result.columns = append(result.columns, column)
+	result.declaredTypes[column.Name] = declaredType
 	if columnPrimaryKey {
 		result.primaryKey = append(result.primaryKey, column.Name)
+	}
+	if isRowidAliasType(declaredType) {
+		result.integerSpelled[column.Name] = true
 	}
 	return nil
 }
@@ -185,26 +204,131 @@ func (p *parser) parseTableBodyColumn(engine *SQLiteEngine, result *tableBodyRes
 //
 // Takes engine (*SQLiteEngine) which provides type normalisation.
 //
-// Returns querier_dto.Column which describes the parsed column.
-// Returns bool which is true when the column carries an inline PRIMARY KEY constraint.
-// Returns error when the column fails to parse.
-func (p *parser) parseColumnDefinition(engine *SQLiteEngine) (querier_dto.Column, bool, error) {
-	name, err := p.parseIdentifierOrKeyword()
-	if err != nil {
-		return querier_dto.Column{}, false, fmt.Errorf("parsing column name: %w", err)
+// Returns column (querier_dto.Column) which describes the parsed column.
+// Returns isPrimaryKey (bool) which is true for an inline PRIMARY KEY constraint.
+// Returns declaredType (string) which is the raw declared type spelling, used for
+// rowid-alias detection and STRICT-table type validation.
+// Returns err (error) which is non-nil when the column fails to parse.
+func (p *parser) parseColumnDefinition(
+	engine *SQLiteEngine,
+) (column querier_dto.Column, isPrimaryKey bool, declaredType string, err error) {
+	name, nameErr := p.parseIdentifierOrKeyword()
+	if nameErr != nil {
+		return querier_dto.Column{}, false, "", fmt.Errorf("parsing column name: %w", nameErr)
 	}
 
 	typeName, modifiers := p.parseTypeName()
-	sqlType := engine.NormaliseTypeName(typeName, modifiers...)
-
-	column := querier_dto.Column{
+	column = querier_dto.Column{
 		Name:     name,
-		SQLType:  sqlType,
+		SQLType:  engine.NormaliseTypeName(typeName, modifiers...),
 		Nullable: true,
 	}
 
-	isPrimaryKey := p.parseColumnConstraints(&column)
-	return column, isPrimaryKey, nil
+	isPrimaryKey = p.parseColumnConstraints(&column)
+	return column, isPrimaryKey, typeName, nil
+}
+
+// isRowidAliasType reports whether a declared column type makes a single-column PRIMARY
+// KEY an alias for the 64-bit rowid.
+//
+// SQLite treats a primary-key column as the rowid alias only when its declared type is
+// exactly "INTEGER" (in any case); "INT", "BIGINT", and other integer spellings instead
+// create an ordinary indexed column, so they are excluded.
+//
+// Takes typeName (string) which is the raw declared type spelling.
+//
+// Returns bool which is true when the type is the rowid alias spelling.
+func isRowidAliasType(typeName string) bool {
+	return strings.EqualFold(strings.TrimSpace(typeName), "integer")
+}
+
+// widenRowidAlias widens a single-column INTEGER PRIMARY KEY to int8 because it is an
+// alias for SQLite's signed 64-bit rowid, matching the postgres family's BIGSERIAL keys
+// and staying correct as the key grows past the 32-bit range.
+//
+// The widening is skipped for a WITHOUT ROWID table (whose key is an ordinary column) and
+// for a composite primary key (never a rowid alias). It applies to both the inline and
+// the table-constraint primary-key forms, since both populate body.primaryKey.
+//
+// Takes body (*tableBodyResult) whose matching column SQLType is widened in place.
+// Takes isWithoutRowID (bool) which is true for a WITHOUT ROWID table.
+func widenRowidAlias(body *tableBodyResult, isWithoutRowID bool) {
+	if isWithoutRowID || len(body.primaryKey) != 1 {
+		return
+	}
+	primaryKeyColumn := body.primaryKey[0]
+	if !body.integerSpelled[primaryKeyColumn] {
+		return
+	}
+	for index := range body.columns {
+		if body.columns[index].Name == primaryKeyColumn {
+			body.columns[index].SQLType.EngineName = "int8"
+		}
+	}
+}
+
+// isStrictAllowedType reports whether a declared column datatype is one of the spellings
+// a STRICT table permits: INT, INTEGER, REAL, TEXT, BLOB, or ANY. SQLite rejects any
+// other spelling (SMALLINT, BIGINT, VARCHAR, NUMERIC, BOOLEAN, DATE, ...) at execution
+// time.
+//
+// Takes declared (string) which is the raw declared type spelling.
+//
+// Returns bool which is true when the spelling is STRICT-legal.
+func isStrictAllowedType(declared string) bool {
+	switch strings.ToLower(strings.TrimSpace(declared)) {
+	case "int", "integer", "real", "text", "blob", "any":
+		return true
+	default:
+		return false
+	}
+}
+
+// validateStrictColumnTypes rejects a STRICT table that declares a column with a datatype
+// SQLite's STRICT mode does not permit, turning a runtime migration failure into a loud
+// generation-time error. Every column must name an allowed type; STRICT forbids a
+// typeless column.
+//
+// Takes body (*tableBodyResult) whose declaredTypes are checked.
+// Takes isStrict (bool) which is true for a STRICT table.
+//
+// Returns error naming the first offending column, or nil when the table is not STRICT or
+// every column is allowed.
+func validateStrictColumnTypes(body *tableBodyResult, isStrict bool) error {
+	if !isStrict {
+		return nil
+	}
+	for index := range body.columns {
+		declared := body.declaredTypes[body.columns[index].Name]
+		if !isStrictAllowedType(declared) {
+			return fmt.Errorf(
+				"STRICT table column %q has datatype %q which is not one of "+
+					"INT, INTEGER, REAL, TEXT, BLOB, ANY",
+				body.columns[index].Name, declared,
+			)
+		}
+	}
+	return nil
+}
+
+// widenStrictIntegers widens a STRICT table's integer columns.
+//
+// Every integer column of a STRICT table is widened to int8. Such a table stores INTEGER
+// as a signed 64-bit value and rejects the BIGINT spelling that would otherwise signal a
+// 64-bit width. validateStrictColumnTypes has already ensured the only integer spellings
+// present are INT/INTEGER, so every integer column here is 64-bit.
+//
+// Takes body (*tableBodyResult) whose integer column SQLTypes are widened in place.
+// Takes isStrict (bool) which is true for a STRICT table.
+func widenStrictIntegers(body *tableBodyResult, isStrict bool) {
+	if !isStrict {
+		return
+	}
+	for index := range body.columns {
+		if body.columns[index].SQLType.Category == querier_dto.TypeCategoryInteger {
+			body.columns[index].SQLType.EngineName = "int8"
+		}
+	}
 }
 
 // parseColumnConstraints consumes every inline constraint following a column type.
@@ -617,12 +741,7 @@ func (p *parser) parseColumnList() ([]string, error) {
 		}
 		columns = append(columns, name)
 
-		p.matchKeyword("ASC")
-		p.matchKeyword("DESC")
-		p.matchKeyword(keywordCOLLATE)
-		if p.isKeyword(keywordCOLLATE) {
-			p.advance()
-		}
+		p.skipColumnIndexModifiers()
 
 		if p.current().kind == tokenComma {
 			p.advance()
@@ -634,6 +753,24 @@ func (p *parser) parseColumnList() ([]string, error) {
 	}
 
 	return columns, nil
+}
+
+// skipColumnIndexModifiers consumes any per-column index modifiers (ASC / DESC / COLLATE
+// <name>) following a column name, in any order. COLLATE is followed by a collation-name
+// identifier which must also be consumed; leaving it behind would make the caller read
+// the collation name as a phantom column.
+func (p *parser) skipColumnIndexModifiers() {
+	for {
+		if p.matchKeyword("ASC") || p.matchKeyword("DESC") {
+			continue
+		}
+		if !p.matchKeyword(keywordCOLLATE) {
+			break
+		}
+		if p.current().kind == tokenIdentifier {
+			p.advance()
+		}
+	}
 }
 
 // skipDefaultValue consumes the expression that follows DEFAULT.
@@ -656,7 +793,8 @@ func (p *parser) skipDefaultValue() {
 // clause (ON, MATCH, DEFERRABLE, etc.).
 func (p *parser) skipForeignKeyClause() {
 	p.matchKeyword(keywordREFERENCES)
-	if p.current().kind == tokenIdentifier {
+
+	if p.current().kind == tokenIdentifier && !p.isForeignKeyActionKeyword() {
 		p.advance()
 	}
 	if p.current().kind == tokenLeftParen {
@@ -664,10 +802,20 @@ func (p *parser) skipForeignKeyClause() {
 	}
 	for p.matchKeyword(keywordON) || p.matchKeyword("MATCH") || p.matchKeyword(keywordNOT) || p.matchKeyword("DEFERRABLE") || p.matchKeyword("INITIALLY") {
 		for !p.atEnd() && p.current().kind != tokenComma && p.current().kind != tokenRightParen &&
-			!p.isAnyKeyword(keywordON, "MATCH", keywordNOT, "DEFERRABLE", "INITIALLY") {
+			!p.isForeignKeyActionKeyword() {
 			p.advance()
 		}
 	}
+}
+
+// isForeignKeyActionKeyword reports whether the current token begins (or terminates) a
+// foreign-key action clause. Used by skipForeignKeyClause to recognise the boundary
+// between the REFERENCES <table>(cols) prefix and the ON / MATCH / NOT / DEFERRABLE /
+// INITIALLY action clauses that may follow it.
+//
+// Returns bool which is true when the current keyword starts a FK action clause.
+func (p *parser) isForeignKeyActionKeyword() bool {
+	return p.isAnyKeyword(keywordON, "MATCH", keywordNOT, "DEFERRABLE", "INITIALLY")
 }
 
 // parseDropTable parses a DROP TABLE statement.
@@ -732,7 +880,7 @@ func (p *parser) parseAlterTable(engine *SQLiteEngine) (*querier_dto.CatalogueMu
 // Returns error when the column fails to parse.
 func (p *parser) parseAlterTableAdd(engine *SQLiteEngine, tableName string) (*querier_dto.CatalogueMutation, error) {
 	p.matchKeyword("COLUMN")
-	column, _, columnError := p.parseColumnDefinition(engine)
+	column, _, _, columnError := p.parseColumnDefinition(engine)
 	if columnError != nil {
 		return nil, columnError
 	}

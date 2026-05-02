@@ -22,6 +22,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -81,8 +82,6 @@ func NewPragmaIntrospectionProvider(
 
 // BuildCatalogue introspects the SQLite database and builds a schema catalogue.
 //
-// Takes ctx (context.Context) which controls cancellation of the PRAGMA queries.
-//
 // Returns *querier_dto.Catalogue which describes tables, views, and indexes.
 // Returns []querier_dto.SourceError which lists per-object diagnostics, always nil for
 // the SQLite provider.
@@ -114,6 +113,9 @@ func (provider *PragmaIntrospectionProvider) BuildCatalogue(
 	}
 
 	for _, tableName := range tables {
+		if cancelError := ctx.Err(); cancelError != nil {
+			return nil, nil, cancelError
+		}
 		table, introspectError := provider.introspectTable(ctx, tableName)
 		if introspectError != nil {
 			return nil, nil, fmt.Errorf("introspecting table %s: %w", tableName, introspectError)
@@ -127,6 +129,9 @@ func (provider *PragmaIntrospectionProvider) BuildCatalogue(
 	}
 
 	for _, viewName := range views {
+		if cancelError := ctx.Err(); cancelError != nil {
+			return nil, nil, cancelError
+		}
 		view, introspectError := provider.introspectView(ctx, viewName)
 		if introspectError != nil {
 			return nil, nil, fmt.Errorf("introspecting view %s: %w", viewName, introspectError)
@@ -139,42 +144,39 @@ func (provider *PragmaIntrospectionProvider) BuildCatalogue(
 
 // listTables returns the names of user tables in the SQLite database.
 //
-// Takes ctx (context.Context) which controls cancellation of the query.
-//
 // Returns []string which contains user table names in alphabetical order.
 // Returns error when the catalogue query fails.
 func (provider *PragmaIntrospectionProvider) listTables(
 	ctx context.Context,
 ) ([]string, error) {
-	rows, queryError := provider.database.QueryContext(ctx,
+	return provider.queryStringColumn(ctx,
 		"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
-	if queryError != nil {
-		return nil, queryError
-	}
-	defer rows.Close()
-
-	var names []string
-	for rows.Next() {
-		var name string
-		if scanError := rows.Scan(&name); scanError != nil {
-			return nil, scanError
-		}
-		names = append(names, name)
-	}
-	return names, rows.Err()
 }
 
 // listViews returns the names of user views in the SQLite database.
-//
-// Takes ctx (context.Context) which controls cancellation of the query.
 //
 // Returns []string which contains view names in alphabetical order.
 // Returns error when the catalogue query fails.
 func (provider *PragmaIntrospectionProvider) listViews(
 	ctx context.Context,
 ) ([]string, error) {
-	rows, queryError := provider.database.QueryContext(ctx,
+	return provider.queryStringColumn(ctx,
 		"SELECT name FROM sqlite_master WHERE type = 'view' ORDER BY name")
+}
+
+// queryStringColumn runs a single-column text query and collects values into a slice.
+//
+// Takes query (string) which is the SQL selecting one text column per row.
+// Takes args (...any) which are the positional query parameters.
+//
+// Returns []string which contains the scanned values in row order.
+// Returns error when the query, a scan, or row iteration fails.
+func (provider *PragmaIntrospectionProvider) queryStringColumn(
+	ctx context.Context,
+	query string,
+	args ...any,
+) ([]string, error) {
+	rows, queryError := provider.database.QueryContext(ctx, query, args...)
 	if queryError != nil {
 		return nil, queryError
 	}
@@ -193,7 +195,6 @@ func (provider *PragmaIntrospectionProvider) listViews(
 
 // introspectTable builds a Table descriptor for the named table.
 //
-// Takes ctx (context.Context) which controls cancellation of PRAGMA queries.
 // Takes tableName (string) which identifies the table to introspect.
 //
 // Returns *querier_dto.Table which describes columns, primary key, and indexes.
@@ -223,7 +224,6 @@ func (provider *PragmaIntrospectionProvider) introspectTable(
 
 // introspectView builds a View descriptor for the named view.
 //
-// Takes ctx (context.Context) which controls cancellation of PRAGMA queries.
 // Takes viewName (string) which identifies the view to introspect.
 //
 // Returns *querier_dto.View which describes the view columns.
@@ -246,7 +246,6 @@ func (provider *PragmaIntrospectionProvider) introspectView(
 
 // introspectColumns lists columns and primary key fields for a table or view.
 //
-// Takes ctx (context.Context) which controls cancellation of PRAGMA queries.
 // Takes tableName (string) which identifies the table or view to introspect.
 //
 // Returns []querier_dto.Column which describes each column.
@@ -265,7 +264,8 @@ func (provider *PragmaIntrospectionProvider) introspectColumns(
 	defer rows.Close()
 
 	var columns []querier_dto.Column
-	var primaryKeyColumns []string
+
+	primaryKeyByPosition := map[int]string{}
 
 	for rows.Next() {
 		var columnID int
@@ -283,35 +283,51 @@ func (provider *PragmaIntrospectionProvider) introspectColumns(
 
 		sqlType := provider.typeNormaliser.NormaliseTypeName(strings.TrimSpace(typeName))
 
-		column := querier_dto.Column{
-			Name:       name,
-			SQLType:    sqlType,
-			Nullable:   notNull == 0,
-			HasDefault: defaultValue.Valid || primaryKey > 0,
-		}
+		isGenerated, generatedKind := classifyGeneratedColumn(hidden)
 
-		if hidden == hiddenVirtualColumn || hidden == hiddenStoredColumn {
-			column.IsGenerated = true
-			if hidden == hiddenStoredColumn {
-				column.GeneratedKind = querier_dto.GeneratedKindStored
-			} else {
-				column.GeneratedKind = querier_dto.GeneratedKindVirtual
-			}
+		column := querier_dto.Column{
+			Name:          name,
+			SQLType:       sqlType,
+			Nullable:      notNull == 0 && primaryKey == 0,
+			HasDefault:    defaultValue.Valid || primaryKey > 0,
+			IsGenerated:   isGenerated,
+			GeneratedKind: generatedKind,
 		}
 
 		columns = append(columns, column)
 
 		if primaryKey > 0 {
-			primaryKeyColumns = append(primaryKeyColumns, name)
+			primaryKeyByPosition[primaryKey] = name
 		}
 	}
 
-	return columns, primaryKeyColumns, rows.Err()
+	return columns, orderedPrimaryKeyColumns(primaryKeyByPosition), rows.Err()
+}
+
+// orderedPrimaryKeyColumns returns the primary-key column names ordered by their 1-based
+// position within the key, or nil when the table has no primary key.
+//
+// Takes byPosition (map[int]string) which maps a 1-based key position to its column name.
+//
+// Returns []string which holds the column names in key order.
+func orderedPrimaryKeyColumns(byPosition map[int]string) []string {
+	if len(byPosition) == 0 {
+		return nil
+	}
+	positions := make([]int, 0, len(byPosition))
+	for position := range byPosition {
+		positions = append(positions, position)
+	}
+	slices.Sort(positions)
+	ordered := make([]string, len(positions))
+	for index, position := range positions {
+		ordered[index] = byPosition[position]
+	}
+	return ordered
 }
 
 // introspectIndexes lists indexes defined on the named table.
 //
-// Takes ctx (context.Context) which controls cancellation of PRAGMA queries.
 // Takes tableName (string) which identifies the table to introspect.
 //
 // Returns []querier_dto.Index which describes each index and its columns.
@@ -359,7 +375,6 @@ func (provider *PragmaIntrospectionProvider) introspectIndexes(
 
 // introspectIndexColumns lists the columns referenced by the named index.
 //
-// Takes ctx (context.Context) which controls cancellation of the PRAGMA query.
 // Takes indexName (string) which identifies the index to introspect.
 //
 // Returns []string which contains index column names in declaration order.
@@ -389,6 +404,27 @@ func (provider *PragmaIntrospectionProvider) introspectIndexColumns(
 	}
 
 	return columnNames, rows.Err()
+}
+
+// classifyGeneratedColumn maps a PRAGMA table_xinfo hidden flag to its generated state.
+//
+// SQLite reports hiddenVirtualColumn for a VIRTUAL generated column and
+// hiddenStoredColumn for a STORED one. Any other flag denotes an ordinary column.
+//
+// Takes hidden (int) which is the hidden flag from PRAGMA table_xinfo.
+//
+// Returns bool which is true when the column is a generated column.
+// Returns querier_dto.GeneratedKind which distinguishes STORED from VIRTUAL, or
+// GeneratedKindNone for an ordinary column.
+func classifyGeneratedColumn(hidden int) (bool, querier_dto.GeneratedKind) {
+	switch hidden {
+	case hiddenStoredColumn:
+		return true, querier_dto.GeneratedKindStored
+	case hiddenVirtualColumn:
+		return true, querier_dto.GeneratedKindVirtual
+	default:
+		return false, querier_dto.GeneratedKindNone
+	}
 }
 
 // quoteIdentifier wraps a SQL identifier in double quotes and escapes inner quotes for

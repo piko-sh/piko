@@ -19,6 +19,7 @@
 package db_engine_sqlite
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,10 +36,26 @@ func applyDDL(t *testing.T, sql string) *querier_dto.CatalogueMutation {
 	require.NoError(t, err)
 	require.NotEmpty(t, stmts)
 
-	mutation, err := engine.ApplyDDL(stmts[0])
+	mutation, err := engine.ApplyDDL(context.Background(), stmts[0])
 	require.NoError(t, err)
 
 	return mutation
+}
+
+func TestApplyDDL_StrictTableRejectsIllegalDatatype(t *testing.T) {
+	t.Parallel()
+
+	engine := NewSQLiteEngine()
+	stmts, parseErr := engine.ParseStatements(
+		"CREATE TABLE t (id INTEGER PRIMARY KEY, n SMALLINT) STRICT",
+	)
+	require.NoError(t, parseErr)
+	require.NotEmpty(t, stmts)
+
+	_, applyErr := engine.ApplyDDL(context.Background(), stmts[0])
+	require.Error(t, applyErr)
+	assert.ErrorContains(t, applyErr, "STRICT table column")
+	assert.ErrorContains(t, applyErr, "n")
 }
 
 func TestApplyDDL_CreateTable(t *testing.T) {
@@ -231,12 +248,27 @@ func TestApplyDDL_CreateTable(t *testing.T) {
 			},
 		},
 		{
-			name: "STRICT table mode",
-			sql:  "CREATE TABLE strict_tbl (id INTEGER PRIMARY KEY, val TEXT) STRICT",
+			name: "STRICT table mode widens integers to 64-bit",
+			sql:  "CREATE TABLE strict_tbl (id INTEGER PRIMARY KEY, n INTEGER NOT NULL, val TEXT) STRICT",
 			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
 				assert.Equal(t, querier_dto.MutationCreateTable, m.Kind)
 				assert.Equal(t, "strict_tbl", m.TableName)
+				require.Len(t, m.Columns, 3)
+
+				assert.Equal(t, "int8", m.Columns[0].SQLType.EngineName, "STRICT rowid alias is 64-bit")
+				assert.Equal(t, "int8", m.Columns[1].SQLType.EngineName, "STRICT INTEGER column is 64-bit")
+				assert.Equal(t, querier_dto.TypeCategoryText, m.Columns[2].SQLType.Category)
+			},
+		},
+		{
+			name: "STRICT table allows an ANY column",
+			sql:  "CREATE TABLE strict_any (id INTEGER PRIMARY KEY, payload ANY) STRICT",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateTable, m.Kind)
 				require.Len(t, m.Columns, 2)
+
+				assert.Equal(t, "payload", m.Columns[1].Name)
+				assert.Equal(t, querier_dto.TypeCategoryUnknown, m.Columns[1].SQLType.Category)
 			},
 		},
 		{
@@ -531,6 +563,31 @@ func TestApplyDDL_CreateView(t *testing.T) {
 			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
 				assert.Equal(t, querier_dto.MutationCreateView, m.Kind)
 				assert.Equal(t, "user_posts", m.TableName)
+			},
+		},
+		{
+			name: "view body wrapped in parentheses does not panic",
+			sql:  "CREATE VIEW v AS (SELECT 1)",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateView, m.Kind)
+				assert.Equal(t, "v", m.TableName)
+			},
+		},
+		{
+			name: "view body using VALUES does not panic",
+			sql:  "CREATE VIEW v AS VALUES (1)",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateView, m.Kind)
+				assert.Equal(t, "v", m.TableName)
+			},
+		},
+		{
+			name: "view declared column list longer than projection does not panic",
+			sql:  "CREATE VIEW v (a, b, c) AS SELECT 1",
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateView, m.Kind)
+				assert.Equal(t, "v", m.TableName)
+				require.Len(t, m.Columns, 3)
 			},
 		},
 	}
@@ -848,6 +905,50 @@ func TestApplyDDL_CreateTable_ColumnConstraints(t *testing.T) {
 				assert.Equal(t, querier_dto.ConstraintForeignKey, m.Constraints[0].Kind)
 				assert.Equal(t, "users", m.Constraints[0].ForeignTable)
 				assert.Equal(t, []string{"id"}, m.Constraints[0].ForeignColumns)
+
+				require.Len(t, m.Columns, 2, "ON DELETE clause leaked into the column list as a phantom column")
+			},
+		},
+		{
+
+			name: "two table-level FOREIGN KEYs with ON DELETE CASCADE",
+			sql: `CREATE TABLE identity_oauth_tokens (
+                id TEXT PRIMARY KEY,
+                account_id TEXT NOT NULL,
+                authentication_method_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (account_id) REFERENCES identity_accounts (id) ON DELETE CASCADE,
+                FOREIGN KEY (authentication_method_id) REFERENCES identity_authentication_methods (id) ON DELETE CASCADE
+            )`,
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateTable, m.Kind)
+				require.Len(t, m.Columns, 4, "ON DELETE CASCADE was leaked into the column list")
+				columnNames := make([]string, len(m.Columns))
+				for i, column := range m.Columns {
+					columnNames[i] = column.Name
+				}
+				assert.Equal(t, []string{"id", "account_id", "authentication_method_id", "created_at"}, columnNames)
+				require.Len(t, m.Constraints, 2)
+				assert.Equal(t, querier_dto.ConstraintForeignKey, m.Constraints[0].Kind)
+				assert.Equal(t, querier_dto.ConstraintForeignKey, m.Constraints[1].Kind)
+			},
+		},
+		{
+
+			name: "inline REFERENCES ON DELETE CASCADE then trailing columns",
+			sql: `CREATE TABLE t (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users (id) ON DELETE CASCADE,
+                created_at TEXT NOT NULL
+            )`,
+			assertions: func(t *testing.T, m *querier_dto.CatalogueMutation) {
+				assert.Equal(t, querier_dto.MutationCreateTable, m.Kind)
+				require.Len(t, m.Columns, 3)
+				columnNames := make([]string, len(m.Columns))
+				for i, column := range m.Columns {
+					columnNames[i] = column.Name
+				}
+				assert.Equal(t, []string{"id", "user_id", "created_at"}, columnNames)
 			},
 		},
 		{

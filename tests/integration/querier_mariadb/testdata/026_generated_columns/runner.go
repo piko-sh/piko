@@ -27,10 +27,10 @@ func main() {
 	queries := db.New(conn)
 
 	err = queries.InsertLineItem(ctx, db.InsertLineItemParams{
-		P1: "Widget",
-		P2: int32(5),
-		P3: int32(200),
-		P4: int32(0),
+		Product:     "Widget",
+		Quantity:    int32(5),
+		UnitPrice:   int32(200),
+		DiscountPct: int32(0),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertLineItem 1:", err)
@@ -38,10 +38,10 @@ func main() {
 	}
 
 	err = queries.InsertLineItem(ctx, db.InsertLineItemParams{
-		P1: "Gadget",
-		P2: int32(3),
-		P3: int32(150),
-		P4: int32(10),
+		Product:     "Gadget",
+		Quantity:    int32(3),
+		UnitPrice:   int32(150),
+		DiscountPct: int32(10),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertLineItem 2:", err)
@@ -49,10 +49,10 @@ func main() {
 	}
 
 	err = queries.InsertLineItem(ctx, db.InsertLineItemParams{
-		P1: "Gizmo",
-		P2: int32(10),
-		P3: int32(50),
-		P4: int32(25),
+		Product:     "Gizmo",
+		Quantity:    int32(10),
+		UnitPrice:   int32(50),
+		DiscountPct: int32(25),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertLineItem 3:", err)

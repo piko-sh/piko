@@ -1,0 +1,3 @@
+{
+  "description": "Aggregate with GROUP BY: sum and count grouped by category. Verifies that the generated row struct exposes both the grouping column and the aggregated columns with the correct types."
+}

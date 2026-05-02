@@ -1,22 +1,22 @@
 {
   "current": {
-    "Key": "config",
-    "Value": "updated_again",
-    "Version": 3
+    "key": "config",
+    "value": "updated_again",
+    "version": 3
   },
   "first_insert": {
-    "Key": "config",
-    "Value": "initial",
-    "Version": 1
+    "key": "config",
+    "value": "initial",
+    "version": 1
   },
   "second_insert": {
-    "Key": "config",
-    "Value": "updated",
-    "Version": 2
+    "key": "config",
+    "value": "updated",
+    "version": 2
   },
   "third_insert": {
-    "Key": "config",
-    "Value": "updated_again",
-    "Version": 3
+    "key": "config",
+    "value": "updated_again",
+    "version": 3
   }
 }

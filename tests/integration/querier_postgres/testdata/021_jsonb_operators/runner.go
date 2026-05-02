@@ -9,6 +9,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"piko.sh/piko/wdk/db/dbjson"
+
 	"querier_test_runner/db"
 )
 
@@ -48,7 +50,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	contained, err := queries.FindByContainment(ctx, `{"city": "London"}`)
+	contained, err := queries.FindByContainment(ctx, dbjson.JSON(`{"city": "London"}`))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

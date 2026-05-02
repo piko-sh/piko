@@ -184,6 +184,42 @@ func (*NoDownMigrationError) Is(target error) bool {
 	return target == ErrNoDownMigration
 }
 
+// DuplicateMigrationVersionError is returned when two migration files share the same
+// version and direction, for example two 001_*.up.sql files.
+//
+// Such a collision is common after a branch merge and would otherwise be silently
+// resolved by whichever file the downstream version-keyed map happened to see last, so an
+// applied record could be validated against the wrong file (a false checksum mismatch, or
+// a false pass hiding drift) and the wrong down file kept for rollback. It names both
+// files so the conflict is resolved before any migration runs.
+type DuplicateMigrationVersionError struct {
+	// FirstFilename holds the filename first seen for the version and direction.
+	FirstFilename string
+
+	// SecondFilename holds the conflicting filename for the same version and direction.
+	SecondFilename string
+
+	// Version holds the shared numeric version.
+	Version int64
+
+	// Direction holds the shared migration direction.
+	Direction querier_dto.MigrationDirection
+}
+
+// Error returns a human-readable message naming both conflicting files.
+//
+// Returns string which contains the direction label, version, and both filenames.
+func (e *DuplicateMigrationVersionError) Error() string {
+	direction := "up"
+	if e.Direction == querier_dto.MigrationDirectionDown {
+		direction = "down"
+	}
+	return fmt.Sprintf(
+		"duplicate %s migration for version %d: %s and %s",
+		direction, e.Version, e.FirstFilename, e.SecondFilename,
+	)
+}
+
 // DirtyMigrationError is returned when a dirty (partially-applied) migration blocks
 // further progress. If the dirty migration matches the next pending version it can be
 // retried automatically; otherwise manual intervention is required.

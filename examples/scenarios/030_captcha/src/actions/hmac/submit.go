@@ -2,7 +2,8 @@ package hmac
 
 import "piko.sh/piko"
 
-// SubmitAction handles captcha-protected form submissions using the HMAC challenge provider.
+// SubmitAction handles captcha-protected form submissions using the HMAC challenge
+// provider.
 type SubmitAction struct {
 	piko.ActionMetadata
 }

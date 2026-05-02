@@ -19,8 +19,11 @@
 package db_emitter_pgx
 
 import (
+	"go/ast"
+	"go/importer"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -51,6 +54,66 @@ func defaultMappings() *querier_dto.TypeMappingTable {
 	}
 }
 
+func requireValidGo(t *testing.T, name, source string) {
+	t.Helper()
+	fileSet := token.NewFileSet()
+	_, err := parser.ParseFile(fileSet, name, source, parser.AllErrors)
+	require.NoErrorf(t, err, "generated source must be valid Go:\n%s", source)
+}
+
+const (
+	typeCheckPrelude = `package testpkg
+
+import "context"
+
+type pikoTestRows struct{}
+
+func (pikoTestRows) Close()            {}
+func (pikoTestRows) Next() bool        { return false }
+func (pikoTestRows) Scan(...any) error { return nil }
+func (pikoTestRows) Err() error        { return nil }
+
+type pikoTestRow struct{}
+
+func (pikoTestRow) Scan(...any) error { return nil }
+
+type pikoTestDB struct{}
+
+func (pikoTestDB) Query(ctx context.Context, query string, args ...any) (pikoTestRows, error) {
+	return pikoTestRows{}, nil
+}
+
+func (pikoTestDB) QueryRow(ctx context.Context, query string, args ...any) pikoTestRow {
+	return pikoTestRow{}
+}
+
+func (pikoTestDB) Exec(ctx context.Context, query string, args ...any) error { return nil }
+
+type Queries struct {
+	db pikoTestDB
+}
+`
+)
+
+func requireTypeChecks(t *testing.T, files []querier_dto.GeneratedFile) {
+	t.Helper()
+	fileSet := token.NewFileSet()
+
+	preludeFile, parseError := parser.ParseFile(fileSet, "prelude_test.go", typeCheckPrelude, parser.AllErrors)
+	require.NoError(t, parseError, "type-check prelude must parse")
+	astFiles := []*ast.File{preludeFile}
+
+	for _, file := range files {
+		parsed, fileError := parser.ParseFile(fileSet, file.Name, string(file.Content), parser.AllErrors)
+		require.NoErrorf(t, fileError, "generated %s must parse:\n%s", file.Name, file.Content)
+		astFiles = append(astFiles, parsed)
+	}
+
+	config := types.Config{Importer: importer.ForCompiler(fileSet, "source", nil)}
+	_, checkError := config.Check("testpkg", fileSet, astFiles, nil)
+	require.NoError(t, checkError, "generated files must type-check, not merely parse")
+}
+
 func TestPgxEmitQuerier(t *testing.T) {
 	emitter := NewPgxEmitter()
 	result, err := emitter.EmitQuerier("testpkg", 0)
@@ -59,9 +122,7 @@ func TestPgxEmitQuerier(t *testing.T) {
 	source := string(result.Content)
 	assert.Equal(t, "querier.go", result.Name)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "querier.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated querier code must be valid Go")
+	requireValidGo(t, "querier.go", source)
 
 	assert.Contains(t, source, "DBTX")
 	assert.Contains(t, source, "Exec")
@@ -121,9 +182,7 @@ func TestPgxEmitModels(t *testing.T) {
 
 	source := string(files[0].Content)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "models.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated models code must be valid Go")
+	requireValidGo(t, "models.go", source)
 
 	assert.Contains(t, source, "User")
 }
@@ -162,9 +221,7 @@ func TestPgxEmitQueriesOne(t *testing.T) {
 
 	source := string(files[0].Content)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "users.sql.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated :one query code must be valid Go")
+	requireValidGo(t, "users.sql.go", source)
 
 	assert.Contains(t, source, "QueryRow")
 	assert.Contains(t, source, "Scan")
@@ -197,9 +254,7 @@ func TestPgxEmitQueriesMany(t *testing.T) {
 
 	source := string(files[0].Content)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "users.sql.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated :many query code must be valid Go")
+	requireValidGo(t, "users.sql.go", source)
 
 	assert.Contains(t, source, "Query")
 	assert.Contains(t, source, "for")
@@ -229,9 +284,7 @@ func TestPgxEmitQueriesExec(t *testing.T) {
 
 	source := string(files[0].Content)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "users.sql.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated :exec query code must be valid Go")
+	requireValidGo(t, "users.sql.go", source)
 
 	assert.Contains(t, source, "Exec")
 }
@@ -253,9 +306,7 @@ func TestPgxEmitQueriesExecRows(t *testing.T) {
 
 	source := string(files[0].Content)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "users.sql.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated :execrows query code must be valid Go")
+	requireValidGo(t, "users.sql.go", source)
 
 	assert.Contains(t, source, "func (queries *Queries)")
 	assert.Contains(t, source, "Exec(")
@@ -294,9 +345,7 @@ func TestPgxEmitQueriesExecResult(t *testing.T) {
 
 	source := string(files[0].Content)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "users.sql.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated :execresult query code must be valid Go")
+	requireValidGo(t, "users.sql.go", source)
 
 	assert.Contains(t, source, "CommandTag")
 	assert.NotContains(t, source, "sql.Result")
@@ -329,9 +378,7 @@ func TestPgxEmitQueriesStream(t *testing.T) {
 
 	source := string(files[0].Content)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "users.sql.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated :stream query code must be valid Go")
+	requireValidGo(t, "users.sql.go", source)
 
 	assert.Contains(t, source, "yield")
 	assert.Contains(t, source, "func(")
@@ -372,9 +419,7 @@ func TestPgxEmitQueriesBatch(t *testing.T) {
 
 	source := string(files[0].Content)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "users.sql.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated :batch query code must be valid Go")
+	requireValidGo(t, "users.sql.go", source)
 
 	assert.Contains(t, source, "Batch")
 	assert.Contains(t, source, "SendBatch")
@@ -411,9 +456,7 @@ func TestPgxEmitQueriesCopyFrom(t *testing.T) {
 
 	source := string(files[0].Content)
 
-	file_set := token.NewFileSet()
-	_, parse_err := parser.ParseFile(file_set, "users.sql.go", source, parser.AllErrors)
-	require.NoError(t, parse_err, "generated :copyfrom query code must be valid Go")
+	requireValidGo(t, "users.sql.go", source)
 
 	assert.Contains(t, source, "CopyFrom")
 	assert.Contains(t, source, "CopyFromSlice")
@@ -426,4 +469,218 @@ func TestPgxEmitPreparedEmpty(t *testing.T) {
 
 	assert.Empty(t, result.Content)
 	assert.Empty(t, result.Name)
+}
+
+func findFile(t *testing.T, files []querier_dto.GeneratedFile, name string) querier_dto.GeneratedFile {
+	t.Helper()
+	for _, file := range files {
+		if file.Name == name {
+			return file
+		}
+	}
+	t.Fatalf("generated file %q not found", name)
+	return querier_dto.GeneratedFile{}
+}
+
+func dynamicRuntimeQuery() *querier_dto.AnalysedQuery {
+	return &querier_dto.AnalysedQuery{
+		Name:                    "SearchPosts",
+		Filename:                "posts.sql",
+		SQL:                     "SELECT id, title FROM posts WHERE environment_id = $1",
+		CountSQL:                "SELECT COUNT(*) FROM posts WHERE environment_id = $1",
+		Command:                 querier_dto.QueryCommandMany,
+		DynamicRuntime:          true,
+		ReadOnly:                true,
+		BaseQueryHasWhereClause: true,
+		Parameters: []querier_dto.QueryParameter{
+			{
+				Name:    "environment_id",
+				Number:  1,
+				SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
+			},
+		},
+		AllowedColumns: []querier_dto.AllowedColumn{
+			{Name: "title", SourceExpression: "posts.title", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
+			{Name: "created_at", SourceExpression: "posts.created_at", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
+		},
+		OutputColumns: []querier_dto.OutputColumn{
+			{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}},
+			{Name: "title", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}},
+		},
+	}
+}
+
+func TestPgxDynamicRuntimeEmitsNumberedPlaceholders(t *testing.T) {
+	emitter := NewPgxEmitter()
+	files, err := emitter.EmitQueries("testpkg", []*querier_dto.AnalysedQuery{dynamicRuntimeQuery()}, defaultMappings())
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+
+	queryFile := findFile(t, files, "posts.sql.go")
+	source := string(queryFile.Content)
+	requireValidGo(t, queryFile.Name, source)
+
+	assert.Contains(t, source, `query += " LIMIT $" + strconv.Itoa(parameterCount)`,
+		"pgx must emit numbered LIMIT placeholders")
+	assert.Contains(t, source, `query += " OFFSET $" + strconv.Itoa(parameterCount)`,
+		"pgx must emit numbered OFFSET placeholders")
+	assert.NotContains(t, source, `query += " LIMIT ?"`, "pgx must not emit anonymous LIMIT placeholders")
+	assert.NotContains(t, source, `query += " OFFSET ?"`, "pgx must not emit anonymous OFFSET placeholders")
+
+	helperFile := findFile(t, files, "runtime_helpers.go")
+	helperSource := string(helperFile.Content)
+	requireValidGo(t, helperFile.Name, helperSource)
+	assert.Contains(t, helperSource, `return "$" + strconv.Itoa(`,
+		"pgx runtime WHERE-fragment helper must build numbered placeholders")
+}
+
+func TestPgxDynamicRuntimeEmitsColumnAndDirectionAllowLists(t *testing.T) {
+	emitter := NewPgxEmitter()
+	files, err := emitter.EmitQueries("testpkg", []*querier_dto.AnalysedQuery{dynamicRuntimeQuery()}, defaultMappings())
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+
+	queryFile := findFile(t, files, "posts.sql.go")
+	source := string(queryFile.Content)
+
+	assert.Contains(t, source, "searchpostsAllowedColumns = map[string]string{",
+		"runtime builder must emit a per-query column allow-list")
+	assert.Contains(t, source, `"title": "\"posts\".\"title\""`, "column allow-list maps the output name to its quoted qualified source")
+	assert.Contains(t, source, `"created_at": "\"posts\".\"created_at\""`, "column allow-list maps the output name to its quoted qualified source")
+	assert.Contains(t, source, "resolvedColumn, columnAllowed := searchpostsAllowedColumns[columnRoot]",
+		"Where/OrderBy must consult the column allow-list")
+
+	helperFile := findFile(t, files, "runtime_helpers.go")
+	helperSource := string(helperFile.Content)
+
+	assert.Contains(t, helperSource, "pikoAllowedDirections = map[string]bool{",
+		"runtime helpers must emit the sort-direction allow-list")
+	assert.Contains(t, helperSource, `"ASC":`, "direction allow-list must include ASC")
+	assert.Contains(t, helperSource, `"DESC":`, "direction allow-list must include DESC")
+	assert.Contains(t, helperSource, "pikoAllowedOperators = map[string]bool{",
+		"runtime helpers must emit the operator allow-list")
+}
+
+func TestPgxDynamicRuntimeTypeChecks(t *testing.T) {
+	emitter := NewPgxEmitter()
+	files, err := emitter.EmitQueries("testpkg", []*querier_dto.AnalysedQuery{dynamicRuntimeQuery()}, defaultMappings())
+	require.NoError(t, err)
+	requireTypeChecks(t, files)
+}
+
+func dynamicSortableQuery() *querier_dto.AnalysedQuery {
+	return &querier_dto.AnalysedQuery{
+		Name:      "ListPosts",
+		Filename:  "list_posts.sql",
+		SQL:       "SELECT id, title FROM posts WHERE author = $1 ORDER BY created_at LIMIT $2",
+		Command:   querier_dto.QueryCommandMany,
+		IsDynamic: true,
+		ReadOnly:  true,
+		Parameters: []querier_dto.QueryParameter{
+			{
+				Name:    "author",
+				Number:  1,
+				SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
+				Kind:    querier_dto.ParameterDirectiveParam,
+			},
+			{
+				Name:         "page_size",
+				Number:       2,
+				SQLType:      querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
+				Context:      querier_dto.ParameterContextLimit,
+				DefaultLimit: new(20),
+				MaxLimit:     new(100),
+			},
+			{
+				Name:            "sort",
+				Number:          3,
+				SQLType:         querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
+				Kind:            querier_dto.ParameterDirectiveSortable,
+				SortableColumns: []string{"created_at", "title"},
+			},
+		},
+		OutputColumns: []querier_dto.OutputColumn{
+			{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}},
+			{Name: "title", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}},
+		},
+	}
+}
+
+func TestPgxDynamicSortableEmitsAllowListedOrderBy(t *testing.T) {
+	emitter := NewPgxEmitter()
+	files, err := emitter.EmitQueries("testpkg", []*querier_dto.AnalysedQuery{dynamicSortableQuery()}, defaultMappings())
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+
+	queryFile := findFile(t, files, "list_posts.sql.go")
+	source := string(queryFile.Content)
+	requireValidGo(t, queryFile.Name, source)
+
+	assert.Contains(t, source, "type ListPostsOrderBy string",
+		"sortable query must emit a typed ORDER BY enum")
+	assert.Contains(t, source, `ListPostsOrderByCreatedAt ListPostsOrderBy = "created_at"`,
+		"ORDER BY enum must allow-list the declared sortable column")
+	assert.Contains(t, source, `ListPostsOrderByTitle`, "ORDER BY enum must allow-list the declared sortable column")
+	assert.Contains(t, source, `ListPostsOrderBy = "title"`, "ORDER BY enum must carry the column value")
+	assert.Contains(t, source, `case "created_at", "title":`,
+		"sortable ORDER BY switch must allow-list exactly the declared columns")
+	assert.Contains(t, source, `query = query + (" ORDER BY " + string(params.Sort))`,
+		"sortable query must splice the allow-listed ORDER BY into the SQL")
+}
+
+func TestPgxDynamicSortableTypeChecks(t *testing.T) {
+	emitter := NewPgxEmitter()
+	files, err := emitter.EmitQueries("testpkg", []*querier_dto.AnalysedQuery{dynamicSortableQuery()}, defaultMappings())
+	require.NoError(t, err)
+	requireTypeChecks(t, files)
+}
+
+func TestPgxQueriesTypeCheck(t *testing.T) {
+	tests := []struct {
+		name    string
+		queries []*querier_dto.AnalysedQuery
+	}{
+		{
+			name: "one",
+			queries: []*querier_dto.AnalysedQuery{
+				{
+					Name:     "GetUser",
+					SQL:      "SELECT id, name FROM users WHERE id = $1",
+					Command:  querier_dto.QueryCommandOne,
+					Filename: "users.sql",
+					Parameters: []querier_dto.QueryParameter{
+						{Name: "id", Number: 1, SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"}},
+					},
+					OutputColumns: []querier_dto.OutputColumn{
+						{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"}},
+						{Name: "name", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}},
+					},
+				},
+			},
+		},
+		{
+			name: "many",
+			queries: []*querier_dto.AnalysedQuery{
+				{
+					Name:     "ListUsers",
+					SQL:      "SELECT id, name FROM users",
+					Command:  querier_dto.QueryCommandMany,
+					Filename: "users.sql",
+					OutputColumns: []querier_dto.OutputColumn{
+						{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"}},
+						{Name: "name", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}},
+					},
+				},
+			},
+		},
+	}
+
+	emitter := NewPgxEmitter()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			files, err := emitter.EmitQueries("testpkg", test.queries, defaultMappings())
+			require.NoError(t, err)
+			requireTypeChecks(t, files)
+		})
+	}
 }

@@ -2,8 +2,9 @@
   {
     "InsertTable": "articles",
     "Filename": "articles.sql",
-    "SQL": "-- piko.name: CreateArticle\n-- piko.command: one\nINSERT INTO articles (title, body) VALUES (?, ?) RETURNING id, title;",
+    "SQL": "-- piko.query(name: CreateArticle, command: one)\nINSERT INTO articles (title, body) VALUES (?, ?) RETURNING id, title;",
     "Name": "CreateArticle",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -45,20 +48,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "articles",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "articles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -71,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "articles",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "articles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,7 +105,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -117,16 +130,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "articles.sql",
-    "SQL": "-- piko.name: GetArticle\n-- piko.command: one\nSELECT id, title, body, published_at FROM articles WHERE id = ?;",
+    "SQL": "-- piko.query(name: GetArticle, command: one)\nSELECT id, title, body, published_at FROM articles WHERE id = ?;",
     "Name": "GetArticle",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -144,20 +160,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "articles",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "articles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -170,16 +191,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "articles",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "articles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -192,16 +217,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "body",
         "SourceTable": "articles",
+        "SourceSchema": "",
         "SourceColumn": "body",
+        "SourceQualifier": "articles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -214,16 +243,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "published_at",
         "SourceTable": "articles",
+        "SourceSchema": "",
         "SourceColumn": "published_at",
+        "SourceQualifier": "articles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -236,7 +269,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -256,10 +290,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

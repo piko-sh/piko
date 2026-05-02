@@ -1,24 +1,24 @@
 {
   "by_range": [
     {
-      "CreatedAt": "2025-01-15 10:00:00",
-      "ID": 1,
-      "Message": "start"
+      "created_at": "2025-01-15 10:00:00",
+      "id": 1,
+      "message": "start"
     },
     {
-      "CreatedAt": "2025-06-15 12:00:00",
-      "ID": 2,
-      "Message": "middle"
+      "created_at": "2025-06-15 12:00:00",
+      "id": 2,
+      "message": "middle"
     }
   ],
   "formatted": {
-    "Month": "06",
-    "Year": "2025"
+    "month": "06",
+    "year": "2025"
   },
   "log": {
-    "CreatedAt": "2025-01-15 10:00:00",
-    "ID": 1,
-    "Message": "start",
-    "UnixTs": 1736935200
+    "created_at": "2025-01-15 10:00:00",
+    "id": 1,
+    "message": "start",
+    "unix_ts": 1736935200
   }
 }

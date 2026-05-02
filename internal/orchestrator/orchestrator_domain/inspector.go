@@ -97,17 +97,17 @@ type OrchestratorInspector interface {
 
 	// ListRecentTasks returns the most recently updated tasks.
 	//
-	// Takes limit (int32) which specifies the maximum number of tasks to return.
+	// Takes limit (int) which specifies the maximum number of tasks to return.
 	//
 	// Returns []TaskListItem which contains the task data for display.
 	// Returns error when the query fails.
-	ListRecentTasks(ctx context.Context, limit int32) ([]TaskListItem, error)
+	ListRecentTasks(ctx context.Context, limit int) ([]TaskListItem, error)
 
 	// ListWorkflowSummary returns workflow-level aggregates.
 	//
-	// Takes limit (int32) which specifies the maximum number of workflows to return.
+	// Takes limit (int) which specifies the maximum number of workflows to return.
 	//
 	// Returns []WorkflowSummary which contains aggregated workflow data.
 	// Returns error when the query fails.
-	ListWorkflowSummary(ctx context.Context, limit int32) ([]WorkflowSummary, error)
+	ListWorkflowSummary(ctx context.Context, limit int) ([]WorkflowSummary, error)
 }

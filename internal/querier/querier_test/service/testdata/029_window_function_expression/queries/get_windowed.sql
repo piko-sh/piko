@@ -1,5 +1,4 @@
--- piko.name: GetWindowedSales
--- piko.command: many
+-- piko.query(name: GetWindowedSales, command: many)
 SELECT
   id,
   region,

@@ -1,3 +1,2 @@
--- piko.name: GetAllProducts
--- piko.command: many
+-- piko.query(name: GetAllProducts, command: many)
 SELECT id, name, price, active FROM products;

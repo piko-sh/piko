@@ -1,11 +1,8 @@
--- piko.name: GetAccount
--- piko.command: one
+-- piko.query(name: GetAccount, command: one)
 SELECT id, name, balance FROM accounts WHERE id = ?;
 
--- piko.name: UpdateBalance
--- piko.command: exec
+-- piko.query(name: UpdateBalance, command: exec)
 UPDATE accounts SET balance = ? WHERE id = ?;
 
--- piko.name: ListAccounts
--- piko.command: many
+-- piko.query(name: ListAccounts, command: many)
 SELECT id, name, balance FROM accounts ORDER BY id;

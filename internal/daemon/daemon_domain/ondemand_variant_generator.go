@@ -324,8 +324,8 @@ func (g *onDemandVariantGeneratorImpl) executeVariantGeneration(
 // Takes span (trace.Span) which provides tracing context for error reporting.
 //
 // Returns io.Reader which streams the transformed image data.
-// Returns io.Closer which is the source stream the caller must close once the output stream
-// has been fully drained, since the transform reads the source lazily.
+// Returns io.Closer which is the source stream the caller must close once the output
+// stream has been fully drained, since the transform reads the source lazily.
 // Returns error when the source data cannot be retrieved or transformation fails.
 func (g *onDemandVariantGeneratorImpl) transformImage(
 	ctx context.Context,

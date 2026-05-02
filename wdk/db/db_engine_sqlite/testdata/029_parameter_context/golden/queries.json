@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "cast_parameter.sql",
-    "SQL": "-- piko.name: CastParam\n-- piko.command: many\nSELECT id, name FROM products WHERE id = CAST(? AS INTEGER)",
+    "SQL": "-- piko.query(name: CastParam, command: many)\nSELECT id, name FROM products WHERE id = CAST(? AS INTEGER)",
     "Name": "CastParam",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -15,48 +16,57 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int4",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 3
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,7 +79,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -90,16 +101,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "function_argument_parameter.sql",
-    "SQL": "-- piko.name: FuncArgParam\n-- piko.command: many\nSELECT id, name FROM products WHERE name = substr(?, 1, ?)",
+    "SQL": "-- piko.query(name: FuncArgParam, command: many)\nSELECT id, name FROM products WHERE name = substr(?, 1, ?)",
     "Name": "FuncArgParam",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -111,19 +125,21 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "text",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 2
       },
       {
         "DefaultLimit": null,
@@ -135,48 +151,57 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
-          "Schema": "",
-          "EnumValues": null,
-          "StructFields": null,
-          "KeyType": null,
-          "UnionMembers": null,
-          "Category": 18
-        },
-        "Number": 2,
-        "Nullable": false,
-        "IsSlice": false,
-        "IsOptional": false,
-        "Kind": 0
-      }
-    ],
-    "OutputColumns": [
-      {
-        "Name": "id",
-        "SourceTable": "products",
-        "SourceColumn": "id",
-        "EmbedTable": "",
-        "SQLType": {
-          "Precision": null,
-          "Scale": null,
-          "Length": null,
-          "ElementType": null,
           "EngineName": "integer",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
+        },
+        "Number": 2,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0,
+        "Context": 2
+      }
+    ],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "id",
+        "SourceTable": "products",
+        "SourceSchema": "",
+        "SourceColumn": "id",
+        "SourceQualifier": "products",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "int8",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -189,7 +214,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -210,16 +236,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "in_list_parameter.sql",
-    "SQL": "-- piko.name: InListParam\n-- piko.command: many\nSELECT id, name FROM products WHERE id IN (?, ?, ?)",
+    "SQL": "-- piko.query(name: InListParam, command: many)\nSELECT id, name FROM products WHERE id IN (?, ?, ?)",
     "Name": "InListParam",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -231,19 +260,21 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 4
       },
       {
         "DefaultLimit": null,
@@ -255,19 +286,21 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 4
       },
       {
         "DefaultLimit": null,
@@ -279,48 +312,57 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 3,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 4
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -333,7 +375,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -354,9 +397,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

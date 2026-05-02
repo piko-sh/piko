@@ -2,8 +2,9 @@
   {
     "InsertTable": "posts",
     "Filename": "create_post.sql",
-    "SQL": "-- piko.name: CreatePost\n-- piko.command: one\nINSERT INTO posts (title, body, author_id, published)\nVALUES ($1, $2, $3, $4)\nRETURNING id, title, created_at;",
+    "SQL": "-- piko.query(name: CreatePost, command: one)\nINSERT INTO posts (title, body, author_id, published)\nVALUES ($1, $2, $3, $4)\nRETURNING id, title, created_at;",
     "Name": "CreatePost",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -45,13 +48,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -69,13 +74,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 3,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -93,20 +100,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 3
+          "Category": 3,
+          "Nullable": false
         },
         "Number": 4,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "posts",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "posts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -119,16 +131,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "posts",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "posts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -141,16 +157,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "created_at",
         "SourceTable": "posts",
+        "SourceSchema": "",
         "SourceColumn": "created_at",
+        "SourceQualifier": "posts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -163,7 +183,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -189,9 +210,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

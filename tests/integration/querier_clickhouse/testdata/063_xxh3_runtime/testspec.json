@@ -1,0 +1,4 @@
+{
+  "description": "xxh3(s) returns the 64-bit xxHash3 of the input string. The fixture seeds known payloads and verifies the hash matches the upstream xxHash3 reference output. xxh3_128 (UInt128 variant) is not available in ClickHouse 25.4 so the fixture only exercises the 64-bit form.",
+  "skip": false
+}

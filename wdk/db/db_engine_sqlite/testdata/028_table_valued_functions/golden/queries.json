@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "generate_series_query.sql",
-    "SQL": "-- piko.name: GenerateRange\n-- piko.command: many\nSELECT value FROM generate_series(?, ?, ?)",
+    "SQL": "-- piko.query(name: GenerateRange, command: many)\nSELECT value FROM generate_series(?, ?, ?)",
     "Name": "GenerateRange",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 18,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 2
       },
       {
         "DefaultLimit": null,
@@ -45,13 +48,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 18,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 2
       },
       {
         "DefaultLimit": null,
@@ -69,20 +74,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 18,
+          "Nullable": false
         },
         "Number": 3,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 2
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "value",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "value",
+        "SourceQualifier": "generate_series",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -95,7 +105,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -116,44 +127,54 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "json_each_query.sql",
-    "SQL": "-- piko.name: ExtractKeys\n-- piko.command: many\nSELECT d.id, je.key, je.value\nFROM documents d, json_each(d.metadata) je",
+    "SQL": "-- piko.query(name: ExtractKeys, command: many)\nSELECT d.id, je.key, je.value\nFROM documents d, json_each(d.metadata) je",
     "Name": "ExtractKeys",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "d",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "key",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "key",
+        "SourceQualifier": "je",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -166,16 +187,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "value",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "value",
+        "SourceQualifier": "je",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -188,7 +213,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -209,9 +235,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

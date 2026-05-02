@@ -1,3 +1,2 @@
--- piko.name: GetProfile
--- piko.command: one
+-- piko.query(name: GetProfile, command: one)
 SELECT `id`, `display_name`, `group` FROM `user_profiles` WHERE `id` = ?;

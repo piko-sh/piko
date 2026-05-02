@@ -11,10 +11,13 @@
             {
               "Name": "id",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -26,7 +29,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": false,
@@ -38,10 +42,13 @@
             {
               "Name": "data",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -53,7 +60,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 4
+                "Category": 4,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": false,
@@ -99,7 +107,8 @@
                   "StructFields": null,
                   "KeyType": null,
                   "UnionMembers": null,
-                  "Category": 0
+                  "Category": 0,
+                  "Nullable": false
                 },
                 "IsOptional": false
               }
@@ -120,9 +129,10 @@
               "StructFields": null,
               "KeyType": null,
               "UnionMembers": null,
-              "Category": 0
+              "Category": 0,
+              "Nullable": false
             },
-            "MinArguments": 0,
+            "MinArguments": 1,
             "ReturnsSet": false,
             "IsAggregate": false,
             "IsStrict": false,
@@ -156,7 +166,8 @@
               "StructFields": null,
               "KeyType": null,
               "UnionMembers": null,
-              "Category": 0
+              "Category": 0,
+              "Nullable": false
             },
             "MinArguments": 0,
             "ReturnsSet": false,

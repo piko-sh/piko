@@ -46,12 +46,12 @@ func main() {
 	}
 
 	queries := db.New(conn)
-	subtree, err := queries.GetSubtree(ctx, int32(2))
+	subtree, err := queries.GetSubtree(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetSubtree:", err)
 		os.Exit(1)
 	}
-	ancestors, err := queries.GetAncestors(ctx, int32(7))
+	ancestors, err := queries.GetAncestors(ctx, int64(7))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetAncestors:", err)
 		os.Exit(1)

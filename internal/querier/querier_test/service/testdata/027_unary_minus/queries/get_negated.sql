@@ -1,5 +1,4 @@
--- piko.name: GetNegatedValues
--- piko.command: many
+-- piko.query(name: GetNegatedValues, command: many)
 SELECT
   id,
   -value as negated_value,

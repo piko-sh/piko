@@ -14,21 +14,21 @@ const createtask = `INSERT INTO tasks (
 );`
 
 type CreateTaskParams struct {
-	P1  string
-	P2  string
-	P3  string
-	P4  int32
-	P5  string
-	P6  string
-	P7  string
-	P8  int32
-	P9  int32
-	P10 int32
-	P11 int32
+	ID         string
+	WorkflowID string
+	Executor   string
+	Priority   int32
+	Payload    string
+	Config     string
+	Status     string
+	ExecuteAt  int64
+	Attempt    int32
+	CreatedAt  int64
+	UpdatedAt  int64
 }
 
 func (queries *Queries) CreateTask(ctx context.Context, params CreateTaskParams) error {
-	_, err := queries.writer.ExecContext(ctx, createtask, params.P1, params.P2, params.P3, params.P4, params.P5, params.P6, params.P7, params.P8, params.P9, params.P10, params.P11)
+	_, err := queries.writer.ExecContext(ctx, createtask, params.ID, params.WorkflowID, params.Executor, params.Priority, params.Payload, params.Config, params.Status, params.ExecuteAt, params.Attempt, params.CreatedAt, params.UpdatedAt)
 	return err
 }
 
@@ -38,18 +38,20 @@ const createtasksbatch = `INSERT INTO tasks (
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
 
 type CreateTasksBatchParams struct {
-	P1  string
-	P2  string
-	P3  string
-	P4  int32
-	P5  string
-	P6  string
-	P7  string
-	P8  int32
-	P9  int32
-	P10 int32
-	P11 int32
-	P12 *string
+	ID               string
+	WorkflowID       string
+	Executor         string
+	Priority         int32
+	Payload          string
+	Config           string
+	Status           string
+	ExecuteAt        int64
+	Attempt          int32
+	CreatedAt        int64
+	UpdatedAt        int64
+	DeduplicationKey *string
+}
+type CreateTasksBatchRow struct {
 }
 
 func (queries *Queries) CreateTasksBatch(ctx context.Context, params []CreateTasksBatchParams) error {
@@ -66,18 +68,18 @@ func (queries *Queries) CreateTasksBatch(ctx context.Context, params []CreateTas
 				values.WriteString(", ")
 			}
 			values.WriteString("(?,?,?,?,?,?,?,?,?,?,?,?)")
-			args = append(args, item.P1)
-			args = append(args, item.P2)
-			args = append(args, item.P3)
-			args = append(args, item.P4)
-			args = append(args, item.P5)
-			args = append(args, item.P6)
-			args = append(args, item.P7)
-			args = append(args, item.P8)
-			args = append(args, item.P9)
-			args = append(args, item.P10)
-			args = append(args, item.P11)
-			args = append(args, item.P12)
+			args = append(args, item.ID)
+			args = append(args, item.WorkflowID)
+			args = append(args, item.Executor)
+			args = append(args, item.Priority)
+			args = append(args, item.Payload)
+			args = append(args, item.Config)
+			args = append(args, item.Status)
+			args = append(args, item.ExecuteAt)
+			args = append(args, item.Attempt)
+			args = append(args, item.CreatedAt)
+			args = append(args, item.UpdatedAt)
+			args = append(args, item.DeduplicationKey)
 		}
 		_, err := queries.writer.ExecContext(ctx, pikoBatchExpandValues(createtasksbatch, values.String()), args...)
 		if err != nil {
@@ -103,37 +105,40 @@ ORDER BY
 LIMIT ?4;`
 
 type FetchDueTasksParams struct {
-	Statuses []string
-	P2       int32
-	P3       int32
-	P4       int32
+	Statuses  []string
+	Priority  int32
+	ExecuteAt int64
+	Limit     int
 }
 type FetchDueTasksRow struct {
-	ID               string
-	WorkflowID       string
-	Executor         string
-	Priority         int32
-	Payload          string
-	Config           string
-	Result           *string
-	Status           string
-	ExecuteAt        int32
-	Attempt          int32
-	LastError        *string
-	CreatedAt        int32
-	UpdatedAt        int32
-	DeduplicationKey *string
+	ID               string  `json:"id"`
+	WorkflowID       string  `json:"workflow_id"`
+	Executor         string  `json:"executor"`
+	Priority         int32   `json:"priority"`
+	Payload          string  `json:"payload"`
+	Config           string  `json:"config"`
+	Result           *string `json:"result"`
+	Status           string  `json:"status"`
+	ExecuteAt        int64   `json:"execute_at"`
+	Attempt          int32   `json:"attempt"`
+	LastError        *string `json:"last_error"`
+	CreatedAt        int64   `json:"created_at"`
+	UpdatedAt        int64   `json:"updated_at"`
+	DeduplicationKey *string `json:"deduplication_key"`
 }
 
 func (queries *Queries) FetchDueTasks(ctx context.Context, params FetchDueTasksParams) ([]FetchDueTasksRow, error) {
-	query := pikoExpandSlicePlaceholders(fetchduetasks, []pikoSliceExpansionSpec{{1, len(params.Statuses)}, {2, 1}, {3, 1}, {4, 1}})
+	query, expansionError := pikoExpandSlicePlaceholders(fetchduetasks, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.Statuses)}, {Placeholder: 2, Count: 1}, {Placeholder: 3, Count: 1}, {Placeholder: 4, Count: 1}})
+	if expansionError != nil {
+		return nil, expansionError
+	}
 	args := make([]any, 0, len(params.Statuses)+3)
 	for _, v := range params.Statuses {
 		args = append(args, v)
 	}
-	args = append(args, params.P2)
-	args = append(args, params.P3)
-	args = append(args, params.P4)
+	args = append(args, params.Priority)
+	args = append(args, params.ExecuteAt)
+	args = append(args, params.Limit)
 	rows, err := queries.reader.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -161,14 +166,17 @@ WHERE
   id IN (?2);`
 
 type MarkTasksAsProcessingParams struct {
-	P1  int32
-	IDs []string
+	UpdatedAt int64
+	IDs       []string
 }
 
 func (queries *Queries) MarkTasksAsProcessing(ctx context.Context, params MarkTasksAsProcessingParams) error {
-	query := pikoExpandSlicePlaceholders(marktasksasprocessing, []pikoSliceExpansionSpec{{1, 1}, {2, len(params.IDs)}})
+	query, expansionError := pikoExpandSlicePlaceholders(marktasksasprocessing, []pikoSliceExpansionSpec{{Placeholder: 1, Count: 1}, {Placeholder: 2, Count: len(params.IDs)}})
+	if expansionError != nil {
+		return expansionError
+	}
 	args := make([]any, 0, len(params.IDs)+1)
-	args = append(args, params.P1)
+	args = append(args, params.UpdatedAt)
 	for _, v := range params.IDs {
 		args = append(args, v)
 	}
@@ -183,19 +191,19 @@ WHERE
     id = ?;`
 
 type UpdateTaskParams struct {
-	P1  string
-	P2  int32
-	P3  int32
-	P4  int32
-	P5  *string
-	P6  *string
-	P7  string
-	P8  string
-	P9  int32
-	P10 string
+	Status    string
+	Priority  int32
+	ExecuteAt int64
+	Attempt   int32
+	LastError *string
+	Result    *string
+	Payload   string
+	Config    string
+	UpdatedAt int64
+	ID        string
 }
 
 func (queries *Queries) UpdateTask(ctx context.Context, params UpdateTaskParams) error {
-	_, err := queries.writer.ExecContext(ctx, updatetask, params.P1, params.P2, params.P3, params.P4, params.P5, params.P6, params.P7, params.P8, params.P9, params.P10)
+	_, err := queries.writer.ExecContext(ctx, updatetask, params.Status, params.Priority, params.ExecuteAt, params.Attempt, params.LastError, params.Result, params.Payload, params.Config, params.UpdatedAt, params.ID)
 	return err
 }

@@ -595,6 +595,9 @@ func (p *parser) parseExistsSubquery() querier_dto.Expression {
 
 	childParser := newParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
+	childParser.analysisDepth = p.analysisDepth
+	childParser.expressionDepth = p.expressionDepth
+	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
 		return &querier_dto.ExistsExpression{}
@@ -610,21 +613,40 @@ func (p *parser) parseExistsSubquery() querier_dto.Expression {
 // Returns querier_dto.Expression which is the resulting scalar subquery expression or an
 // unknown expression on parse failure.
 func (p *parser) parseScalarSubquery() querier_dto.Expression {
+	innerAnalysis, ok := p.analyseSubqueryBody()
+	if !ok {
+		return &querier_dto.UnknownExpression{}
+	}
+	return &querier_dto.ScalarSubqueryExpression{InnerQuery: innerAnalysis}
+}
+
+// analyseSubqueryBody collects a parenthesised subquery, analyses it in a child parser
+// that inherits the parameter and depth state, and splices the child's parameter results
+// back into this parser. Shared by the scalar-subquery expression parser and the
+// WHERE/HAVING predicate scan.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the inner SELECT analysis (nil on
+// failure).
+// Returns bool which is true when the subquery was collected and analysed successfully.
+func (p *parser) analyseSubqueryBody() (*querier_dto.RawQueryAnalysis, bool) {
 	innerTokens, collectError := p.collectParenthesised()
 	if collectError != nil {
-		return &querier_dto.UnknownExpression{}
+		return nil, false
 	}
 
 	childParser := newParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
+	childParser.analysisDepth = p.analysisDepth
+	childParser.expressionDepth = p.expressionDepth
+	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
-		return &querier_dto.UnknownExpression{}
+		return nil, false
 	}
 	p.parameterCount = childParser.parameterCount
 	p.parameterRefs = append(p.parameterRefs, childParser.parameterRefs...)
 
-	return &querier_dto.ScalarSubqueryExpression{InnerQuery: innerAnalysis}
+	return innerAnalysis, true
 }
 
 // parseArrayExpression parses ARRAY[...] or ARRAY(subquery) constructors.

@@ -47,6 +47,12 @@ const (
 
 	// integerRankDefault is the rank used for unrecognised integer engine names.
 	integerRankDefault = integerRankInt
+
+	// floatRankSingle is the promotion rank assigned to single-precision FLOAT.
+	floatRankSingle = 1
+
+	// floatRankDouble is the promotion rank assigned to DOUBLE and all other float names.
+	floatRankDouble = 2
 )
 
 var (
@@ -60,7 +66,6 @@ var (
 		"int":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
 		"integer":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
 		"bigint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
-
 		// Unsigned integer types
 		"tinyint unsigned":   {Category: querier_dto.TypeCategoryInteger, EngineName: "tinyint unsigned"},
 		"smallint unsigned":  {Category: querier_dto.TypeCategoryInteger, EngineName: "smallint unsigned"},
@@ -68,23 +73,19 @@ var (
 		"int unsigned":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int unsigned"},
 		"integer unsigned":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int unsigned"},
 		"bigint unsigned":    {Category: querier_dto.TypeCategoryInteger, EngineName: "bigint unsigned"},
-
 		// Float types
 		"float":            {Category: querier_dto.TypeCategoryFloat, EngineName: "float"},
 		"double":           {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
 		"double precision": {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
 		"real":             {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
-
 		// Decimal types
 		"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
 		"dec":     {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
 		"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
 		"fixed":   {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
-
 		// Boolean
 		"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
 		"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
-
 		// Text types
 		"char":       {Category: querier_dto.TypeCategoryText, EngineName: "char"},
 		"varchar":    {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
@@ -92,7 +93,6 @@ var (
 		"text":       {Category: querier_dto.TypeCategoryText, EngineName: "text"},
 		"mediumtext": {Category: querier_dto.TypeCategoryText, EngineName: "mediumtext"},
 		"longtext":   {Category: querier_dto.TypeCategoryText, EngineName: "longtext"},
-
 		// Binary types
 		"binary":     {Category: querier_dto.TypeCategoryBytea, EngineName: "binary"},
 		"varbinary":  {Category: querier_dto.TypeCategoryBytea, EngineName: "varbinary"},
@@ -100,17 +100,14 @@ var (
 		"blob":       {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
 		"mediumblob": {Category: querier_dto.TypeCategoryBytea, EngineName: "mediumblob"},
 		"longblob":   {Category: querier_dto.TypeCategoryBytea, EngineName: "longblob"},
-
 		// Temporal types
 		"date":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
 		"time":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
 		"datetime":  {Category: querier_dto.TypeCategoryTemporal, EngineName: "datetime"},
 		"timestamp": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
 		"year":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "year"},
-
 		// JSON
 		"json": {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
-
 		// Geometric types
 		"geometry":           {Category: querier_dto.TypeCategoryGeometric, EngineName: "geometry"},
 		"point":              {Category: querier_dto.TypeCategoryGeometric, EngineName: "point"},
@@ -120,7 +117,6 @@ var (
 		"multilinestring":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "multilinestring"},
 		"multipolygon":       {Category: querier_dto.TypeCategoryGeometric, EngineName: "multipolygon"},
 		"geometrycollection": {Category: querier_dto.TypeCategoryGeometric, EngineName: "geometrycollection"},
-
 		// Other types
 		"enum": {Category: querier_dto.TypeCategoryEnum, EngineName: "enum"},
 		"set":  {Category: querier_dto.TypeCategoryText, EngineName: "set"},
@@ -192,6 +188,14 @@ func normaliseTypeName(
 		result := sqlType
 		applyModifiers(&result, modifiers)
 		return result
+	}
+
+	if base, found := strings.CutSuffix(lowered, " unsigned"); found {
+		if sqlType, exists := builtinTypeMap[base]; exists {
+			result := sqlType
+			applyModifiers(&result, modifiers)
+			return result
+		}
 	}
 
 	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: lowered}
@@ -268,8 +272,8 @@ var (
 func floatPromotionRank(engineName string) int {
 	switch engineName {
 	case "float":
-		return 1
+		return floatRankSingle
 	default:
-		return 2
+		return floatRankDouble
 	}
 }

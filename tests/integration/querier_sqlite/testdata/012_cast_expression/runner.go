@@ -36,13 +36,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	withPrecision, err := queries.GetMeasurement(ctx, int32(1))
+	withPrecision, err := queries.GetMeasurement(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	withoutPrecision, err := queries.GetMeasurement(ctx, int32(2))
+	withoutPrecision, err := queries.GetMeasurement(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

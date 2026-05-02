@@ -1,5 +1,4 @@
--- piko.name: GetProductDetails
--- piko.command: one
+-- piko.query(name: GetProductDetails, command: one)
 SELECT
     id,
     name || ' (' || category || ')' AS display_name,

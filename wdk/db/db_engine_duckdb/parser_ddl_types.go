@@ -285,9 +285,10 @@ func (p *parser) parseCreateMacro(engine typeNormaliser) (*querier_dto.Catalogue
 
 	p.matchKeyword(keywordAS)
 
+	var tableColumns []querier_dto.Column
 	if p.matchKeyword(keywordTABLE) {
 		signature.ReturnsSet = true
-		p.skipToStatementEnd()
+		tableColumns = p.captureTableMacroColumns()
 	} else {
 		p.captureMacroBody(signature)
 	}
@@ -296,7 +297,42 @@ func (p *parser) parseCreateMacro(engine typeNormaliser) (*querier_dto.Catalogue
 		Kind:              querier_dto.MutationCreateFunction,
 		SchemaName:        schema,
 		FunctionSignature: signature,
+		Columns:           tableColumns,
 	}, nil
+}
+
+// captureTableMacroColumns analyses the SELECT body of a CREATE MACRO ... AS TABLE macro
+// so its projected columns are stored on the catalogue mutation.
+//
+// attachReturnsTableColumns then builds a synthetic composite return type from them, so a
+// query that uses the macro in a FROM clause resolves its output columns instead of being
+// reported as an unknown table-valued function. When the body cannot be analysed the
+// macro stays registered as a set-returning function with no columns.
+//
+// Returns []querier_dto.Column which holds the macro's projected columns by name, or nil
+// when the body cannot be analysed.
+func (p *parser) captureTableMacroColumns() []querier_dto.Column {
+	analysis := p.analyseViewBody(nil)
+	p.skipToStatementEnd()
+	if analysis == nil {
+		return nil
+	}
+	var columns []querier_dto.Column
+	for index := range analysis.OutputColumns {
+		name := analysis.OutputColumns[index].Name
+		if name == "" {
+			name = analysis.OutputColumns[index].ColumnName
+		}
+		if name == "" {
+			continue
+		}
+		columns = append(columns, querier_dto.Column{
+			Name:     name,
+			SQLType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
+			Nullable: true,
+		})
+	}
+	return columns
 }
 
 // captureMacroBody consumes the macro body tokens, parses them as an expression, and
@@ -316,6 +352,7 @@ func (p *parser) captureMacroBody(signature *querier_dto.FunctionSignature) {
 	}
 
 	bodyParser := newParser(bodyTokens)
+	bodyParser.maxParseDepth = p.maxParseDepth
 	expression := bodyParser.parseExpression()
 	if expression == nil {
 		return
@@ -386,6 +423,7 @@ func (p *parser) parseFunctionArgumentList(engine typeNormaliser) ([]querier_dto
 
 	var arguments []querier_dto.FunctionArgument
 	for !p.atEnd() && p.current().kind != tokenRightParen {
+		positionBefore := p.position
 		argument, argumentError := p.parseFunctionArgument(engine)
 		if argumentError != nil {
 			return nil, argumentError
@@ -394,6 +432,10 @@ func (p *parser) parseFunctionArgumentList(engine typeNormaliser) ([]querier_dto
 
 		if p.current().kind == tokenComma {
 			p.advance()
+		}
+
+		if p.position == positionBefore {
+			return nil, errMalformedFunctionArguments
 		}
 	}
 	if p.current().kind == tokenRightParen {
@@ -424,10 +466,10 @@ func (p *parser) parseFunctionArgument(engine typeNormaliser) (querier_dto.Funct
 	if p.current().kind == tokenIdentifier && !p.isDuckDBColumnConstraintKeyword() &&
 		!p.isAnyKeyword(keywordDEFAULT, "COMMA") &&
 		p.current().kind != tokenComma && p.current().kind != tokenRightParen {
-		argumentType, _ := p.parseColumnType(engine)
+		argumentType, arrayDimensions := p.parseColumnType(engine)
 		argument := querier_dto.FunctionArgument{
 			Name: possibleName,
-			Type: argumentType,
+			Type: functionArgumentArrayType(argumentType, arrayDimensions),
 		}
 
 		if p.matchKeyword(keywordDEFAULT) {
@@ -439,9 +481,9 @@ func (p *parser) parseFunctionArgument(engine typeNormaliser) (querier_dto.Funct
 	}
 
 	p.position = savedPosition
-	argumentType, _ := p.parseColumnType(engine)
+	argumentType, arrayDimensions := p.parseColumnType(engine)
 	argument := querier_dto.FunctionArgument{
-		Type: argumentType,
+		Type: functionArgumentArrayType(argumentType, arrayDimensions),
 	}
 
 	if p.matchKeyword(keywordDEFAULT) {
@@ -450,6 +492,34 @@ func (p *parser) parseFunctionArgument(engine typeNormaliser) (querier_dto.Funct
 	}
 
 	return argument, nil
+}
+
+// functionArgumentArrayType wraps a parsed scalar argument type in an array type once per
+// array dimension declared on a CREATE FUNCTION or MACRO argument.
+//
+// Examples include text[] or text[][]. Function arguments carry their array-ness in the
+// SQLType itself, unlike table columns which record it on Column.IsArray and
+// Column.ArrayDimensions, so the overload resolver can tell a call to f(text) from a call
+// to f(text[]). The element type is preserved verbatim, so a modified or qualified base
+// type keeps its identity. A zero dimension count returns the element type unchanged. The
+// LIST(...) compound-type path is unaffected: it already yields a fully-formed array
+// SQLType, so parseColumnType reports zero bracket dimensions for it.
+//
+// Takes elementType (querier_dto.SQLType) which is the scalar (non-array) argument type.
+// Takes dimensions (int) which is the number of trailing [] suffixes on the argument.
+//
+// Returns querier_dto.SQLType which is elementType wrapped in that many array layers.
+func functionArgumentArrayType(elementType querier_dto.SQLType, dimensions int) querier_dto.SQLType {
+	wrapped := elementType
+	for range dimensions {
+		element := wrapped
+		wrapped = querier_dto.SQLType{
+			Category:    querier_dto.TypeCategoryArray,
+			EngineName:  element.EngineName + "[]",
+			ElementType: &element,
+		}
+	}
+	return wrapped
 }
 
 // skipFunctionDefault advances the cursor past a DEFAULT expression while honouring

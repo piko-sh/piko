@@ -1,0 +1,3 @@
+{
+  "description": "UNION ALL of two CTE branches: existing SELECT and INSERT...RETURNING. Validates that compound query branches see CTEs declared in the enclosing WITH clause and produce typed output columns."
+}
