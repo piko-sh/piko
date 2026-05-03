@@ -85,7 +85,7 @@ type Config struct {
 	// are stored.
 	//
 	// When Sandbox is nil this must be set and a real sandbox is created from
-	// it. When Sandbox is provided this field is ignored.
+	// it. When Sandbox is provided the value is ignored.
 	Directory string
 
 	// Filename is the base name of the log file (e.g. "app.log"), which must
@@ -136,7 +136,7 @@ type Writer struct {
 	clock clock.Clock
 
 	// cancel cancels the writer's internal context.
-	cancel context.CancelFunc
+	cancel context.CancelCauseFunc
 
 	// cleanupSignal notifies the background goroutine to run cleanup.
 	cleanupSignal chan struct{}
@@ -214,7 +214,7 @@ func New(ctx context.Context, config Config) (*Writer, error) {
 		return nil, sandboxError
 	}
 
-	writerContext, writerCancel := context.WithCancel(ctx)
+	writerContext, writerCancel := context.WithCancelCause(ctx)
 
 	extension := filepath.Ext(config.Filename)
 	prefix := strings.TrimSuffix(config.Filename, extension)
@@ -295,7 +295,7 @@ func (w *Writer) Close() error {
 
 		close(w.cleanupSignal)
 		<-w.done
-		w.cancel()
+		w.cancel(errors.New("logrotate writer shutdown"))
 
 		if w.ownsSandbox {
 			if sandboxError := w.sandbox.Close(); sandboxError != nil && fileError == nil {

@@ -152,10 +152,7 @@ func (p *Page) IsFrameLoaded(frameSelector string) bool {
 //
 // Returns any which is the result of the JavaScript evaluation.
 func (p *Page) EvalInFrame(frameSelector, script string) any {
-	displayScript := script
-	if len(displayScript) > displayTextMaxLen {
-		displayScript = displayScript[:displayTextMaxLen] + fmtTruncatedText
-	}
+	displayScript := truncateRunes(script, displayTextMaxLen)
 	detail := fmt.Sprintf("%s: %s", frameSelector, displayScript)
 	p.beforeAction("EvalInFrame", detail)
 	start := time.Now()

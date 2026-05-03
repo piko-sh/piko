@@ -27,7 +27,7 @@ import (
 
 // MockTypeQuerier is a test double for TypeQuerier that implements all of its
 // public methods using overridable function fields. When a function field is
-// nil, the method returns a sensible zero value.
+// nil, a sensible zero value is returned.
 //
 // Usage:
 //

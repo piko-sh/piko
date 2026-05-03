@@ -33,9 +33,8 @@ import (
 // key if keyID is empty. The caller writes plaintext to the returned
 // WriteCloser, and encrypted data is written to the provided output Writer.
 //
-// This method is designed for encrypting large files without loading them
-// entirely into memory. Memory usage remains constant (O(chunk_size) ~64KB)
-// regardless of stream size.
+// Designed for encrypting large files without loading them entirely into memory.
+// Memory usage remains constant (O(chunk_size) ~64KB) regardless of stream size.
 //
 // The encrypted output uses the v2 streaming envelope format:
 // [Version 0x02][Header Length][JSON Header][Chunked Encrypted Data]
@@ -99,10 +98,10 @@ func (s *cryptoService) EncryptStream(ctx context.Context, output io.Writer, key
 
 // DecryptStream decrypts a data stream.
 //
-// The caller reads plaintext from the returned ReadCloser. This method
-// automatically detects and parses the v2 streaming envelope format,
-// extracting metadata and setting up the decryption pipeline. Suitable for
-// decrypting large files with constant memory usage (O(chunk_size) ~64KB).
+// The caller reads plaintext from the returned ReadCloser. Automatically detects
+// and parses the v2 streaming envelope format, extracting metadata and setting up
+// the decryption pipeline. Suitable for decrypting large files with constant
+// memory usage (O(chunk_size) ~64KB).
 //
 // Takes input (io.Reader) which provides the encrypted data stream.
 //

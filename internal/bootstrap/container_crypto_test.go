@@ -80,7 +80,7 @@ func TestSelectCryptoProvider(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c := NewContainer(config.NewConfigProvider())
+			c := NewContainer()
 
 			if len(tc.providers) > 0 {
 				c.cryptoProviders = make(map[string]crypto_domain.EncryptionProvider, len(tc.providers))
@@ -155,7 +155,7 @@ func TestCreateProviderFromConfig(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c := NewContainer(config.NewConfigProvider())
+			c := NewContainer()
 
 			gotName, _, _, err := c.createProviderFromConfig(context.Background(), &tc.securityConfig)
 

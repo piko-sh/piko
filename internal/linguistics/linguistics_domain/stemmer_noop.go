@@ -46,9 +46,8 @@ func NewNoOpStemmer(language string) *NoOpStemmer {
 	}
 }
 
-// Stem returns the word unchanged.
-// This method satisfies the StemmerPort interface without performing any
-// actual stemming transformation.
+// Stem returns the word unchanged. Satisfies the StemmerPort interface without
+// performing any actual stemming transformation.
 //
 // Takes word (string) which is the word to "stem".
 //

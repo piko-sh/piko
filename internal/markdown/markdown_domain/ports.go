@@ -57,7 +57,7 @@ type MarkdownParserPort interface {
 
 // HTMLConverter defines the contract for converting raw markdown bytes to HTML.
 type HTMLConverter interface {
-	// Convert renders markdown to HTML with raw HTML stripped for safety.
+	// Converts markdown to HTML with raw HTML stripped for safety.
 	//
 	// Takes markdown ([]byte) which is the markdown content to convert.
 	//

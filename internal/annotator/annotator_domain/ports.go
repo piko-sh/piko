@@ -123,10 +123,10 @@ type ActionInfoProvider interface {
 	Method() string
 }
 
-// ActionParamProvider extends ActionInfoProvider with parameter type
-// information, enabling argument validation against the action's Call method
-// signature. Implementations that satisfy this interface will have their
-// arguments validated at annotation time.
+// ActionParamProvider extends ActionInfoProvider with parameter type information,
+// enabling argument validation against the action's Call method signature.
+// Implementations that satisfy it will have their arguments validated at
+// annotation time.
 type ActionParamProvider interface {
 	// GetCallParamTypes returns the parameter types of the action's Call method.
 	//

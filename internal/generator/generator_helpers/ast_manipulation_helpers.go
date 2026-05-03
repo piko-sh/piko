@@ -44,10 +44,9 @@ var RequestDataFieldMap = map[string]string{
 
 // GetContentAST extracts the content AST from collection data.
 //
-// This function is called at runtime by generated code when rendering
-// <piko:content /> tags in collection page templates. The content AST
-// contains the parsed markdown body that should be rendered as children
-// of the content tag's parent element.
+// Called at runtime by generated code when rendering <piko:content /> tags in
+// collection page templates. The content AST contains the parsed markdown body
+// that should be rendered as children of the content tag's parent element.
 //
 // When collectionData is nil or not a map[string]any, returns nil.
 //
@@ -172,10 +171,9 @@ func PointerValueToString(value any) string {
 	}
 }
 
-// CheckExpressionForIdentifierUsage recursively checks if an expression uses
-// the given identifier name, either directly or as a prefix (e.g., "item.name"
-// would match identifier "item"). This is used to determine variable
-// dependencies.
+// CheckExpressionForIdentifierUsage recursively checks if an expression uses the
+// given identifier name, either directly or as a prefix (e.g., "item.name" would
+// match identifier "item"). Used to determine variable dependencies.
 //
 // Takes expression (ast_domain.Expression) which is the expression to search.
 // Takes identifierName (string) which is the identifier to look for.
@@ -214,10 +212,9 @@ func CheckExpressionForIdentifierUsage(expression ast_domain.Expression, identif
 	return false
 }
 
-// IsLoopVarUsedInNode checks if a loop variable is used anywhere within a
-// template node or its children. This is used to optimise code generation by
-// avoiding unnecessary variable bindings when the loop variable is not
-// referenced.
+// IsLoopVarUsedInNode checks if a loop variable is used anywhere within a template
+// node or its children. Used to optimise code generation by avoiding unnecessary
+// variable bindings when the loop variable is not referenced.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to search.
 // Takes loopVarName (string) which is the name of the loop variable to find.

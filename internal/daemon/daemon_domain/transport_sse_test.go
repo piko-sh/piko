@@ -20,10 +20,14 @@ package daemon_domain
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"net/http"
 	"strings"
 	"testing"
+
+	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/safeerror"
 )
 
 type mockFlushWriter struct {
@@ -235,6 +239,7 @@ func TestSSEStreamSendError(t *testing.T) {
 		w := &mockFlushWriter{}
 		done := make(chan struct{})
 		stream := NewSSEStream(w, done, "")
+		stream.SetDevelopmentMode(true)
 
 		err := stream.SendError(errors.New("something went wrong"))
 		if err != nil {
@@ -247,6 +252,111 @@ func TestSSEStreamSendError(t *testing.T) {
 		}
 		if !strings.Contains(output, "something went wrong") {
 			t.Errorf("expected error message in output, got %q", output)
+		}
+	})
+}
+
+func TestSendError_ProductionRedactsErrorText(t *testing.T) {
+	t.Parallel()
+
+	w := &mockFlushWriter{}
+	done := make(chan struct{})
+	stream := NewSSEStream(w, done, "")
+
+	rawMessage := "internal database connection refused at host db-prod-7"
+	err := stream.SendError(errors.New(rawMessage))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	output := w.writer.String()
+	if strings.Contains(output, rawMessage) {
+		t.Errorf("expected raw error to be redacted in production, got %q", output)
+	}
+	if !strings.Contains(output, "An internal error occurred") {
+		t.Errorf("expected production placeholder message, got %q", output)
+	}
+	if !strings.Contains(output, "event: error\n") {
+		t.Errorf("expected 'event: error' in output, got %q", output)
+	}
+}
+
+func TestSendError_DevelopmentExposesErrorText(t *testing.T) {
+	t.Parallel()
+
+	w := &mockFlushWriter{}
+	done := make(chan struct{})
+	stream := NewSSEStream(w, done, "")
+	stream.SetDevelopmentMode(true)
+
+	rawMessage := "internal database connection refused at host db-prod-7"
+	err := stream.SendError(errors.New(rawMessage))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	output := w.writer.String()
+	if !strings.Contains(output, rawMessage) {
+		t.Errorf("expected raw error visible in development, got %q", output)
+	}
+}
+
+func TestSendError_ProductionPropagatesSafeMessage(t *testing.T) {
+	t.Parallel()
+
+	w := &mockFlushWriter{}
+	done := make(chan struct{})
+	stream := NewSSEStream(w, done, "")
+
+	safeErr := safeerror.NewError("user-facing summary", errors.New("internal: connection pool exhausted"))
+	if err := stream.SendError(safeErr); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	output := w.writer.String()
+	if !strings.Contains(output, "user-facing summary") {
+		t.Errorf("expected safe message in output, got %q", output)
+	}
+	if strings.Contains(output, "connection pool exhausted") {
+		t.Errorf("expected internal cause to be redacted, got %q", output)
+	}
+}
+
+func TestSetDevelopmentModeFromContext_HonoursPikoRequestCtx(t *testing.T) {
+	t.Parallel()
+
+	t.Run("DevelopmentEnabledInCtx", func(t *testing.T) {
+		t.Parallel()
+
+		w := &mockFlushWriter{}
+		done := make(chan struct{})
+		stream := NewSSEStream(w, done, "")
+
+		pctx := &daemon_dto.PikoRequestCtx{DevelopmentMode: true}
+		ctx := daemon_dto.WithPikoRequestCtx(context.Background(), pctx)
+		stream.SetDevelopmentModeFromContext(ctx)
+
+		if err := stream.SendError(errors.New("verbose internal detail")); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !strings.Contains(w.writer.String(), "verbose internal detail") {
+			t.Errorf("expected dev message visible, got %q", w.writer.String())
+		}
+	})
+
+	t.Run("NoCarrierFallsBackToProduction", func(t *testing.T) {
+		t.Parallel()
+
+		w := &mockFlushWriter{}
+		done := make(chan struct{})
+		stream := NewSSEStream(w, done, "")
+		stream.SetDevelopmentModeFromContext(context.Background())
+
+		if err := stream.SendError(errors.New("verbose internal detail")); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if strings.Contains(w.writer.String(), "verbose internal detail") {
+			t.Errorf("expected raw detail redacted with no carrier, got %q", w.writer.String())
 		}
 	})
 }

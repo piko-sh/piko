@@ -51,8 +51,8 @@ type fieldAccessor struct {
 	// kind is the cached reflect.Kind for fast type switching.
 	kind reflect.Kind
 
-	// isDirect indicates whether direct unsafe access can be used for this field
-	// (non-pointer, single-level access only).
+	// isDirect reports whether direct unsafe access can be used (non-pointer,
+	// single-level access only).
 	isDirect bool
 }
 

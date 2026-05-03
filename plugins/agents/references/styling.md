@@ -81,17 +81,19 @@ Escape scoping for specific selectors within a scoped block:
 
 ## Theme variables
 
-Define in `config.json`:
+Define in `cmd/main/main.go` via `piko.WithWebsiteConfig`:
 
-```json
-{
-  "theme": {
-    "colour-primary": "#6F47EB",
-    "colour-grey-200": "#CAD1D8",
-    "spacing-md": "1rem",
-    "font-family": "\"Inter\", sans-serif"
-  }
-}
+```go
+piko.New(
+    piko.WithWebsiteConfig(piko.WebsiteConfig{
+        Theme: map[string]string{
+            "colour-primary":  "#6F47EB",
+            "colour-grey-200": "#CAD1D8",
+            "spacing-md":      "1rem",
+            "font-family":     `"Inter", sans-serif`,
+        },
+    }),
+)
 ```
 
 Use with the `--g-` prefix:
@@ -199,4 +201,4 @@ This is a key pattern: set state → attribute updates → CSS matches automatic
 
 - `references/pk-file-format.md` - style block syntax
 - `references/pkc-components.md` - Shadow DOM and attribute sync
-- `references/project-structure.md` - config.json theme setup
+- `references/configuration.md` - WithWebsiteConfig and theme setup

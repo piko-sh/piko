@@ -24,14 +24,8 @@ import (
 	"time"
 )
 
-// EmDashGlyph is the placeholder rendered for empty / zero values in
-// detail rows. Both the CLI and TUI use the same glyph so output stays
-// visually consistent across renderers.
-const EmDashGlyph = "—"
-
-// hyphenGlyph is the legacy placeholder used by the CLI Printer for
-// missing values. It differs from EmDashGlyph because the CLI describe
-// path historically rendered an ASCII "-" rather than an em-dash.
+// hyphenGlyph is the placeholder used by the CLI Printer for
+// missing values.
 const hyphenGlyph = "-"
 
 // hoursPerDay is the duration unit used when formatting durations of
@@ -53,10 +47,10 @@ const secondsPerMinute = 60
 // Takes past (time.Time) which is the earlier instant.
 //
 // Returns string which is the relative-time label. When past is zero
-// or in the future, EmDashGlyph is returned.
+// or in the future, hyphen is returned.
 func FormatTimeSince(now, past time.Time) string {
 	if past.IsZero() || past.After(now) {
-		return EmDashGlyph
+		return hyphenGlyph
 	}
 	return FormatDuration(now.Sub(past)) + " ago"
 }
@@ -119,15 +113,15 @@ func FormatBytes(bytes uint64) string {
 }
 
 // FormatDetailTime renders a timestamp for a detail-pane row in the
-// shared "YYYY-MM-DD HH:MM:SS" layout. Zero values render as
-// EmDashGlyph so the row reads "Started -" instead of an old epoch.
+// shared "YYYY-MM-DD HH:MM:SS" layout. Zero values render as a
+// hyphen, so the row reads "Started -" instead of an old epoch.
 //
 // Takes t (time.Time) which is the timestamp to render.
 //
-// Returns string which is the formatted timestamp or EmDashGlyph.
+// Returns string which is the formatted timestamp or hyphen.
 func FormatDetailTime(t time.Time) string {
 	if t.IsZero() {
-		return EmDashGlyph
+		return hyphenGlyph
 	}
 	return t.Format("2006-01-02 15:04:05")
 }

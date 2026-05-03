@@ -113,10 +113,10 @@ const (
 // globalVariableInfo describes a package-level variable's location in the
 // globalStore.
 type globalVariableInfo struct {
-	// index is the slot index within the globalStore for this variable.
+	// index is the slot index within the globalStore for the variable.
 	index int
 
-	// kind is the register kind that determines which typed store holds this variable.
+	// kind is the register kind that determines which typed store holds the variable.
 	kind registerKind
 }
 
@@ -532,12 +532,12 @@ func (c *compiler) compilePackageLevelVarInit(ctx context.Context, spec *ast.Val
 //
 // Takes spec (*ast.ValueSpec) which is the AST value spec containing the
 // variable declaration.
-// Takes i (int) which is the index of this variable within the spec's
+// Takes i (int) which is the index of the variable within the spec's
 // name list.
 // Takes name (*ast.Ident) which is the AST identifier for the variable
 // being compiled.
 // Takes gv (globalVariableInfo) which holds the global store location for
-// this variable.
+// the variable.
 //
 // Returns error when compilation of the initialiser expression fails.
 func (c *compiler) compilePackageLevelVar(ctx context.Context, spec *ast.ValueSpec, i int, name *ast.Ident, gv globalVariableInfo) error {

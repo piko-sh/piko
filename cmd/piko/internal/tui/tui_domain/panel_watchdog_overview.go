@@ -397,7 +397,7 @@ func (p *WatchdogOverviewPanel) renderHeaderStrip(width int) string {
 
 	parts := []string{stateStyle.Render("[" + state + "]")}
 	if status != nil {
-		uptime := "—"
+		uptime := "-"
 		if !status.StartedAt.IsZero() {
 			uptime = inspector.FormatDuration(now.Sub(status.StartedAt))
 		}
@@ -410,7 +410,7 @@ func (p *WatchdogOverviewPanel) renderHeaderStrip(width int) string {
 		parts = append(parts, p.dimStyle().Render(warmupLabel))
 	}
 
-	refreshLabel := "last refresh: —"
+	refreshLabel := "last refresh: -"
 	if !p.statusFetched.IsZero() {
 		refreshLabel = "last refresh: " + inspector.FormatTimeSince(now, p.statusFetched)
 	}

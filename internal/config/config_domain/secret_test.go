@@ -20,11 +20,13 @@ package config_domain
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/safeerror"
 )
 
 func TestSecret_UnmarshalText(t *testing.T) {
@@ -91,7 +93,9 @@ func TestSecret_Acquire_String(t *testing.T) {
 		require.NoError(t, err)
 		defer handle.Release()
 
-		assert.Equal(t, "my-literal-secret", handle.Value())
+		value, err := handle.Value()
+		require.NoError(t, err)
+		assert.Equal(t, "my-literal-secret", value)
 	})
 
 	t.Run("acquires env value", func(t *testing.T) {
@@ -104,7 +108,9 @@ func TestSecret_Acquire_String(t *testing.T) {
 		require.NoError(t, err)
 		defer handle.Release()
 
-		assert.Equal(t, "secret-from-env", handle.Value())
+		value, err := handle.Value()
+		require.NoError(t, err)
+		assert.Equal(t, "secret-from-env", value)
 	})
 
 	t.Run("returns error for unset secret", func(t *testing.T) {
@@ -135,14 +141,18 @@ func TestSecret_Acquire_String(t *testing.T) {
 
 		handle1, err := s.Acquire(context.Background())
 		require.NoError(t, err)
-		assert.Equal(t, "original-value", handle1.Value())
+		value1, err := handle1.Value()
+		require.NoError(t, err)
+		assert.Equal(t, "original-value", value1)
 		handle1.Release()
 
 		_ = os.Setenv("TEST_CACHED_KEY", "new-value")
 
 		handle2, err := s.Acquire(context.Background())
 		require.NoError(t, err)
-		assert.Equal(t, "original-value", handle2.Value())
+		value2, err := handle2.Value()
+		require.NoError(t, err)
+		assert.Equal(t, "original-value", value2)
 		handle2.Release()
 	})
 }
@@ -165,7 +175,9 @@ func TestSecret_Acquire_Bytes(t *testing.T) {
 		require.NoError(t, err)
 		defer handle.Release()
 
-		assert.Equal(t, []byte("binary-secret-data"), handle.Value())
+		value, err := handle.Value()
+		require.NoError(t, err)
+		assert.Equal(t, []byte("binary-secret-data"), value)
 	})
 }
 
@@ -208,6 +220,45 @@ func TestSecretHandle_Release(t *testing.T) {
 		err = handle.Close()
 		assert.NoError(t, err)
 		assert.Equal(t, int64(0), s.refCount.Load())
+	})
+}
+
+func TestSecretHandle_Value_ErrorReturns(t *testing.T) {
+	t.Cleanup(ResetSecretManager)
+
+	t.Run("returns safeerror when handle is released", func(t *testing.T) {
+		var s Secret[string]
+		_ = s.UnmarshalText([]byte("test-value"))
+
+		handle, err := s.Acquire(context.Background())
+		require.NoError(t, err)
+		handle.Release()
+
+		_, err = handle.Value()
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrSecretHandleClosed)
+
+		var safeErr safeerror.Error
+		require.True(t, errors.As(err, &safeErr), "expected safeerror.Error")
+		assert.Equal(t, "config secret unavailable", safeErr.SafeMessage())
+	})
+
+	t.Run("returns safeerror when secret is closed", func(t *testing.T) {
+		var s Secret[string]
+		_ = s.UnmarshalText([]byte("test-value"))
+
+		handle, err := s.Acquire(context.Background())
+		require.NoError(t, err)
+		require.NoError(t, s.Close())
+
+		_, err = handle.Value()
+		require.Error(t, err)
+
+		var safeErr safeerror.Error
+		require.True(t, errors.As(err, &safeErr), "expected safeerror.Error")
+		assert.Equal(t, "config secret unavailable", safeErr.SafeMessage())
+
+		assert.True(t, errors.Is(err, ErrSecretClosed))
 	})
 }
 
@@ -254,14 +305,18 @@ func TestSecret_Refresh(t *testing.T) {
 		_ = s.UnmarshalText([]byte("env:TEST_REFRESH_KEY"))
 
 		handle1, _ := s.Acquire(context.Background())
-		assert.Equal(t, "original", handle1.Value())
+		value1, err := handle1.Value()
+		require.NoError(t, err)
+		assert.Equal(t, "original", value1)
 		handle1.Release()
 
 		_ = os.Setenv("TEST_REFRESH_KEY", "updated")
 		s.Refresh()
 
 		handle2, _ := s.Acquire(context.Background())
-		assert.Equal(t, "updated", handle2.Value())
+		value2, err := handle2.Value()
+		require.NoError(t, err)
+		assert.Equal(t, "updated", value2)
 		handle2.Release()
 	})
 
@@ -371,7 +426,7 @@ func TestSecret_ConcurrentAccess(t *testing.T) {
 				if err != nil {
 					return
 				}
-				_ = handle.Value()
+				_, _ = handle.Value()
 				handle.Release()
 			}()
 		}

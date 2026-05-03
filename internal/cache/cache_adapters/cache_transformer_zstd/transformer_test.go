@@ -21,6 +21,7 @@ package cache_transformer_zstd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -48,6 +49,10 @@ func TestDefaultConfig(t *testing.T) {
 	}
 	if config.Level != zstd.SpeedDefault {
 		t.Errorf("expected level SpeedDefault (%d), got %d", zstd.SpeedDefault, config.Level)
+	}
+	if config.MaxDecompressedBytes != DefaultMaxDecompressedCacheBytes {
+		t.Errorf("expected MaxDecompressedBytes %d, got %d",
+			DefaultMaxDecompressedCacheBytes, config.MaxDecompressedBytes)
 	}
 }
 
@@ -387,5 +392,140 @@ func TestParseConfig(t *testing.T) {
 				t.Errorf("level: got %d, want %d", result.Level, tc.expectedLevel)
 			}
 		})
+	}
+}
+
+func compressBytes(t *testing.T, payload []byte, level zstd.EncoderLevel) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	encoder, err := zstd.NewWriter(&buf, zstd.WithEncoderLevel(level))
+	if err != nil {
+		t.Fatalf("failed to create test encoder: %v", err)
+	}
+	if _, err := encoder.Write(payload); err != nil {
+		t.Fatalf("failed to write payload: %v", err)
+	}
+	if err := encoder.Close(); err != nil {
+		t.Fatalf("failed to close encoder: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func TestZstdCacheTransformer_Reverse_RejectsOversizeOutput(t *testing.T) {
+	const byteCap = 1024
+	tr, err := NewZstdCacheTransformer(
+		Config{},
+		WithMaxDecompressedCacheBytes(byteCap),
+	)
+	if err != nil {
+		t.Fatalf("failed to create transformer: %v", err)
+	}
+	defer func() { _ = tr.Close() }()
+
+	bomb := make([]byte, 256*1024)
+	compressed := compressBytes(t, bomb, zstd.SpeedBestCompression)
+
+	if len(compressed) > len(bomb)/100 {
+		t.Logf("note: highly redundant payload compressed to %d bytes (zip-bomb shape)", len(compressed))
+	}
+
+	_, err = tr.Reverse(context.Background(), compressed, nil)
+	if err == nil {
+		t.Fatal("expected error for oversize decompression, got nil")
+	}
+	if !errors.Is(err, ErrDecompressedCacheTooLarge) {
+		t.Errorf("expected ErrDecompressedCacheTooLarge, got %v", err)
+	}
+}
+
+func TestZstdCacheTransformer_Reverse_AcceptsAtCap(t *testing.T) {
+	const byteCap = 4096
+	tr, err := NewZstdCacheTransformer(
+		Config{},
+		WithMaxDecompressedCacheBytes(byteCap),
+	)
+	if err != nil {
+		t.Fatalf("failed to create transformer: %v", err)
+	}
+	defer func() { _ = tr.Close() }()
+
+	payload := bytes.Repeat([]byte("x"), byteCap)
+	compressed := compressBytes(t, payload, zstd.SpeedDefault)
+
+	decompressed, err := tr.Reverse(context.Background(), compressed, nil)
+	if err != nil {
+		t.Fatalf("Reverse failed at cap: %v", err)
+	}
+	if len(decompressed) != byteCap {
+		t.Errorf("decompressed length: got %d, want %d", len(decompressed), byteCap)
+	}
+	if !bytes.Equal(decompressed, payload) {
+		t.Error("decompressed payload mismatch at cap")
+	}
+}
+
+func TestZstdCacheTransformer_Reverse_DisabledCapAllowsLargeOutput(t *testing.T) {
+	tr, err := NewZstdCacheTransformer(
+		Config{},
+		WithMaxDecompressedCacheBytes(-1),
+	)
+	if err != nil {
+		t.Fatalf("failed to create transformer: %v", err)
+	}
+	defer func() { _ = tr.Close() }()
+
+	payload := bytes.Repeat([]byte("a"), 4*1024*1024)
+	compressed := compressBytes(t, payload, zstd.SpeedDefault)
+
+	decompressed, err := tr.Reverse(context.Background(), compressed, nil)
+	if err != nil {
+		t.Fatalf("Reverse with disabled cap failed: %v", err)
+	}
+	if len(decompressed) != len(payload) {
+		t.Errorf("expected %d bytes, got %d", len(payload), len(decompressed))
+	}
+}
+
+func TestWithMaxDecompressedCacheBytes_AppliesOption(t *testing.T) {
+	tr, err := NewZstdCacheTransformer(
+		Config{},
+		WithMaxDecompressedCacheBytes(2048),
+	)
+	if err != nil {
+		t.Fatalf("failed to create transformer: %v", err)
+	}
+	defer func() { _ = tr.Close() }()
+
+	if tr.maxDecompressedBytes != 2048 {
+		t.Errorf("expected option to apply 2048, got %d", tr.maxDecompressedBytes)
+	}
+}
+
+func TestWithMaxDecompressedCacheBytes_OverridesConfig(t *testing.T) {
+	tr, err := NewZstdCacheTransformer(
+		Config{MaxDecompressedBytes: 999},
+		WithMaxDecompressedCacheBytes(4096),
+	)
+	if err != nil {
+		t.Fatalf("failed to create transformer: %v", err)
+	}
+	defer func() { _ = tr.Close() }()
+
+	if tr.maxDecompressedBytes != 4096 {
+		t.Errorf("expected option to override config to 4096, got %d", tr.maxDecompressedBytes)
+	}
+}
+
+func TestZstdCacheTransformer_Close_IsIdempotent(t *testing.T) {
+	tr := newTestTransformer(t)
+
+	if err := tr.Close(); err != nil {
+		t.Fatalf("first Close returned error: %v", err)
+	}
+	if err := tr.Close(); err != nil {
+		t.Fatalf("second Close returned error: %v", err)
+	}
+	if err := tr.Close(); err != nil {
+		t.Fatalf("third Close returned error: %v", err)
 	}
 }

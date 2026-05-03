@@ -407,3 +407,45 @@ func newTestBatcher[T any](config BatcherConfig, sendFunc BatchSendFunc[T]) *Bat
 	b.Start(context.Background())
 	return b
 }
+
+func TestAnalyticsBatcher_BoundsBufferSize(t *testing.T) {
+	t.Parallel()
+
+	batcher, err := NewBatcher[string](BatcherConfig{
+		Name:          "bounded",
+		BatchSize:     1024,
+		FlushInterval: 1 * time.Hour,
+		MaxBufferSize: 4,
+	}, func(_ context.Context, _ []string) error { return nil })
+	if err != nil {
+		t.Fatalf("NewBatcher: %v", err)
+	}
+	t.Cleanup(func() { _ = batcher.Close() })
+
+	if batcher.maxBufferSize != 1024 {
+		t.Fatalf("expected maxBufferSize to be raised to BatchSize 1024 when MaxBufferSize < BatchSize, got %d", batcher.maxBufferSize)
+	}
+
+	tinyBatcher, err := NewBatcher[string](BatcherConfig{
+		Name:          "tiny",
+		BatchSize:     2,
+		FlushInterval: 1 * time.Hour,
+		MaxBufferSize: 4,
+	}, func(_ context.Context, _ []string) error { return nil })
+	if err != nil {
+		t.Fatalf("NewBatcher: %v", err)
+	}
+	t.Cleanup(func() { _ = tinyBatcher.Close() })
+
+	for i := range 100 {
+		tinyBatcher.Add(fmt.Sprintf("item-%d", i))
+	}
+
+	tinyBatcher.mu.Lock()
+	bufferLen := len(tinyBatcher.buffer)
+	tinyBatcher.mu.Unlock()
+
+	if bufferLen > 4 {
+		t.Fatalf("buffer length %d exceeded cap 4", bufferLen)
+	}
+}

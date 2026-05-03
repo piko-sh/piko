@@ -286,14 +286,6 @@ func (*interpretedManifestStoreViewAdapter) FindErrorPage(_ int, _ string) (temp
 	return nil, false
 }
 
-// GetCollectionFallbackRoutes is not supported in interpreted mode. Static
-// collection expansion only happens during a compiled build.
-//
-// Returns nil always.
-func (*interpretedManifestStoreViewAdapter) GetCollectionFallbackRoutes() []templater_domain.CollectionFallbackRouteView {
-	return nil
-}
-
 // ListPreviewEntries is not supported in this adapter. The interpreted mode
 // preview support is provided by the InterpretedManifestStoreView instead.
 //

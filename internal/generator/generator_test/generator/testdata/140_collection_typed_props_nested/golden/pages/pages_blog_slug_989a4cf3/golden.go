@@ -5,6 +5,7 @@
 package pages_blog_slug_989a4cf3
 
 import (
+	"cmp"
 	"fmt"
 	"html"
 	"sort"
@@ -21,6 +22,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 
 // line pages/blog/{slug}.pk:34
@@ -54,9 +56,9 @@ var customTags []string
 
 func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.TemplateAST, pikoruntime.InternalMetadata, []*pikoruntime.RuntimeDiagnostic) {
 	var diagnostics []*pikoruntime.RuntimeDiagnostic
-	__metadata, __contentAST, __excerptAST, __err := pikoruntime.GetStaticCollectionItem(r.Context(), "blog", r.URL().Path)
+	__metadata, __contentAST, __excerptAST, __err := pikoruntime.GetStaticCollectionItem(r.Context(), "blog", cmp.Or(r.PathParam("slug"), r.PathParam("*")))
 	if __err != nil {
-		return nil, pikoruntime.InternalMetadata{RenderError: pikoruntime.CollectionNotFound("blog", r.URL().Path, __err)}, nil
+		return nil, pikoruntime.InternalMetadata{RenderError: pikoruntime.CollectionNotFound("blog", cmp.Or(r.PathParam("slug"), r.PathParam("*")), __err)}, nil
 	}
 	r = r.WithCollectionData(map[string]interface{}{"page": __metadata, "contentAST": __contentAST, "excerptAST": __excerptAST})
 	props := Props{}

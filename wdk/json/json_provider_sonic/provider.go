@@ -24,41 +24,41 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/bytedance/sonic/option"
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 )
 
 // pretouchMaxInlineDepth is the maximum depth for sonic's JIT compiler to
 // inline nested struct encoders and decoders.
 const pretouchMaxInlineDepth = 8
 
-// sonicProvider implements pikojson.Provider using bytedance/sonic.
+// sonicProvider implements json.Provider using bytedance/sonic.
 type sonicProvider struct{}
 
 // New creates a sonic JSON provider.
 //
-// Returns pikojson.Provider which replaces stdlib JSON with sonic when
+// Returns json.Provider which replaces stdlib JSON with sonic when
 // activated.
-func New() pikojson.Provider {
+func New() json.Provider {
 	return sonicProvider{}
 }
 
 // Activate replaces all package-level JSON function variables with sonic
 // implementations.
 func (sonicProvider) Activate() {
-	pikojson.Marshal = sonic.Marshal
-	pikojson.Unmarshal = sonic.Unmarshal
-	pikojson.MarshalIndent = sonic.MarshalIndent
-	pikojson.MarshalString = sonic.MarshalString
-	pikojson.UnmarshalString = sonic.UnmarshalString
-	pikojson.ValidString = sonic.ValidString
-	pikojson.NewEncoder = sonicNewEncoder
-	pikojson.NewDecoder = sonicNewDecoder
-	pikojson.FreezeImpl = sonicFreeze
-	pikojson.Pretouch = sonicPretouch
-	pikojson.ConfigStd = &sonicAPI{inner: sonic.ConfigStd}
-	pikojson.ConfigDefault = &sonicAPI{inner: sonic.ConfigDefault}
+	json.Marshal = sonic.Marshal
+	json.Unmarshal = sonic.Unmarshal
+	json.MarshalIndent = sonic.MarshalIndent
+	json.MarshalString = sonic.MarshalString
+	json.UnmarshalString = sonic.UnmarshalString
+	json.ValidString = sonic.ValidString
+	json.NewEncoder = sonicNewEncoder
+	json.NewDecoder = sonicNewDecoder
+	json.FreezeImpl = sonicFreeze
+	json.Pretouch = sonicPretouch
+	json.ConfigStd = &sonicAPI{inner: sonic.ConfigStd}
+	json.ConfigDefault = &sonicAPI{inner: sonic.ConfigDefault}
 
-	for _, t := range pikojson.DrainPretouchBuffer() {
+	for _, t := range json.DrainPretouchBuffer() {
 		_ = sonicPretouch(t)
 	}
 }
@@ -68,8 +68,8 @@ func (sonicProvider) Activate() {
 //
 // Takes w (io.Writer) which is the output destination.
 //
-// Returns pikojson.Encoder which writes JSON to w.
-func sonicNewEncoder(w io.Writer) pikojson.Encoder {
+// Returns json.Encoder which writes JSON to w.
+func sonicNewEncoder(w io.Writer) json.Encoder {
 	return sonic.ConfigDefault.NewEncoder(w)
 }
 
@@ -78,8 +78,8 @@ func sonicNewEncoder(w io.Writer) pikojson.Encoder {
 //
 // Takes r (io.Reader) which is the input source.
 //
-// Returns pikojson.Decoder which reads JSON from r.
-func sonicNewDecoder(r io.Reader) pikojson.Decoder {
+// Returns json.Decoder which reads JSON from r.
+func sonicNewDecoder(r io.Reader) json.Decoder {
 	return sonic.ConfigDefault.NewDecoder(r)
 }
 

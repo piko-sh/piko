@@ -27,10 +27,39 @@ import (
 // This is re-exported from the internal adapter package.
 type Config = cache_transformer_zstd.Config
 
+// Option configures a zstd cache transformer at construction time. It is
+// re-exported from the internal adapter package so callers can use the
+// functional-options pattern without importing internal packages.
+type Option = cache_transformer_zstd.Option
+
+// DefaultMaxDecompressedCacheBytes is the default cap on the decompressed
+// output produced by Reverse. Re-exported from the internal adapter package.
+const DefaultMaxDecompressedCacheBytes = cache_transformer_zstd.DefaultMaxDecompressedCacheBytes
+
+// ErrDecompressedCacheTooLarge is surfaced by Reverse when a decompressed
+// payload exceeds the configured cap.
+//
+// Use errors.Is to detect this condition. Re-exported from the internal
+// adapter package.
+var ErrDecompressedCacheTooLarge = cache_transformer_zstd.ErrDecompressedCacheTooLarge
+
+// WithMaxDecompressedCacheBytes sets the maximum number of decompressed bytes
+// produced by Reverse before ErrDecompressedCacheTooLarge is surfaced. A
+// non-positive value disables the cap.
+//
+// Takes maxBytes (int64) which is the cap in bytes; non-positive disables.
+//
+// Returns Option which applies the cap to a transformer.
+func WithMaxDecompressedCacheBytes(maxBytes int64) Option {
+	return cache_transformer_zstd.WithMaxDecompressedCacheBytes(maxBytes)
+}
+
 // New creates a new zstd cache compression transformer.
 //
 // Takes config (Config) which specifies the compression settings including name,
 // priority, and compression level.
+// Takes options (...Option) which override settings on the constructed
+// transformer (e.g. WithMaxDecompressedCacheBytes).
 //
 // Returns cache.TransformerPort which is the configured transformer ready
 // for use.
@@ -44,8 +73,8 @@ type Config = cache_transformer_zstd.Config
 //	    Level:    zstd.SpeedDefault,
 //	}
 //	transformer, err := cache_transformer_zstd.New(config)
-func New(config Config) (cache.TransformerPort, error) {
-	return cache_transformer_zstd.NewZstdCacheTransformer(config)
+func New(config Config, options ...Option) (cache.TransformerPort, error) {
+	return cache_transformer_zstd.NewZstdCacheTransformer(config, options...)
 }
 
 // DefaultConfig returns sensible defaults for zstd compression.

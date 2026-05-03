@@ -21,12 +21,12 @@ package llm_domain
 import (
 	"cmp"
 	"context"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"slices"
 	"strings"
 
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 

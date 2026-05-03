@@ -34,12 +34,12 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 ```piko
 <!-- pages/blog/{slug}.pk -->
 <template>
-  <layout is="layout" :server.page_title="state.Post.Title">
+  <piko:partial is="layout" :server.page_title="state.Post.Title">
     <article>
       <h1>{{ state.Post.Title }}</h1>
       <p>{{ state.Post.Body }}</p>
     </article>
-  </layout>
+  </piko:partial>
 </template>
 
 <script type="application/x-go">
@@ -60,7 +60,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 
     post, err := domain.GetPostBySlug(slug)
     if err != nil {
-        return Response{}, piko.Metadata{Status: 404, Title: "Not Found"}, nil
+        return Response{}, piko.Metadata{}, piko.NotFound("post", slug)
     }
 
     return Response{Post: post}, piko.Metadata{Title: post.Title}, nil
@@ -68,7 +68,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 </script>
 ```
 
-**Key points**: Dynamic route `{slug}`, `r.PathParam("slug")`, 404 via metadata, partial import with `is` attribute.
+**Key points**: Dynamic route `{slug}`, `r.PathParam("slug")`, typed `piko.NotFound` error to trigger `!404.pk`, partial import via `<piko:partial is="layout">`.
 
 ## Partial with props and slots (layout)
 
@@ -80,7 +80,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     <title>{{ state.PageTitle }}</title>
   </head>
   <body>
-    <nav is="nav" :server.current_page="state.CurrentPage"></nav>
+    <piko:partial is="nav" :server.current_page="state.CurrentPage"></piko:partial>
     <main>
       <piko:slot />
     </main>
@@ -127,14 +127,14 @@ func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
 ```piko
 <!-- pages/about.pk -->
 <template>
-  <layout is="layout" :server.page_title="'About Us'" :server.current_page="'about'">
+  <piko:partial is="layout" :server.page_title="'About Us'" :server.current_page="'about'">
     <h1>About Us</h1>
     <p>We build amazing things.</p>
 
     <piko:slot name="footer">
       <p>Custom about page footer</p>
     </piko:slot>
-  </layout>
+  </piko:partial>
 </template>
 
 <script type="application/x-go">
@@ -157,7 +157,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Meta
 
 ```piko
 <!-- components/pp-counter.pkc -->
-<template>
+<template name="pp-counter">
   <div class="counter">
     <button p-on:click="decrement">-</button>
     <span p-class="{ negative: state.count < 0 }">{{ state.count }}</span>
@@ -165,7 +165,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Meta
   </div>
 </template>
 
-<script lang="ts" name="pp-counter">
+<script lang="ts">
 const state = {
     count: 0 as number,
     step: 1 as number,
@@ -199,7 +199,7 @@ button {
 </style>
 ```
 
-**Key points**: `name="pp-counter"` on script tag, `as number` type annotation, snake_case state vars, `:host([step])` CSS selector using attribute sync, Shadow DOM encapsulated styles.
+**Key points**: `name="pp-counter"` on `<template>` (script `name` is ignored), `as number` annotation, snake_case state, `:host([step])` attribute sync, Shadow DOM styles.
 
 Usage in a PK page:
 
@@ -213,10 +213,10 @@ Usage in a PK page:
 ```piko
 <!-- pages/contact.pk -->
 <template>
-  <layout is="layout" :server.page_title="'Contact'">
+  <piko:partial is="layout" :server.page_title="'Contact'">
     <h1>Contact Us</h1>
 
-    <form p-on:submit.prevent="action.contact_submit()">
+    <form p-on:submit.prevent="action.contact.Submit($form).call()">
       <div>
         <label for="name">Name</label>
         <input id="name" name="name" type="text" required />
@@ -234,7 +234,7 @@ Usage in a PK page:
 
       <button type="submit">Send Message</button>
     </form>
-  </layout>
+  </piko:partial>
 </template>
 
 <script type="application/x-go">
@@ -251,10 +251,10 @@ func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Meta
 </script>
 ```
 
-The action (`actions/contact_submit.go`):
+The action (`actions/contact/submit.go`):
 
 ```go
-package actions
+package contact
 
 import (
     "fmt"
@@ -265,11 +265,11 @@ type ContactResponse struct {
     OK bool `json:"ok"`
 }
 
-type ContactSubmitAction struct {
+type SubmitAction struct {
     piko.ActionMetadata
 }
 
-func (a ContactSubmitAction) Call(name string, email string, message string) (ContactResponse, error) {
+func (a SubmitAction) Call(name string, email string, message string) (ContactResponse, error) {
     err := sendEmail(email, name, message)
     if err != nil {
         a.Response().AddHelper("showToast", "Could not send message.", "error")
@@ -281,16 +281,16 @@ func (a ContactSubmitAction) Call(name string, email string, message string) (Co
 }
 ```
 
-Actions are auto-registered by the generator - run `go run ./cmd/generator all` after creating new action files.
+Run `go run ./cmd/generator/main.go all` after creating new action files.
 
-**Key points**: `p-on:submit.prevent` with `action.` prefix, input `name` attributes match `Call` parameters, `piko.ActionMetadata` embed, `showToast` helper for feedback, generator auto-registers actions.
+**Key points**: `action.<package>.<StructNameMinusActionSuffix>` (here `action.contact.Submit`), `$form` binds input `name` to `Call` parameters, `piko.ActionMetadata` embed, `showToast` helper, generator auto-registers.
 
 ## Product list with loops and conditionals
 
 ```piko
 <!-- pages/products.pk -->
 <template>
-  <layout is="layout" :server.page_title="'Products'">
+  <piko:partial is="layout" :server.page_title="'Products'">
     <h1>Products</h1>
 
     <div p-if="len(state.Products) == 0">
@@ -304,14 +304,14 @@ Actions are auto-registered by the generator - run `go run ./cmd/generator all` 
         <span p-if="product.InStock" class="badge-success">In Stock</span>
         <span p-else class="badge-danger">Out of Stock</span>
         <button
-          p-on:click="action.add_to_cart(product.ID)"
+          p-on:click="action.cart.Add({id: product.ID}).call()"
           :disabled="!product.InStock"
         >
           Add to Cart
         </button>
       </div>
     </div>
-  </layout>
+  </piko:partial>
 </template>
 ```
 
@@ -322,13 +322,13 @@ Actions are auto-registered by the generator - run `go run ./cmd/generator all` 
 ```piko
 <!-- pages/blog/index.pk -->
 <template>
-  <layout is="layout" :server.page_title="'Blog'">
+  <piko:partial is="layout" :server.page_title="'Blog'">
     <h1>Blog</h1>
     <article p-for="post in state.Posts" p-key="post.Slug">
       <h2><a :href="`/blog/${post.Slug}`">{{ post.Title }}</a></h2>
       <time>{{ post.Date }}</time>
     </article>
-  </layout>
+  </piko:partial>
 </template>
 
 <script type="application/x-go">
@@ -350,16 +350,35 @@ type Response struct {
 }
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
-    posts, err := piko.GetAllCollectionItems("blog")
+    items, err := piko.GetAllCollectionItems("blog")
     if err != nil {
         return Response{}, piko.Metadata{}, err
     }
+
+    posts := make([]Post, 0, len(items))
+    for _, item := range items {
+        posts = append(posts, Post{
+            Title: stringField(item, "Title"),
+            Slug:  stringField(item, "Slug"),
+            Date:  stringField(item, "Date"),
+        })
+    }
+
     return Response{Posts: posts}, piko.Metadata{Title: "Blog"}, nil
+}
+
+func stringField(item map[string]any, key string) string {
+    if value, ok := item[key]; ok {
+        if str, ok := value.(string); ok {
+            return str
+        }
+    }
+    return ""
 }
 </script>
 ```
 
-**Key points**: `piko.GetAllCollectionItems` for listing (returns `[]map[string]any`), template literals in `:href`, `p-for` with `p-key`.
+**Key points**: `piko.GetAllCollectionItems` returns `[]map[string]any` - convert to typed struct via a helper; template literals in `:href`; `p-for` with `p-key`.
 
 ## Related
 

@@ -22,11 +22,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3" // register "sqlite3" database/sql driver
+
+	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
@@ -48,8 +49,6 @@ const (
 	connMaxIdleTime = 5 * time.Minute
 
 	connMaxLifetime = 1 * time.Hour
-
-	directoryPermission = 0o750
 )
 
 // Config holds configuration for opening a SQLite database.
@@ -86,9 +85,11 @@ func Open(path string, config Config) (*sql.DB, error) {
 	}
 
 	if directory := filepath.Dir(path); directory != "." && directory != "" {
-		if err := os.MkdirAll(directory, directoryPermission); err != nil {
+		sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
+		if err != nil {
 			return nil, fmt.Errorf("db_driver_sqlite_cgo: creating directory %q: %w", directory, err)
 		}
+		_ = sandbox.Close()
 	}
 
 	busyTimeout := defaultBusyTimeoutMs

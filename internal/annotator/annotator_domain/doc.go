@@ -19,10 +19,10 @@
 // Package annotator_domain provides the core compilation pipeline for Piko
 // templates.
 //
-// This package implements the multi-pass compilation process that transforms
-// .pk template files into fully annotated ASTs ready for code generation.
-// The pipeline handles parsing, dependency graph building, partial expansion,
-// type resolution, semantic analysis, and CSS processing.
+// Implements the multi-pass compilation process that transforms .pk template
+// files into fully annotated ASTs ready for code generation. The pipeline
+// handles parsing, dependency graph building, partial expansion, type
+// resolution, semantic analysis, and CSS processing.
 //
 // # Compilation pipeline
 //

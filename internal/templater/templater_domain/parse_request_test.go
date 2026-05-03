@@ -403,6 +403,81 @@ func TestParseRequestData_ParseFormData(t *testing.T) {
 	}
 }
 
+func TestParseRequestDataWithLimit_HonoursCallerLimit(t *testing.T) {
+	t.Parallel()
+
+	body := strings.NewReader("--boundary\r\n" +
+		"Content-Disposition: form-data; name=\"field1\"\r\n\r\n" +
+		"value1\r\n" +
+		"--boundary--\r\n")
+	request := httptest.NewRequest("POST", "/", body)
+	request.Header.Set("Content-Type", "multipart/form-data; boundary=boundary")
+
+	router := chi.NewRouter()
+	var capturedRD *templater_dto.RequestData
+	var capturedErr error
+	router.Post("/", func(_ http.ResponseWriter, r *http.Request) {
+		capturedRD, capturedErr = templater_domain.ParseRequestDataWithLimit(r, "", 1024)
+	})
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, request)
+
+	require.NoError(t, capturedErr)
+	require.NotNil(t, capturedRD)
+	assert.Equal(t, []string{"value1"}, capturedRD.FormData()["field1"])
+}
+
+func TestParseRequestDataWithLimit_NonPositiveFallsBack(t *testing.T) {
+	t.Parallel()
+
+	body := strings.NewReader("--boundary\r\n" +
+		"Content-Disposition: form-data; name=\"field1\"\r\n\r\n" +
+		"value1\r\n" +
+		"--boundary--\r\n")
+	request := httptest.NewRequest("POST", "/", body)
+	request.Header.Set("Content-Type", "multipart/form-data; boundary=boundary")
+
+	router := chi.NewRouter()
+	var capturedRD *templater_dto.RequestData
+	var capturedErr error
+	router.Post("/", func(_ http.ResponseWriter, r *http.Request) {
+		capturedRD, capturedErr = templater_domain.ParseRequestDataWithLimit(r, "", 0)
+	})
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, request)
+
+	require.NoError(t, capturedErr)
+	require.NotNil(t, capturedRD)
+	assert.Equal(t, []string{"value1"}, capturedRD.FormData()["field1"])
+}
+
+func TestParseRequestDataWithLimit_AcceptsWithinLimit(t *testing.T) {
+	t.Parallel()
+
+	body := strings.NewReader("--boundary\r\n" +
+		"Content-Disposition: form-data; name=\"field1\"\r\n\r\n" +
+		"value1\r\n" +
+		"--boundary--\r\n")
+	request := httptest.NewRequest("POST", "/", body)
+	request.Header.Set("Content-Type", "multipart/form-data; boundary=boundary")
+
+	router := chi.NewRouter()
+	var capturedRD *templater_dto.RequestData
+	var capturedErr error
+	router.Post("/", func(_ http.ResponseWriter, r *http.Request) {
+		capturedRD, capturedErr = templater_domain.ParseRequestDataWithLimit(r, "", 32<<20)
+	})
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, request)
+
+	require.NoError(t, capturedErr)
+	require.NotNil(t, capturedRD)
+	assert.Equal(t, []string{"value1"}, capturedRD.FormData()["field1"])
+}
+
 func TestParseRequestData_FullRequest(t *testing.T) {
 	t.Parallel()
 
@@ -1101,4 +1176,26 @@ func TestParseRequestData_ForwardsCookies(t *testing.T) {
 
 	allCookies := capturedRD.Cookies()
 	assert.Len(t, allCookies, 2)
+}
+
+func TestParseURLEncodedFormData_RejectsOversizedBody(t *testing.T) {
+	originalCap := templater_domain.DefaultMaxURLEncodedFormBytes
+	templater_domain.DefaultMaxURLEncodedFormBytes = 64
+	t.Cleanup(func() { templater_domain.DefaultMaxURLEncodedFormBytes = originalCap })
+
+	router := chi.NewRouter()
+	var captured error
+	router.Post("/test", func(_ http.ResponseWriter, r *http.Request) {
+		_, captured = templater_domain.ParseRequestData(r, "en_GB")
+	})
+
+	pad := strings.Repeat("a", 256)
+	body := strings.NewReader("field=" + pad)
+	request := httptest.NewRequest("POST", "/test", body)
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, request)
+
+	require.Error(t, captured, "ParseRequestData should reject body that exceeds the configured cap")
 }

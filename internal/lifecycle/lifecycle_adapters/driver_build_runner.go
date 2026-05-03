@@ -106,8 +106,8 @@ type buildService struct {
 	// and asset files get a real sandbox rather than falling back to NoOp.
 	externalSandboxFactory safedisk.Factory
 
-	// configProvider gives access to website and server settings.
-	configProvider *config.Provider
+	// websiteConfig provides theme/font/favicon metadata for theme building.
+	websiteConfig *config.WebsiteConfig
 
 	// pathsConfig holds the resolved path settings for file system operations.
 	pathsConfig lifecycle_domain.LifecyclePathsConfig
@@ -135,8 +135,6 @@ func (bs *buildService) RunBuild(ctx context.Context) (*lifecycle_domain.BuildRe
 	startStats := dispatcher.Stats()
 
 	l.Internal("Starting full build process...")
-
-	bs.loadWebsiteConfig(ctx)
 
 	if err := bs.buildThemeArtefact(ctx); err != nil {
 		return nil, fmt.Errorf("building theme artefact: %w", err)
@@ -180,21 +178,6 @@ func (bs *buildService) RunBuild(ctx context.Context) (*lifecycle_domain.BuildRe
 	return result, nil
 }
 
-// loadWebsiteConfig loads the website settings file.
-// If loading fails, some features may not work, but this is not a fatal error.
-func (bs *buildService) loadWebsiteConfig(ctx context.Context) {
-	_, configSpan, configLog := log.Span(ctx, "loadWebsiteConfig")
-	defer configSpan.End()
-
-	if err := bs.configProvider.LoadWebsiteConfig(); err != nil {
-		configLog.Warn("Site config.json not loaded, some features may be disabled", logger_domain.String(fieldError, err.Error()))
-		configSpan.RecordError(err)
-		configSpan.SetStatus(codes.Error, "Failed to load website config")
-		return
-	}
-	configSpan.SetStatus(codes.Ok, "Website config loaded")
-}
-
 // buildThemeArtefact creates and stores the theme.css file.
 //
 // Returns error when building the CSS fails or storing the file fails.
@@ -202,7 +185,7 @@ func (bs *buildService) buildThemeArtefact(ctx context.Context) error {
 	themeCtx, themeSpan, themeLog := log.Span(ctx, "generateThemeArtefact")
 	defer themeSpan.End()
 
-	cssBytes, err := bs.renderer.BuildThemeCSS(themeCtx, &bs.configProvider.WebsiteConfig)
+	cssBytes, err := bs.renderer.BuildThemeCSS(themeCtx, bs.websiteConfig)
 	if err != nil {
 		themeLog.Error("Failed to build theme CSS", logger_domain.Error(err))
 		themeSpan.RecordError(err)
@@ -1268,9 +1251,10 @@ func (bs *buildService) createExternalSandbox(purpose, path string) (safedisk.Sa
 
 // NewBuildService creates a new build service for running full builds.
 //
-// Takes configProvider (*config.Provider) which provides configuration settings.
+// Takes websiteConfig (*config.WebsiteConfig) which provides theme/font/
+// favicon metadata for theme building.
 // Takes pathsConfig (lifecycle_domain.LifecyclePathsConfig) which holds the
-// resolved path settings for file system operations.
+// resolved path settings for filesystem operations.
 // Takes registry (registry_domain.RegistryService) which manages component
 // registration.
 // Takes orchestratorService (orchestrator_domain.OrchestratorService) which
@@ -1290,7 +1274,7 @@ func (bs *buildService) createExternalSandbox(purpose, path string) (safedisk.Sa
 //
 //nolint:revive // DI constructor
 func NewBuildService(
-	configProvider *config.Provider,
+	websiteConfig *config.WebsiteConfig,
 	pathsConfig lifecycle_domain.LifecyclePathsConfig,
 	registry registry_domain.RegistryService,
 	orchestratorService orchestrator_domain.OrchestratorService,
@@ -1302,7 +1286,7 @@ func NewBuildService(
 	sandboxFactory safedisk.Factory,
 ) lifecycle_domain.BuilderAdapter {
 	return &buildService{
-		configProvider:      configProvider,
+		websiteConfig:       websiteConfig,
 		pathsConfig:         pathsConfig,
 		registryService:     registry,
 		orchestratorService: orchestratorService,

@@ -19,6 +19,7 @@
 package hnsw
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -33,12 +34,20 @@ const minRandomValue = 1e-10
 // Takes vector ([]float32) which is the vector data. Must match the graph's
 // dimension.
 //
+// Returns ErrVectorDimensionMismatch if the vector length does not match the
+// graph's configured dimension.
+//
 // Safe for concurrent use.
-func (g *Graph[K]) Insert(key K, vector []float32) {
+func (g *Graph[K]) Insert(key K, vector []float32) error {
+	if len(vector) != g.dimension {
+		return fmt.Errorf("%w: got %d, want %d", ErrVectorDimensionMismatch, len(vector), g.dimension)
+	}
+
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	g.insertLocked(key, vector)
+	return nil
 }
 
 // InsertBatch adds multiple vectors to the graph in a single operation.
@@ -51,10 +60,19 @@ func (g *Graph[K]) Insert(key K, vector []float32) {
 // Each vector must match the graph's dimension. If lengths differ or either
 // slice is empty, this is a no-op.
 //
+// Returns ErrVectorDimensionMismatch if any vector length does not match the
+// graph's configured dimension. No vectors are inserted in that case.
+//
 // Safe for concurrent use.
-func (g *Graph[K]) InsertBatch(keys []K, vectors [][]float32) {
+func (g *Graph[K]) InsertBatch(keys []K, vectors [][]float32) error {
 	if len(keys) != len(vectors) || len(keys) == 0 {
-		return
+		return nil
+	}
+
+	for i, vector := range vectors {
+		if len(vector) != g.dimension {
+			return fmt.Errorf("%w: index %d got %d, want %d", ErrVectorDimensionMismatch, i, len(vector), g.dimension)
+		}
 	}
 
 	g.mu.Lock()
@@ -63,6 +81,7 @@ func (g *Graph[K]) InsertBatch(keys []K, vectors [][]float32) {
 	for i, key := range keys {
 		g.insertLocked(key, vectors[i])
 	}
+	return nil
 }
 
 // insertLocked performs the insert logic without acquiring the lock.

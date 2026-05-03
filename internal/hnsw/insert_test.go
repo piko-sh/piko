@@ -283,6 +283,36 @@ func TestGraph_InsertBatch(t *testing.T) {
 	})
 }
 
+func TestHNSW_Insert_RejectsWrongDimensionVector(t *testing.T) {
+	t.Parallel()
+
+	g := New[string](3, vectormaths.Cosine, WithRandomSeed(42))
+
+	t.Run("longer vector returns sentinel", func(t *testing.T) {
+		err := g.Insert("oversize", []float32{1, 0, 0, 1})
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrVectorDimensionMismatch)
+	})
+
+	t.Run("shorter vector returns sentinel", func(t *testing.T) {
+		err := g.Insert("undersize", []float32{1, 0})
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrVectorDimensionMismatch)
+	})
+
+	t.Run("matching dimension succeeds", func(t *testing.T) {
+		require.NoError(t, g.Insert("ok", []float32{1, 0, 0}))
+	})
+
+	t.Run("InsertBatch rejects mismatched vector", func(t *testing.T) {
+		batchGraph := New[int](3, vectormaths.Cosine, WithRandomSeed(42))
+		err := batchGraph.InsertBatch([]int{1, 2}, [][]float32{{1, 0, 0}, {1, 0}})
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrVectorDimensionMismatch)
+		assert.Equal(t, 0, batchGraph.Len(), "no vectors should be inserted on mismatch")
+	})
+}
+
 func bruteForceSearch(vectors [][]float32, query []float32, topK int) []int {
 	type scored struct {
 		index    int

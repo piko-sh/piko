@@ -19,14 +19,12 @@
 // Package logger_integration_sentry provides Sentry error tracking
 // integration for Piko's logging system.
 //
-// Importing this package registers Sentry as a logging integration
-// so that errors are reported automatically, breadcrumbs are captured,
-// and OpenTelemetry traces propagate via the Sentry SDK. It can be
-// enabled programmatically with [Enable], or via piko.yaml
-// configuration with a blank import.
+// Importing the package registers Sentry as a logging integration so that
+// errors are reported automatically, breadcrumbs are captured, and
+// OpenTelemetry traces propagate via the Sentry SDK. Enable it
+// programmatically with [Enable] from your func main.
 //
-// The package also provides OpenTelemetry span processing through
-// Sentry's OTel bridge, so distributed traces and log events are
-// correlated in the Sentry dashboard. [Enable] uses [sync.Once]
-// and is safe for concurrent use.
+// The package also provides OpenTelemetry span processing through Sentry's
+// OTel bridge, so distributed traces and log events are correlated in the
+// Sentry dashboard. [Enable] uses [sync.Once] and is safe for concurrent use.
 package logger_integration_sentry

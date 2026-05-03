@@ -199,23 +199,26 @@ piko.hooks.on('action:complete', (payload) => {
 });
 ```
 
-| Hook | Payload type | When it fires |
-|------|-------------|---------------|
+All payloads include a `timestamp` field (Unix ms). Other fields per event:
+
+| Hook | Payload | When it fires |
+|------|---------|---------------|
 | `framework:ready` | `{ version, loadTime }` | Framework initialised |
-| `page:view` | `{ url, title, referrer, isInitialLoad, timestamp }` | Page navigation |
-| `navigation:start` | `{ url, fromUrl, trigger }` | Navigation begins |
-| `navigation:complete` | `{ url, fromUrl, trigger, duration }` | Navigation finishes |
-| `navigation:error` | `{ url, fromUrl, error }` | Navigation fails |
-| `action:start` | `{ actionName, element, formData? }` | Server action begins |
-| `action:complete` | `{ actionName, element, success, duration, response? }` | Server action finishes |
-| `modal:open` | `{ modalId, trigger? }` | Modal opens |
-| `modal:close` | `{ modalId, trigger? }` | Modal closes |
-| `partial:render` | `{ selector, src, duration }` | Partial rendered |
-| `form:dirty` | `{ formId?, formElement }` | Form becomes dirty |
-| `form:clean` | `{ formId?, formElement }` | Form becomes clean |
-| `network:online` | `{ online, timestamp }` | Browser goes online |
-| `network:offline` | `{ online, timestamp }` | Browser goes offline |
-| `error` | `{ type, message, url?, stack? }` | Error occurs |
+| `page:view` | `{ url, title, referrer, isInitialLoad }` | Page navigation |
+| `navigation:start` | `{ url, previousUrl? }` | SPA navigation begins |
+| `navigation:complete` | `{ url, previousUrl?, duration }` | SPA navigation finishes |
+| `navigation:error` | `{ url, error }` | Navigation fails |
+| `action:start` | `{ action, method, elementTag }` | Server action begins |
+| `action:complete` | `{ action, method, elementTag, success, statusCode, duration, validationFailed? }` | Server action finishes |
+| `modal:open` | `{ modalId?, url? }` | Modal opens |
+| `modal:close` | `{ modalId?, url? }` | Modal closes |
+| `partial:render` | `{ src, patchLocation }` | Partial rendered |
+| `form:dirty` | `{ formId? }` | Form becomes dirty |
+| `form:clean` | `{ formId? }` | Form becomes clean |
+| `network:online` | `{}` | Browser goes online |
+| `network:offline` | `{}` | Browser goes offline |
+| `error` | `{ type, message, context, url?, stack? }` | Error occurs (`context: 'navigation' \| 'action' \| 'render' \| 'unknown'`) |
+| `analytics:track` | `{ eventName, params }` | `piko.analytics.track()` called |
 
 Methods: `on(event, cb, opts?)` returns unsubscribe fn, `once(event, cb, opts?)`, `off(event, id)`, `clear(event?)`.
 
@@ -466,7 +469,8 @@ Control how partials behave during server-side refresh:
 |-----------|---------|
 | `pk-no-refresh` | Skip this element during partial refresh |
 | `pk-refresh-root` | Mark this element as the refresh boundary |
-| `pk-own-attrs` | Comma-separated list of attributes this partial owns (preserved during refresh) |
+| `pk-own-attrs` | Comma-separated list of server-owned attributes that ARE updated during refresh; all unlisted attributes are preserved |
+| `pk-no-refresh-attrs` | Skip attribute refresh entirely on this element |
 | `pk-loading` | CSS class automatically toggled during partial reload |
 
 ## LLM mistake checklist

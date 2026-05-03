@@ -168,7 +168,7 @@ func (e *DiskPKJSEmitter) EmitJS(
 		return "", fmt.Errorf("creating directory for PK JS %s: %w", artefactID, err)
 	}
 
-	if err := e.sandbox.WriteFile(artefactID, []byte(result.Code), filePermissions); err != nil {
+	if err := e.sandbox.WriteFileAtomic(artefactID, []byte(result.Code), filePermissions); err != nil {
 		return "", fmt.Errorf("writing PK JS %s to disk: %w", artefactID, err)
 	}
 

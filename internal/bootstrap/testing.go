@@ -20,11 +20,11 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	cache_provider_mock "piko.sh/piko/internal/cache/cache_adapters/provider_mock"
 	"piko.sh/piko/internal/cache/cache_domain"
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/email/email_domain"
 	"piko.sh/piko/internal/image/image_domain"
 	"piko.sh/piko/internal/image/image_dto"
@@ -76,7 +76,7 @@ func (*mockEmailTemplateService) Render(
 // InitialiseForTesting initialises Piko's global services with minimal
 // dependencies suitable for unit and integration tests.
 //
-// This function creates a fully mocked Piko environment with:
+// Creates a fully mocked Piko environment with:
 //   - In-memory cache provider (no Redis/external cache)
 //   - In-memory storage provider (no S3/disk writes)
 //   - In-memory registry (no metadata.db SQLite file)
@@ -93,9 +93,11 @@ func (*mockEmailTemplateService) Render(
 // logging and debugging.
 //
 // Returns *Container which provides access to services and cleanup methods.
+// When the in-memory event provider fails to initialise the container is
+// returned in a degraded state and subsequent calls to GetEventBus surface
+// the underlying error.
 func InitialiseForTesting(mockEmailProvider email_domain.EmailProviderPort, emailProviderName string) *Container {
-	configProvider := config.NewConfigProvider()
-	container := NewContainer(configProvider)
+	container := NewContainer()
 
 	initialiseTestingRegistryService(container)
 	initialiseTestingEmailService(container, mockEmailProvider, emailProviderName)
@@ -110,9 +112,11 @@ func InitialiseForTesting(mockEmailProvider email_domain.EmailProviderPort, emai
 // initialiseTestingRegistryService sets up the registry service
 // with in-memory mocks for testing.
 //
-// Takes container (*Container) which receives the mock registry service.
+// On failure to create or start the GoChannel provider, the container's
+// eventBusErr is populated so callers of GetEventBus surface the cause; the
+// container is returned in a degraded state rather than panicking.
 //
-// Panics if the GoChannel provider cannot be created or started.
+// Takes container (*Container) which receives the mock registry service.
 func initialiseTestingRegistryService(container *Container) {
 	testCtx, l := logger_domain.From(context.Background(), log)
 
@@ -123,13 +127,23 @@ func initialiseTestingRegistryService(container *Container) {
 	goChannelConfig := events_provider_gochannel.DefaultConfig()
 	goChannelProvider, err := events_provider_gochannel.NewGoChannelProvider(goChannelConfig)
 	if err != nil {
+		wrapped := fmt.Errorf("creating GoChannel provider for testing: %w", err)
 		l.Error("Failed to create GoChannel provider for testing", logger_domain.Error(err))
-		panic("piko: failed to create events provider for testing: " + err.Error())
+		container.eventBusErr = wrapped
+		container.eventsProviderErr = wrapped
+		container.eventBusOnce.Do(func() {})
+		container.eventsProviderOnce.Do(func() {})
+		return
 	}
 
 	if err := goChannelProvider.Start(testCtx); err != nil {
+		wrapped := fmt.Errorf("starting GoChannel provider for testing: %w", err)
 		l.Error("Failed to start GoChannel provider for testing", logger_domain.Error(err))
-		panic("piko: failed to start events provider for testing: " + err.Error())
+		container.eventBusErr = wrapped
+		container.eventsProviderErr = wrapped
+		container.eventBusOnce.Do(func() {})
+		container.eventsProviderOnce.Do(func() {})
+		return
 	}
 
 	mockEventBus := orchestrator_adapters.NewWatermillEventBus(

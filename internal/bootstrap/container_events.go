@@ -37,9 +37,8 @@ import (
 //
 // Returns orchestrator_domain.EventBus which provides publish/subscribe
 // messaging capabilities.
-//
-// Panics if the events provider fails to initialise.
-func (c *Container) GetEventBus() orchestrator_domain.EventBus {
+// Returns error when the underlying events provider cannot be initialised.
+func (c *Container) GetEventBus() (orchestrator_domain.EventBus, error) {
 	c.eventBusOnce.Do(func() {
 		_, l := logger_domain.From(c.GetAppContext(), log)
 		if c.eventBusOverride != nil {
@@ -51,7 +50,8 @@ func (c *Container) GetEventBus() orchestrator_domain.EventBus {
 		provider, err := c.GetEventsProvider()
 		if err != nil {
 			l.Error("Failed to get events provider", logger_domain.Error(err))
-			panic("piko: events provider is required but failed to initialise: " + err.Error())
+			c.eventBusErr = fmt.Errorf("initialising event bus: events provider unavailable: %w", err)
+			return
 		}
 
 		l.Internal("Creating EventBus using Watermill provider...")
@@ -61,7 +61,7 @@ func (c *Container) GetEventBus() orchestrator_domain.EventBus {
 			provider.Router(),
 		)
 	})
-	return c.eventBus
+	return c.eventBus, c.eventBusErr
 }
 
 // GetEventsProvider returns the events infrastructure provider, initialising a

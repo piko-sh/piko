@@ -460,7 +460,7 @@ func formatComponentNotFoundError(componentTag string) string {
 			"  1. Create the component file: components/%s.pkc\n"+
 			"  2. Or remove the <%s> tag from your page if it's not needed\n"+
 			"  3. Run the build generator to register the component\n\n"+
-			"See: https://piko.sh/docs/guide/client-components",
+			"See: https://piko.sh/docs/reference/client-components",
 		componentTag, componentTag, componentTag,
 	)
 }

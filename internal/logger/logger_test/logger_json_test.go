@@ -33,7 +33,6 @@ import (
 	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
 )
@@ -51,7 +50,7 @@ func setupJSONTestLogger(t *testing.T, loggerConfig logger_dto.Config) (logger_d
 		_, _ = io.Copy(buffer, r)
 	})
 
-	slogLogger, shutdown, err := Initialise(context.Background(), loggerConfig, &config.ServerConfig{})
+	slogLogger, shutdown, err := Initialise(context.Background(), loggerConfig)
 	require.NoError(t, err)
 
 	InitDefaultFactory(slogLogger)

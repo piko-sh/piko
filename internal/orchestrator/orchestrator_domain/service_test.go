@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -920,4 +921,100 @@ func (e *AlwaysFailExecutor) Execute(_ context.Context, _ map[string]any) (map[s
 		defer e.wg.Done()
 	}
 	return nil, errors.New("always fails")
+}
+
+func TestService_ConcurrentDispatchDuringShutdown(t *testing.T) {
+	t.Parallel()
+
+	const dispatcherCount = 64
+
+	fakeStore := NewFakeTaskStore()
+	mockDispatcher := NewMockTaskDispatcher()
+	executor := &RecordingExecutor{}
+	mockDispatcher.RegisterExecutor(context.Background(), "recorder", executor)
+
+	service := mustCastToOrchestratorService(t, NewService(context.Background(), fakeStore, nil,
+		WithSchedulerInterval(10*time.Second),
+		WithBatchConfig(testBatchSize, testBatchTimeout),
+		WithInsertQueueSize(testInsertQueueSize),
+		WithTaskDispatcher(mockDispatcher),
+	))
+	require.NoError(t, service.RegisterExecutor(context.Background(), "recorder", executor))
+
+	runCtx, runCancel := context.WithCancelCause(context.Background())
+	go service.Run(runCtx)
+	t.Cleanup(func() {
+		runCancel(fmt.Errorf("test: cleanup"))
+		service.Stop()
+	})
+
+	warmup := NewTask("recorder", map[string]any{"taskID": "warmup"})
+	warmup.ID = "warmup-task"
+	warmup.WorkflowID = "warmup-workflow"
+	_, err := service.Dispatch(context.Background(), warmup)
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		fakeStore.mu.Lock()
+		_, exists := fakeStore.tasks["warmup-task"]
+		fakeStore.mu.Unlock()
+		return exists
+	}, 2*time.Second, time.Millisecond, "service.Run must drain the warmup task from the channel before shutdown to avoid nil-context panic in Stop")
+
+	startGate := make(chan struct{})
+	var dispatchWg sync.WaitGroup
+	dispatchWg.Add(dispatcherCount)
+
+	for i := range dispatcherCount {
+		go func(idx int) {
+			defer dispatchWg.Done()
+			<-startGate
+
+			task := NewTask("recorder", map[string]any{"taskID": fmt.Sprintf("shutdown-race-%d", idx)})
+			task.ID = fmt.Sprintf("shutdown-race-%d", idx)
+			task.WorkflowID = fmt.Sprintf("shutdown-race-workflow-%d", idx)
+
+			_, err := service.Dispatch(context.Background(), task)
+			if err != nil && !errors.Is(err, ErrOrchestratorShuttingDown) {
+				if !strings.Contains(err.Error(), "overloaded") {
+					assert.Failf(t, "unexpected dispatch error", "got %v", err)
+				}
+			}
+
+			scheduleTask := NewTask("recorder", map[string]any{"taskID": fmt.Sprintf("schedule-race-%d", idx)})
+			scheduleTask.ID = fmt.Sprintf("schedule-race-%d", idx)
+			scheduleTask.WorkflowID = fmt.Sprintf("schedule-race-workflow-%d", idx)
+
+			_, err = service.Schedule(context.Background(), scheduleTask, time.Now().Add(time.Hour))
+			if err != nil && !errors.Is(err, ErrOrchestratorShuttingDown) {
+				if !strings.Contains(err.Error(), "overloaded") {
+					assert.Failf(t, "unexpected schedule error", "got %v", err)
+				}
+			}
+		}(i)
+	}
+
+	close(startGate)
+	runCancel(fmt.Errorf("test: trigger shutdown"))
+	service.Stop()
+
+	dispatchWg.Wait()
+
+	postShutdownTask := NewTask("recorder", map[string]any{"taskID": "post-shutdown"})
+	postShutdownTask.ID = "post-shutdown-task"
+	postShutdownTask.WorkflowID = "post-shutdown-workflow"
+
+	_, err = service.Dispatch(context.Background(), postShutdownTask)
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrOrchestratorShuttingDown,
+		"Dispatch after shutdown must return ErrOrchestratorShuttingDown")
+
+	postSchedule := NewTask("recorder", map[string]any{"taskID": "post-schedule"})
+	postSchedule.ID = "post-schedule-task"
+	postSchedule.WorkflowID = "post-schedule-workflow"
+
+	_, err = service.Schedule(context.Background(), postSchedule, time.Now().Add(time.Hour))
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrOrchestratorShuttingDown,
+		"Schedule after shutdown must return ErrOrchestratorShuttingDown")
 }

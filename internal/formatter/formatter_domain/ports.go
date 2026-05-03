@@ -100,8 +100,8 @@ type Range struct {
 }
 
 // FormatOptions configures the formatting behaviour.
-// For now, we start with zero configuration (opinionated formatting),
-// but this struct allows for future extensibility.
+// For now, we start with zero configuration (opinionated formatting), but the
+// type allows for future extensibility.
 type FormatOptions struct {
 	// FileFormat specifies the type of file being formatted.
 	// Default: FormatAuto (auto-detect based on content).

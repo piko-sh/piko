@@ -73,7 +73,7 @@ func (c *Container) GetCapabilityService() (capabilities.Service, error) {
 func (c *Container) createDefaultCapabilityService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default CapabilityService...")
-	serverConfig := c.config.ServerConfig
+	serverConfig := c.serverConfig
 
 	imageService, err := c.GetImageService()
 	if err != nil {
@@ -278,7 +278,12 @@ func (c *Container) createOrchestratorServiceCore() (orchestrator.Service, regis
 		return nil, nil, fmt.Errorf("creating orchestrator task store: %w", err)
 	}
 
-	orcService, err := orchestrator.NewService(c.GetAppContext(), orchestrator.Config{TaskStore: taskStore, EventBus: c.GetEventBus()})
+	eventBus, err := c.GetEventBus()
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting event bus for orchestrator: %w", err)
+	}
+
+	orcService, err := orchestrator.NewService(c.GetAppContext(), orchestrator.Config{TaskStore: taskStore, EventBus: eventBus})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create orchestrator service: %w", err)
 	}
@@ -309,7 +314,10 @@ func (c *Container) createOrchestratorServiceCore() (orchestrator.Service, regis
 //
 // Spawns a goroutine to wait for bridge events until the context is cancelled.
 func (c *Container) setupOrchestratorBridge(orcService orchestrator.Service, registryService registry_domain.RegistryService) (*orchestrator_adapters.ArtefactWorkflowBridge, error) {
-	eventBus := c.GetEventBus()
+	eventBus, err := c.GetEventBus()
+	if err != nil {
+		return nil, fmt.Errorf("getting event bus for orchestrator bridge: %w", err)
+	}
 	bridge := orchestrator_adapters.NewArtefactWorkflowBridge(registryService, orcService, orcService.GetTaskDispatcher(), eventBus)
 
 	wait, err := bridge.StartListening(c.GetAppContext(), eventBus)

@@ -19,6 +19,7 @@
 package lifecycle_domain
 
 import (
+	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -28,7 +29,7 @@ import (
 )
 
 // FileSystem defines file operations for reading and traversing files.
-// Tests can use mock versions instead of real file system access.
+// Tests can use mock versions instead of real filesystem access.
 type FileSystem interface {
 	// WalkDir walks the file tree rooted at root, calling
 	// walkFunction for each file or directory.
@@ -87,7 +88,7 @@ var (
 	_ FileSystem = (*sandboxedFileSystem)(nil)
 )
 
-// osFileSystem implements the FileSystem interface using the os package.
+// osFileSystem implements the filesystem interface using the os package.
 type osFileSystem struct{}
 
 // WalkDir walks the file tree rooted at root.
@@ -100,14 +101,47 @@ func (*osFileSystem) WalkDir(root string, walkFunction fs.WalkDirFunc) error {
 	return filepath.WalkDir(root, walkFunction)
 }
 
-// Open opens the named file for reading.
+// Open opens the named file for reading by constructing a one-shot read-only
+// sandbox at the file's parent directory. This routes the read through
+// safedisk path-traversal protection even when no project sandbox is wired in.
 //
 // Takes name (string) which specifies the path to the file to open.
 //
 // Returns io.ReadCloser which provides access to the file contents.
-// Returns error when the file cannot be opened.
+// Returns error when the parent sandbox cannot be created or the file cannot
+// be opened. Preserves the underlying *fs.PathError so callers using
+// os.IsNotExist continue to detect missing files.
 func (*osFileSystem) Open(name string) (io.ReadCloser, error) {
-	return os.Open(name) //nolint:gosec // caller validates path
+	directory := filepath.Dir(name)
+	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadOnly)
+	if err != nil {
+		return nil, &fs.PathError{Op: "open", Path: name, Err: unwrapToFSError(err)}
+	}
+	handle, err := sandbox.Open(filepath.Base(name))
+	if err != nil {
+		_ = sandbox.Close()
+		return nil, err
+	}
+	_ = sandbox.Close()
+	return handle, nil
+}
+
+// unwrapToFSError unwraps an error chain looking for an underlying syscall or
+// filesystem error so that it can be re-wrapped in a *fs.PathError that
+// os.IsNotExist understands.
+//
+// Takes err (error) which is the error to inspect.
+//
+// Returns error which is the deepest meaningful error in the chain, or err
+// itself when no inner error is present.
+func unwrapToFSError(err error) error {
+	if errors.Is(err, fs.ErrNotExist) {
+		return fs.ErrNotExist
+	}
+	if errors.Is(err, fs.ErrPermission) {
+		return fs.ErrPermission
+	}
+	return err
 }
 
 // Stat returns file information for the named file.
@@ -149,11 +183,11 @@ func (*osFileSystem) IsNotExist(err error) bool {
 	return os.IsNotExist(err)
 }
 
-// sandboxedFileSystem provides safe file system access within a restricted
-// directory. It implements the FileSystem interface using safedisk.Sandbox
-// for secure, sandboxed operations.
+// sandboxedFileSystem provides safe filesystem access within a restricted directory.
+// It implements the filesystem interface using safedisk.Sandbox for secure,
+// sandboxed operations.
 type sandboxedFileSystem struct {
-	// sandbox provides file system operations within a safe boundary.
+	// sandbox provides filesystem operations within a safe boundary.
 	sandbox safedisk.Sandbox
 }
 
@@ -220,9 +254,9 @@ func (*sandboxedFileSystem) IsNotExist(err error) bool {
 	return os.IsNotExist(err)
 }
 
-// newOSFileSystem creates a file system that uses the operating system.
+// newOSFileSystem creates a filesystem that uses the operating system.
 //
-// Returns FileSystem which provides access to the real file system.
+// Returns FileSystem which provides access to the real filesystem.
 func newOSFileSystem() FileSystem {
 	return &osFileSystem{}
 }

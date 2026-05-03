@@ -361,7 +361,6 @@ func createReadmes(factory safedisk.Factory, data ScaffoldData) error {
 // Returns error when the files cannot be created.
 func createConfigs(factory safedisk.Factory, data ScaffoldData) error {
 	files := map[string]string{
-		"config.json":   "configs/config.json",
 		"Dockerfile":    "configs/Dockerfile",
 		".dockerignore": "configs/.dockerignore",
 		".air.toml":     "configs/.air.toml",
@@ -409,6 +408,7 @@ func createTemplateFiles(factory safedisk.Factory, data ScaffoldData) error {
 	}{
 		{destPath: "go.mod", templateName: "go/go.mod.tmpl", fs: GoTmplFS},
 		{destPath: "go.work", templateName: "go/go.work.tmpl", fs: GoTmplFS},
+		{destPath: "internal/piko.go", templateName: "go/piko.go.tmpl", fs: GoTmplFS},
 		{destPath: "cmd/generator/main.go", templateName: "go/generator.go.tmpl", fs: GoTmplFS},
 		{destPath: "dist/generated.go", templateName: "go/generated.go.tmpl", fs: GoTmplFS},
 		{destPath: "cmd/main/main.go", templateName: "go/main.go.tmpl", fs: GoTmplFS},

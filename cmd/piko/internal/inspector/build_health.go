@@ -109,9 +109,9 @@ func healthDependencySection(dependency *pb.HealthStatus) DetailSection {
 	return section
 }
 
-// formatHealthReady counts healthy dependencies on a probe and returns
-// "x/y" for display in the Dependencies row. When the probe has no
-// dependencies the function returns "-" so the row reads cleanly.
+// formatHealthReady counts healthy dependencies on a probe and returns "x/y"
+// for display in the Dependencies row. When the probe has no dependencies,
+// returns "-" so the row reads cleanly.
 //
 // Takes status (*pb.HealthStatus) which contains the dependency list.
 //

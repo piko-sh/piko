@@ -82,7 +82,6 @@ func TestAcquireEvent_ReturnsZeroedEvent(t *testing.T) {
 }
 
 func TestAcquireEvent_ResetsFieldsFromPreviousUse(t *testing.T) {
-	rev := maths.NewMoneyFromString("29.99", "GBP")
 	ev := AcquireEvent()
 	ev.ClientIP = "1.2.3.4"
 	ev.Hostname = "example.com"
@@ -92,7 +91,7 @@ func TestAcquireEvent_ResetsFieldsFromPreviousUse(t *testing.T) {
 	ev.StatusCode = 200
 	ev.Properties = map[string]string{"key": "value"}
 	ev.Request = &http.Request{}
-	ev.Revenue = &rev
+	ev.Revenue = new(maths.NewMoneyFromString("29.99", "GBP"))
 	ev.Timestamp = time.Now()
 	ev.Duration = 5 * time.Second
 	ev.Type = EventCustom

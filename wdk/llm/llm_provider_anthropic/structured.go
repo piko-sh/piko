@@ -20,11 +20,12 @@ package llm_provider_anthropic
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/anthropics/anthropic-sdk-go"
 
+	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/wdk/logger"
 )
@@ -46,6 +47,8 @@ const structuredOutputToolName = "__piko_structured_output__"
 // extracted from the tool call result.
 // Returns error when the API request fails or response conversion fails.
 func (p *anthropicProvider) completeWithStructuredOutput(ctx context.Context, request *llm_dto.CompletionRequest, model string) (*llm_dto.CompletionResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.anthropicProvider.completeWithStructuredOutput")
+
 	ctx, l := logger.From(ctx, log)
 
 	schema := request.ResponseFormat.JSONSchema
@@ -73,7 +76,8 @@ func (p *anthropicProvider) completeWithStructuredOutput(ctx context.Context, re
 	message, err := p.client.Messages.New(ctx, params)
 	if err != nil {
 		completeErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("anthropic structured output completion failed: %w", wrapError(err))
+		wrapped := fmt.Errorf("anthropic structured output completion failed: %w", wrapError(err))
+		return nil, sanitiseProviderError(wrapped, "anthropic structured output rejected")
 	}
 
 	return p.convertStructuredOutputResponse(message, model)

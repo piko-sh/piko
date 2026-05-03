@@ -117,9 +117,9 @@ func NewBrowserPool(opts BrowserOptions, size int, config ...BrowserPoolConfig) 
 // pool members via round-robin. Each call selects the next browser in the
 // pool, ensuring even load distribution.
 //
-// When MaxConcurrentPages is configured, this method blocks until a slot is
-// available (or ctx is cancelled) and automatically releases it when the
-// returned page is closed.
+// When MaxConcurrentPages is configured, blocks until a slot is available (or
+// ctx is cancelled) and automatically releases it when the returned page is
+// closed.
 //
 // Takes ctx (context.Context) which controls the semaphore wait timeout.
 //

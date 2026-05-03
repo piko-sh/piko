@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"iter"
 	"maps"
+	"runtime"
+	"sync"
 	"time"
 
 	"github.com/sony/gobreaker/v2"
@@ -53,8 +55,16 @@ type MultiLevelAdapter[K comparable, V any] struct {
 	// l2Circuit is the circuit breaker for L2 cache operations.
 	l2Circuit *gobreaker.CircuitBreaker[any]
 
+	// backgroundSemaphore bounds the number of concurrent background workers
+	// (back-population, async write-back). A nil semaphore means unbounded.
+	backgroundSemaphore chan struct{}
+
 	// name is the identifier for this adapter level.
 	name string
+
+	// closeOnce guards single execution of Close so the underlying providers
+	// are only closed once.
+	closeOnce sync.Once
 }
 
 var _ cache_domain.ProviderPort[any, any] = (*MultiLevelAdapter[any, any])(nil)
@@ -203,16 +213,12 @@ func (m *MultiLevelAdapter[K, V]) createWriteBackLoader(loader cache_dto.Loader[
 // but whose cancellation and deadline are stripped via context.WithoutCancel.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
-//
-// Concurrent use is safe. Spawns a goroutine that completes independently.
-// The write may fail silently if the circuit breaker is open.
 func (m *MultiLevelAdapter[K, V]) asyncWriteToL2(ctx context.Context, key K, value V) {
 	ctx, l := logger_domain.From(ctx, log)
 
 	detachedCtx := context.WithoutCancel(ctx)
 
-	go func() {
-		defer goroutine.RecoverPanic(detachedCtx, "cache.multilevelAsyncWriteToL2")
+	m.spawnBackgroundWorker(detachedCtx, "cache.multilevelAsyncWriteToL2", func() {
 		_, err := m.l2Circuit.Execute(func() (any, error) {
 			return nil, m.l2Provider.Set(detachedCtx, key, value)
 		})
@@ -222,6 +228,28 @@ func (m *MultiLevelAdapter[K, V]) asyncWriteToL2(ctx context.Context, key K, val
 				logger_domain.String(fieldKey, fmt.Sprintf(fmtVerb, key)),
 				logger_domain.Error(err))
 		}
+	})
+}
+
+// spawnBackgroundWorker launches fn in a goroutine bounded by the adapter's
+// backgroundSemaphore. Acquisition of the semaphore happens synchronously on
+// the caller, so a saturated pool back-pressures the calling path rather than
+// piling up unbounded goroutines.
+//
+// Takes ctx (context.Context) which is forwarded to RecoverPanic for
+// observability.
+// Takes component (string) which identifies the worker for panic logging.
+// Takes fn (func()) which is the work to execute on the background goroutine.
+func (m *MultiLevelAdapter[K, V]) spawnBackgroundWorker(ctx context.Context, component string, fn func()) {
+	if m.backgroundSemaphore != nil {
+		m.backgroundSemaphore <- struct{}{}
+	}
+	go func() {
+		defer goroutine.RecoverPanic(ctx, component)
+		if m.backgroundSemaphore != nil {
+			defer func() { <-m.backgroundSemaphore }()
+		}
+		fn()
 	}()
 }
 
@@ -303,7 +331,8 @@ func (m *MultiLevelAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	return m.l1Provider.Invalidate(ctx, key)
 }
 
-// Compute atomically updates the value in L1 cache using the provided function.
+// Compute computes and atomically updates the value in L1 cache using the
+// provided function.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
@@ -492,9 +521,6 @@ func (*MultiLevelAdapter[K, V]) handleL2Error(ctx context.Context, err error, mi
 //
 // Takes l2Hits (map[K]V) which contains the cache hits from the L2 provider.
 // Takes results (map[K]V) which is the destination map for collected results.
-//
-// Safe for concurrent use. Spawns a goroutine to back-populate L1 cache
-// without blocking the caller.
 func (m *MultiLevelAdapter[K, V]) processL2Hits(ctx context.Context, l2Hits map[K]V, results map[K]V) {
 	if len(l2Hits) == 0 {
 		return
@@ -507,13 +533,13 @@ func (m *MultiLevelAdapter[K, V]) processL2Hits(ctx context.Context, l2Hits map[
 	}
 
 	detachedCtx := context.WithoutCancel(ctx)
+	hits := l2Hits
 
-	go func(hits map[K]V) {
-		defer goroutine.RecoverPanic(detachedCtx, "cache.multilevelBackPopulateL1")
+	m.spawnBackgroundWorker(detachedCtx, "cache.multilevelBackPopulateL1", func() {
 		for k, v := range hits {
 			_ = m.l1Provider.Set(detachedCtx, k, v)
 		}
-	}(l2Hits)
+	})
 }
 
 // collectRemainingMisses returns keys that were not found in L2 hits.
@@ -566,10 +592,6 @@ func (m *MultiLevelAdapter[K, V]) loadAndStoreValues(
 // storeLoadedValues stores values in L1 immediately and L2 asynchronously.
 //
 // Takes values (map[K]V) which contains the key-value pairs to store.
-//
-// Safe for concurrent use. Spawns a goroutine to write values to L2 via
-// the circuit breaker. L1 and L2 providers handle their own
-// synchronisation.
 func (m *MultiLevelAdapter[K, V]) storeLoadedValues(ctx context.Context, values map[K]V) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -578,9 +600,9 @@ func (m *MultiLevelAdapter[K, V]) storeLoadedValues(ctx context.Context, values 
 	}
 
 	detachedCtx := context.WithoutCancel(ctx)
+	vals := values
 
-	go func(vals map[K]V) {
-		defer goroutine.RecoverPanic(detachedCtx, "cache.multilevelStoreToL2")
+	m.spawnBackgroundWorker(detachedCtx, "cache.multilevelStoreToL2", func() {
 		_, err := m.l2Circuit.Execute(func() (any, error) {
 			for k, v := range vals {
 				if setErr := m.l2Provider.Set(detachedCtx, k, v); setErr != nil {
@@ -595,7 +617,7 @@ func (m *MultiLevelAdapter[K, V]) storeLoadedValues(ctx context.Context, values 
 				logger_domain.Int("value_count", len(vals)),
 				logger_domain.Error(err))
 		}
-	}(values)
+	})
 }
 
 // BulkSet stores multiple key-value pairs in both L1 and L2 caches.
@@ -714,11 +736,17 @@ func (m *MultiLevelAdapter[K, V]) Stats() cache_dto.Stats {
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 //
-// Returns error when resources cannot be released cleanly.
+// Returns error which is the joined errors from closing L1 and L2; nil when
+// both close cleanly. Idempotent: subsequent calls return the captured error
+// without re-closing the underlying providers.
 func (m *MultiLevelAdapter[K, V]) Close(ctx context.Context) error {
-	l1Err := m.l1Provider.Close(ctx)
-	l2Err := m.l2Provider.Close(ctx)
-	return errors.Join(l1Err, l2Err)
+	var closeErr error
+	m.closeOnce.Do(func() {
+		l1Err := m.l1Provider.Close(ctx)
+		l2Err := m.l2Provider.Close(ctx)
+		closeErr = errors.Join(l1Err, l2Err)
+	})
+	return closeErr
 }
 
 // BulkRefresh asynchronously refreshes multiple keys using the bulk loader
@@ -854,6 +882,28 @@ func (m *MultiLevelAdapter[K, V]) GetSchema() *cache_dto.SearchSchema {
 	return m.l1Provider.GetSchema()
 }
 
+// AdapterOption configures optional behaviour of a MultiLevelAdapter at
+// construction time.
+type AdapterOption[K comparable, V any] func(*MultiLevelAdapter[K, V])
+
+// WithBackgroundConcurrency limits how many background workers (back-population
+// and async write-back) may run at once. A non-positive limit disables the
+// bound entirely (unbounded concurrency, retained for backward compatibility).
+//
+// Takes limit (int) which is the maximum number of in-flight background
+// goroutines.
+//
+// Returns AdapterOption[K, V] which configures the adapter.
+func WithBackgroundConcurrency[K comparable, V any](limit int) AdapterOption[K, V] {
+	return func(m *MultiLevelAdapter[K, V]) {
+		if limit <= 0 {
+			m.backgroundSemaphore = nil
+			return
+		}
+		m.backgroundSemaphore = make(chan struct{}, limit)
+	}
+}
+
 // NewMultiLevelAdapter creates a new multi-level cache provider.
 //
 // Takes ctx (context.Context) which carries logging context for circuit
@@ -863,20 +913,31 @@ func (m *MultiLevelAdapter[K, V]) GetSchema() *cache_dto.SearchSchema {
 // Takes l2 (ProviderPort[K, V]) which is the remote backing
 // cache.
 // Takes cbConfig (Config) which configures the L2 circuit breaker.
+// Takes opts (...AdapterOption[K, V]) which configures optional behaviour
+// such as background worker concurrency.
 //
 // Returns *MultiLevelAdapter[K, V] which orchestrates L1 and L2
 // caches.
+//
+// By default the adapter bounds background goroutines to runtime.NumCPU().
+// Pass WithBackgroundConcurrency to override.
 func NewMultiLevelAdapter[K comparable, V any](
 	ctx context.Context,
 	name string,
 	l1 cache_domain.ProviderPort[K, V],
 	l2 cache_domain.ProviderPort[K, V],
 	cbConfig Config,
+	opts ...AdapterOption[K, V],
 ) *MultiLevelAdapter[K, V] {
-	return &MultiLevelAdapter[K, V]{
-		l1Provider: l1,
-		l2Provider: l2,
-		l2Circuit:  newCircuitBreaker(ctx, name, cbConfig.MaxConsecutiveFailures, cbConfig.OpenStateTimeout),
-		name:       name,
+	adapter := &MultiLevelAdapter[K, V]{
+		l1Provider:          l1,
+		l2Provider:          l2,
+		l2Circuit:           newCircuitBreaker(ctx, name, cbConfig.MaxConsecutiveFailures, cbConfig.OpenStateTimeout),
+		backgroundSemaphore: make(chan struct{}, runtime.NumCPU()),
+		name:                name,
 	}
+	for _, opt := range opts {
+		opt(adapter)
+	}
+	return adapter
 }

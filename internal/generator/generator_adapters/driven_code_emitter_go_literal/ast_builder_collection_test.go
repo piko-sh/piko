@@ -52,7 +52,7 @@ func TestGenerateCollectionDataPopulation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			statements := generateCollectionDataPopulation(tc.collectionName)
+			statements := generateCollectionDataPopulation(tc.collectionName, "slug")
 
 			require.Len(t, statements, 3, "expected 3 statements: assign, error check, data assignment")
 
@@ -107,7 +107,7 @@ func TestBuildCollectionItemFetchAssign(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			statement := buildCollectionItemFetchAssign(tc.collectionName)
+			statement := buildCollectionItemFetchAssign(tc.collectionName, "slug")
 
 			require.NotNil(t, statement)
 			assert.Len(t, statement.Lhs, tc.wantLhsCount)
@@ -319,4 +319,30 @@ func TestBuildPageKeyExtractionIfStmt(t *testing.T) {
 	selExpr, ok := callExpr.Fun.(*goast.SelectorExpr)
 	require.True(t, ok)
 	assert.Equal(t, "CollectionData", selExpr.Sel.Name)
+}
+
+func TestPathParamExpr_NamedSlugWrapsWithCmpOr(t *testing.T) {
+	t.Parallel()
+
+	got := pathParamExpr("slug")
+	call, ok := got.(*goast.CallExpr)
+	require.True(t, ok, "expected CallExpr, got %T", got)
+	selector, ok := call.Fun.(*goast.SelectorExpr)
+	require.True(t, ok)
+	pkg, ok := selector.X.(*goast.Ident)
+	require.True(t, ok)
+	assert.Equal(t, "cmp", pkg.Name)
+	assert.Equal(t, "Or", selector.Sel.Name)
+	require.Len(t, call.Args, 2, "cmp.Or should receive both named and wildcard lookups")
+}
+
+func TestPathParamExpr_StarParamSkipsCmpOr(t *testing.T) {
+	t.Parallel()
+
+	got := pathParamExpr("*")
+	call, ok := got.(*goast.CallExpr)
+	require.True(t, ok, "expected direct PathParam call, got %T", got)
+	selector, ok := call.Fun.(*goast.SelectorExpr)
+	require.True(t, ok)
+	assert.Equal(t, "PathParam", selector.Sel.Name)
 }

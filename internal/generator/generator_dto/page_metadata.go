@@ -62,7 +62,7 @@ type PageMetadata struct {
 	// StyleBlock contains inline CSS styles for the page.
 	StyleBlock string
 
-	// PackageAlias is the import alias used for this package; empty means no alias.
+	// PackageAlias is the import alias used for the package; empty means no alias.
 	PackageAlias string
 
 	// MiddlewaresFuncName is the name of the function that provides middleware.

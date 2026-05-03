@@ -137,7 +137,7 @@ func (s *Server) Implementation(ctx context.Context, params *protocol.Implementa
 
 // Declaration finds the declaration of a symbol at the given position.
 //
-// In Go, declaration and definition are the same, so this method calls the
+// In Go, declaration and definition are the same, so this delegates to the
 // Definition handler.
 //
 // Takes params (*protocol.DeclarationParams) which specifies the text document

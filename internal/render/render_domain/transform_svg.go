@@ -267,7 +267,7 @@ func putClassCollectionBufWrapper(w *classCollectionBufWrapper) {
 //   - Single-pass rendering (no mutate-then-iterate pattern)
 //   - Reduces allocations by writing cached attributes directly to stream
 //
-// This function handles the complete rendering of a <piko:svg> element,
+// Handles the complete rendering of a <piko:svg> element,
 // including:
 //   - Loading SVG data from registry
 //   - Merging attributes with caching
@@ -961,9 +961,9 @@ func extractUserAttrsOnly(attrs []ast_domain.HTMLAttribute) []ast_domain.HTMLAtt
 // original slice, without extracting them first. It skips "src" and "piko:svg"
 // attributes and includes dynamic attribute writers in the hash.
 //
-// This function must produce the same hash as hashUserAttrs for the same
-// inputs. The ordering is based on the original attribute order (not sorted),
-// which is stable because the AST always keeps source order.
+// Must produce the same hash as hashUserAttrs for the same inputs. The
+// ordering is based on the original attribute order (not sorted), which is
+// stable because the AST always keeps source order.
 //
 // This avoids creating a new []HTMLAttribute slice for cache key work.
 //

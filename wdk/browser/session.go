@@ -20,6 +20,7 @@ package browser
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -109,7 +110,7 @@ func (s *Session) WaitReady(selector string) error {
 //
 // Returns error when the element is not found within the timeout.
 func (s *Session) WaitReadyTimeout(selector string, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(s.actionCtx().Ctx, timeout)
+	ctx, cancel := context.WithTimeoutCause(s.actionCtx().Ctx, timeout, errors.New("browser session timeout"))
 	defer cancel()
 	return chromedp.Run(ctx, chromedp.WaitReady(selector))
 }

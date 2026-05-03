@@ -28,9 +28,8 @@ import "piko.sh/piko/internal/mem"
 // internBytes returns a stored string if the bytes match a known value, or
 // creates a new string from the bytes.
 //
-// This function avoids memory allocation by using mem.String to create a
-// temporary string view for the map lookup. If found, it returns the stored
-// string.
+// Avoids memory allocation by using mem.String to create a temporary string
+// view for the map lookup. If found, returns the stored string.
 //
 // Takes b ([]byte) which contains the bytes to look up or convert.
 //

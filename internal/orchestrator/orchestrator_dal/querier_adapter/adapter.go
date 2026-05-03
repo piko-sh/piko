@@ -28,6 +28,7 @@ import (
 	"piko.sh/piko/internal/json"
 
 	"piko.sh/piko/internal/cache/cache_domain"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_dal"
 	orchestrator_db "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_sqlite/db"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
@@ -48,6 +49,9 @@ var (
 	// errTaskPoolAssertFailed is returned when a value from the task pool
 	// cannot be asserted to *Task.
 	errTaskPoolAssertFailed = errors.New("failed to get task from pool: type assertion failed")
+
+	// log is the package-level logger for the querier_adapter package.
+	log = logger_domain.GetLogger("piko/internal/orchestrator/orchestrator_dal/querier_adapter")
 
 	_ orchestrator_dal.OrchestratorDALWithTx = (*Adapter)(nil)
 
@@ -925,7 +929,13 @@ func (a *Adapter) runInTransaction(ctx context.Context, fn func(ctx context.Cont
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer func() {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("transaction rollback failed",
+				logger_domain.Error(rollbackErr))
+		}
+	}()
 
 	if err := fn(ctx, a.queries.WithTx(tx)); err != nil {
 		return err
@@ -948,15 +958,15 @@ func (a *Adapter) beginTxDB() (*sql.DB, error) {
 // within a database transaction, providing a transaction-scoped
 // Adapter clone.
 //
+// If transactionFunction panics, the deferred rollback runs before the
+// panic propagates so no half-committed state is left behind.
+//
 // Takes transactionFunction which is the function to execute
 // within the transaction scope.
 //
 // Returns error when the DAL has no database connection, when
 // beginning the transaction fails, when transactionFunction
 // returns an error, or when commit fails.
-//
-// Panics if transactionFunction panics; the transaction is rolled
-// back and the panic is re-raised.
 func (a *Adapter) withTransaction(ctx context.Context, transactionFunction func(ctx context.Context, dal orchestrator_dal.OrchestratorDAL) error) error {
 	if a.sqlDB == nil {
 		return errDALNotInitialised
@@ -968,9 +978,10 @@ func (a *Adapter) withTransaction(ctx context.Context, transactionFunction func(
 	}
 
 	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback()
-			panic(p)
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("transaction rollback failed",
+				logger_domain.Error(rollbackErr))
 		}
 	}()
 
@@ -983,7 +994,6 @@ func (a *Adapter) withTransaction(ctx context.Context, transactionFunction func(
 	}
 
 	if err := transactionFunction(ctx, txAdapter); err != nil {
-		_ = tx.Rollback()
 		return err
 	}
 

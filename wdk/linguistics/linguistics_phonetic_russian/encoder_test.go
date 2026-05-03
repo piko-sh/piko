@@ -20,6 +20,7 @@ package linguistics_phonetic_russian
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -210,4 +211,16 @@ func TestIsWordEnd(t *testing.T) {
 	assert.False(t, isWordEnd(runes, 1))
 	assert.True(t, isWordEnd(runes, 3))
 	assert.True(t, isWordEnd(runes, 4))
+}
+
+func TestEncode_CyrillicTruncationInRunes(t *testing.T) {
+	t.Parallel()
+
+	enc, err := NewWithMaxLength(3)
+	require.NoError(t, err)
+
+	result := enc.Encode("ПРИВЕТСТВИЕ")
+
+	assert.True(t, utf8.ValidString(result), "result should be valid UTF-8 even when truncated")
+	assert.LessOrEqual(t, utf8.RuneCountInString(result), 3, "rune count must respect maxLength")
 }

@@ -203,8 +203,8 @@ func (r *RequestData) Auth() daemon_dto.AuthContext {
 }
 
 // CSPTokenAttr returns the CSP token attribute for inline scripts and styles.
-// This method retrieves the per-request token from the context and returns it
-// formatted as an HTML attribute that can be used directly in templates.
+// Retrieves the per-request token from the context and returns it formatted as
+// an HTML attribute that can be used directly in templates.
 //
 // When using CSPRequestToken in your CSP policy (via piko.WithCSP), add this
 // attribute to inline script and style elements:
@@ -555,7 +555,7 @@ func NewRequestDataBuilder() *RequestDataBuilder {
 
 // Release returns the builder to the pool for reuse.
 //
-// Do not use the builder after calling this method.
+// Do not use the builder after the call.
 func (b *RequestDataBuilder) Release() {
 	if b == nil {
 		return

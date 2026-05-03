@@ -84,7 +84,11 @@ func (c *introspectionCache) Get(ctx context.Context, key string) (*coordinator_
 				logger_domain.Int("current_version", coordinator_domain.CurrentIntrospectionCacheVersion))
 			span.SetAttributes(attribute.String("cache.status", "INVALID"))
 
-			_ = c.cache.Invalidate(ctx, key)
+			if invalidateErr := c.cache.Invalidate(ctx, key); invalidateErr != nil {
+				l.Warn("Failed to invalidate stale introspection cache entry",
+					logger_domain.String(logKeyKey, key),
+					logger_domain.Error(invalidateErr))
+			}
 			return nil, coordinator_domain.ErrCacheMiss
 		}
 
@@ -121,7 +125,11 @@ func (c *introspectionCache) Set(ctx context.Context, key string, entry *coordin
 		return coordinator_domain.ErrInvalidCacheEntry
 	}
 
-	_ = c.cache.Set(ctx, key, entry)
+	if setErr := c.cache.Set(ctx, key, entry); setErr != nil {
+		l.Warn("Failed to store introspection cache entry",
+			logger_domain.String(logKeyKey, key),
+			logger_domain.Error(setErr))
+	}
 
 	l.Trace("Introspection cache entry stored.",
 		logger_domain.String(logKeyKey, key),
@@ -138,7 +146,10 @@ func (c *introspectionCache) Clear(ctx context.Context) error {
 	ctx, span, l := l.Span(ctx, "IntrospectionCache.Clear")
 	defer span.End()
 
-	_ = c.cache.InvalidateAll(ctx)
+	if invalidateErr := c.cache.InvalidateAll(ctx); invalidateErr != nil {
+		l.Warn("Failed to invalidate all introspection cache entries",
+			logger_domain.Error(invalidateErr))
+	}
 
 	l.Internal("Introspection cache cleared successfully.")
 	span.SetStatus(codes.Ok, "Introspection cache cleared")
@@ -147,7 +158,12 @@ func (c *introspectionCache) Clear(ctx context.Context) error {
 
 // Close releases resources held by the cache.
 func (c *introspectionCache) Close() {
-	_ = c.cache.Close(context.Background())
+	ctx := context.Background()
+	if closeErr := c.cache.Close(ctx); closeErr != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Failed to close introspection cache",
+			logger_domain.Error(closeErr))
+	}
 }
 
 // NewIntrospectionCache creates a new cache for storing introspection results,

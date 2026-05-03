@@ -77,7 +77,7 @@ func DecodeUint64Base58(input string) (uint64, error) {
 func init() {
 	enc, err := NewEncoding(base58Alphabet)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to initialise Base58Encoding: %v", err))
+		panic(fmt.Sprintf("failed to initialise Base58Encoding from compile-time alphabet: %v", err))
 	}
 	Base58Encoding = enc
 }

@@ -20,7 +20,10 @@ package pdfparse_test
 
 import (
 	"bytes"
+	"compress/zlib"
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -354,4 +357,151 @@ func TestWriter_NextObjectNumber(t *testing.T) {
 
 	w.AddObject(pdfparse.Int(2))
 	assert.Equal(t, 3, w.NextObjectNumber())
+}
+
+func compressFlate(t *testing.T, payload []byte) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	w := zlib.NewWriter(&buf)
+	_, err := w.Write(payload)
+	require.NoError(t, err)
+	require.NoError(t, w.Close())
+	return buf.Bytes()
+}
+
+func withMaxDecompressedStreamBytes(t *testing.T, limit int64) {
+	t.Helper()
+	previous := pdfparse.MaxDecompressedStreamBytes()
+	pdfparse.SetMaxDecompressedStreamBytes(limit)
+	t.Cleanup(func() { pdfparse.SetMaxDecompressedStreamBytes(previous) })
+}
+
+func TestDecodeStream_FlateDecodeRejectsZipBomb(t *testing.T) {
+	withMaxDecompressedStreamBytes(t, 64)
+
+	payload := bytes.Repeat([]byte{'A'}, 1024)
+	compressed := compressFlate(t, payload)
+
+	streamObj := pdfparse.StreamObj(
+		pdfparse.Dict{Pairs: []pdfparse.DictPair{
+			{Key: "Filter", Value: pdfparse.Name("FlateDecode")},
+		}},
+		compressed,
+	)
+
+	_, err := pdfparse.DecodeStream(streamObj)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, pdfparse.ErrFlateStreamTooLarge)
+}
+
+func TestDecodeStream_FlateDecodeAllowsUnderLimit(t *testing.T) {
+	withMaxDecompressedStreamBytes(t, 4096)
+
+	payload := []byte("Hello World")
+	compressed := compressFlate(t, payload)
+
+	streamObj := pdfparse.StreamObj(
+		pdfparse.Dict{Pairs: []pdfparse.DictPair{
+			{Key: "Filter", Value: pdfparse.Name("FlateDecode")},
+		}},
+		compressed,
+	)
+
+	decoded, err := pdfparse.DecodeStream(streamObj)
+	require.NoError(t, err)
+	assert.Equal(t, payload, decoded)
+}
+
+func TestSetMaxDecompressedStreamBytes_IgnoresInvalid(t *testing.T) {
+	original := pdfparse.MaxDecompressedStreamBytes()
+	t.Cleanup(func() { pdfparse.SetMaxDecompressedStreamBytes(original) })
+
+	pdfparse.SetMaxDecompressedStreamBytes(0)
+	assert.Equal(t, original, pdfparse.MaxDecompressedStreamBytes())
+
+	pdfparse.SetMaxDecompressedStreamBytes(-1)
+	assert.Equal(t, original, pdfparse.MaxDecompressedStreamBytes())
+
+	pdfparse.SetMaxDecompressedStreamBytes(1234)
+	assert.Equal(t, int64(1234), pdfparse.MaxDecompressedStreamBytes())
+}
+
+func buildCyclicPrevPDF() []byte {
+	var b bytes.Buffer
+	b.WriteString("%PDF-1.7\n")
+
+	obj1Offset := b.Len()
+	b.WriteString("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n")
+
+	obj2Offset := b.Len()
+	b.WriteString("2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\n")
+
+	xrefOffset := b.Len()
+	b.WriteString("xref\n0 3\n")
+	b.WriteString("0000000000 65535 f \n")
+	fmt.Fprintf(&b, "%010d 00000 n \n", obj1Offset)
+	fmt.Fprintf(&b, "%010d 00000 n \n", obj2Offset)
+
+	fmt.Fprintf(&b, "trailer\n<< /Size 3 /Root 1 0 R /Prev %d >>\n", xrefOffset)
+	fmt.Fprintf(&b, "startxref\n%d\n%%%%EOF\n", xrefOffset)
+
+	return b.Bytes()
+}
+
+func TestParseXRef_RejectsCyclicPrev(t *testing.T) {
+	_, err := pdfparse.Parse(buildCyclicPrevPDF())
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, pdfparse.ErrXRefCycle), "expected ErrXRefCycle, got: %v", err)
+}
+
+func TestParseObjectAt_RejectsOutOfBoundsOffset(t *testing.T) {
+	var b bytes.Buffer
+	b.WriteString("%PDF-1.7\n")
+	obj1Offset := b.Len()
+	b.WriteString("1 0 obj\n<< /Type /Catalog >>\nendobj\n")
+
+	xrefOffset := b.Len()
+	b.WriteString("xref\n0 2\n")
+	b.WriteString("0000000000 65535 f \n")
+	fmt.Fprintf(&b, "%010d 00000 n \n", 999_999_999)
+	_ = obj1Offset
+
+	b.WriteString("trailer\n<< /Size 2 /Root 1 0 R >>\n")
+	fmt.Fprintf(&b, "startxref\n%d\n%%%%EOF\n", xrefOffset)
+
+	doc, err := pdfparse.Parse(b.Bytes())
+	require.NoError(t, err)
+
+	_, err = doc.GetObject(1)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, pdfparse.ErrInvalidObjectOffset), "expected ErrInvalidObjectOffset, got: %v", err)
+}
+
+func TestParseDictionary_RejectsExcessiveNesting(t *testing.T) {
+	var b bytes.Buffer
+	b.WriteString("%PDF-1.7\n")
+
+	obj1Offset := b.Len()
+	b.WriteString("1 0 obj\n")
+
+	const nestingLevels = 1000
+	b.WriteString(strings.Repeat("[", nestingLevels))
+	b.WriteString(" 0 ")
+	b.WriteString(strings.Repeat("]", nestingLevels))
+	b.WriteString("\nendobj\n")
+
+	xrefOffset := b.Len()
+	b.WriteString("xref\n0 2\n")
+	b.WriteString("0000000000 65535 f \n")
+	fmt.Fprintf(&b, "%010d 00000 n \n", obj1Offset)
+
+	b.WriteString("trailer\n<< /Size 2 /Root 1 0 R >>\n")
+	fmt.Fprintf(&b, "startxref\n%d\n%%%%EOF\n", xrefOffset)
+
+	doc, err := pdfparse.Parse(b.Bytes())
+	require.NoError(t, err)
+
+	_, err = doc.GetObject(1)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, pdfparse.ErrParseDepthExceeded), "expected ErrParseDepthExceeded, got: %v", err)
 }

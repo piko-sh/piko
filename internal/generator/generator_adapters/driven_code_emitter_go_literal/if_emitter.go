@@ -318,8 +318,8 @@ func (ie *ifEmitter) buildConditionalBody(
 // nodeContainsForLoops checks if a node or any of its descendants contain a
 // p-for directive.
 //
-// This is used to prevent treating nodes with internal loops as static, which
-// would cause issues with dynamic key expressions.
+// Used to prevent treating nodes with internal loops as static, which would cause
+// issues with dynamic key expressions.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //

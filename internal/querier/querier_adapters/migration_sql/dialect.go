@@ -27,12 +27,40 @@ import (
 // executor. Each supported database engine provides a pre-built config via
 // PostgresDialect() or SQLiteDialect().
 type DialectConfig struct {
-	// LockStrategy provides database-specific advisory locking.
+	// LockStrategy provides database-specific advisory locking for migrations.
 	LockStrategy LockStrategy
+
+	// SeedLockStrategy provides database-specific advisory locking for seeds.
+	//
+	// It must use a distinct key from LockStrategy so seed and migration
+	// runs can serialise independently. When nil the seed executor falls
+	// back to a no-op lock, which is correct only for single-replica
+	// deployments.
+	SeedLockStrategy LockStrategy
 
 	// PlaceholderFunc converts a 1-based parameter index to the dialect's
 	// placeholder syntax ("$1" for PostgreSQL, "?" for SQLite).
 	PlaceholderFunc func(index int) string
+
+	// InsertSeedSQLFunc builds the dialect-specific INSERT statement for
+	// recording an applied seed.
+	//
+	// The returned SQL must be idempotent: a re-application of an
+	// already-recorded seed must succeed without raising a primary-key
+	// violation. PostgreSQL/SQLite use "ON CONFLICT (version) DO NOTHING";
+	// MySQL uses "INSERT IGNORE".
+	//
+	// Takes versionPlaceholder (string) which is the placeholder for the
+	// version column, e.g. "$1" or "?".
+	// Takes namePlaceholder (string) which is the placeholder for the
+	// name column.
+	// Takes checksumPlaceholder (string) which is the placeholder for the
+	// checksum column.
+	// Takes durationPlaceholder (string) which is the placeholder for the
+	// duration_ms column.
+	//
+	// Returns string which is the complete INSERT statement.
+	InsertSeedSQLFunc func(versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder string) string
 
 	// CreateTableSQL is the DDL statement for creating the piko_migrations
 	// history table. Includes all columns: version, name, checksum,
@@ -60,6 +88,61 @@ type DialectConfig struct {
 	SplitStatements bool
 }
 
+// postgresOnConflictSeedInsert builds an idempotent INSERT statement using
+// PostgreSQL's "ON CONFLICT (version) DO NOTHING" clause. SQLite (in modern
+// versions) accepts the same syntax.
+//
+// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder,
+// durationPlaceholder (string) which are the dialect-specific placeholder
+// tokens for the four bound columns.
+//
+// Returns string which is the complete INSERT statement.
+func postgresOnConflictSeedInsert(
+	versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder string,
+) string {
+	return fmt.Sprintf(
+		"INSERT INTO piko_seeds (version, name, checksum, duration_ms) VALUES (%s, %s, %s, %s) ON CONFLICT (version) DO NOTHING",
+		versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder,
+	)
+}
+
+// sqliteOnConflictSeedInsert builds an idempotent INSERT statement using
+// SQLite's "ON CONFLICT(version) DO NOTHING" clause (no space between ON
+// CONFLICT and the column list, mirroring SQLite's grammar).
+//
+// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder,
+// durationPlaceholder (string) which are the dialect-specific placeholder
+// tokens for the four bound columns.
+//
+// Returns string which is the complete INSERT statement.
+func sqliteOnConflictSeedInsert(
+	versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder string,
+) string {
+	return fmt.Sprintf(
+		"INSERT INTO piko_seeds (version, name, checksum, duration_ms) VALUES (%s, %s, %s, %s) ON CONFLICT(version) DO NOTHING",
+		versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder,
+	)
+}
+
+// mysqlIgnoreSeedInsert builds an idempotent INSERT using MySQL's INSERT IGNORE.
+//
+// MySQL 5.7+ also supports "INSERT ... ON DUPLICATE KEY UPDATE", but
+// INSERT IGNORE is the simplest no-op equivalent.
+//
+// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder,
+// durationPlaceholder (string) which are the dialect-specific placeholder
+// tokens for the four bound columns.
+//
+// Returns string which is the complete INSERT statement.
+func mysqlIgnoreSeedInsert(
+	versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder string,
+) string {
+	return fmt.Sprintf(
+		"INSERT IGNORE INTO piko_seeds (version, name, checksum, duration_ms) VALUES (%s, %s, %s, %s)",
+		versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder,
+	)
+}
+
 // PostgresDialect returns a DialectConfig for PostgreSQL databases.
 //
 // Returns DialectConfig which is configured with PostgreSQL-specific SQL,
@@ -83,7 +166,9 @@ func PostgresDialect() DialectConfig {
     applied_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     duration_ms BIGINT      NOT NULL
 )`,
-		LockStrategy: &PostgresAdvisoryLock{},
+		LockStrategy:      &PostgresAdvisoryLock{},
+		SeedLockStrategy:  &PostgresAdvisorySeedLock{},
+		InsertSeedSQLFunc: postgresOnConflictSeedInsert,
 		PlaceholderFunc: func(index int) string {
 			return fmt.Sprintf("$%d", index)
 		},
@@ -123,6 +208,13 @@ func PostgresPgBouncerDialect() DialectConfig {
     CONSTRAINT piko_migration_lock_single_row CHECK (lock_id = 1)
 )`,
 		},
+		SeedLockStrategy: &TableBasedSeedLock{
+			CreateLockTableSQL: `CREATE TABLE IF NOT EXISTS piko_seed_lock (
+    lock_id INTEGER NOT NULL PRIMARY KEY DEFAULT 1,
+    CONSTRAINT piko_seed_lock_single_row CHECK (lock_id = 1)
+)`,
+		},
+		InsertSeedSQLFunc: postgresOnConflictSeedInsert,
 		PlaceholderFunc: func(index int) string {
 			return fmt.Sprintf("$%d", index)
 		},
@@ -153,9 +245,11 @@ func MySQLDialect() DialectConfig {
     applied_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     duration_ms BIGINT       NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
-		LockStrategy:    &MySQLAdvisoryLock{},
-		PlaceholderFunc: func(_ int) string { return "?" },
-		SplitStatements: true,
+		LockStrategy:      &MySQLAdvisoryLock{},
+		SeedLockStrategy:  &MySQLAdvisorySeedLock{},
+		InsertSeedSQLFunc: mysqlIgnoreSeedInsert,
+		PlaceholderFunc:   func(_ int) string { return "?" },
+		SplitStatements:   true,
 	}
 }
 
@@ -200,7 +294,9 @@ func SQLiteDialect() DialectConfig {
     applied_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     duration_ms INTEGER NOT NULL
 )`,
-		LockStrategy:    &NoOpLock{},
-		PlaceholderFunc: func(_ int) string { return "?" },
+		LockStrategy:      &NoOpLock{},
+		SeedLockStrategy:  &NoOpLock{},
+		InsertSeedSQLFunc: sqliteOnConflictSeedInsert,
+		PlaceholderFunc:   func(_ int) string { return "?" },
 	}
 }

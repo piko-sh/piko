@@ -300,7 +300,7 @@ func (op *routerOperation) createCacheMiddleware(ctx context.Context) *daemon_ad
 		op.store,
 		op.registryService,
 		op.capabilityService,
-		deref(op.deps.ConfigProvider.ServerConfig.Paths.PartialServePath, "/_piko/partials"),
+		deref(op.container.serverConfig.Paths.PartialServePath, "/_piko/partials"),
 	)
 	l.Internal("Cache middleware initialised.")
 	return cacheMiddleware
@@ -334,12 +334,12 @@ func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMidd
 		},
 		Store:               op.store,
 		CSRFService:         op.csrfService,
-		RouteSettings:       buildRouteSettings(&op.deps.ConfigProvider.ServerConfig),
-		SiteSettings:        &op.deps.ConfigProvider.WebsiteConfig,
+		RouteSettings:       buildRouteSettings(&op.container.serverConfig),
+		SiteSettings:        &op.container.websiteConfig,
 		Actions:             op.container.GetActionRegistry(),
 		CacheMiddleware:     cacheMiddleware.Handle,
 		RateLimitService:    op.rateLimitService,
-		RateLimitConfig:     NewRateLimitValues(&op.deps.ConfigProvider.ServerConfig.Security.RateLimit),
+		RateLimitConfig:     NewRateLimitValues(&op.container.serverConfig.Security.RateLimit),
 		AuthGuardConfig:     op.container.authGuardConfig,
 		ActionResponseCache: actionResponseCache,
 		CaptchaService:      op.captchaService,
@@ -355,7 +355,7 @@ func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMidd
 func (op *routerOperation) buildRouterConfig(ctx context.Context) *daemon_domain.RouterConfig {
 	_, l := logger_domain.From(ctx, log)
 
-	serverConfig := op.deps.ConfigProvider.ServerConfig
+	serverConfig := op.container.serverConfig
 
 	securityHeaders := serverConfig.Security.Headers
 	corpOverride := op.container.GetCrossOriginResourcePolicy()
@@ -466,7 +466,7 @@ func buildRouter(
 	disableHTTPCache bool,
 	devHandlers *devRouterHandlers,
 ) (http.Handler, error) {
-	cspConfig := buildCSPRuntimeConfig(c, deps)
+	cspConfig := buildCSPRuntimeConfig(c)
 
 	operation := &routerOperation{
 		deps:             deps,
@@ -491,13 +491,12 @@ func buildRouter(
 // Called once at startup and the result is passed through the router chain, so
 // the server config stays unchanged.
 //
-// Takes c (*Container) which holds the CSP builder settings.
-// Takes deps (*Dependencies) which provides access to server config for
-// fallback.
+// Takes c (*Container) which holds the CSP builder settings and resolved
+// server config.
 //
 // Returns security_dto.CSPRuntimeConfig which contains the computed CSP
 // settings.
-func buildCSPRuntimeConfig(c *Container, deps *Dependencies) security_dto.CSPRuntimeConfig {
+func buildCSPRuntimeConfig(c *Container) security_dto.CSPRuntimeConfig {
 	ctx := c.GetAppContext()
 	_, l := logger_domain.From(ctx, log)
 
@@ -518,7 +517,7 @@ func buildCSPRuntimeConfig(c *Container, deps *Dependencies) security_dto.CSPRun
 		}
 	}
 
-	if policy := deref(deps.ConfigProvider.ServerConfig.Security.Headers.ContentSecurityPolicy, ""); policy != "" {
+	if policy := deref(c.serverConfig.Security.Headers.ContentSecurityPolicy, ""); policy != "" {
 		l.Internal("Using CSP policy from server config")
 		return security_dto.CSPRuntimeConfig{
 			Policy:            policy,
@@ -608,7 +607,7 @@ func mergeProviderCSPDomains(builder *security_domain.CSPBuilder, requirements *
 func createManifestProvider(ctx context.Context, c *Container) (generator_domain.ManifestProviderPort, error) {
 	_, l := logger_domain.From(ctx, log)
 
-	serverConfig := c.config.ServerConfig
+	serverConfig := c.serverConfig
 
 	distDir := filepath.Join(deref(serverConfig.Paths.BaseDir, "."), distDirName)
 	manifestPath := filepath.Join(distDir, manifestFilenameBinary)
@@ -635,12 +634,12 @@ func createManifestProvider(ctx context.Context, c *Container) (generator_domain
 // dereferencing pointer fields with sensible defaults that match the config
 // struct tags.
 //
-// Takes serverConfig (config.ServerConfig) which is the loaded server
+// Takes serverConfig (ServerConfig) which is the loaded server
 // configuration to extract route settings from.
 //
 // Returns daemon_adapters.RouteSettings which holds the resolved route
 // configuration values.
-func buildRouteSettings(serverConfig *config.ServerConfig) daemon_adapters.RouteSettings {
+func buildRouteSettings(serverConfig *ServerConfig) daemon_adapters.RouteSettings {
 	return daemon_adapters.RouteSettings{
 		E2EMode:                      deref(serverConfig.Build.E2EMode, false),
 		ActionMaxBodyBytes:           deref(serverConfig.Network.ActionMaxBodyBytes, defaultActionMaxBodyBytes),

@@ -37,7 +37,7 @@ type Config struct {
 	DefaultModel string
 }
 
-// Validate checks that the configuration is valid.
+// Validate reports whether the configuration is valid.
 //
 // Returns error when required fields are missing.
 func (c *Config) Validate() error {

@@ -199,10 +199,10 @@ func NewInterpretedBuildOrchestrator(
 }
 
 // BuildRunner creates a new InterpretedManifestRunner from build artefacts.
-// This method orchestrates the entire JIT compilation pipeline: creates a VFS
-// adapter, sorts artefacts topologically, creates a fresh interpreter,
-// interprets all artefacts in dependency order, creates a PageEntry cache, and
-// returns a new runner with the populated cache.
+// Orchestrates the entire JIT compilation pipeline: creates a VFS adapter, sorts
+// artefacts topologically, creates a fresh interpreter, interprets all artefacts in
+// dependency order, creates a PageEntry cache, and returns a new runner with the
+// populated cache.
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which provides the
 // annotated project artefacts to compile.
@@ -269,11 +269,10 @@ func (o *InterpretedBuildOrchestrator) BuildRunner(
 // MarkDirty is the fast-path method called on file save.
 //
 // It marks components as dirty without recompiling them, enabling sub-second
-// hot-reload feedback. The method stores new Go code for each changed
-// component in dirtyCodeCache, propagates dirty flags to all dependent
-// components using reverseDepsMap, and returns immediately (~10-50ms) without
-// compilation. Actual compilation happens later via JITCompile when a
-// page is requested.
+// hot-reload feedback. Stores new Go code for each changed component in
+// dirtyCodeCache, propagates dirty flags to all dependent components using
+// reverseDepsMap, and returns immediately (~10-50ms) without compilation. Actual
+// compilation happens later via JITCompile when a page is requested.
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
 // annotation results for changed files.
@@ -339,9 +338,8 @@ func (o *InterpretedBuildOrchestrator) IsInitialised() bool {
 	return o.interpreterPool != nil && len(o.progCache) > 0
 }
 
-// GetCachedEntry retrieves a compiled page entry from the cache.
-// This method is part of the JITCompiler interface used by
-// InterpretedManifestRunner.
+// GetCachedEntry retrieves a compiled page entry from the cache. Part of the
+// JITCompiler interface used by InterpretedManifestRunner.
 //
 // Takes relPath (string) which specifies the relative path to look up.
 //
@@ -356,9 +354,8 @@ func (o *InterpretedBuildOrchestrator) GetCachedEntry(relPath string) (*template
 	return entry, found
 }
 
-// GetAllCachedKeys returns all keys in the prog cache.
-// This method is part of the JITCompiler interface used by
-// InterpretedManifestRunner.
+// GetAllCachedKeys returns all keys in the prog cache. Part of the JITCompiler
+// interface used by InterpretedManifestRunner.
 //
 // Returns []string which contains all cached program keys.
 //

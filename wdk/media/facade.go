@@ -37,7 +37,7 @@ import (
 type ImageTransformerPort = image_domain.TransformerPort
 
 // ImageService is the high-level service interface for image operations.
-// Providers implement ImageTransformerPort; framework code uses this type.
+// Providers implement ImageTransformerPort; framework code uses ImageService.
 type ImageService = image_domain.Service
 
 // ImageServiceConfig holds settings for the image service.

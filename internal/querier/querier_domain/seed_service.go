@@ -65,6 +65,12 @@ func NewSeedService(
 // Apply executes all pending seed files in version order, skipping those
 // already applied and warning on checksum mismatches.
 //
+// Apply takes the dialect-specific seed advisory lock for the entire run so
+// concurrent replicas cannot both observe a seed as pending and then race to
+// insert duplicate history rows. The dialect's idempotent INSERT (e.g.
+// "ON CONFLICT (version) DO NOTHING") provides a fallback for dialects
+// without true advisory locking (such as SQLite).
+//
 // Returns int which is the number of seeds applied.
 // Returns error when a seed fails to execute.
 func (s *seedService) Apply(ctx context.Context) (int, error) {
@@ -77,6 +83,15 @@ func (s *seedService) Apply(ctx context.Context) (int, error) {
 	if len(files) == 0 {
 		return 0, nil
 	}
+
+	if lockErr := s.executor.AcquireSeedLock(ctx); lockErr != nil {
+		return 0, fmt.Errorf("acquiring seed lock: %w", lockErr)
+	}
+	defer func() {
+		if releaseErr := s.executor.ReleaseSeedLock(ctx); releaseErr != nil {
+			l.Warn("Releasing seed lock failed", logger_domain.Error(releaseErr))
+		}
+	}()
 
 	if err := s.executor.EnsureSeedTable(ctx); err != nil {
 		return 0, fmt.Errorf("ensuring seed table: %w", err)

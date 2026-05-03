@@ -49,9 +49,9 @@ type collectionPropInfo struct {
 	IsPointer bool
 }
 
-// metadataVarName is the variable name for the collection metadata map in
-// generated code. This variable is declared by generateCollectionDataPopulation
-// before buildInitialRenderCall runs.
+// metadataVarName is the variable name for the collection metadata map in generated
+// code. Declared by generateCollectionDataPopulation before buildInitialRenderCall
+// runs.
 const metadataVarName = "__metadata"
 
 // okVarBase is the base prefix for the ok-flag variable used in type assertions

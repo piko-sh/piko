@@ -45,7 +45,7 @@ const (
 )
 
 // cacheEntry stores a file hash and its last modified time.
-// This struct is saved as JSON when stored on disk.
+// Saved as JSON when stored on disk.
 type cacheEntry struct {
 	// ModTime is when the file was last changed at the time it was hashed.
 	ModTime time.Time `json:"mod_time"`

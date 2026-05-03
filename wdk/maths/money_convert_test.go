@@ -21,11 +21,11 @@ package maths
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
+	stdjson "encoding/json"
 	"reflect"
 	"testing"
 
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 )
 
 func TestMoneyValueRetrievers(t *testing.T) {
@@ -152,7 +152,7 @@ func TestMoneyMustRetrievers(t *testing.T) {
 func TestMoneyEncoding(t *testing.T) {
 	t.Run("JSON Marshal", func(t *testing.T) {
 		m := NewMoneyFromMinorInt(12345, "USD")
-		b, err := pikojson.Marshal(m)
+		b, err := json.Marshal(m)
 		if err != nil {
 			t.Fatalf("MarshalJSON failed: %v", err)
 		}
@@ -162,7 +162,7 @@ func TestMoneyEncoding(t *testing.T) {
 		}
 
 		mInvalid := NewMoneyFromString("invalid", "USD")
-		_, err = pikojson.Marshal(mInvalid)
+		_, err = json.Marshal(mInvalid)
 		if err == nil {
 			t.Error("expected error marshalling an invalid money object")
 		}
@@ -192,7 +192,7 @@ func TestMoneyEncoding(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				var m Money
-				err := pikojson.Unmarshal([]byte(tc.jsonInput), &m)
+				err := json.Unmarshal([]byte(tc.jsonInput), &m)
 				if tc.expectError {
 					if err == nil {
 						t.Error("expected an error but got none")
@@ -237,10 +237,10 @@ func TestMoneyEncoding(t *testing.T) {
 }
 
 var (
-	_ json.Marshaler   = (*Money)(nil)
-	_ json.Unmarshaler = (*Money)(nil)
-	_ driver.Valuer    = Money{}
-	_ sql.Scanner      = (*Money)(nil)
+	_ stdjson.Marshaler   = (*Money)(nil)
+	_ stdjson.Unmarshaler = (*Money)(nil)
+	_ driver.Valuer       = Money{}
+	_ sql.Scanner         = (*Money)(nil)
 )
 
 func TestMoneyDefaultFormat(t *testing.T) {

@@ -19,7 +19,7 @@
 // Package logger_integration_otel_http registers the HTTP and HTTPS
 // OTLP protocols for OpenTelemetry trace and metric export.
 //
-// Importing this package makes the "http" and "https" protocols
-// available. It creates OTLP trace and metric exporters over HTTP,
-// with support for TLS configuration and custom headers.
+// Importing the package makes the "http" and "https" protocols available. It
+// creates OTLP trace and metric exporters over HTTP, with support for TLS
+// configuration and custom headers.
 package logger_integration_otel_http

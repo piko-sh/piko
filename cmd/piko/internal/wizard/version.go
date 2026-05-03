@@ -20,11 +20,13 @@ package wizard
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
+
+	"piko.sh/piko/internal/json"
 )
 
 const (
@@ -71,7 +73,10 @@ func resolveLatestVersion() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch releases: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer func() {
+		_, _ = io.Copy(io.Discard, response.Body)
+		_ = response.Body.Close()
+	}()
 
 	if response.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("GitHub API returned status %d", response.StatusCode)

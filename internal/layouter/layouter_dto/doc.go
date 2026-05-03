@@ -18,7 +18,6 @@
 
 // Package layouter_dto defines data transfer objects for the layouter module.
 //
-// This package contains configuration structures, page size presets, and result
-// types used to transfer data across architectural boundaries within the layouter
-// module.
+// Contains configuration structures, page size presets, and result types used to
+// transfer data across architectural boundaries within the layouter module.
 package layouter_dto

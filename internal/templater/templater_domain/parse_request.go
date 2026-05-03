@@ -32,13 +32,30 @@ import (
 const (
 	// fallbackDefaultLocale is the locale used when no locale is provided.
 	fallbackDefaultLocale = "en_GB"
+
+	// DefaultMaxMultipartFormBytes is the fallback cap (32 MiB) used when no
+	// caller-supplied limit is threaded through. Action handlers should pass
+	// their configured maxMultipartFormBytes via ParseRequestDataWithLimit so
+	// the cap matches the daemon configuration.
+	DefaultMaxMultipartFormBytes int64 = 32 << 20
 )
+
+// DefaultMaxURLEncodedFormBytes caps url-encoded request bodies at 8 MiB.
+//
+// Applied when no caller-supplied limit is threaded through.
+// http.Request.ParseForm has no internal cap, so a pathological client
+// could otherwise stream arbitrarily large bodies into memory. It is a
+// variable so tests can override it for regression coverage.
+var DefaultMaxURLEncodedFormBytes int64 = 8 << 20
 
 // emptyQueryParams is a package-level empty url.Values to avoid allocation
 // when requests have no query string.
 var emptyQueryParams = make(url.Values)
 
-// ParseRequestData builds a RequestData object from an HTTP request.
+// ParseRequestData builds a RequestData object from an HTTP request using the
+// package default multipart cap. Prefer ParseRequestDataWithLimit when the
+// daemon configuration supplies an explicit cap so that the parser honours
+// the operator's setting.
 //
 // It extracts path parameters, query strings, form data, and detects the
 // locale from the request.
@@ -54,6 +71,23 @@ var emptyQueryParams = make(url.Values)
 // information.
 // Returns error when form data cannot be parsed.
 func ParseRequestData(r *http.Request, defaultLocale string) (*templater_dto.RequestData, error) {
+	return ParseRequestDataWithLimit(r, defaultLocale, DefaultMaxMultipartFormBytes)
+}
+
+// ParseRequestDataWithLimit is the explicit form of ParseRequestData that
+// accepts a caller-supplied cap on multipart form size. Action handlers
+// should pass their configured maxMultipartFormBytes here so the templater
+// honours daemon-level limits rather than the hard-coded default.
+//
+// Takes r (*http.Request) which is the HTTP request to parse.
+// Takes defaultLocale (string) which sets the fallback locale.
+// Takes maxMultipartBytes (int64) which is the maximum in-memory size for
+// multipart form data; values <= 0 fall back to DefaultMaxMultipartFormBytes.
+//
+// Returns *templater_dto.RequestData which contains the extracted request
+// information.
+// Returns error when form data cannot be parsed.
+func ParseRequestDataWithLimit(r *http.Request, defaultLocale string, maxMultipartBytes int64) (*templater_dto.RequestData, error) {
 	if r == nil {
 		return buildDefaultRequestData(defaultLocale), nil
 	}
@@ -69,7 +103,7 @@ func ParseRequestData(r *http.Request, defaultLocale string) (*templater_dto.Req
 	extractPathParams(r, b)
 	extractQueryParamsFromParsed(queryParams, b)
 
-	if err := parseAndExtractFormData(r, b); err != nil {
+	if err := parseAndExtractFormData(r, b, maxMultipartBytes); err != nil {
 		return nil, fmt.Errorf("parsing form data: %w", err)
 	}
 
@@ -243,16 +277,18 @@ func extractQueryParamsFromParsed(queryParams url.Values, b *templater_dto.Reque
 //
 // Takes r (*http.Request) which provides the request with form data.
 // Takes b (*templater_dto.RequestDataBuilder) which receives the parsed data.
+// Takes maxMultipartBytes (int64) which caps the in-memory size for
+// multipart form data; values <= 0 fall back to DefaultMaxMultipartFormBytes.
 //
 // Returns error when the form data cannot be parsed.
-func parseAndExtractFormData(r *http.Request, b *templater_dto.RequestDataBuilder) error {
+func parseAndExtractFormData(r *http.Request, b *templater_dto.RequestDataBuilder, maxMultipartBytes int64) error {
 	contentType := r.Header.Get("Content-Type")
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
-		return parseMultipartFormData(r, b)
+		return parseMultipartFormData(r, b, maxMultipartBytes)
 	}
 	if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") {
-		return parseURLEncodedFormData(r, b)
+		return parseURLEncodedFormData(r, b, 0)
 	}
 	return nil
 }
@@ -262,10 +298,15 @@ func parseAndExtractFormData(r *http.Request, b *templater_dto.RequestDataBuilde
 // Takes r (*http.Request) which contains the multipart form data to parse.
 // Takes b (*templater_dto.RequestDataBuilder) which receives the parsed form
 // values.
+// Takes maxMultipartBytes (int64) which caps the in-memory size for
+// multipart form data; values <= 0 fall back to DefaultMaxMultipartFormBytes.
 //
 // Returns error when the multipart form cannot be parsed.
-func parseMultipartFormData(r *http.Request, b *templater_dto.RequestDataBuilder) error {
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+func parseMultipartFormData(r *http.Request, b *templater_dto.RequestDataBuilder, maxMultipartBytes int64) error {
+	if maxMultipartBytes <= 0 {
+		maxMultipartBytes = DefaultMaxMultipartFormBytes
+	}
+	if err := r.ParseMultipartForm(maxMultipartBytes); err != nil {
 		return fmt.Errorf("parsing multipart form data: %w", err)
 	}
 	if r.MultipartForm != nil && r.MultipartForm.Value != nil {
@@ -277,13 +318,23 @@ func parseMultipartFormData(r *http.Request, b *templater_dto.RequestDataBuilder
 }
 
 // parseURLEncodedFormData parses URL-encoded form data and adds it to the
-// builder.
+// builder. The request body is bounded by http.MaxBytesReader so a
+// pathological client cannot stream an arbitrarily large body into memory.
 //
 // Takes r (*http.Request) which provides the form data to parse.
 // Takes b (*templater_dto.RequestDataBuilder) which stores the parsed data.
+// Takes maxBodyBytes (int64) which caps the request body; values <= 0 fall
+// back to DefaultMaxURLEncodedFormBytes.
 //
-// Returns error when the form data cannot be parsed.
-func parseURLEncodedFormData(r *http.Request, b *templater_dto.RequestDataBuilder) error {
+// Returns error when the form data cannot be parsed or the body exceeds the
+// configured cap.
+func parseURLEncodedFormData(r *http.Request, b *templater_dto.RequestDataBuilder, maxBodyBytes int64) error {
+	if maxBodyBytes <= 0 {
+		maxBodyBytes = DefaultMaxURLEncodedFormBytes
+	}
+	if r.Body != nil {
+		r.Body = http.MaxBytesReader(nil, r.Body, maxBodyBytes)
+	}
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("parsing URL-encoded form data: %w", err)
 	}

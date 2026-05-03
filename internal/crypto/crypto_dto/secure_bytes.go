@@ -226,7 +226,7 @@ func WithID(id string) Option {
 //
 // Takes data ([]byte) which is the memory region to zero.
 //
-// See: https://github.com/golang/go/issues/33325
+// See the GitHub issue golang/go#33325 for context.
 func zeroMemory(data []byte) {
 	for i := range data {
 		data[i] = 0

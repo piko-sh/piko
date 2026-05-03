@@ -51,7 +51,7 @@ func (*ColumnRefExpression) expressionKind() string { return "column_ref" }
 
 // FunctionCallExpression represents a SQL function invocation.
 type FunctionCallExpression struct {
-	// FilterExpression holds the optional FILTER (WHERE ...) clause for this function call.
+	// FilterExpression holds the optional FILTER (WHERE ...) clause for the call.
 	FilterExpression Expression
 
 	// FunctionName holds the name of the SQL function being invoked.

@@ -400,7 +400,7 @@ func TestScript_IsTypeScript(t *testing.T) {
 	}
 }
 
-func TestScript_HasRecognizedScriptType(t *testing.T) {
+func TestScript_HasRecognisedScriptType(t *testing.T) {
 	testCases := []struct {
 		name       string
 		script     sfcparser.Script
@@ -508,7 +508,7 @@ func TestScript_HasRecognizedScriptType(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := tc.script.HasRecognizedScriptType()
+			got := tc.script.HasRecognisedScriptType()
 			assert.Equal(t, tc.wantResult, got)
 		})
 	}

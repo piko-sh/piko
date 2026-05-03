@@ -99,7 +99,7 @@ type ToolCallDelta struct {
 
 // FunctionCallDelta contains incremental changes to a function call.
 type FunctionCallDelta struct {
-	// Name is the function name, set in the first delta for this function call.
+	// Name is the function name, set in the first delta for the call.
 	Name *string
 
 	// Arguments contains the partial JSON arguments string to append.

@@ -25,6 +25,8 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+
+	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 // watchdogEventSubscriber tracks a single live event-stream consumer. The
@@ -167,15 +169,18 @@ func (w *Watchdog) ListEvents(_ context.Context, limit int, since time.Time, eve
 // Returns <-chan WatchdogEventInfo delivering events in emission order.
 // Returns func() that cancels the subscription idempotently.
 //
-// Safe for concurrent use; spawns a lifecycle goroutine.
+// Safe for concurrent use; spawns a lifecycle goroutine when registration
+// succeeds.
 func (w *Watchdog) SubscribeEvents(ctx context.Context, since time.Time) (<-chan WatchdogEventInfo, func()) {
 	sub := &watchdogEventSubscriber{
 		ch:   make(chan WatchdogEventInfo, eventSubscriberBuffer),
 		done: make(chan struct{}),
 	}
 
-	if !w.registerSubscriber(sub, since) {
+	if err := w.registerSubscriber(sub, since); err != nil {
 		close(sub.ch)
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Watchdog event subscription rejected", logger_domain.Error(err))
 		return sub.ch, func() {}
 	}
 	watchdogEventSubscriberCount.Add(ctx, 1)
@@ -196,17 +201,22 @@ func (w *Watchdog) SubscribeEvents(ctx context.Context, since time.Time) (<-chan
 // Takes since (time.Time) which gates back-fill: events emitted before
 // this instant are skipped; pass zero to disable back-fill.
 //
-// Returns bool which is true on success and false when the watchdog is
-// already stopped, in which case the caller must close the channel and
-// short-circuit.
+// Returns nil on success, ErrWatchdogStopped when the watchdog has
+// already stopped, or ErrEventSubscriberCapExceeded when the cap of
+// concurrent subscribers is reached. The caller must close the channel
+// and short-circuit on any error.
 //
 // Safe for concurrent use; acquires the watchdog mutex.
-func (w *Watchdog) registerSubscriber(sub *watchdogEventSubscriber, since time.Time) bool {
+func (w *Watchdog) registerSubscriber(sub *watchdogEventSubscriber, since time.Time) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
 	if w.stopped {
-		return false
+		return ErrWatchdogStopped
+	}
+
+	if len(w.eventSubscribers) >= maxEventSubscribers {
+		return ErrEventSubscriberCapExceeded
 	}
 
 	if !since.IsZero() {
@@ -218,19 +228,20 @@ func (w *Watchdog) registerSubscriber(sub *watchdogEventSubscriber, since time.T
 		}
 	}
 	w.eventSubscribers = append(w.eventSubscribers, sub)
-	return true
+	return nil
 }
 
 // subscriberCanceller builds the idempotent cancel function returned to
 // the caller.
 //
 // It removes sub from the subscriber list, decrements the live subscriber
-// gauge, and closes its channels exactly once. The close itself is
-// serialised via sub.closeOnce so it cannot race with the Stop path that
-// also closes subscribers. cancelOnce is signalled separately so the
-// lifecycle goroutine knows to exit. The ctx supplied at subscribe time is
-// used for the gauge decrement so metric attributes match the increment
-// side.
+// gauge, and closes its channels exactly once. A sync.Once guards the body
+// so concurrent callers (consumer cancel, lifecycle goroutine on ctx
+// cancellation, watchdog Stop) are safe; the channel close is also
+// serialised via sub.closeOnce so it cannot race with the Stop path.
+// cancelOnce is signalled so the lifecycle goroutine knows to exit. The
+// ctx supplied at subscribe time is used for the gauge decrement so
+// metric attributes match the increment side.
 //
 // Takes sub (*watchdogEventSubscriber) which is the subscriber to cancel.
 // Takes cancelOnce (chan struct{}) which is closed exactly once when the
@@ -239,18 +250,15 @@ func (w *Watchdog) registerSubscriber(sub *watchdogEventSubscriber, since time.T
 // Returns func() which is the idempotent cancel handler.
 func (w *Watchdog) subscriberCanceller(ctx context.Context, sub *watchdogEventSubscriber, cancelOnce chan struct{}) func() {
 	detachedCtx := context.WithoutCancel(ctx)
+	var once sync.Once
 	return func() {
-		select {
-		case <-cancelOnce:
-			return
-		default:
-		}
-		close(cancelOnce)
-
-		w.removeSubscriber(sub)
-		if closeSubscriber(sub) {
-			watchdogEventSubscriberCount.Add(detachedCtx, -1)
-		}
+		once.Do(func() {
+			close(cancelOnce)
+			w.removeSubscriber(sub)
+			if closeSubscriber(sub) {
+				watchdogEventSubscriberCount.Add(detachedCtx, -1)
+			}
+		})
 	}
 }
 

@@ -112,7 +112,7 @@ func (c *Container) createLifecycleService(config *lifecycleServiceConfig) (life
 		RenderRegistryPort:      renderRegistry,
 		Renderer:                renderer,
 		Clock:                   clk,
-		ConfigProvider:          *c.config,
+		WebsiteConfig:           c.websiteConfig,
 		WatcherAdapter:          config.WatcherAdapter,
 		RouterManager:           config.RouterManager,
 		TemplaterService:        config.TemplaterService,

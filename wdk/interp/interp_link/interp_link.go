@@ -21,10 +21,9 @@ package interp_link
 import "reflect"
 
 // LinkedFunction marks a registered symbol as a generic function whose
-// interpreter dispatch is delegated to a non-generic sibling. The
-// interpreter recognises this type when it retrieves a symbol and
-// prepends one reflect.Type per declared type parameter before the
-// regular call arguments.
+// interpreter dispatch is delegated to a non-generic sibling. The interpreter
+// recognises LinkedFunction when it retrieves a symbol and prepends one
+// reflect.Type per declared type parameter before the regular call arguments.
 type LinkedFunction struct {
 	// Target is a reflect.Value of the sibling function. The sibling
 	// must accept TypeArgCount reflect.Type values before the generic

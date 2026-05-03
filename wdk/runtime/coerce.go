@@ -24,8 +24,8 @@ import (
 )
 
 // CoerceInt extracts an integer from a value of unknown type. YAML parsers
-// produce int, int64, or float64 depending on the value and library, so
-// this function handles all three.
+// produce int, int64, or float64 depending on the value and library; the
+// helper handles all three.
 //
 // Takes v (any) which is the value to coerce.
 //
@@ -189,7 +189,7 @@ type unsignedInt interface {
 
 // CoerceSignedInt extracts a signed integer of any width from a value of
 // unknown type. YAML parsers produce int, int64, or float64 depending on the
-// value and library, so this function handles all three and converts to the
+// value and library; the helper handles all three and converts to the
 // target type T.
 //
 // Takes v (any) which is the value to coerce.

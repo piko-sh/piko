@@ -1,0 +1,137 @@
+<svg viewBox="0 0 760 540" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="ccm-title ccm-desc">
+  <title id="ccm-title">Piko mental model: build time, server runtime, and browser runtime</title>
+  <desc id="ccm-desc">Three vertical lanes with wide gutters between them. Build time on the left reads content, runs cmd/generator (which expands collections), emits typed Go source, and runs go build. Server runtime in the centre serves pages, dispatches actions, and reaches services through ports; the binary is the same one go build produced. Browser runtime on the right shows the served HTML containing PKC tags, the PKC components that boot from those tags, and the typed call shape the components use to invoke server actions. A horizontal HTML arrow runs from server pages to browser served HTML in the upper gutter. A horizontal action RPC arrow runs from browser call back to server actions in the middle gutter.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-return" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#475569" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="110" y="22" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">BUILD TIME</text>
+  <text x="380" y="22" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">SERVER RUNTIME</text>
+  <text x="650" y="22" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">BROWSER RUNTIME</text>
+
+  
+  
+  <rect x="20" y="40" width="180" height="54" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M28,40 H192 A8,8 0 0 1 200,48 V58 H20 V48 A8,8 0 0 1 28,40 Z" fill="#364049"/>
+  <text x="110" y="53" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">content/</text>
+  <text x="32" y="75" fill="#C9F5F2" font-family="monospace" font-size="10">blog/hello.md</text>
+  <text x="32" y="89" fill="#C9F5F2" font-family="monospace" font-size="10">blog/notes.md</text>
+
+  
+  <rect x="20" y="130" width="180" height="60" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,130 H190 A10,10 0 0 1 200,140 V152 H20 V140 A10,10 0 0 1 30,130 Z" fill="#1C544F"/>
+  <circle cx="34" cy="141" r="4" fill="#ff5f57"/>
+  <circle cx="48" cy="141" r="4" fill="#febc2e"/>
+  <circle cx="62" cy="141" r="4" fill="#28c840"/>
+  <text x="125" y="145" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">cmd/generator</text>
+  <text x="110" y="170" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">compiles every PK</text>
+  <text x="110" y="184" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">to typed Go</text>
+
+  
+  <rect x="20" y="240" width="180" height="60" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,240 H190 A10,10 0 0 1 200,250 V262 H20 V250 A10,10 0 0 1 30,240 Z" fill="#1C544F"/>
+  <text x="110" y="255" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Collections</text>
+  <text x="110" y="278" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">p-collection="blog"</text>
+  <text x="110" y="293" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="9">one route per content item</text>
+
+  
+  <rect x="20" y="340" width="180" height="50" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M28,340 H192 A8,8 0 0 1 200,348 V358 H20 V348 A8,8 0 0 1 28,340 Z" fill="#364049"/>
+  <text x="110" y="353" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">.piko/generated.go</text>
+  <text x="110" y="378" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">typed Go source</text>
+
+  
+  <rect x="20" y="440" width="180" height="40" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <text x="110" y="465" text-anchor="middle" fill="#6BD5CC" font-family="monospace" font-size="11" font-weight="600">go build</text>
+
+  
+  <line x1="110" y1="97" x2="110" y2="125" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="110" y1="193" x2="110" y2="236" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="110" y1="303" x2="110" y2="336" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="110" y1="393" x2="110" y2="436" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  
+  <rect x="290" y="40" width="180" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M300,40 H460 A10,10 0 0 1 470,50 V62 H290 V50 A10,10 0 0 1 300,40 Z" fill="#1C544F"/>
+  <text x="380" y="55" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">pages/ (PK files)</text>
+  <text x="380" y="80" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">func Render(...)</text>
+  <text x="380" y="96" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">returns typed Response</text>
+  <text x="380" y="118" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">server-rendered HTML</text>
+
+  
+  <rect x="290" y="240" width="180" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M300,240 H460 A10,10 0 0 1 470,250 V262 H290 V250 A10,10 0 0 1 300,240 Z" fill="#1C544F"/>
+  <text x="380" y="255" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">actions/ (Go structs)</text>
+  <text x="380" y="280" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">func (a *X) Call(...)</text>
+  <text x="380" y="296" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">typed RPC from client</text>
+  <text x="380" y="318" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">CSRF, binding, rate limit</text>
+
+  
+  <rect x="290" y="345" width="180" height="85" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M300,345 H460 A10,10 0 0 1 470,355 V367 H290 V355 A10,10 0 0 1 300,345 Z" fill="#1C544F"/>
+  <text x="380" y="360" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">services via ports</text>
+  <text x="380" y="383" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">piko.GetCache()</text>
+  <text x="380" y="397" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">piko.GetStorage()</text>
+  <text x="380" y="411" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">piko.GetEmail()</text>
+  <text x="380" y="425" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">hexagonal: ports, not adapters</text>
+
+  
+  <rect x="290" y="440" width="180" height="40" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="380" y="465" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11" font-weight="600">one Go binary</text>
+
+  
+  <line x1="380" y1="333" x2="380" y2="341" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  
+  <rect x="560" y="40" width="180" height="60" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M568,40 H732 A8,8 0 0 1 740,48 V62 H560 V48 A8,8 0 0 1 568,40 Z" fill="#364049"/>
+  <text x="650" y="55" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">served HTML</text>
+  <text x="650" y="78" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">&lt;pp-counter start=10&gt;</text>
+  <text x="650" y="93" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">contains PKC tags</text>
+
+  
+  <rect x="560" y="130" width="180" height="100" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M570,130 H730 A10,10 0 0 1 740,140 V152 H560 V140 A10,10 0 0 1 570,130 Z" fill="#1C544F"/>
+  <text x="650" y="145" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">PKC components</text>
+  <text x="650" y="168" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">const state = $state(..)</text>
+  <text x="650" y="182" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">reactive, local-only</text>
+  <text x="650" y="200" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">onConnected / onDisconnected</text>
+  <text x="650" y="218" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">one shadow DOM per tag</text>
+
+  
+  <rect x="560" y="240" width="180" height="80" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M568,240 H732 A8,8 0 0 1 740,248 V262 H560 V248 A8,8 0 0 1 568,240 Z" fill="#364049"/>
+  <text x="650" y="255" text-anchor="middle" fill="#92A1AF" font-family="monospace" font-size="10" font-weight="600">action.X.Y().call()</text>
+  <text x="650" y="280" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">typed call shape</text>
+  <text x="650" y="297" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">generated per action</text>
+  <text x="650" y="313" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">over the network</text>
+
+  
+  <line x1="650" y1="103" x2="650" y2="126" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="650" y1="233" x2="650" y2="237" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  
+  <line x1="470" y1="70" x2="556" y2="70" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="513" y="62" text-anchor="middle" fill="#0F766E" font-family="system-ui, sans-serif" font-size="9" font-weight="600">HTML</text>
+
+  
+  <line x1="560" y1="285" x2="474" y2="285" stroke="#475569" stroke-width="1.4" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrow-return)"/>
+  <text x="517" y="277" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9" font-weight="600">action RPC</text>
+
+  
+  <line x1="200" y1="460" x2="286" y2="460" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+  <text x="380" y="510" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10">Typed props travel between components. State belongs to the component that owns it.</text>
+  <text x="380" y="527" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">One language, one compiler, one binary, two render targets.</text>
+</svg>

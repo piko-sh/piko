@@ -391,7 +391,7 @@ type funcDeclEntry struct {
 // parsedPackage holds the parsed and filtered files for a single
 // package within a multi-package compilation.
 type parsedPackage struct {
-	// importPath is the fully qualified import path for this package.
+	// importPath is the fully qualified import path for the package.
 	importPath string
 
 	// relPath is the relative path within the module.
@@ -825,7 +825,7 @@ type packageCompileResult struct {
 	// funcTable maps function names to their indices in the root function.
 	funcTable map[string]uint16
 
-	// info holds the type-checking results for this package.
+	// info holds the type-checking results for the package.
 	info *types.Info
 
 	// typesPackage is the types.Package produced by type-checking.

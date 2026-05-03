@@ -192,7 +192,7 @@ func (p *GoChannelProvider) Subscriber() message.Subscriber {
 	return p.pubsub
 }
 
-// Running returns true if the router has been started and is running.
+// Running reports whether the router has been started and is active.
 //
 // Returns bool which indicates whether the router is currently active.
 //

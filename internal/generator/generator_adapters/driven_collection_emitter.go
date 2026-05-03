@@ -52,8 +52,8 @@ type DrivenCollectionEmitter struct {
 	// sandbox provides safe file path handling and file system operations.
 	sandbox safedisk.Sandbox
 
-	// moduleName is the Go module name from go.mod (e.g.
-	// "github.com/user/project").
+	// moduleName is the Go module name from go.mod (e.g. a GitHub-hosted module
+	// path such as "example.com/user/project").
 	moduleName string
 }
 

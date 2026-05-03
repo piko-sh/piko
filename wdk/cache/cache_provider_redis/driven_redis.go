@@ -466,7 +466,7 @@ func (a *RedisAdapter[K, V]) handleComputeRetryResult(ctx context.Context, key K
 }
 
 // Compute atomically updates a cache entry using a compute function with
-// optimistic locking.
+// optimistic locking. Computes and writes the new value in one round trip.
 //
 // When the context is already cancelled or has exceeded its deadline, returns
 // the context's error without performing any work.
@@ -904,7 +904,7 @@ func (a *RedisAdapter[K, V]) processBulkGetResult(ctx context.Context, value any
 		return zero, false
 	}
 
-	encoder, err := a.registry.GetByType(reflect.TypeOf(zero))
+	encoder, err := a.registry.GetByType(reflect.TypeFor[V]())
 	if err != nil {
 		l.Warn("Failed to find encoder for type", logger.String(logKeyField, keyString), logger.Error(err))
 		return zero, false

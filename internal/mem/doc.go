@@ -33,7 +33,7 @@
 //
 // # Safety
 //
-// Functions in this package use [unsafe] operations. Misuse can cause:
+// Functions here use [unsafe] operations. Misuse can cause:
 //
 //   - Data corruption (modifying immutable strings)
 //   - Use-after-free (if backing memory is freed/reused)

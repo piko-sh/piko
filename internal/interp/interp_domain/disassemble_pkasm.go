@@ -78,8 +78,8 @@ func (cfs *CompiledFileSet) DisassembleAssembly() string {
 	return w.builder.String()
 }
 
-// DisassembleFunctionAssembly returns the human-readable bytecode
-// assembly listing for this function and all its nested children.
+// DisassembleFunctionAssembly returns the human-readable bytecode assembly listing
+// for the function and all its nested children.
 //
 // Returns the assembly listing as a string.
 func (cf *CompiledFunction) DisassembleFunctionAssembly() string {

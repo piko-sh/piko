@@ -403,9 +403,9 @@ func (ae *attributeEmitter) emitKeyAttribute(
 
 // emitRefAttribute builds code for the p-ref attribute if present.
 //
-// Since p-ref is a raw string identifier (not an expression), this method
-// uses RawExpression directly. The value is validated by the annotator to
-// be a valid JavaScript identifier.
+// Since p-ref is a raw string identifier (not an expression), the emission uses
+// RawExpression directly. The value is validated by the annotator to be a valid
+// JavaScript identifier.
 //
 // Takes nodeVar (*goast.Ident) which is the AST variable for the node.
 // Takes node (*ast_domain.TemplateNode) which holds the p-ref directive.

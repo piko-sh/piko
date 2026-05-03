@@ -139,6 +139,5 @@ func collectMenuItems(specs []MenuItemSpec) []MenuItem {
 //
 // Returns PanelGroup ready for registration with the model.
 func buildGroup(id GroupID, title string, hotkey rune, specs []MenuItemSpec) PanelGroup {
-	pg := NewBasePanelGroup(id, title, hotkey, collectMenuItems(specs))
-	return &pg
+	return new(NewBasePanelGroup(id, title, hotkey, collectMenuItems(specs)))
 }

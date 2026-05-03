@@ -39,8 +39,10 @@ import (
 // arrive from the Ollama API.
 // Returns error when the stream cannot be started.
 //
-// Spawns a goroutine that processes the stream and sends events to the
-// returned channel until the stream completes or the context is cancelled.
+// A processing task scheduled via streamWaitGroup.Go feeds events to the
+// returned channel until the stream completes or the context is
+// cancelled. The wait group is incremented so Close can drain active
+// streams before returning.
 func (p *ollamaProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
@@ -58,16 +60,40 @@ func (p *ollamaProvider) Stream(ctx context.Context, request *llm_dto.Completion
 	)
 
 	chatRequest := p.buildChatRequest(ctx, request, model)
+	streamContext := p.streamContext(ctx)
 
 	events := make(chan llm_dto.StreamEvent)
 
-	go p.processStream(ctx, chatRequest, model, events)
+	p.streamWaitGroup.Go(func() {
+		p.processStream(streamContext, chatRequest, model, events)
+	})
 
 	return events, nil
 }
 
+// streamContext returns a context that is cancelled when either the caller's
+// context is cancelled or the provider is closed.
+//
+// Takes ctx (context.Context) which is the caller's context.
+//
+// Returns context.Context which carries the merged cancellation signal.
+func (p *ollamaProvider) streamContext(ctx context.Context) context.Context {
+	if p.closeContext == nil {
+		return ctx
+	}
+	merged, cancel := context.WithCancelCause(ctx)
+	stopWatch := context.AfterFunc(p.closeContext, func() {
+		cancel(context.Cause(p.closeContext))
+	})
+	context.AfterFunc(merged, func() {
+		stopWatch()
+	})
+	return merged
+}
+
 // processStream runs the Ollama chat with streaming and feeds events into
-// the channel.
+// the channel. The caller is responsible for tracking the goroutine via
+// streamWaitGroup; processStream itself only owns the events channel.
 //
 // Takes chatRequest (*api.ChatRequest) which is the Ollama request.
 // Takes model (string) which is the model being used.
@@ -108,11 +134,17 @@ func (p *ollamaProvider) processStream(ctx context.Context, chatRequest *api.Cha
 
 	if err != nil {
 		streamErrorCount.Add(ctx, 1)
-		events <- llm_dto.NewErrorEvent(fmt.Errorf("ollama stream error: %w", wrapError(err)))
+		select {
+		case events <- llm_dto.NewErrorEvent(fmt.Errorf("ollama stream error: %w", wrapError(err))):
+		case <-ctx.Done():
+		}
 		return
 	}
 
-	events <- buildStreamDoneEvent(model, doneToolCalls, totalPromptTokens, totalEvalTokens)
+	select {
+	case events <- buildStreamDoneEvent(model, doneToolCalls, totalPromptTokens, totalEvalTokens):
+	case <-ctx.Done():
+	}
 }
 
 // buildStreamDoneEvent constructs the final StreamEvent from

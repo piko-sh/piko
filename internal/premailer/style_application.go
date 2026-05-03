@@ -29,7 +29,7 @@ import (
 )
 
 // applyRuleSet applies both inlineable and leftover rules from the given rule
-// set. This method can be tested by passing a manually created RuleSet.
+// set. Can be tested by passing a manually created RuleSet.
 //
 // Takes ruleSet (*RuleSet) which contains the sorted rules to apply.
 // Takes cssAST (css_ast.AST) which provides context for reinserting leftover

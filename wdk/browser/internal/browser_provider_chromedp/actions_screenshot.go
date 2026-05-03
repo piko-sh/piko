@@ -234,18 +234,17 @@ func ScreenshotElementWithPadding(ctx *ActionContext, selector string, padding f
 	return ScreenshotRegion(ctx, x, y, width, height)
 }
 
-// CompareScreenshots compares two screenshots and returns the percentage of
+// CompareScreenshots compares two screenshots and reports the percentage of
 // differing bytes.
 //
-// This is a simple comparison that returns 0.0 if identical, 1.0 if completely
-// different. This function only works with same-size images and compares raw
-// bytes.
+// Yields 0.0 if identical, 1.0 if completely different. Only works with
+// same-size images and compares raw bytes.
 //
 // Takes a ([]byte) which is the first screenshot as raw bytes.
 // Takes b ([]byte) which is the second screenshot as raw bytes.
 //
 // Returns float64 which is the difference ratio from 0.0 to 1.0.
-// Returns error which is always nil for this implementation.
+// Returns error which is always nil for the current implementation.
 func CompareScreenshots(a, b []byte) (float64, error) {
 	if len(a) != len(b) {
 		return 1.0, nil

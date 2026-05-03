@@ -3,7 +3,7 @@ package contact
 import "piko.sh/piko"
 
 // SubmitAction handles contact form submissions.
-// See https://piko.sh/docs/guide/server-actions
+// See https://piko.sh/docs/reference/server-actions
 type SubmitAction struct {
 	piko.ActionMetadata
 }

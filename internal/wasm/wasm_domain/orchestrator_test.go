@@ -2467,3 +2467,94 @@ func TestOrchestrator_Log_UnknownLevel(t *testing.T) {
 	})
 	assert.Empty(t, calls)
 }
+
+func TestOrchestrator_Generate_RejectsOversizedSource(t *testing.T) {
+	t.Parallel()
+
+	o := NewOrchestrator(
+		WithGenerator(&stubGeneratorPort{
+			response: &wasm_dto.GenerateFromSourcesResponse{Success: true},
+		}),
+		WithConfig(Config{DefaultModuleName: "test", MaxSourceSize: 8}),
+	)
+
+	response, err := o.Generate(t.Context(), &wasm_dto.GenerateFromSourcesRequest{
+		Sources:    map[string]string{"a.pk": "this payload is much larger than the cap"},
+		ModuleName: "test",
+	})
+
+	require.NoError(t, err)
+	assert.False(t, response.Success)
+	assert.Contains(t, response.Error, "source size")
+	assert.Contains(t, response.Error, "exceeds maximum")
+}
+
+func TestOrchestrator_Render_RejectsOversizedSource(t *testing.T) {
+	t.Parallel()
+
+	o := NewOrchestrator(
+		WithRenderer(&stubRenderPort{
+			renderFunc: func(_ context.Context, _ *wasm_dto.RenderFromSourcesRequest) (*wasm_dto.RenderFromSourcesResponse, error) {
+				return &wasm_dto.RenderFromSourcesResponse{Success: true}, nil
+			},
+		}),
+		WithConfig(Config{DefaultModuleName: "test", MaxSourceSize: 8}),
+	)
+
+	response, err := o.Render(t.Context(), &wasm_dto.RenderFromSourcesRequest{
+		Sources:    map[string]string{"p.pk": "this payload is much larger than the cap"},
+		ModuleName: "test",
+		EntryPoint: "p.pk",
+	})
+
+	require.NoError(t, err)
+	assert.False(t, response.Success)
+	assert.Contains(t, response.Error, "source size")
+	assert.Contains(t, response.Error, "exceeds maximum")
+}
+
+func TestOrchestrator_DynamicRender_RejectsOversizedSource(t *testing.T) {
+	t.Parallel()
+
+	o := NewOrchestrator(
+		WithGenerator(&stubGeneratorPort{
+			response: &wasm_dto.GenerateFromSourcesResponse{Success: true},
+		}),
+		WithInterpreter(&stubInterpreterPort{}),
+		WithConfig(Config{DefaultModuleName: "test", MaxSourceSize: 8}),
+	)
+
+	response, err := o.DynamicRender(t.Context(), &wasm_dto.DynamicRenderRequest{
+		Sources:    map[string]string{"p.pk": "this payload is much larger than the cap"},
+		ModuleName: "test",
+		RequestURL: "/",
+	})
+
+	require.NoError(t, err)
+	assert.False(t, response.Success)
+	assert.Contains(t, response.Error, "source size")
+	assert.Contains(t, response.Error, "exceeds maximum")
+}
+
+func TestCheckSourceSize(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns nil when under limit", func(t *testing.T) {
+		t.Parallel()
+		err := checkSourceSize(t.Context(), map[string]string{"a": "small"}, 1024)
+		assert.NoError(t, err)
+	})
+
+	t.Run("returns wrapped errSourceTooLarge when over limit", func(t *testing.T) {
+		t.Parallel()
+		err := checkSourceSize(t.Context(), map[string]string{"a": "abcdefghijk"}, 4)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, errSourceTooLarge)
+	})
+
+	t.Run("zero or negative cap disables the check", func(t *testing.T) {
+		t.Parallel()
+		err := checkSourceSize(t.Context(), map[string]string{"a": "abcdefghijk"}, 0)
+		assert.NoError(t, err)
+	})
+}

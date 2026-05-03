@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 )
 
 // WriterPartType discriminates between part types in a DirectWriter. Each type
@@ -188,12 +189,10 @@ type DirectWriter struct {
 }
 
 var (
-	// directWriterPool is a pool for DirectWriter objects.
-	directWriterPool = sync.Pool{
-		New: func() any {
-			return &DirectWriter{}
-		},
-	}
+	// directWriterPool is a pool for DirectWriter objects. Wrapped in
+	// atomic.Pointer so ResetDirectWriterPool can swap the underlying pool
+	// without racing concurrent Get/Put callers.
+	directWriterPool atomic.Pointer[sync.Pool]
 
 	// stringBufPool reuses byte-slice buffers to reduce allocation pressure during
 	// DirectWriter string rendering.
@@ -203,14 +202,41 @@ var (
 		},
 	}
 
-	// byteBufPool reuses byte-slice buffers to reduce allocation pressure for
-	// general-purpose byte output.
-	byteBufPool = sync.Pool{
+	// byteBufPool reuses byte-slice buffers for general-purpose byte output.
+	// Wrapped in atomic.Pointer so ResetByteBufPool can swap the underlying
+	// pool without racing concurrent Get/Put callers.
+	byteBufPool atomic.Pointer[sync.Pool]
+)
+
+func init() {
+	directWriterPool.Store(newDirectWriterPool())
+	byteBufPool.Store(newByteBufPool())
+}
+
+// newDirectWriterPool builds a fresh sync.Pool whose New func returns a
+// zero-valued DirectWriter. Used by init and ResetDirectWriterPool.
+//
+// Returns *sync.Pool which is the freshly constructed pool.
+func newDirectWriterPool() *sync.Pool {
+	return &sync.Pool{
+		New: func() any {
+			return &DirectWriter{}
+		},
+	}
+}
+
+// newByteBufPool builds a fresh sync.Pool whose New func returns a pointer
+// to an empty []byte with capacity defaultByteBufCapacity. Used by init
+// and ResetByteBufPool.
+//
+// Returns *sync.Pool which is the freshly constructed pool.
+func newByteBufPool() *sync.Pool {
+	return &sync.Pool{
 		New: func() any {
 			return new(make([]byte, 0, defaultByteBufCapacity))
 		},
 	}
-)
+}
 
 // Reset clears the writer's state so it can be reused.
 // Returns any borrowed byte buffers to the pool.
@@ -485,9 +511,9 @@ func (dw *DirectWriter) SetName(name string) *DirectWriter {
 //
 // Returns string which is the combined content of all parts.
 //
-// The result is cached after the first call. Use this method only when a
-// string is needed in Go code. For rendering, use WriteTo or write directly
-// via the quicktemplate writer.
+// The result is cached after the first call. Use only when a string is needed
+// in Go code. For rendering, use WriteTo or write directly via the quicktemplate
+// writer.
 func (dw *DirectWriter) String() string {
 	if dw == nil || dw.len == 0 {
 		return ""
@@ -785,7 +811,7 @@ func (dw *DirectWriter) append(p WriterPart) {
 //
 // Returns *[]byte which is a pointer to a reusable byte slice.
 func GetByteBuf() *[]byte {
-	bufferPointer, ok := byteBufPool.Get().(*[]byte)
+	bufferPointer, ok := byteBufPool.Load().Get().(*[]byte)
 	if !ok {
 		return new(make([]byte, 0, defaultByteBufCapacity))
 	}
@@ -801,25 +827,20 @@ func PutByteBuf(bufferPointer *[]byte) {
 		return
 	}
 	*bufferPointer = (*bufferPointer)[:0]
-	byteBufPool.Put(bufferPointer)
+	byteBufPool.Load().Put(bufferPointer)
 }
 
-// ResetByteBufPool resets the byte buffer pool to its initial state.
-//
-// Use this in tests with t.Cleanup(ResetByteBufPool) to ensure test isolation.
+// ResetByteBufPool atomically swaps in a fresh byte buffer pool for test
+// isolation. Safe to call concurrently with Get/Put.
 func ResetByteBufPool() {
-	byteBufPool = sync.Pool{
-		New: func() any {
-			return new(make([]byte, 0, defaultByteBufCapacity))
-		},
-	}
+	byteBufPool.Store(newByteBufPool())
 }
 
 // GetDirectWriter retrieves a DirectWriter from the pool.
 //
 // Returns *DirectWriter which is reset and ready for use.
 func GetDirectWriter() *DirectWriter {
-	dw, ok := directWriterPool.Get().(*DirectWriter)
+	dw, ok := directWriterPool.Load().Get().(*DirectWriter)
 	if !ok {
 		dw = &DirectWriter{}
 	}
@@ -838,17 +859,13 @@ func PutDirectWriter(dw *DirectWriter) {
 		return
 	}
 	dw.Reset()
-	directWriterPool.Put(dw)
+	directWriterPool.Load().Put(dw)
 }
 
-// ResetDirectWriterPool clears the direct writer pool to ensure test isolation.
-// Call this function via t.Cleanup(ResetDirectWriterPool) in tests.
+// ResetDirectWriterPool atomically swaps in a fresh DirectWriter pool for
+// test isolation. Safe to call concurrently with Get/Put.
 func ResetDirectWriterPool() {
-	directWriterPool = sync.Pool{
-		New: func() any {
-			return &DirectWriter{}
-		},
-	}
+	directWriterPool.Store(newDirectWriterPool())
 }
 
 // partRenderedLen returns the rendered length of a single part.

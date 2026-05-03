@@ -127,4 +127,4 @@ p.Wait(time.Second)           // Wait for duration
 
 Refer to the official Piko documentation:
 
--   **[Testing guide](https://piko.sh/docs/guide/testing)**
+-   **[Testing guide](https://piko.sh/docs/how-to/testing)**

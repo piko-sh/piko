@@ -52,7 +52,7 @@ func createProvider(t *testing.T, testdataDir string) (*driver_markdown.Markdown
 		BasePath: testdataDir,
 	}
 
-	return driver_markdown.NewMarkdownProvider("markdown", sandbox, service, nil), source
+	return driver_markdown.NewMarkdownProvider("markdown", sandbox, service, nil, nil), source
 }
 
 func TestMarkdownCollection(t *testing.T) {

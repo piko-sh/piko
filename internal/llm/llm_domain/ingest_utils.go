@@ -26,6 +26,7 @@ import (
 	"maps"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 )
 
 // FSLoader loads documents from a file system.
@@ -335,8 +336,12 @@ func (s *RecursiveCharacterSplitter) assembleChunks(parts []string, separator st
 	return finalChunks
 }
 
-// computeOverlap returns the trailing portion of text to carry forward into
-// the next chunk, based on the configured overlap size.
+// computeOverlap returns the trailing portion of text to carry forward into the next chunk.
+//
+// The slice boundary is snapped forward to the nearest UTF-8 rune start so the
+// result is always valid UTF-8, even when the byte budget would otherwise fall
+// inside a multi-byte sequence. The returned slice may therefore be slightly
+// shorter than s.overlap bytes.
 //
 // Takes text (string) which is the completed chunk text.
 //
@@ -346,10 +351,14 @@ func (s *RecursiveCharacterSplitter) computeOverlap(text string) string {
 	if s.overlap <= 0 {
 		return ""
 	}
-	if len(text) > s.overlap {
-		return text[len(text)-s.overlap:]
+	if len(text) <= s.overlap {
+		return text
 	}
-	return text
+	start := len(text) - s.overlap
+	for start < len(text) && !utf8.RuneStart(text[start]) {
+		start++
+	}
+	return text[start:]
 }
 
 // refineChunks recursively splits any oversized chunks using the remaining
@@ -374,20 +383,69 @@ func (s *RecursiveCharacterSplitter) refineChunks(chunks []string, remainingSepa
 
 // hardSplit splits text into fixed-size chunks when no separators work.
 //
+// Both the start and end of each chunk are snapped to the nearest rune
+// boundary so chunks remain valid UTF-8 even when the byte budget would
+// otherwise cut mid-rune. Resulting chunks may therefore be slightly smaller
+// than s.chunkSize.
+//
 // Takes text (string) which is the content to split into chunks.
 //
 // Returns []string which contains the text divided into overlapping chunks
-// of the configured size.
+// of approximately the configured size in bytes.
 func (s *RecursiveCharacterSplitter) hardSplit(text string) []string {
 	var chunks []string
-	for i := 0; i < len(text); i += s.chunkSize - s.overlap {
-		end := min(i+s.chunkSize, len(text))
-		chunks = append(chunks, text[i:end])
+	stride := max(s.chunkSize-s.overlap, 1)
+	for i := 0; i < len(text); i += stride {
+		start := snapForwardToRune(text, i)
+		if start >= len(text) {
+			break
+		}
+		end := snapBackwardToRune(text, start, start+s.chunkSize)
+		if end <= start {
+			break
+		}
+		chunks = append(chunks, text[start:end])
 		if end == len(text) {
 			break
 		}
 	}
 	return chunks
+}
+
+// snapForwardToRune returns the smallest index >= start that begins a UTF-8 rune.
+//
+// Takes text (string) which is the source string to scan.
+// Takes start (int) which is the candidate index to snap forward from.
+//
+// Returns int which is the snapped index, or len(text) if no rune-start byte
+// exists at or after start.
+func snapForwardToRune(text string, start int) int {
+	for start < len(text) && !utf8.RuneStart(text[start]) {
+		start++
+	}
+	return start
+}
+
+// snapBackwardToRune clamps end to len(text) then walks back to the nearest
+// rune boundary.
+//
+// The walk stops once end either equals start or sits on a rune-start byte,
+// keeping the returned slice bounds valid UTF-8.
+//
+// Takes text (string) which is the source string to scan.
+// Takes start (int) which is the lower bound that end must not cross.
+// Takes end (int) which is the candidate end index to snap backward.
+//
+// Returns int which is the snapped end index, clamped to len(text) and never
+// less than start.
+func snapBackwardToRune(text string, start, end int) int {
+	if end >= len(text) {
+		return len(text)
+	}
+	for end > start && !utf8.RuneStart(text[end]) {
+		end--
+	}
+	return end
 }
 
 // copyMetadata creates a shallow copy of a metadata map so that each chunk

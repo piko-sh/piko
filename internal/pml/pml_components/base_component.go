@@ -60,13 +60,13 @@ const (
 )
 
 // BaseComponent provides default implementations for common methods in the
-// pml_domain.Component interface. Concrete components can embed this struct to
+// pml_domain.Component interface. Concrete components can embed the type to
 // reduce boilerplate code.
 type BaseComponent struct{}
 
 // IsEndingTag provides the default behaviour for most components, which is to
 // allow child components. Components like <pml-p> or <pml-button> will override
-// this method.
+// the default.
 //
 // Returns bool which is false, indicating that this component allows children.
 func (*BaseComponent) IsEndingTag() bool {

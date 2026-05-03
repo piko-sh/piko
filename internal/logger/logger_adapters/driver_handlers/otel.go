@@ -57,13 +57,13 @@ var (
 // configuration. It returns a shutdown function to gracefully close all
 // providers and any initialisation errors.
 //
-// The enabledIntegrations parameter contains the type names of integrations
-// that are both enabled in config and have their adapter package
-// imported. This allows the function to collect OTel components
-// from all relevant integrations without knowing about them.
+// The enabledIntegrations parameter contains the type names of integrations that
+// are both enabled in config and have their adapter package imported. Allows
+// collection of OTel components from all relevant integrations without knowing
+// about them.
 //
-// If OTEL was already set up with additional processors/readers, this function
-// will skip re-initialisation to avoid overwriting the configured providers.
+// If OTEL was already set up with additional processors/readers, skips
+// re-initialisation to avoid overwriting the configured providers.
 //
 // When no OtelProviderFactory has been registered (i.e. the SDK module is not
 // imported), noop providers are used even when config.Enabled is true.

@@ -92,10 +92,9 @@ func (w *boundedWriter) Write(data []byte) (int, error) {
 
 // GetData retrieves the page data from CollectionData and converts it to type T.
 //
-// This function is called at runtime by generated code when using
-// piko.GetData[T](r) in the Render function of collection page templates.
-// It extracts the "page" key from the root collection data map and performs
-// type-safe conversion.
+// Called at runtime by generated code when using piko.GetData[T](r) in the Render
+// function of collection page templates. It extracts the "page" key from the root
+// collection data map and performs type-safe conversion.
 //
 // Takes r (*templater_dto.RequestData) which contains the CollectionData map.
 //

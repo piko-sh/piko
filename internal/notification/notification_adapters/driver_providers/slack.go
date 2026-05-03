@@ -28,6 +28,7 @@ import (
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/notification/notification_dto"
+	"piko.sh/piko/internal/safeerror"
 )
 
 var _ notification_domain.NotificationProviderPort = (*SlackProvider)(nil)
@@ -76,10 +77,14 @@ func (s *SlackProvider) Send(ctx context.Context, params *notification_dto.SendP
 	if err != nil {
 		return fmt.Errorf("sending to slack: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndCloseResponse(response)
 
 	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("slack returned status %d: %s", response.StatusCode, response.Status)
+		statusErr := buildProviderStatusError("slack", response)
+		if isClientError(response.StatusCode) {
+			return safeerror.NewError(safeNotificationDeliveryFailed, statusErr)
+		}
+		return statusErr
 	}
 
 	return nil

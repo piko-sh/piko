@@ -103,7 +103,7 @@ type JSONSchema struct {
 	// Pattern specifies a regular expression pattern for string validation.
 	Pattern *string `json:"pattern,omitempty"`
 
-	// Default specifies a default value for this field.
+	// Default specifies a default value for the field.
 	Default any `json:"default,omitempty"`
 
 	// AnyOf lists schemas where the value must match at least one.

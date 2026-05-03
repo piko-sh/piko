@@ -20,7 +20,10 @@ package orchestrator_adapters
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/assert"
@@ -249,4 +252,195 @@ func TestWatermillEventBus_CloseAllSubscriptions_Empty(t *testing.T) {
 	count := web.closeAllSubscriptions(ctx)
 
 	assert.Equal(t, 0, count)
+}
+
+func TestWatermillEventBus_DefaultMaxPayloadBytes(t *testing.T) {
+	t.Parallel()
+
+	bus := NewWatermillEventBus(nil, nil, nil)
+	web, ok := bus.(*watermillEventBus)
+	require.True(t, ok)
+	assert.Equal(t, int64(DefaultMaxEventPayloadBytes), web.effectiveMaxPayloadBytes())
+}
+
+func TestWatermillEventBus_WithMaxEventPayloadBytes(t *testing.T) {
+	t.Parallel()
+
+	bus := NewWatermillEventBus(nil, nil, nil, WithMaxEventPayloadBytes(1024))
+	web, ok := bus.(*watermillEventBus)
+	require.True(t, ok)
+	assert.Equal(t, int64(1024), web.effectiveMaxPayloadBytes())
+}
+
+func TestWatermillEventBus_WithMaxEventPayloadBytes_NonPositiveResets(t *testing.T) {
+	t.Parallel()
+
+	bus := NewWatermillEventBus(nil, nil, nil, WithMaxEventPayloadBytes(0))
+	web, ok := bus.(*watermillEventBus)
+	require.True(t, ok)
+	assert.Equal(t, int64(DefaultMaxEventPayloadBytes), web.effectiveMaxPayloadBytes())
+}
+
+func TestWatermillEventBus_ProcessMessage_RejectsOversize(t *testing.T) {
+	t.Parallel()
+
+	web := &watermillEventBus{
+		subscriptions:   make(map[string]*watermillSubscription),
+		maxPayloadBytes: 16,
+		isClosed:        false,
+	}
+
+	wmMessage := message.NewMessage("test-id", make([]byte, 32))
+	handlerCalled := false
+	handler := func(_ context.Context, _ orchestrator_domain.Event) error {
+		handlerCalled = true
+		return nil
+	}
+
+	web.processMessage(t.Context(), "test-topic", wmMessage, handler)
+
+	assert.False(t, handlerCalled, "handler should not be invoked for oversize payloads")
+	select {
+	case <-wmMessage.Acked():
+	case <-wmMessage.Nacked():
+		t.Fatal("oversize payload should be Acked-and-dropped, not Nacked: retrying an oversize payload would just flood the bus")
+	default:
+		t.Fatal("expected Ack signal")
+	}
+}
+
+func TestWatermillEventBus_CreateChannelMessageHandler_AcksOversize(t *testing.T) {
+	t.Parallel()
+
+	web := &watermillEventBus{
+		subscriptions:   make(map[string]*watermillSubscription),
+		maxPayloadBytes: 16,
+		isClosed:        false,
+	}
+
+	outputChan := make(chan orchestrator_domain.Event, 1)
+	handler := web.createChannelMessageHandler(t.Context(), "test-topic", outputChan)
+
+	wmMessage := message.NewMessage("test-id", make([]byte, 32))
+	err := handler(wmMessage)
+	require.NoError(t, err)
+
+	select {
+	case <-wmMessage.Acked():
+	default:
+		t.Fatal("expected oversize message to be Acked to drain the queue")
+	}
+
+	select {
+	case <-outputChan:
+		t.Fatal("oversize message must not reach the subscriber channel")
+	default:
+	}
+}
+
+func TestWatermillMonitor_RecoversFromPanic(t *testing.T) {
+	t.Parallel()
+
+	web := &watermillEventBus{
+		subscriptions: nil,
+	}
+
+	ctx, cancel := context.WithCancelCause(t.Context())
+	web.monitorContextCancellation(ctx, "test-topic")
+	cancel(errors.New("test cancel"))
+
+	done := make(chan struct{})
+	go func() {
+		web.monitorWaitGroup.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("monitor goroutine did not return; panic recovery may have leaked a hang")
+	}
+}
+
+func TestWatermillEventBus_CloseChannelOnce(t *testing.T) {
+	t.Parallel()
+
+	web := &watermillEventBus{
+		subscriptions: make(map[string]*watermillSubscription),
+	}
+
+	web.createSubscription(t.Context(), "topic-1")
+
+	web.unsubscribe(t.Context(), "topic-1")
+	web.subscriptions = make(map[string]*watermillSubscription)
+	web.subscriptions["topic-1"] = &watermillSubscription{
+		outputChan:  make(chan orchestrator_domain.Event),
+		cancelFunc:  func(_ error) {},
+		closeOutput: &sync.Once{},
+		topic:       "topic-1",
+	}
+	first := web.subscriptions["topic-1"]
+	first.closeChannel()
+	require.NotPanics(t, func() {
+		first.closeChannel()
+	}, "second close must be a no-op via sync.Once")
+}
+
+func TestPayloadTime_ParsesRFC3339String(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 5, 3, 12, 34, 56, 789_000_000, time.UTC)
+	payload := map[string]any{
+		"executeAt": now.Format(time.RFC3339Nano),
+	}
+
+	got := payloadTime(payload, "executeAt")
+
+	require.True(t, got.Equal(now), "expected parsed RFC3339Nano time to equal original; got %s", got)
+}
+
+func TestPayloadTime_ParsesRFC3339SecondsString(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 5, 3, 12, 34, 56, 0, time.UTC)
+	payload := map[string]any{
+		"executeAt": now.Format(time.RFC3339),
+	}
+
+	got := payloadTime(payload, "executeAt")
+
+	require.True(t, got.Equal(now), "expected parsed RFC3339 time to equal original; got %s", got)
+}
+
+func TestPayloadTime_AcceptsNativeTimeTime(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 5, 3, 12, 34, 56, 0, time.UTC)
+	payload := map[string]any{
+		"executeAt": now,
+	}
+
+	got := payloadTime(payload, "executeAt")
+
+	require.True(t, got.Equal(now))
+}
+
+func TestPayloadTime_UnparseableStringReturnsZero(t *testing.T) {
+	t.Parallel()
+
+	payload := map[string]any{
+		"executeAt": "not a date",
+	}
+
+	got := payloadTime(payload, "executeAt")
+
+	require.True(t, got.IsZero())
+}
+
+func TestPayloadTime_MissingKeyReturnsZero(t *testing.T) {
+	t.Parallel()
+
+	got := payloadTime(map[string]any{}, "executeAt")
+
+	require.True(t, got.IsZero())
 }

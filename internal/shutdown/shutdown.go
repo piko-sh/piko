@@ -118,9 +118,9 @@ func NewManager(opts ...ManagerOption) *Manager {
 // triggered. The name is used for logging and tracing purposes to identify
 // the cleanup function.
 //
-// If cleanup is already in progress, this function logs a warning and returns
-// without registering. This prevents potential deadlocks from cleanup functions
-// attempting to register new cleanup handlers.
+// If cleanup is already in progress, logs a warning and returns without
+// registering. Prevents potential deadlocks from cleanup functions attempting
+// to register new cleanup handlers.
 //
 // Takes ctx (context.Context) which carries trace and logging context.
 // Takes name (string) which identifies the cleanup function in logs and traces.
@@ -158,8 +158,8 @@ func (m *Manager) Register(ctx context.Context, name string, cleanupFunction Cle
 }
 
 // ListenAndShutdown waits for a shutdown signal (SIGINT or SIGTERM), then
-// runs all registered cleanup functions within the given timeout. This method
-// calls os.Exit(0) after cleanup finishes.
+// runs all registered cleanup functions within the given timeout. Calls
+// os.Exit(0) after cleanup finishes.
 //
 // Takes totalTimeout (time.Duration) which sets the maximum time for all
 // cleanup tasks to complete.
@@ -199,10 +199,10 @@ func (m *Manager) ListenAndShutdown(totalTimeout time.Duration) {
 
 // ListenAndShutdownWithSignal waits for a signal and then runs cleanup.
 //
-// This is a testable version of ListenAndShutdown. It accepts a signal channel
-// so that tests can trigger shutdown without using OS signals. Unlike
-// ListenAndShutdown, this method does not call os.Exit. The caller must handle
-// the exit behaviour.
+// A testable version of ListenAndShutdown. Accepts a signal channel so that
+// tests can trigger shutdown without using OS signals. Unlike
+// ListenAndShutdown, does not call os.Exit. The caller must handle the exit
+// behaviour.
 //
 // Takes totalTimeout (time.Duration) which sets the maximum time for cleanup.
 // Takes sigChan (<-chan os.Signal) which is the channel to listen for shutdown

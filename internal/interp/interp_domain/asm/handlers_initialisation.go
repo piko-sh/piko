@@ -65,10 +65,10 @@ func initialisationHandlers() []asmgen.HandlerDefinition[BytecodeArchitecturePor
 // patch is the opcode number multiplied by 8; for example, opcode 8 (AddInt)
 // is patched at offset 64.
 //
-// This function takes a single argument: a pointer to a [256]uintptr table,
-// passed at FP+0. It is declared NOSPLIT because it must not grow the stack
-// (it runs before the dispatch loop is entered). The frame size is $0-8,
-// indicating zero local stack space and 8 bytes of arguments.
+// Takes a single argument: a pointer to a [256]uintptr table, passed at FP+0. It is
+// declared NOSPLIT because it must not grow the stack (it runs before the dispatch
+// loop is entered). The frame size is $0-8, indicating zero local stack space and
+// 8 bytes of arguments.
 //
 // Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
 // handler definition for the initJumpTable function.
@@ -92,12 +92,12 @@ func handlerInitJumpTable() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 // the Floor, Ceil, and Trunc math operations with handlers that use the
 // ROUNDSD instruction.
 //
-// ROUNDSD is part of the SSE4.1 instruction set extension, which is not
-// available on all amd64 processors. The Go runtime detects SSE4.1 support at
-// startup, and the interpreter calls this function only when the CPU capability
-// flag is set. If SSE4.1 is not available, the Floor, Ceil, and Trunc table
-// entries remain pointed at tier2Fallback, causing those opcodes to be handled
-// by the Go-side interpreter instead.
+// ROUNDSD is part of the SSE4.1 instruction set extension, which is not available on
+// all amd64 processors. The Go runtime detects SSE4.1 support at startup, and the
+// interpreter calls the handler only when the CPU capability flag is set. If SSE4.1
+// is not available, the Floor, Ceil, and Trunc table entries remain pointed at
+// tier2Fallback, causing those opcodes to be handled by the Go-side interpreter
+// instead.
 //
 // This handler definition is restricted to the amd64 architecture via the
 // Architectures field. On arm64, native rounding instructions (FRINTM, FRINTP,
@@ -106,8 +106,8 @@ func handlerInitJumpTable() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 // implementation of EmitInitJumpTableSSE41 is a no-op that exists solely to
 // satisfy the InitialisationOperationsPort interface.
 //
-// Like initJumpTable, this function takes a pointer to the [256]uintptr table
-// at FP+0, is NOSPLIT, and has frame size $0-8.
+// Like initJumpTable, takes a pointer to the [256]uintptr table at FP+0, is NOSPLIT,
+// and has frame size $0-8.
 //
 // Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
 // handler definition for the initJumpTableSSE41 function.
@@ -126,12 +126,11 @@ func handlerInitJumpTableSSE41() asmgen.HandlerDefinition[BytecodeArchitecturePo
 // handlerDispatchLoop returns the handler definition for the dispatchLoop
 // function, which is the entry point for the tier-1 assembly dispatch loop.
 //
-// The function takes a single argument: a pointer to a DispatchContext struct,
-// passed at FP+0. The DispatchContext contains all of the state needed for
-// instruction dispatch: the bytecode body pointer, the body length, the current
-// program counter, the integer and float register bank base pointers, the
-// integer and float constant table pointers, the jump table pointer, and
-// various other fields.
+// Takes a single argument: a pointer to a DispatchContext struct, passed at FP+0.
+// The DispatchContext contains all of the state needed for instruction dispatch: the
+// bytecode body pointer, the body length, the current program counter, the integer
+// and float register bank base pointers, the integer and float constant table
+// pointers, the jump table pointer, and various other fields.
 //
 // On entry, dispatchLoop loads the DispatchContext fields into dedicated pinned
 // registers. On amd64 the mapping is: R12 = bytecode body, R13 = body length,

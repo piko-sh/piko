@@ -37,7 +37,8 @@ type validator struct {
 	registry ComponentRegistry
 }
 
-// Validate checks each PikoML node in the AST against its component definition.
+// Validate checks each PikoML node in the AST against its component
+// definition.
 //
 // Takes ast (*ast_domain.TemplateAST) which is the parsed template to check.
 //

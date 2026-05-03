@@ -27,7 +27,8 @@ import (
 //
 // All resolution methods support the @ module alias, which allows developers
 // to reference their own module with a concise syntax: `@/partials/card.pk`
-// instead of `github.com/myorg/myproject/partials/card.pk`.
+// instead of a full GitHub-style module path such as
+// `example.com/myorg/myproject/partials/card.pk`.
 //
 // The @ alias is resolved relative to the file containing the import
 // (containingFilePath), not the project being built. This provides correct
@@ -98,13 +99,13 @@ type ResolverPort interface {
 	// cache lookups.
 	//
 	// Entry points discovered during the annotation/build pipeline use
-	// module-absolute paths (e.g., "github.com/my-org/my-app/pages/index.pk")
-	// to ensure global uniqueness. However, manifests and runtime caches use
-	// project-relative keys (e.g., "pages/index.pk") for simplicity and to
-	// avoid coupling runtime logic to module structure.
+	// module-absolute paths (for example a GitHub-style path such as
+	// "example.com/my-org/my-app/pages/index.pk") to ensure global uniqueness.
+	// However, manifests and runtime caches use project-relative keys (e.g.,
+	// "pages/index.pk") for simplicity and to avoid coupling runtime logic to
+	// module structure.
 	//
-	// This method performs the conversion by stripping the known module name
-	// prefix.
+	// Performs the conversion by stripping the known module name prefix.
 	//
 	// Takes entryPointPath (string) which is the module-absolute path to convert.
 	//

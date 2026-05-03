@@ -1,0 +1,63 @@
+<svg viewBox="0 0 540 315" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="t05-title t05-desc">
+  <title id="t05-title">Tutorial 5 preview: task manager backed by SQLite</title>
+  <desc id="t05-desc">A browser window showing a task manager. An input field with an add button sits at the top, then a list of three tasks each with a checkbox, a label, and a delete button. One task is checked with its label struck through. A SQLite database cylinder sits beside the browser, indicating the typed querier persistence layer.</desc>
+  <defs>
+    <marker id="t05-arrow" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+      <path d="M0,0 L7,2.5 L0,5" fill="none" stroke="#6BD5CC" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  <text x="270" y="18" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">WHAT YOU WILL BUILD</text>
+
+  
+  <rect x="30" y="35" width="360" height="220" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M40,35 H380 A10,10 0 0 1 390,45 V65 H30 V45 A10,10 0 0 1 40,35 Z" fill="#1C544F"/>
+  <circle cx="46" cy="49" r="4" fill="#ff5f57"/>
+  <circle cx="60" cy="49" r="4" fill="#febc2e"/>
+  <circle cx="74" cy="49" r="4" fill="#28c840"/>
+
+  <rect x="100" y="42" width="260" height="14" rx="4" fill="#364049"/>
+  <text x="115" y="53" fill="#C9F5F2" font-family="monospace" font-size="9">http://localhost:8080/tasks</text>
+
+  
+  <text x="55" y="93" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="13" font-weight="600">Tasks</text>
+
+  
+  <rect x="55" y="105" width="240" height="24" rx="5" fill="#1C544F" stroke="#485461" stroke-width="1"/>
+  <text x="63" y="121" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">Add a task...</text>
+  <rect x="300" y="105" width="60" height="24" rx="5" fill="#6BD5CC"/>
+  <text x="330" y="121" text-anchor="middle" fill="#1C544F" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Add</text>
+
+  
+  <rect x="55" y="145" width="305" height="28" rx="5" fill="#1C544F"/>
+  <rect x="65" y="154" width="14" height="14" rx="3" fill="#6BD5CC"/>
+  <path d="M68,161 L71,164 L76,157" stroke="#1C544F" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <text x="88" y="164" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="11" text-decoration="line-through">Ship the database tutorial</text>
+  <text x="345" y="164" text-anchor="end" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="11">x</text>
+
+  
+  <rect x="55" y="179" width="305" height="28" rx="5" fill="#1C544F"/>
+  <rect x="65" y="188" width="14" height="14" rx="3" fill="#236962" stroke="#6BD5CC" stroke-width="1.2"/>
+  <text x="88" y="198" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11">Add French translations</text>
+  <text x="345" y="198" text-anchor="end" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="11">x</text>
+
+  
+  <rect x="55" y="213" width="305" height="28" rx="5" fill="#1C544F"/>
+  <rect x="65" y="222" width="14" height="14" rx="3" fill="#236962" stroke="#6BD5CC" stroke-width="1.2"/>
+  <text x="88" y="232" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11">Write testing tutorial</text>
+  <text x="345" y="232" text-anchor="end" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="11">x</text>
+
+  
+  <line x1="395" y1="180" x2="418" y2="180" stroke="#6BD5CC" stroke-width="1.3" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#t05-arrow)"/>
+
+  
+  <ellipse cx="470" cy="200" rx="48" ry="10" fill="#364049"/>
+  <rect x="422" y="160" width="96" height="40" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <ellipse cx="470" cy="160" rx="48" ry="10" fill="#364049" stroke="#485461" stroke-width="1.2"/>
+  <text x="470" y="184" text-anchor="middle" fill="#92A1AF" font-family="monospace" font-size="10" font-weight="600">tasks.db</text>
+  <text x="470" y="220" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">SQLite &#183; typed querier</text>
+
+  <text x="270" y="285" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11">Actions mutate the database through the type-safe querier.</text>
+  <text x="270" y="301" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11">The page refreshes after each mutation.</text>
+</svg>

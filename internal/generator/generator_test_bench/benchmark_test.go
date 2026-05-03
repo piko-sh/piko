@@ -108,7 +108,7 @@ func createServiceStack(
 		&esbuildconfig.Options{MinifyWhitespace: true, MinifySyntax: true},
 		resolver,
 	)
-	serverConfig := &config.ServerConfig{
+	serverConfig := &bootstrap.ServerConfig{
 		Paths: config.PathsConfig{
 			BaseDir:           &absSrcDir,
 			PartialsSourceDir: new("partials"),
@@ -249,7 +249,7 @@ func createServiceStackWithFileCache(
 		&esbuildconfig.Options{MinifyWhitespace: true, MinifySyntax: true},
 		resolver,
 	)
-	serverConfig := &config.ServerConfig{
+	serverConfig := &bootstrap.ServerConfig{
 		Paths: config.PathsConfig{
 			BaseDir:           &absSrcDir,
 			PartialsSourceDir: new("partials"),
@@ -571,7 +571,7 @@ func BenchmarkGeneratorService_SteadyState(b *testing.B) {
 	}
 }
 
-func discoverEntryPoints(t testing.TB, resolver resolver_domain.ResolverPort, serverConfig config.ServerConfig) []annotator_dto.EntryPoint {
+func discoverEntryPoints(t testing.TB, resolver resolver_domain.ResolverPort, serverConfig bootstrap.ServerConfig) []annotator_dto.EntryPoint {
 	t.Helper()
 	var entryPoints []annotator_dto.EntryPoint
 	moduleName := resolver.GetModuleName()
@@ -775,7 +775,7 @@ func generateCacheForTestCase(t *testing.T, tc testCase) {
 		&esbuildconfig.Options{MinifyWhitespace: true, MinifySyntax: true},
 		resolver,
 	)
-	serverConfig := &config.ServerConfig{
+	serverConfig := &bootstrap.ServerConfig{
 		Paths: config.PathsConfig{
 			BaseDir:           &absSrcDir,
 			PartialsSourceDir: new("partials"),

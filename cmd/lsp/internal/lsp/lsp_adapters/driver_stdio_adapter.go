@@ -20,6 +20,7 @@ package lsp_adapters
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -158,8 +159,7 @@ func (a *stdioAdapter) Run(ctx context.Context, stream io.ReadWriteCloser) error
 //
 // Returns lsp_domain.LSPServerPort which is the configured LSP server adapter
 // ready to handle stdio communication.
-//
-// Panics if any required dependency is nil.
+// Returns error when any required dependency is nil.
 func NewStdioAdapter(
 	coordinatorService coordinator_domain.CoordinatorService,
 	resolver resolver_domain.ResolverPort,
@@ -168,24 +168,20 @@ func NewStdioAdapter(
 	lspReader annotator_domain.FSReaderPort,
 	pathsConfig *config.PathsConfig,
 	formattingEnabled bool,
-) lsp_domain.LSPServerPort {
-	if coordinatorService == nil {
-		panic("NewStdioAdapter: coordinatorService cannot be nil")
-	}
-	if resolver == nil {
-		panic("NewStdioAdapter: resolver cannot be nil")
-	}
-	if typeInspectorManager == nil {
-		panic("NewStdioAdapter: typeInspectorManager cannot be nil")
-	}
-	if docCache == nil {
-		panic("NewStdioAdapter: docCache cannot be nil")
-	}
-	if lspReader == nil {
-		panic("NewStdioAdapter: lspReader cannot be nil")
-	}
-	if pathsConfig == nil {
-		panic("NewStdioAdapter: pathsConfig cannot be nil")
+) (lsp_domain.LSPServerPort, error) {
+	switch {
+	case coordinatorService == nil:
+		return nil, errors.New("NewStdioAdapter: coordinatorService cannot be nil")
+	case resolver == nil:
+		return nil, errors.New("NewStdioAdapter: resolver cannot be nil")
+	case typeInspectorManager == nil:
+		return nil, errors.New("NewStdioAdapter: typeInspectorManager cannot be nil")
+	case docCache == nil:
+		return nil, errors.New("NewStdioAdapter: docCache cannot be nil")
+	case lspReader == nil:
+		return nil, errors.New("NewStdioAdapter: lspReader cannot be nil")
+	case pathsConfig == nil:
+		return nil, errors.New("NewStdioAdapter: pathsConfig cannot be nil")
 	}
 	return &stdioAdapter{
 		coordinatorService:   coordinatorService,
@@ -195,7 +191,7 @@ func NewStdioAdapter(
 		lspReader:            lspReader,
 		pathsConfig:          pathsConfig,
 		formattingEnabled:    formattingEnabled,
-	}
+	}, nil
 }
 
 // setupLogFile creates the log file and sandbox for LSP protocol logging.

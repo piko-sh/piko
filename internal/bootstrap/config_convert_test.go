@@ -28,7 +28,7 @@ import (
 
 func TestNewDaemonConfig(t *testing.T) {
 	t.Run("all pointers set", func(t *testing.T) {
-		sc := &config.ServerConfig{
+		sc := &ServerConfig{
 			Network: config.NetworkConfig{
 				Port:         new("3000"),
 				AutoNextPort: new(true),
@@ -56,7 +56,7 @@ func TestNewDaemonConfig(t *testing.T) {
 	})
 
 	t.Run("all pointers nil uses defaults", func(t *testing.T) {
-		sc := &config.ServerConfig{}
+		sc := &ServerConfig{}
 
 		dc := NewDaemonConfig(sc)
 
@@ -71,7 +71,7 @@ func TestNewDaemonConfig(t *testing.T) {
 	})
 
 	t.Run("explicit false overrides true default", func(t *testing.T) {
-		sc := &config.ServerConfig{
+		sc := &ServerConfig{
 			HealthProbe: config.HealthProbeConfig{
 				Enabled: new(false),
 			},
@@ -83,7 +83,7 @@ func TestNewDaemonConfig(t *testing.T) {
 	})
 
 	t.Run("ShutdownDrainDelay nil defaults to zero", func(t *testing.T) {
-		sc := &config.ServerConfig{}
+		sc := &ServerConfig{}
 
 		dc := NewDaemonConfig(sc)
 
@@ -91,7 +91,7 @@ func TestNewDaemonConfig(t *testing.T) {
 	})
 
 	t.Run("ShutdownDrainDelay explicit value preserved", func(t *testing.T) {
-		sc := &config.ServerConfig{
+		sc := &ServerConfig{
 			HealthProbe: config.HealthProbeConfig{
 				ShutdownDrainDelay: new(5),
 			},
@@ -105,7 +105,7 @@ func TestNewDaemonConfig(t *testing.T) {
 
 func TestNewLifecyclePathsConfig(t *testing.T) {
 	t.Run("all pointers set", func(t *testing.T) {
-		sc := &config.ServerConfig{
+		sc := &ServerConfig{
 			Paths: config.PathsConfig{
 				BaseDir:             new("/app"),
 				PagesSourceDir:      new("views"),
@@ -129,7 +129,7 @@ func TestNewLifecyclePathsConfig(t *testing.T) {
 	})
 
 	t.Run("all pointers nil uses defaults", func(t *testing.T) {
-		sc := &config.ServerConfig{}
+		sc := &ServerConfig{}
 
 		lc := NewLifecyclePathsConfig(sc)
 
@@ -145,7 +145,7 @@ func TestNewLifecyclePathsConfig(t *testing.T) {
 
 func TestNewAnnotatorPathsConfig(t *testing.T) {
 	t.Run("all pointers set", func(t *testing.T) {
-		sc := &config.ServerConfig{
+		sc := &ServerConfig{
 			Paths: config.PathsConfig{
 				PagesSourceDir:    new("views"),
 				EmailsSourceDir:   new("mail"),
@@ -169,7 +169,7 @@ func TestNewAnnotatorPathsConfig(t *testing.T) {
 	})
 
 	t.Run("all pointers nil uses defaults", func(t *testing.T) {
-		sc := &config.ServerConfig{}
+		sc := &ServerConfig{}
 
 		ac := NewAnnotatorPathsConfig(sc)
 
@@ -185,7 +185,7 @@ func TestNewAnnotatorPathsConfig(t *testing.T) {
 
 func TestNewOtelSetupConfig(t *testing.T) {
 	t.Run("all pointers set", func(t *testing.T) {
-		sc := &config.ServerConfig{
+		sc := &ServerConfig{
 			Otlp: config.OtlpConfig{
 				Enabled:         new(true),
 				Endpoint:        new("otel.example.com:4317"),
@@ -207,7 +207,7 @@ func TestNewOtelSetupConfig(t *testing.T) {
 	})
 
 	t.Run("all pointers nil uses defaults", func(t *testing.T) {
-		sc := &config.ServerConfig{}
+		sc := &ServerConfig{}
 
 		oc := NewOtelSetupConfig(sc)
 

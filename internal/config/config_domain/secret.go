@@ -29,6 +29,7 @@ import (
 
 	"piko.sh/piko/internal/crypto/crypto_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/safeerror"
 )
 
 // logKeyFieldPath is the log key for the secret field path.
@@ -83,7 +84,8 @@ var (
 // handle, err := config.APIKey.Acquire(ctx)
 // if err != nil { return err }
 // defer handle.Release()
-// apiKey := handle.Value()
+// apiKey, err := handle.Value()
+// if err != nil { return err }
 type Secret[T any] struct {
 	// cachedValue holds the resolved and parsed value; only used for string type.
 	cachedValue *T
@@ -480,19 +482,21 @@ type secretHandleCleanupData[T any] struct {
 // Value returns the secret value.
 //
 // Returns T which is the decrypted secret value.
-//
-// Panics if the handle has been released or if the secret value cannot be
-// retrieved.
-func (h *SecretHandle[T]) Value() T {
+// Returns error which wraps the underlying retrieval error in a
+// safeerror.Error so the HTTP edge can sanitise the response. The returned
+// error is non-nil when the handle has been released or the underlying secret
+// cannot be read.
+func (h *SecretHandle[T]) Value() (T, error) {
+	var zero T
 	if h.released.Load() {
-		panic("attempted to access released secret handle")
+		return zero, safeerror.NewError("config secret unavailable", ErrSecretHandleClosed)
 	}
 
 	value, err := h.secret.getValue()
 	if err != nil {
-		panic(fmt.Sprintf("failed to get secret value: %v", err))
+		return zero, safeerror.NewError("config secret unavailable", fmt.Errorf("retrieving secret for field %q: %w", h.secret.fieldPath, err))
 	}
-	return value
+	return value, nil
 }
 
 // TryValue returns the secret value and any error.
@@ -508,8 +512,8 @@ func (h *SecretHandle[T]) TryValue() (T, error) {
 	return h.secret.getValue()
 }
 
-// Release frees this handle and lowers the secret's reference count.
-// This method is idempotent; calling it more than once is safe.
+// Release frees the handle and lowers the secret's reference count.
+// Idempotent; calling more than once is safe.
 func (h *SecretHandle[T]) Release() {
 	if !h.released.CompareAndSwap(false, true) {
 		return

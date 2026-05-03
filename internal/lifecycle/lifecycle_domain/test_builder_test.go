@@ -44,8 +44,8 @@ func newLifecycleTestBuilder() *lifecycleTestBuilder {
 	}
 }
 
-func (b *lifecycleTestBuilder) WithConfigProvider(cp *config.Provider) *lifecycleTestBuilder {
-	b.deps.ConfigProvider = *cp
+func (b *lifecycleTestBuilder) WithWebsiteConfig(wc config.WebsiteConfig) *lifecycleTestBuilder {
+	b.deps.WebsiteConfig = wc
 	return b
 }
 

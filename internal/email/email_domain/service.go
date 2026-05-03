@@ -553,6 +553,11 @@ func NewServiceWithProviderAndDispatcher(
 	return s
 }
 
+// ErrUnsupportedServiceImpl is returned by NewTemplatedEmail when the supplied
+// Service is not the default implementation. Callers must use the bootstrapped
+// service obtained from the wdk facade.
+var ErrUnsupportedServiceImpl = errors.New("email_domain: NewTemplatedEmail requires the default Service implementation")
+
 // NewTemplatedEmail creates a new templated email builder with type-safe props.
 // This is a top-level generic function (methods cannot have type parameters in
 // Go).
@@ -561,12 +566,12 @@ func NewServiceWithProviderAndDispatcher(
 //
 // Returns *TemplatedEmailBuilder[PropsT] which is a builder configured
 // for template-based email composition.
-//
-// Panics if s is not the default Service implementation.
-func NewTemplatedEmail[PropsT any](s Service) *TemplatedEmailBuilder[PropsT] {
+// Returns error which wraps ErrUnsupportedServiceImpl when s is not the default
+// Service implementation.
+func NewTemplatedEmail[PropsT any](s Service) (*TemplatedEmailBuilder[PropsT], error) {
 	serviceImpl, ok := s.(*service)
 	if !ok {
-		panic("email_domain.NewTemplatedEmail requires the default Service implementation")
+		return nil, fmt.Errorf("%w: got %T", ErrUnsupportedServiceImpl, s)
 	}
 
 	return &TemplatedEmailBuilder[PropsT]{
@@ -576,7 +581,7 @@ func NewTemplatedEmail[PropsT any](s Service) *TemplatedEmailBuilder[PropsT] {
 		},
 		templater:     serviceImpl.templater,
 		assetResolver: serviceImpl.assetResolver,
-	}
+	}, nil
 }
 
 // handleBulkSend sends a batch of emails using the given provider.

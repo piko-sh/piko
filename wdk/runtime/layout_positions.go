@@ -112,7 +112,7 @@ type LayoutPositionConfig struct {
 // returns element positions keyed by the specified attribute value.
 //
 // The compiled dist/ package must have been imported (so that init() has
-// registered the BuildAST functions) before calling this function.
+// registered the BuildAST functions) before invoking it.
 //
 // Takes config (LayoutPositionConfig) which specifies the manifest, page,
 // viewport, font, and attribute settings.

@@ -20,17 +20,12 @@ package bootstrap
 
 import (
 	"github.com/go-chi/chi/v5"
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
 // Dependencies holds all the external inputs required to bootstrap the Piko
 // application. This creates a clean and stable API for the bootstrap functions.
 type Dependencies struct {
-	// ConfigProvider holds the loaded server and website settings.
-	// It is the main source of truth for all configuration; nil is not allowed.
-	ConfigProvider *config.Provider
-
 	// AppRouter is the root Chi router for the application. The bootstrap
 	// process mounts all generated routes onto this router, including pages,
 	// partials, and actions.

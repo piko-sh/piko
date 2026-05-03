@@ -794,7 +794,7 @@ func (m *OrchestratorDAL) CleanupOldResolvedReceipts(_ context.Context, _ time.T
 // Returns int which is the number of receipts marked as timed out.
 // Returns error when the behaviour execution fails.
 //
-// Safe for concurrent use; the method holds a mutex for its duration.
+// Safe for concurrent use; takes a mutex for the call duration.
 func (m *OrchestratorDAL) TimeoutStaleReceipts(_ context.Context, _ time.Time) (int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

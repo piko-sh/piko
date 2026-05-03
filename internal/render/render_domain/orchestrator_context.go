@@ -32,7 +32,7 @@ import (
 // populateLocaleFromRequest extracts the locale from the request context.
 //
 // Takes request (*http.Request) which provides the request context containing the
-// locale value. If request is nil, the method returns without changing state.
+// locale value. If request is nil, returns without changing state.
 func (rctx *renderContext) populateLocaleFromRequest(request *http.Request) {
 	if request == nil {
 		return

@@ -123,7 +123,7 @@ type WorkspaceSymbol struct {
 	// Kind is the symbol type such as "type", "function", "method", or "field".
 	Kind string `json:"kind"`
 
-	// ContainerName is the name of the type that contains this method or field.
+	// ContainerName is the name of the type that contains the method or field.
 	ContainerName string `json:"container_name,omitempty"`
 
 	// FilePath is the absolute path to the file that contains the symbol.
@@ -160,7 +160,7 @@ type Package struct {
 	// FileImports maps file paths to their import alias mappings.
 	FileImports map[string]map[string]string `json:"file_imports"`
 
-	// NamedTypes maps type names to their definitions within this package.
+	// NamedTypes maps type names to their definitions within the package.
 	NamedTypes map[string]*Type `json:"named_types"`
 
 	// Funcs maps function names to their definitions for package-level functions.
@@ -186,10 +186,10 @@ type Type struct {
 	Name string `json:"name"`
 
 	// PackagePath is the full import path of the package where
-	// this type is defined.
+	// the type is defined.
 	PackagePath string `json:"package_path"`
 
-	// DefinedInFilePath is the path to the file where this type is defined.
+	// DefinedInFilePath is the path to the file where the type is defined.
 	DefinedInFilePath string `json:"defined_in_file_path"`
 
 	// TypeString is the full type expression as written in the source code.
@@ -198,19 +198,19 @@ type Type struct {
 	// UnderlyingTypeString is the string form of the underlying type.
 	UnderlyingTypeString string `json:"underlying_type_string"`
 
-	// Fields holds the struct fields for this type; nil for non-struct types.
+	// Fields holds the struct fields for the type; nil for non-struct types.
 	Fields []*Field `json:"fields"`
 
-	// Methods holds the methods defined on this type.
+	// Methods holds the methods defined on the type.
 	Methods []*Method `json:"methods"`
 
-	// TypeParams lists the names of generic type parameters for this type.
+	// TypeParams lists the names of generic type parameters for the type.
 	TypeParams []string `json:"type_params"`
 
-	// Stringability indicates how this type can be turned into a string.
+	// Stringability indicates how the type can be turned into a string.
 	Stringability StringabilityMethod `json:"stringability"`
 
-	// IsAlias indicates whether this type is a type alias.
+	// IsAlias indicates whether the type is a type alias.
 	IsAlias bool `json:"is_alias"`
 
 	// DefinitionLine is the one-based line number where the type is defined.
@@ -222,11 +222,11 @@ type Type struct {
 
 // Field represents a single field within a struct type.
 type Field struct {
-	// DefinitionFilePath is the path to the file where this field is defined.
+	// DefinitionFilePath is the path to the file where the field is defined.
 	DefinitionFilePath string `json:"definition_file_path,omitempty"`
 
 	// DeclaringPackagePath is the import path of the package
-	// that declares this field.
+	// that declares the field.
 	DeclaringPackagePath string `json:"declaring_pkg_path,omitempty"`
 
 	// PackagePath is the import path of the package where
@@ -236,10 +236,10 @@ type Field struct {
 	// UnderlyingTypeString is the type after resolving any type aliases.
 	UnderlyingTypeString string `json:"underlying_type_string"`
 
-	// DeclaringTypeName is the name of the struct type that contains this field.
+	// DeclaringTypeName is the name of the struct type that contains the field.
 	DeclaringTypeName string `json:"declaring_type_name,omitempty"`
 
-	// Name is the identifier of this struct field.
+	// Name is the identifier of the struct field.
 	Name string `json:"name"`
 
 	// TypeString is the type of the field as a string (e.g. "int", "*Config").
@@ -257,7 +257,7 @@ type Field struct {
 	// DefinitionLine is the 1-based line number where the field is defined.
 	DefinitionLine int `json:"definition_line,omitempty"`
 
-	// DefinitionColumn is the column number where this field is defined.
+	// DefinitionColumn is the column number where the field is defined.
 	DefinitionColumn int `json:"definition_column,omitempty"`
 
 	// IsUnderlyingPrimitive indicates whether the underlying type is a
@@ -267,13 +267,13 @@ type Field struct {
 	// IsInternalType indicates whether the field's type is a built-in Go type.
 	IsInternalType bool `json:"is_internal_type"`
 
-	// IsEmbedded indicates whether this field is an embedded (anonymous) field.
+	// IsEmbedded indicates whether the field is an embedded (anonymous) field.
 	IsEmbedded bool `json:"is_embedded"`
 
-	// IsGenericPlaceholder indicates whether this field uses a generic type parameter.
+	// IsGenericPlaceholder indicates whether the field uses a generic type parameter.
 	IsGenericPlaceholder bool `json:"is_generic_placeholder,omitempty"`
 
-	// IsAlias indicates whether this field's type is a type alias.
+	// IsAlias indicates whether the field's type is a type alias.
 	IsAlias bool `json:"is_alias,omitempty"`
 
 	// IsUnderlyingInternalType indicates whether the underlying type is
@@ -337,13 +337,13 @@ type Method struct {
 	UnderlyingTypeString string `json:"underlying_type_string"`
 
 	// DeclaringPackagePath is the import path of the package
-	// where this method is defined.
+	// where the method is defined.
 	DeclaringPackagePath string `json:"declaring_pkg_path,omitempty"`
 
-	// DeclaringTypeName is the name of the type that first defines this method.
+	// DeclaringTypeName is the name of the type that first defines the method.
 	DeclaringTypeName string `json:"declaring_type_name,omitempty"`
 
-	// DefinitionFilePath is the path to the file where this method is defined.
+	// DefinitionFilePath is the path to the file where the method is defined.
 	DefinitionFilePath string `json:"definition_file_path,omitempty"`
 
 	// Signature holds the function parameters and return types.
@@ -370,7 +370,7 @@ type Function struct {
 	// UnderlyingTypeString is the type after all type aliases have been resolved.
 	UnderlyingTypeString string `json:"underlying_type_string"`
 
-	// DefinitionFilePath is the path to the file where this function is defined.
+	// DefinitionFilePath is the path to the file where the function is defined.
 	DefinitionFilePath string `json:"definition_file_path,omitempty"`
 
 	// Signature holds the function's parameter and return type details.

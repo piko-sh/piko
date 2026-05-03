@@ -3,6 +3,15 @@ const TEXT_NODE = 3;
 const COMMENT_NODE = 8;
 const DOCUMENT_FRAGMENT_NODE = 11;
 const doc = typeof document === "undefined" ? void 0 : document;
+function upgradeCustomElements(node) {
+  if (typeof customElements === "undefined" || typeof customElements.upgrade !== "function") {
+    return;
+  }
+  if (node.nodeType !== ELEMENT_NODE && node.nodeType !== DOCUMENT_FRAGMENT_NODE) {
+    return;
+  }
+  customElements.upgrade(node);
+}
 function syncBooleanAttrProp(fromEl, toEl, name) {
   const fromValue = fromEl[name];
   const toValue = toEl[name];
@@ -211,7 +220,11 @@ function syncToAttrs(fromEl, toEl, ctx) {
       continue;
     }
     if (fromEl.getAttributeNS(toAttr.namespaceURI, toAttr.localName) !== toAttr.value) {
-      fromEl.setAttributeNS(toAttr.namespaceURI, toAttr.name, toAttr.value);
+      if (toAttr.namespaceURI) {
+        fromEl.setAttributeNS(toAttr.namespaceURI, toAttr.name, toAttr.value);
+      } else {
+        fromEl.setAttribute(toAttr.name, toAttr.value);
+      }
     }
   }
 }
@@ -245,13 +258,7 @@ function morphAttrs(fromEl, toEl, options) {
   }
 }
 function isSignificantNode(node) {
-  if (node.nodeType !== ELEMENT_NODE && node.nodeType !== TEXT_NODE && node.nodeType !== COMMENT_NODE) {
-    return false;
-  }
-  if (node.nodeType === TEXT_NODE && !node.nodeValue?.trim()) {
-    return false;
-  }
-  return true;
+  return node.nodeType === ELEMENT_NODE || node.nodeType === TEXT_NODE || node.nodeType === COMMENT_NODE;
 }
 function buildFromNodeMaps(fromEl, getNodeKey2) {
   const fromNodesByKey = /* @__PURE__ */ new Map();
@@ -269,21 +276,22 @@ function buildFromNodeMaps(fromEl, getNodeKey2) {
   }
   return { fromNodesByKey, unkeyedFromNodes };
 }
-function discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, unkeyedFromIndex, options) {
-  fromNodesByKey.forEach((nodeToDiscard) => {
+function discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, unkeyedFromIndex, skippedUnkeyed, options) {
+  const discard = (nodeToDiscard) => {
+    if (!nodeToDiscard.parentNode) {
+      return;
+    }
     if (options.onBeforeNodeDiscarded?.(nodeToDiscard) !== false) {
-      nodeToDiscard.parentNode?.removeChild(nodeToDiscard);
+      nodeToDiscard.parentNode.removeChild(nodeToDiscard);
       options.onNodeDiscarded?.(nodeToDiscard);
     }
-  });
-  let unkeyedIndex = unkeyedFromIndex;
-  while (unkeyedIndex < unkeyedFromNodes.length) {
-    const nodeToDiscard = unkeyedFromNodes[unkeyedIndex];
-    if (options.onBeforeNodeDiscarded?.(nodeToDiscard) !== false) {
-      nodeToDiscard.parentNode?.removeChild(nodeToDiscard);
-      options.onNodeDiscarded?.(nodeToDiscard);
-    }
-    unkeyedIndex++;
+  };
+  fromNodesByKey.forEach(discard);
+  for (const skipped of skippedUnkeyed) {
+    discard(skipped);
+  }
+  for (let i = unkeyedFromIndex; i < unkeyedFromNodes.length; i++) {
+    discard(unkeyedFromNodes[i]);
   }
 }
 function findFromMatch(toChild, state, getNodeKey2) {
@@ -296,10 +304,13 @@ function findFromMatch(toChild, state, getNodeKey2) {
     }
     return null;
   }
-  if (state.unkeyedFromIndex < state.unkeyedFromNodes.length) {
-    const potentialMatch = state.unkeyedFromNodes[state.unkeyedFromIndex];
+  for (let i = state.unkeyedFromIndex; i < state.unkeyedFromNodes.length; i++) {
+    const potentialMatch = state.unkeyedFromNodes[i];
     if (compareNodeNames(potentialMatch, toChild)) {
-      state.unkeyedFromIndex++;
+      for (let j = state.unkeyedFromIndex; j < i; j++) {
+        state.skippedUnkeyed.push(state.unkeyedFromNodes[j]);
+      }
+      state.unkeyedFromIndex = i + 1;
       return potentialMatch;
     }
   }
@@ -308,7 +319,7 @@ function findFromMatch(toChild, state, getNodeKey2) {
 function morphChildren(fromEl, toEl, isParentPreserved, options) {
   const getNodeKey2 = options.getNodeKey ?? defaultGetNodeKey;
   const { fromNodesByKey, unkeyedFromNodes } = buildFromNodeMaps(fromEl, getNodeKey2);
-  const state = { fromNodesByKey, unkeyedFromNodes, unkeyedFromIndex: 0 };
+  const state = { fromNodesByKey, unkeyedFromNodes, unkeyedFromIndex: 0, skippedUnkeyed: [] };
   let fromChild = fromEl.firstChild;
   const advanceFromPointer = () => {
     while (fromChild && !isSignificantNode(fromChild)) {
@@ -341,11 +352,12 @@ function morphChildren(fromEl, toEl, isParentPreserved, options) {
       }
       if (options.onBeforeNodeAdded?.(newNode) !== false) {
         fromEl.insertBefore(newNode, fromChild);
+        upgradeCustomElements(newNode);
         options.onNodeAdded?.(newNode);
       }
     }
   }
-  discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, state.unkeyedFromIndex, options);
+  discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, state.unkeyedFromIndex, state.skippedUnkeyed, options);
 }
 function morphElementNode(fromEl, toEl, isParentPreserved, currentOptions) {
   let preserveEl;
@@ -4108,12 +4120,47 @@ function getActionFunction(name) {
 const LOADER_FADE_MS = 300;
 const PROGRESS_MIN = 0;
 const PROGRESS_MAX$1 = 100;
-function createLoaderUI(options = {}) {
-  const {
-    colour = "#29e",
-    fadeMs = LOADER_FADE_MS,
-    container = document.body
-  } = options;
+const TRICKLE_TICK_MS = 250;
+const TRICKLE_STEP = 0.1;
+const TRICKLE_TTFB_TARGET = 50;
+const TRICKLE_DOWNLOAD_TARGET = 90;
+const TRICKLE_EPSILON = 0.5;
+const trickleTargetFor = (phase) => phase === "trickle1" ? TRICKLE_TTFB_TARGET : TRICKLE_DOWNLOAD_TARGET;
+function paintBar(el, percent) {
+  el.style.display = "block";
+  el.style.width = `${percent}%`;
+}
+function clearTrickleTimer(state) {
+  if (state.trickleTimer !== null) {
+    clearInterval(state.trickleTimer);
+    state.trickleTimer = null;
+  }
+}
+function clearFadeTimer(state) {
+  if (state.fadeTimer !== null) {
+    clearTimeout(state.fadeTimer);
+    state.fadeTimer = null;
+  }
+}
+function advanceTrickle(state, el) {
+  const target = trickleTargetFor(state.phase);
+  if (state.displayPercent >= target - TRICKLE_EPSILON) {
+    return;
+  }
+  state.displayPercent += (target - state.displayPercent) * TRICKLE_STEP;
+  if (state.displayPercent > target - TRICKLE_EPSILON) {
+    state.displayPercent = target - TRICKLE_EPSILON;
+  }
+  paintBar(el, state.displayPercent);
+}
+function startTrickle(state, el, enabled, tickMs) {
+  clearTrickleTimer(state);
+  if (!enabled) {
+    return;
+  }
+  state.trickleTimer = setInterval(() => advanceTrickle(state, el), tickMs);
+}
+function buildLoaderEl(colour) {
   const el = document.createElement("div");
   el.id = "ppf-loader-bar";
   el.style.cssText = [
@@ -4128,31 +4175,77 @@ function createLoaderUI(options = {}) {
     "pointer-events:none",
     "display:none"
   ].join(";");
+  return el;
+}
+function clampPercent(percent) {
+  if (percent < PROGRESS_MIN) {
+    return PROGRESS_MIN;
+  }
+  if (percent > PROGRESS_MAX$1) {
+    return PROGRESS_MAX$1;
+  }
+  return percent;
+}
+function createLoaderUI(options = {}) {
+  const {
+    colour = "#29e",
+    fadeMs = LOADER_FADE_MS,
+    container = document.body,
+    trickle = true,
+    trickleTickMs = TRICKLE_TICK_MS
+  } = options;
+  const el = buildLoaderEl(colour);
   container.appendChild(el);
+  const state = {
+    phase: "idle",
+    displayPercent: 0,
+    trickleTimer: null,
+    fadeTimer: null
+  };
   return {
     show() {
-      el.style.display = "block";
-      el.style.width = "0%";
+      clearFadeTimer(state);
+      state.phase = "trickle1";
+      state.displayPercent = 0;
+      paintBar(el, state.displayPercent);
+      startTrickle(state, el, trickle, trickleTickMs);
     },
     hide() {
-      el.style.width = "100%";
-      setTimeout(() => {
+      clearTrickleTimer(state);
+      state.phase = "finishing";
+      state.displayPercent = PROGRESS_MAX$1;
+      paintBar(el, state.displayPercent);
+      clearFadeTimer(state);
+      state.fadeTimer = setTimeout(() => {
         el.style.width = "0%";
         el.style.display = "none";
+        state.displayPercent = 0;
+        state.phase = "idle";
+        state.fadeTimer = null;
       }, fadeMs);
     },
     setProgress(percent) {
-      let pct = percent;
-      if (pct < PROGRESS_MIN) {
-        pct = PROGRESS_MIN;
+      const pct = clampPercent(percent);
+      clearTrickleTimer(state);
+      if (pct > state.displayPercent) {
+        state.displayPercent = pct;
       }
-      if (pct > PROGRESS_MAX$1) {
-        pct = PROGRESS_MAX$1;
+      paintBar(el, state.displayPercent);
+    },
+    headersReceived() {
+      if (state.phase !== "trickle1") {
+        return;
       }
-      el.style.display = "block";
-      el.style.width = `${pct}%`;
+      state.phase = "trickle2";
+      if (state.displayPercent < TRICKLE_TTFB_TARGET) {
+        state.displayPercent = TRICKLE_TTFB_TARGET;
+      }
+      paintBar(el, state.displayPercent);
+      startTrickle(state, el, trickle, trickleTickMs);
     },
     destroy() {
+      clearTrickleTimer(state);
+      clearFadeTimer(state);
       el.remove();
     }
   };
@@ -5578,6 +5671,7 @@ function createFetchClient(deps = {}) {
         if (!response.ok) {
           return [false, null];
         }
+        options.onHeadersReceived?.();
         let text;
         if (options.onProgress) {
           text = await readWithProgress(response, options.onProgress);
@@ -5760,7 +5854,12 @@ async function performNavigation(state, deps, targetUrl, event, options) {
       updateHistoryState(windowOps, targetUrl, options.replaceHistory);
     }
     const [success, htmlString] = await fetchClient.get(addFragmentQuery(targetUrl), {
-      onProgress: (loaded, total) => loader.setProgress(loaded / total * PROGRESS_MAX)
+      onHeadersReceived: () => loader.headersReceived(),
+      onProgress: (loaded, total) => {
+        if (total > 0) {
+          loader.setProgress(PROGRESS_MAX / 2 + loaded / total * (PROGRESS_MAX / 2));
+        }
+      }
     });
     if (!success || !htmlString) {
       emitNavigationError(deps, targetUrl, "Fetch failed");
@@ -5903,7 +6002,12 @@ function getNodeKey(node) {
     return null;
   }
   const el = node;
-  return el.dataset.stableId ?? el.getAttribute("p-key") ?? (el.id || null);
+  const baseKey = el.dataset.stableId ?? el.getAttribute("p-key") ?? (el.id || null);
+  if (baseKey === null) {
+    return null;
+  }
+  const partialName = el.getAttribute("partial_name");
+  return partialName ? `${partialName}@${baseKey}` : baseKey;
 }
 function transformRelativeKeys(sourceEl, targetEl) {
   const targetKey = targetEl.getAttribute("p-key");

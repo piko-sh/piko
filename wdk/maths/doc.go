@@ -18,11 +18,11 @@
 
 // Package maths provides arbitrary-precision numeric types with fluent APIs.
 //
-// This package offers three core types for precise numerical computation:
-// BigInt for arbitrary-precision integers, Decimal for high-precision
-// decimal numbers (34 digits), and Money for currency-aware monetary
-// values. All types use a fluent API pattern and propagate the first
-// error encountered in a chain of operations.
+// Offers three core types for precise numerical computation: BigInt for
+// arbitrary-precision integers, Decimal for high-precision decimal numbers (34
+// digits), and Money for currency-aware monetary values. All types use a fluent
+// API pattern and propagate the first error encountered in a chain of
+// operations.
 //
 // # Fluent API and error propagation
 //

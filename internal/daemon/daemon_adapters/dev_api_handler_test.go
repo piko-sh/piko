@@ -20,6 +20,7 @@ package daemon_adapters
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -237,6 +238,50 @@ func TestDevAPIHandler_Overview_WithDeps(t *testing.T) {
 	build, ok := body["build"].(map[string]any)
 	require.True(t, ok, "expected build key in response")
 	assert.NotNil(t, build["taskSummary"])
+}
+
+func TestDevAPIHandler_Build_Error_SanitisesInProduction(t *testing.T) {
+	t.Parallel()
+
+	internal := errors.New("internal database hostname leaked.example.com")
+	inspector := &mockOrchestratorInspector{taskSummaryErr: internal}
+
+	handler := NewDevAPIHandler(nil, inspector)
+	router := newTestRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/_piko/dev/api/build", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var body map[string]any
+	err := json.Unmarshal(rec.Body.Bytes(), &body)
+	require.NoError(t, err)
+	assert.Equal(t, false, body["available"])
+	assert.NotContains(t, body["error"], "hostname leaked")
+}
+
+func TestDevAPIHandler_Build_Error_RevealsInDevelopmentMode(t *testing.T) {
+	t.Parallel()
+
+	internal := errors.New("internal database hostname leaked.example.com")
+	inspector := &mockOrchestratorInspector{taskSummaryErr: internal}
+
+	handler := NewDevAPIHandler(nil, inspector, WithDevAPIDevelopmentMode(true))
+	router := newTestRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/_piko/dev/api/build", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var body map[string]any
+	err := json.Unmarshal(rec.Body.Bytes(), &body)
+	require.NoError(t, err)
+	assert.Equal(t, false, body["available"])
+	assert.Contains(t, body["error"], "hostname leaked")
 }
 
 func TestDevAPIHandler_Mount_RegistersRoutes(t *testing.T) {

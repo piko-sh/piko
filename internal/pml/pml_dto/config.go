@@ -65,8 +65,7 @@ func (v *ValidationLevel) UnmarshalYAML(unmarshal func(any) error) error {
 }
 
 // Config holds the project-wide configuration for the PikoML engine.
-// This struct is designed to be unmarshalled from a `pml` section in
-// `piko.yaml`.
+// Populated programmatically by the framework's bootstrap pipeline.
 type Config struct {
 	// OverrideAttributes sets custom default attributes for PikoML components.
 	//

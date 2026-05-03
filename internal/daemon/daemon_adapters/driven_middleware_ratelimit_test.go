@@ -47,7 +47,7 @@ func TestRateLimitMiddleware_Handler_AllowedRequest(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:   true,
 				Limit:     100,
@@ -79,7 +79,7 @@ func TestRateLimitMiddleware_Handler_DeniedRequest(t *testing.T) {
 
 	fixedTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:    false,
 				Limit:      100,
@@ -116,7 +116,7 @@ func TestRateLimitMiddleware_Handler_ExemptPath(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{Allowed: false}, nil
 		},
 	}
@@ -143,7 +143,7 @@ func TestRateLimitMiddleware_Handler_HeadersDisabled(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:   true,
 				Limit:     100,
@@ -179,7 +179,7 @@ func TestRateLimitMiddleware_CheckRateLimit_ServiceError_FailClosed(t *testing.T
 	mockClock := clock.NewMockClock(fixedTime)
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{}, fmt.Errorf("storage failure")
 		},
 	}
@@ -192,7 +192,7 @@ func TestRateLimitMiddleware_CheckRateLimit_ServiceError_FailClosed(t *testing.T
 		withRateLimitClock(mockClock),
 	)
 
-	result := middleware.checkRateLimit("192.168.1.1", "global", security_dto.RateLimitTierValues{
+	result := middleware.checkRateLimit(context.Background(), "192.168.1.1", "global", security_dto.RateLimitTierValues{
 		RequestsPerMinute: 100,
 	})
 
@@ -206,7 +206,7 @@ func TestRateLimitMiddleware_ActionHandler_Allowed(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:   true,
 				Limit:     50,
@@ -235,7 +235,7 @@ func TestRateLimitMiddleware_ActionHandler_Denied(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:    false,
 				Limit:      50,
@@ -268,7 +268,7 @@ func TestRateLimitMiddleware_ActionHandler_WithOverride(t *testing.T) {
 	var capturedKey string
 	var capturedLimit int
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(key string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, key string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			capturedKey = key
 			capturedLimit = limit
 			return ratelimiter_dto.Result{

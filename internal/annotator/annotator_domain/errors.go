@@ -45,8 +45,7 @@ func IsParseSoftError(err error) bool {
 	if err == nil {
 		return false
 	}
-	var scriptErr *scriptBlockParseError
-	if errors.As(err, &scriptErr) {
+	if _, ok := errors.AsType[*scriptBlockParseError](err); ok {
 		return true
 	}
 	var diagErr *ParseDiagnosticError

@@ -22,7 +22,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"go/ast"
@@ -41,6 +41,7 @@ import (
 
 	"golang.org/x/tools/go/gcexportdata"
 	"golang.org/x/tools/go/packages"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safeconv"
 	"piko.sh/piko/wdk/safedisk"
@@ -215,7 +216,7 @@ func Visit(pkgs []*packages.Package, pre func(*packages.Package) bool, post func
 // goListPkg is the JSON structure returned by go list -json -deps
 // -export.
 type goListPkg struct {
-	// Module is the module containing this package.
+	// Module is the module containing the package.
 	Module *packages.Module
 
 	// Error is the error reported by go list, if any.
@@ -265,7 +266,7 @@ type goListError struct {
 type loaderPkg struct {
 	*packages.Package
 
-	// parseFile is the parse callback for this package.
+	// parseFile is the parse callback for the package.
 	parseFile parseFileFunc
 
 	// importMap maps source import paths to resolved import
@@ -435,7 +436,7 @@ func runGoList(ctx context.Context, cfg *packages.Config, overlayFile string, pa
 	}
 
 	var result []goListPkg
-	dec := json.NewDecoder(&stdout)
+	dec := stdjson.NewDecoder(&stdout)
 	for dec.More() {
 		var pkg goListPkg
 		if err := dec.Decode(&pkg); err != nil {

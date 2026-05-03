@@ -21,6 +21,7 @@ package pdfwriter_domain
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -424,5 +425,23 @@ func TestExtractPNGDimensions_BadSignature(t *testing.T) {
 	w, h := ExtractImageDimensions(data, "png")
 	if w != 0 || h != 0 {
 		t.Errorf("expected (0,0) for bad PNG signature, got (%d,%d)", w, h)
+	}
+}
+
+func TestImageEmbedder_RejectsHugeDimensions(t *testing.T) {
+	t.Parallel()
+
+	embedder := NewImageEmbedder()
+	embedder.RegisterImage("huge.png", buildMinimalPNG(), "png", 50000, 50000)
+
+	writer := &PdfDocumentWriter{}
+	writer.WriteHeader()
+
+	_, err := embedder.WriteObjects(writer)
+	if err == nil {
+		t.Fatal("expected ErrImageDimensionsTooLarge, got nil")
+	}
+	if !errors.Is(err, ErrImageDimensionsTooLarge) {
+		t.Errorf("expected ErrImageDimensionsTooLarge, got: %v", err)
 	}
 }

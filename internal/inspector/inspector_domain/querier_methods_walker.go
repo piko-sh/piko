@@ -144,9 +144,7 @@ func (s *methodSearcher) reset() {
 	s.initialFilePath = ""
 	s.isPointerQuery = false
 	s.querier = nil
-	for k := range s.visited {
-		delete(s.visited, k)
-	}
+	clear(s.visited)
 }
 
 // search is the main entry point for the recursive traversal to find a method.

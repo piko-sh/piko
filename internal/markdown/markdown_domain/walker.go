@@ -187,15 +187,30 @@ func (w *markdownWalker) handleNodeExit(node markdown_ast.Node) markdown_ast.Wal
 	return markdown_ast.WalkContinue
 }
 
-// appendNode adds a node to the correct content bucket: either the main flow
-// or a named block. Fragment nodes are flattened by adding their children
-// directly.
+// appendNode adds a node to the correct content bucket.
+//
+// Either the main flow or a named block. Fragment nodes are flattened by
+// adding their children directly. Recursion is capped at
+// markdown_ast.MaxMarkdownDepth so a pathological fragment cannot overflow
+// the stack.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to add.
 func (w *markdownWalker) appendNode(node *ast_domain.TemplateNode) {
+	w.appendNodeAt(node, 0)
+}
+
+// appendNodeAt is the depth-tracked recursion behind appendNode.
+//
+// Takes node (*ast_domain.TemplateNode) which is the node to add.
+// Takes depth (int) which is the current recursion depth, capped at
+// markdown_ast.MaxMarkdownDepth.
+func (w *markdownWalker) appendNodeAt(node *ast_domain.TemplateNode, depth int) {
+	if depth >= markdown_ast.MaxMarkdownDepth {
+		return
+	}
 	if node.NodeType == ast_domain.NodeFragment {
 		for _, child := range node.Children {
-			w.appendNode(child)
+			w.appendNodeAt(child, depth+1)
 		}
 		return
 	}
@@ -207,11 +222,22 @@ func (w *markdownWalker) appendNode(node *ast_domain.TemplateNode) {
 	}
 }
 
-// collectMetadata walks a Piko AST node to find images and links.
+// collectMetadata walks a Piko AST node to find images and links. Recursion
+// is capped at markdown_ast.MaxMarkdownDepth so a pathological tree cannot
+// overflow the stack.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to walk.
 func (w *markdownWalker) collectMetadata(node *ast_domain.TemplateNode) {
-	if node == nil {
+	w.collectMetadataAt(node, 0)
+}
+
+// collectMetadataAt is the depth-tracked recursion behind collectMetadata.
+//
+// Takes node (*ast_domain.TemplateNode) which is the node to walk.
+// Takes depth (int) which is the current recursion depth, capped at
+// markdown_ast.MaxMarkdownDepth.
+func (w *markdownWalker) collectMetadataAt(node *ast_domain.TemplateNode, depth int) {
+	if node == nil || depth >= markdown_ast.MaxMarkdownDepth {
 		return
 	}
 	switch node.TagName {
@@ -226,7 +252,7 @@ func (w *markdownWalker) collectMetadata(node *ast_domain.TemplateNode) {
 		}
 	}
 	for _, child := range node.Children {
-		w.collectMetadata(child)
+		w.collectMetadataAt(child, depth+1)
 	}
 }
 
@@ -327,14 +353,27 @@ func newMarkdownWalker(transformer nodeTransformer, source []byte, diagnostics [
 }
 
 // countWords counts the words in a transformed Piko node tree by summing the
-// words in all NodeText nodes.
+// words in all NodeText nodes. Recursion is capped at
+// markdown_ast.MaxMarkdownDepth so a pathological tree cannot overflow the
+// stack.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root of the subtree to
 // count.
 //
 // Returns int which is the total number of words found.
 func countWords(node *ast_domain.TemplateNode) int {
-	if node == nil {
+	return countWordsAt(node, 0)
+}
+
+// countWordsAt is the depth-tracked recursion behind countWords.
+//
+// Takes node (*ast_domain.TemplateNode) which is the subtree root.
+// Takes depth (int) which is the current recursion depth, capped at
+// markdown_ast.MaxMarkdownDepth.
+//
+// Returns int which is the total number of words found.
+func countWordsAt(node *ast_domain.TemplateNode, depth int) int {
+	if node == nil || depth >= markdown_ast.MaxMarkdownDepth {
 		return 0
 	}
 	count := 0
@@ -342,7 +381,7 @@ func countWords(node *ast_domain.TemplateNode) int {
 		count += len(strings.Fields(node.TextContent))
 	}
 	for _, child := range node.Children {
-		count += countWords(child)
+		count += countWordsAt(child, depth+1)
 	}
 	return count
 }

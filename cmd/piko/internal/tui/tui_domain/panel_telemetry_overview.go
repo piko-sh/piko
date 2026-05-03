@@ -182,14 +182,14 @@ func (p *TelemetryOverviewPanel) tileBody() inspector.DetailBody {
 		return inspector.DetailBody{Title: "Telemetry", Subtitle: "fetching..."}
 	}
 
-	livenessLabel := "—"
+	livenessLabel := "-"
 	switch {
 	case p.last.liveness != nil:
 		livenessLabel = p.last.liveness.State.String()
 	case p.last.livenessErr != nil:
 		livenessLabel = "error"
 	}
-	readinessLabel := "—"
+	readinessLabel := "-"
 	switch {
 	case p.last.readiness != nil:
 		readinessLabel = p.last.readiness.State.String()

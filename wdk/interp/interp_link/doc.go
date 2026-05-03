@@ -28,6 +28,6 @@
 // arguments; the extract tool wraps the sibling in a [LinkedFunction]
 // during symbol generation, and the interpreter dispatches through it.
 //
-// This package is imported by generated gen_*.go symbol files, so it
-// lives in a public path rather than under internal/.
+// Imported by generated gen_*.go symbol files, so the package lives in a
+// public path rather than under internal/.
 package interp_link

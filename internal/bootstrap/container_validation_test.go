@@ -22,14 +22,13 @@ import (
 	"strings"
 	"testing"
 
-	"piko.sh/piko/internal/config"
 	email_mock "piko.sh/piko/internal/email/email_adapters/provider_mock"
 	storage_mock "piko.sh/piko/internal/storage/storage_adapters/provider_mock"
 )
 
 func TestValidateProviderConfiguration_NoProvidersNoDefaults(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	err := c.ValidateProviderConfiguration()
 	if err != nil {
@@ -39,7 +38,7 @@ func TestValidateProviderConfiguration_NoProvidersNoDefaults(t *testing.T) {
 
 func TestValidateProviderConfiguration_EmailDefaultWithoutProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.SetEmailDefaultProvider("missing-provider")
 
 	err := c.ValidateProviderConfiguration()
@@ -56,7 +55,7 @@ func TestValidateProviderConfiguration_EmailDefaultWithoutProvider(t *testing.T)
 
 func TestValidateProviderConfiguration_EmailDefaultWithProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.AddEmailProvider("my-email", email_mock.NewMockEmailProvider())
 	c.SetEmailDefaultProvider("my-email")
 
@@ -68,7 +67,7 @@ func TestValidateProviderConfiguration_EmailDefaultWithProvider(t *testing.T) {
 
 func TestValidateProviderConfiguration_StorageDefaultWithoutProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.SetStorageDefaultProvider("missing-storage")
 
 	err := c.ValidateProviderConfiguration()
@@ -82,7 +81,7 @@ func TestValidateProviderConfiguration_StorageDefaultWithoutProvider(t *testing.
 
 func TestValidateProviderConfiguration_StorageDefaultWithProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.AddStorageProvider("my-storage", storage_mock.NewMockStorageProvider())
 	c.SetStorageDefaultProvider("my-storage")
 
@@ -94,7 +93,7 @@ func TestValidateProviderConfiguration_StorageDefaultWithProvider(t *testing.T) 
 
 func TestValidateProviderConfiguration_CacheDefaultWithoutProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.SetCacheDefaultProvider("missing-cache")
 
 	err := c.ValidateProviderConfiguration()
@@ -108,7 +107,7 @@ func TestValidateProviderConfiguration_CacheDefaultWithoutProvider(t *testing.T)
 
 func TestValidateProviderConfiguration_CryptoDefaultWithoutProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.SetCryptoDefaultProvider("missing-crypto")
 
 	err := c.ValidateProviderConfiguration()
@@ -122,7 +121,7 @@ func TestValidateProviderConfiguration_CryptoDefaultWithoutProvider(t *testing.T
 
 func TestValidateProviderConfiguration_NotificationDefaultWithoutProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.SetNotificationDefaultProvider("missing-notification")
 
 	err := c.ValidateProviderConfiguration()
@@ -136,7 +135,7 @@ func TestValidateProviderConfiguration_NotificationDefaultWithoutProvider(t *tes
 
 func TestValidateProviderConfiguration_MultipleErrors(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.SetEmailDefaultProvider("missing-email")
 	c.SetStorageDefaultProvider("missing-storage")
 
@@ -154,7 +153,7 @@ func TestValidateProviderConfiguration_MultipleErrors(t *testing.T) {
 
 func TestValidateProviderConfiguration_DefaultPointsToWrongProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.AddEmailProvider("provider-a", email_mock.NewMockEmailProvider())
 	c.SetEmailDefaultProvider("provider-b")
 

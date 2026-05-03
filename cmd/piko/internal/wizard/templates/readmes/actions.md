@@ -100,4 +100,4 @@ When this form is submitted, Piko handles everything:
 
 ### To learn more
 
-For more details on validation, error handling, caching, rate limiting, SSE streaming, and file uploads, please see the **[official Piko documentation on actions](https://piko.sh/docs/guide/server-actions)**.
+For more details on validation, error handling, caching, rate limiting, SSE streaming, and file uploads, please see the **[official Piko documentation on actions](https://piko.sh/docs/reference/server-actions)**.

@@ -1,0 +1,86 @@
+<svg viewBox="0 0 600 200" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="why-piko-the-glue-title why-piko-the-glue-desc">
+  <title id="why-piko-the-glue-title">The generated glue between two typed languages</title>
+  <desc id="why-piko-the-glue-desc">Two typed sides and a layer of auto-generated client code in the middle. The Go struct on the left and the frontend interface on the right are small. The generated client between them is much taller than either side. Dashed regenerate arrows point outward from the generated middle to both typed sides.</desc>
+
+  <defs>
+    <marker id="why-glue-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6"
+            fill="none" stroke="#475569" stroke-width="1.5"
+            stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <g>
+    <rect x="20" y="40" width="140" height="110" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+    <path d="M30,40 H150 A10,10 0 0 1 160,50 V64 H20 V50 A10,10 0 0 1 30,40 Z" fill="#1C544F"/>
+    <circle cx="32" cy="52" r="4" fill="#ff5f57"/>
+    <circle cx="46" cy="52" r="4" fill="#febc2e"/>
+    <circle cx="60" cy="52" r="4" fill="#28c840"/>
+    <text x="138" y="55" text-anchor="end" fill="#6BD5CC" font-family="monospace" font-size="9">types.go</text>
+
+    <text x="30" y="82" fill="#C9F5F2" font-family="monospace" font-size="11">type Customer</text>
+    <text x="30" y="98" fill="#C9F5F2" font-family="monospace" font-size="11">struct {</text>
+    <text x="40" y="114" fill="#FFEE9C" font-family="monospace" font-size="11">ID   int64</text>
+    <text x="40" y="130" fill="#FFEE9C" font-family="monospace" font-size="11">Name string</text>
+    <text x="30" y="146" fill="#C9F5F2" font-family="monospace" font-size="11">}</text>
+  </g>
+  <text x="90" y="172" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10">Go types</text>
+  <text x="90" y="186" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10">strongly typed</text>
+
+  
+  <g>
+    <rect x="230" y="20" width="140" height="160" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+    <path d="M240,20 H360 A10,10 0 0 1 370,30 V44 H230 V30 A10,10 0 0 1 240,20 Z" fill="#364049"/>
+    <text x="360" y="35" text-anchor="end" fill="#92A1AF" font-family="monospace" font-size="9">client.gen</text>
+
+    <rect x="244" y="56" width="112" height="3" rx="1" fill="#485461" opacity="0.75"/>
+    <rect x="244" y="64" width="98" height="3" rx="1" fill="#485461" opacity="0.7"/>
+    <rect x="244" y="72" width="106" height="3" rx="1" fill="#485461" opacity="0.65"/>
+    <rect x="244" y="80" width="90" height="3" rx="1" fill="#485461" opacity="0.6"/>
+    <rect x="244" y="88" width="112" height="3" rx="1" fill="#485461" opacity="0.55"/>
+    <rect x="244" y="96" width="82" height="3" rx="1" fill="#485461" opacity="0.5"/>
+    <rect x="244" y="104" width="104" height="3" rx="1" fill="#485461" opacity="0.45"/>
+    <rect x="244" y="112" width="96" height="3" rx="1" fill="#485461" opacity="0.4"/>
+    <rect x="244" y="120" width="110" height="3" rx="1" fill="#485461" opacity="0.35"/>
+    <rect x="244" y="128" width="88" height="3" rx="1" fill="#485461" opacity="0.3"/>
+    <rect x="244" y="136" width="102" height="3" rx="1" fill="#485461" opacity="0.25"/>
+    <rect x="244" y="144" width="78" height="3" rx="1" fill="#485461" opacity="0.2"/>
+    <rect x="244" y="152" width="108" height="3" rx="1" fill="#485461" opacity="0.18"/>
+    <rect x="244" y="160" width="94" height="3" rx="1" fill="#485461" opacity="0.15"/>
+    <rect x="244" y="168" width="104" height="3" rx="1" fill="#485461" opacity="0.12"/>
+
+    <text x="300" y="105" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="16" font-weight="700">auto-generated</text>
+  </g>
+  <text x="300" y="197" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10">generated client</text>
+
+  
+  <g>
+    <rect x="440" y="40" width="140" height="110" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+    <path d="M450,40 H570 A10,10 0 0 1 580,50 V64 H440 V50 A10,10 0 0 1 450,40 Z" fill="#1C544F"/>
+    <circle cx="452" cy="52" r="4" fill="#ff5f57"/>
+    <circle cx="466" cy="52" r="4" fill="#febc2e"/>
+    <circle cx="480" cy="52" r="4" fill="#28c840"/>
+    <text x="558" y="55" text-anchor="end" fill="#6BD5CC" font-family="monospace" font-size="9">types.ts</text>
+
+    <text x="450" y="82" fill="#C9F5F2" font-family="monospace" font-size="11">interface</text>
+    <text x="450" y="98" fill="#C9F5F2" font-family="monospace" font-size="11">Customer {</text>
+    <text x="460" y="114" fill="#FFEE9C" font-family="monospace" font-size="11">id: number</text>
+    <text x="460" y="130" fill="#FFEE9C" font-family="monospace" font-size="11">name: string</text>
+    <text x="450" y="146" fill="#C9F5F2" font-family="monospace" font-size="11">}</text>
+  </g>
+  <text x="510" y="172" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10">Frontend types</text>
+  <text x="510" y="186" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10">strongly typed</text>
+
+  
+  <line x1="228" y1="95" x2="164" y2="95"
+        stroke="#475569" stroke-width="1.5" stroke-dasharray="5,3"
+        stroke-linecap="round" marker-end="url(#why-glue-arrow)"/>
+  <line x1="372" y1="95" x2="436" y2="95"
+        stroke="#475569" stroke-width="1.5" stroke-dasharray="5,3"
+        stroke-linecap="round" marker-end="url(#why-glue-arrow)"/>
+
+  <text x="196" y="85" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">regenerate</text>
+  <text x="404" y="85" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">regenerate</text>
+</svg>

@@ -193,8 +193,8 @@ func (ti *TypeQuerier) searchMethodWithPointerRetry(
 // return type. This is used for non-promoted generic methods where we want to
 // preserve type parameters.
 //
-// This function should NOT be used when the base type is a generic
-// instantiation with concrete type arguments (e.g. Ref[TeamMember]).
+// Should NOT be used when the base type is a generic instantiation with concrete
+// type arguments (e.g. Ref[TeamMember]).
 //
 // Takes defType (*inspector_dto.Type) which is the type definition to check.
 // Takes resolvedBaseType (goast.Expr) which is the resolved base type expression.

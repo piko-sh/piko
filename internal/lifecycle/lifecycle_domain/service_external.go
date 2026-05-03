@@ -275,9 +275,9 @@ func (ls *lifecycleService) walkAndSeedExternalAssetDir(
 	}
 }
 
-// seedArtefactAsync opens, reads, and upserts a single file into the
-// registry in a new goroutine. The caller must have already incremented
-// wg and sent to limiter before calling this method.
+// seedArtefactAsync opens, reads, and upserts a single file into the registry in a
+// new goroutine. The caller must have already incremented wg and sent to limiter
+// before invoking it.
 //
 // Takes ctx (context.Context) which is the operation context.
 // Takes wg (*sync.WaitGroup) which tracks the goroutine's completion.

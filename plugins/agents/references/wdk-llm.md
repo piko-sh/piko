@@ -10,11 +10,14 @@ The LLM package provides a provider-agnostic API for interacting with large lang
 
 | Provider | Package | Default model | Embeddings |
 |----------|---------|---------------|------------|
-| OpenAI | `llm_provider_openai` | gpt-4.1 | No |
+| OpenAI | `llm_provider_openai` | gpt-4.1 | Yes |
 | Anthropic | `llm_provider_anthropic` | claude-sonnet-4-5-20250929 | No |
-| Google Gemini | `llm_provider_gemini` | gemini-2.5-flash | No |
-| Mistral | `llm_provider_mistral` | mistral-large-latest | No |
+| Google Gemini | `llm_provider_gemini` | gemini-2.5-flash | Yes |
+| Grok | `llm_provider_grok` | grok-3 | No |
+| Mistral | `llm_provider_mistral` | mistral-large-latest | Yes |
 | Ollama | `llm_provider_ollama` | llama3.2 | Yes |
+| Voyage | `llm_provider_voyage` | voyage-3.5 | Yes |
+| Zolt.ai | `llm_provider_zoltai` | zoltai-1 | Yes |
 
 ## Setup
 
@@ -84,7 +87,7 @@ resp, err := svc.NewCompletion().
     Tool("get_weather", "Get weather for a city", &llm.JSONSchema{
         Type: "object",
         Properties: map[string]*llm.JSONSchema{
-            "city": llm.Ptr(llm.StringSchema()),
+            "city": new(llm.StringSchema()),
         },
         Required: []string{"city"},
     }).
@@ -128,8 +131,8 @@ resp, err := svc.NewCompletion().
     User("Extract entities from: 'John works at Acme'").
     StructuredResponse("entities", llm.ObjectSchema(
         map[string]*llm.JSONSchema{
-            "people":    llm.Ptr(llm.ArraySchema(llm.StringSchema())),
-            "companies": llm.Ptr(llm.ArraySchema(llm.StringSchema())),
+            "people":    new(llm.ArraySchema(llm.StringSchema())),
+            "companies": new(llm.ArraySchema(llm.StringSchema())),
         },
         []string{"people", "companies"},
     )).
@@ -225,7 +228,7 @@ err := svc.AddText(ctx, "knowledge-base", "faq-1", "How do I install Piko?")
 - Forgetting to set `MaxTokens` for Anthropic (required, unlike OpenAI)
 - Not closing the service on shutdown (`svc.Close(ctx)`)
 - Using `Do(ctx)` without a context timeout in production
-- Forgetting to register an embedding provider for RAG (Ollama provides both)
+- Forgetting to register an embedding provider for RAG (Anthropic and Grok have no embeddings; the others do)
 - Not setting a budget scope (can lead to unexpected costs)
 - Using `ToolFunc` when you want manual tool handling (auto-dispatch runs automatically)
 

@@ -72,9 +72,8 @@ type Transformer interface {
 	) (*ast_domain.TemplateAST, string, []*email_dto.EmailAssetRequest, []*Error)
 }
 
-// ComponentRegistry is a driven port for PikoML component lookup. The domain
-// uses this interface to find components without being coupled to
-// implementations.
+// ComponentRegistry is a driven port for PikoML component lookup. The domain uses
+// the registry to find components without being coupled to implementations.
 type ComponentRegistry interface {
 	// Register adds a component to the registry.
 	//
@@ -93,12 +92,27 @@ type ComponentRegistry interface {
 	// Returns bool which is true if found, or false if not present.
 	Get(tagName string) (Component, bool)
 
+	// Lookup retrieves a component by its tag name and returns an error when
+	// the component is not registered. It is the non-panicking sibling of
+	// MustGet, intended for renderers that surface user-facing template
+	// errors rather than crashing on typos.
+	//
+	// Takes tagName (string) which is the HTML tag name, such as "pml-row".
+	//
+	// Returns Component which is the matching component.
+	// Returns error wrapping ErrComponentNotFound when not registered.
+	Lookup(tagName string) (Component, error)
+
 	// GetAll returns all registered components.
 	//
 	// Returns []Component which contains all components that have been registered.
 	GetAll() []Component
 
 	// MustGet retrieves a component by tag name or panics if not found.
+	//
+	// Callers must have invariant proof that the component exists, for
+	// example after a successful Register call. Use Lookup for user-facing
+	// template rendering paths where missing tag names are recoverable.
 	//
 	// Takes tagName (string) which identifies the component to retrieve.
 	//
@@ -109,9 +123,9 @@ type ComponentRegistry interface {
 // validatorPort is a driven port responsible for validating the structure and
 // attributes of a PikoML AST.
 type validatorPort interface {
-	// Validate traverses the TemplateAST, checking for valid component usage,
-	// parent-child relationships, and attributes against the rules defined by
-	// registered components.
+	// Validates the TemplateAST by traversing it, checking for valid component
+	// usage, parent-child relationships, and attributes against the rules
+	// defined by registered components.
 	//
 	// Takes ast (*ast_domain.TemplateAST) which is the parsed template to check.
 	//

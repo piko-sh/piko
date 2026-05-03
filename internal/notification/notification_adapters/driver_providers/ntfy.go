@@ -27,6 +27,7 @@ import (
 
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/notification/notification_dto"
+	"piko.sh/piko/internal/safeerror"
 )
 
 var _ notification_domain.NotificationProviderPort = (*NtfyProvider)(nil)
@@ -73,10 +74,14 @@ func (n *NtfyProvider) Send(ctx context.Context, params *notification_dto.SendPa
 	if err != nil {
 		return fmt.Errorf("sending to ntfy: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndCloseResponse(response)
 
 	if response.StatusCode < httpStatusOK || response.StatusCode >= httpStatusMultiStatus {
-		return fmt.Errorf("ntfy returned status %d: %s", response.StatusCode, response.Status)
+		statusErr := buildProviderStatusError("ntfy", response)
+		if isClientError(response.StatusCode) {
+			return safeerror.NewError(safeNotificationDeliveryFailed, statusErr)
+		}
+		return statusErr
 	}
 
 	return nil

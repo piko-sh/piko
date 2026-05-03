@@ -29,9 +29,9 @@ const (
 	// list items where a single space would not be visually distinct.
 	DoubleSpace = "  "
 
-	// EmDashGlyph is a long dash placeholder for missing or unknown
+	// HyphenGlyph is a long dash placeholder for missing or unknown
 	// numeric values.
-	EmDashGlyph = "—"
+	HyphenGlyph = "-"
 
 	// FormatPercentInt is the common format for an integer percent column.
 	FormatPercentInt = "%d"

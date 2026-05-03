@@ -156,7 +156,7 @@ type TypeSpec struct {
 	// Name is the type name (e.g., "CreateInput", "CustomerResponse").
 	Name string
 
-	// PackagePath is the fully qualified Go package path where this type is defined.
+	// PackagePath is the fully qualified Go package path where the type is defined.
 	PackagePath string
 
 	// PackageName is the declared Go package name (e.g., "arguments" for a
@@ -194,7 +194,7 @@ type FieldSpec struct {
 	// Description is the godoc comment for the field.
 	Description string
 
-	// Optional indicates if this field is optional (pointer or omitempty).
+	// Optional indicates if the field is optional (pointer or omitempty).
 	Optional bool
 }
 

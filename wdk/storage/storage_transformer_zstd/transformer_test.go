@@ -473,3 +473,91 @@ func TestReverseReaderCloseBeforeFullRead(t *testing.T) {
 
 	require.NoError(t, closer.Close())
 }
+
+func TestReverseDecompressedBytesCap(t *testing.T) {
+	t.Run("payload smaller than cap roundtrips cleanly", func(t *testing.T) {
+		transformer, err := stzstd.NewZstdTransformer(
+			stzstd.Config{},
+			stzstd.WithMaxDecompressedBytes(64*1024),
+		)
+		require.NoError(t, err)
+
+		input := bytes.Repeat([]byte("hello world\n"), 200)
+
+		compressed, err := transformer.Transform(context.Background(), bytes.NewReader(input), nil)
+		require.NoError(t, err)
+
+		compressedBytes, err := io.ReadAll(compressed)
+		require.NoError(t, err)
+
+		decompressed, err := transformer.Reverse(context.Background(), bytes.NewReader(compressedBytes), nil)
+		require.NoError(t, err)
+
+		result, err := io.ReadAll(decompressed)
+		require.NoError(t, err, "payload under cap should read cleanly")
+		assert.Equal(t, input, result)
+
+		if closer, ok := decompressed.(io.Closer); ok {
+			require.NoError(t, closer.Close())
+		}
+	})
+
+	t.Run("zip-bomb-style payload exceeding cap surfaces sentinel error", func(t *testing.T) {
+		transformer, err := stzstd.NewZstdTransformer(
+			stzstd.Config{},
+			stzstd.WithMaxDecompressedBytes(1024),
+		)
+		require.NoError(t, err)
+
+		bomb := make([]byte, 256*1024)
+
+		var buf bytes.Buffer
+		encoder, err := zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.SpeedBestCompression))
+		require.NoError(t, err)
+		_, err = encoder.Write(bomb)
+		require.NoError(t, err)
+		require.NoError(t, encoder.Close())
+
+		assert.Less(t, buf.Len(), len(bomb)/100,
+			"setup: highly redundant input should compress drastically (zip-bomb shape)")
+
+		decompressed, err := transformer.Reverse(context.Background(), &buf, nil)
+		require.NoError(t, err)
+
+		_, err = io.ReadAll(decompressed)
+		require.Error(t, err, "reading past the cap must surface an error")
+		assert.True(t, errors.Is(err, stzstd.ErrDecompressedTooLarge),
+			"expected ErrDecompressedTooLarge, got %v", err)
+
+		if closer, ok := decompressed.(io.Closer); ok {
+			_ = closer.Close()
+		}
+	})
+
+	t.Run("WithMaxDecompressedBytes non-positive disables cap", func(t *testing.T) {
+		transformer, err := stzstd.NewZstdTransformer(
+			stzstd.Config{},
+			stzstd.WithMaxDecompressedBytes(-1),
+		)
+		require.NoError(t, err)
+
+		payload := bytes.Repeat([]byte("a"), 4*1024*1024)
+
+		compressed, err := transformer.Transform(context.Background(), bytes.NewReader(payload), nil)
+		require.NoError(t, err)
+
+		compressedBytes, err := io.ReadAll(compressed)
+		require.NoError(t, err)
+
+		decompressed, err := transformer.Reverse(context.Background(), bytes.NewReader(compressedBytes), nil)
+		require.NoError(t, err)
+
+		result, err := io.ReadAll(decompressed)
+		require.NoError(t, err, "negative cap must disable the cap")
+		assert.Equal(t, len(payload), len(result))
+
+		if closer, ok := decompressed.(io.Closer); ok {
+			require.NoError(t, closer.Close())
+		}
+	})
+}

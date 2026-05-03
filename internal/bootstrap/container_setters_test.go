@@ -90,7 +90,7 @@ type stubMarkdownParser struct {
 
 func TestSetGetMetricsExporter(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetMetricsExporter(), "should be nil by default")
 
@@ -102,7 +102,7 @@ func TestSetGetMetricsExporter(t *testing.T) {
 
 func TestSetGetMonitoringService(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetMonitoringService(), "should be nil by default")
 
@@ -114,21 +114,21 @@ func TestSetGetMonitoringService(t *testing.T) {
 
 func TestGetOrchestratorInspector_NilByDefault(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetOrchestratorInspector())
 }
 
 func TestGetRegistryInspector_NilByDefault(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetRegistryInspector())
 }
 
 func TestSetCSPPolicyString(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	policy, wasSet := c.GetCSPPolicyString()
 	assert.Empty(t, policy)
@@ -143,7 +143,7 @@ func TestSetCSPPolicyString(t *testing.T) {
 
 func TestSetCSPPolicyString_EmptyMarksAsSet(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.SetCSPPolicyString("")
 
@@ -154,7 +154,7 @@ func TestSetCSPPolicyString_EmptyMarksAsSet(t *testing.T) {
 
 func TestSetGetCrossOriginResourcePolicy(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Empty(t, c.GetCrossOriginResourcePolicy(), "should be empty by default")
 
@@ -165,7 +165,7 @@ func TestSetGetCrossOriginResourcePolicy(t *testing.T) {
 
 func TestSetGetCSPConfig(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetCSPConfig(), "should be nil by default")
 
@@ -177,7 +177,7 @@ func TestSetGetCSPConfig(t *testing.T) {
 
 func TestSetReportingEndpoints(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	endpoints := []config.ReportingEndpoint{
 		{Name: "csp", URL: "https://example.com/csp-report"},
@@ -194,14 +194,13 @@ func TestSetReportingEndpoints(t *testing.T) {
 
 func TestGetReportingConfig_FallsBackToServerConfig(t *testing.T) {
 	t.Parallel()
-	configProvider := config.NewConfigProvider()
-	configProvider.ServerConfig.Security.Reporting = config.ReportingConfig{
+	c := NewContainer()
+	c.serverConfig.Security.Reporting = config.ReportingConfig{
 		Enabled: new(true),
 		Endpoints: []config.ReportingEndpoint{
 			{Name: "default", URL: "https://example.com/default"},
 		},
 	}
-	c := NewContainer(configProvider)
 
 	reportingConfig := c.GetReportingConfig()
 	assert.True(t, deref(reportingConfig.Enabled, false))
@@ -211,14 +210,13 @@ func TestGetReportingConfig_FallsBackToServerConfig(t *testing.T) {
 
 func TestSetReportingEndpoints_OverridesServerConfig(t *testing.T) {
 	t.Parallel()
-	configProvider := config.NewConfigProvider()
-	configProvider.ServerConfig.Security.Reporting = config.ReportingConfig{
+	c := NewContainer()
+	c.serverConfig.Security.Reporting = config.ReportingConfig{
 		Enabled: new(true),
 		Endpoints: []config.ReportingEndpoint{
 			{Name: "from-config", URL: "https://example.com/config"},
 		},
 	}
-	c := NewContainer(configProvider)
 
 	c.SetReportingEndpoints([]config.ReportingEndpoint{
 		{Name: "from-code", URL: "https://example.com/code"},
@@ -232,7 +230,7 @@ func TestSetReportingEndpoints_OverridesServerConfig(t *testing.T) {
 
 func TestGetCSPPolicy_RawPolicyTakesPrecedence(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 	c.SetCSPPolicyString("raw-policy")
 
 	assert.Equal(t, "raw-policy", c.GetCSPPolicy())
@@ -240,7 +238,7 @@ func TestGetCSPPolicy_RawPolicyTakesPrecedence(t *testing.T) {
 
 func TestGetCSPPolicy_BuilderUsedWhenNoRawPolicy(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	builder := security_domain.NewCSPBuilder().WithPikoDefaults()
 	c.SetCSPConfig(builder)
@@ -250,16 +248,15 @@ func TestGetCSPPolicy_BuilderUsedWhenNoRawPolicy(t *testing.T) {
 
 func TestGetCSPPolicy_ConfigValueUsedWhenNoBuilderOrRaw(t *testing.T) {
 	t.Parallel()
-	configProvider := config.NewConfigProvider()
-	configProvider.ServerConfig.Security.Headers.ContentSecurityPolicy = new("config-policy")
-	c := NewContainer(configProvider)
+	c := NewContainer()
+	c.serverConfig.Security.Headers.ContentSecurityPolicy = new("config-policy")
 
 	assert.Equal(t, "config-policy", c.GetCSPPolicy())
 }
 
 func TestGetCSPPolicy_DefaultWhenNothingSet(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	policy := c.GetCSPPolicy()
 	assert.NotEmpty(t, policy, "should return Piko default CSP")
@@ -267,7 +264,7 @@ func TestGetCSPPolicy_DefaultWhenNothingSet(t *testing.T) {
 
 func TestGetCSPPolicy_EmptyRawPolicyDisablesCSP(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.SetCSPPolicyString("")
 
@@ -276,7 +273,7 @@ func TestGetCSPPolicy_EmptyRawPolicyDisablesCSP(t *testing.T) {
 
 func TestGetCSPPolicy_RawPolicyBeatsBuilder(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	builder := security_domain.NewCSPBuilder().WithPikoDefaults()
 	c.SetCSPConfig(builder)
@@ -288,7 +285,7 @@ func TestGetCSPPolicy_RawPolicyBeatsBuilder(t *testing.T) {
 
 func TestSetGetHighlighter(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetHighlighter(), "should be nil by default")
 
@@ -300,7 +297,7 @@ func TestSetGetHighlighter(t *testing.T) {
 
 func TestAddFrontendModule(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Empty(t, c.GetFrontendModules())
 
@@ -314,7 +311,7 @@ func TestAddFrontendModule(t *testing.T) {
 
 func TestAddFrontendModule_DeduplicatesSameModule(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.AddFrontendModule(daemon_frontend.ModuleAnalytics, nil)
 	c.AddFrontendModule(daemon_frontend.ModuleAnalytics, nil)
@@ -324,7 +321,7 @@ func TestAddFrontendModule_DeduplicatesSameModule(t *testing.T) {
 
 func TestAddFrontendModule_WithConfig(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	moduleConfig := map[string]string{"key": "value"}
 	c.AddFrontendModule(daemon_frontend.ModuleAnalytics, moduleConfig)
@@ -336,7 +333,7 @@ func TestAddFrontendModule_WithConfig(t *testing.T) {
 
 func TestAddCustomFrontendModule(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetCustomFrontendModules())
 
@@ -350,7 +347,7 @@ func TestAddCustomFrontendModule(t *testing.T) {
 
 func TestAddCustomFrontendModule_MultipleModules(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.AddCustomFrontendModule("alpha", []byte("a"), nil)
 	c.AddCustomFrontendModule("beta", []byte("b"), nil)
@@ -363,7 +360,7 @@ func TestAddCustomFrontendModule_MultipleModules(t *testing.T) {
 
 func TestAddImageTransformer_SetsDefaultOnFirst(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.AddImageTransformer("sharp", &stubImageTransformerPort{})
 
@@ -372,7 +369,7 @@ func TestAddImageTransformer_SetsDefaultOnFirst(t *testing.T) {
 
 func TestAddImageTransformer_DoesNotOverrideDefault(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.AddImageTransformer("first", &stubImageTransformerPort{})
 	c.AddImageTransformer("second", &stubImageTransformerPort{})
@@ -383,7 +380,7 @@ func TestAddImageTransformer_DoesNotOverrideDefault(t *testing.T) {
 
 func TestAddImageTransformer_StoresInMap(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	transformer := &stubImageTransformerPort{}
 	c.AddImageTransformer("vips", transformer)
@@ -394,7 +391,7 @@ func TestAddImageTransformer_StoresInMap(t *testing.T) {
 
 func TestSetDefaultImageTransformer(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.AddImageTransformer("first", &stubImageTransformerPort{})
 	c.AddImageTransformer("second", &stubImageTransformerPort{})
@@ -405,7 +402,7 @@ func TestSetDefaultImageTransformer(t *testing.T) {
 
 func TestAddVideoTranscoder_SetsDefaultOnFirst(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.AddVideoTranscoder("ffmpeg", &stubVideoTranscoderPort{})
 
@@ -414,7 +411,7 @@ func TestAddVideoTranscoder_SetsDefaultOnFirst(t *testing.T) {
 
 func TestAddVideoTranscoder_DoesNotOverrideDefault(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.AddVideoTranscoder("first", &stubVideoTranscoderPort{})
 	c.AddVideoTranscoder("second", &stubVideoTranscoderPort{})
@@ -425,7 +422,7 @@ func TestAddVideoTranscoder_DoesNotOverrideDefault(t *testing.T) {
 
 func TestAddVideoTranscoder_StoresInMap(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	transcoder := &stubVideoTranscoderPort{}
 	c.AddVideoTranscoder("ffmpeg", transcoder)
@@ -436,7 +433,7 @@ func TestAddVideoTranscoder_StoresInMap(t *testing.T) {
 
 func TestSetDefaultVideoTranscoder(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.SetDefaultVideoTranscoder("libx264")
 
@@ -445,14 +442,14 @@ func TestSetDefaultVideoTranscoder(t *testing.T) {
 
 func TestGetImagePredefinedVariants_NilByDefault(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetImagePredefinedVariants())
 }
 
 func TestGetImagePredefinedVariants_AfterDirectSet(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	variants := map[string]image_dto.TransformationSpec{
 		"thumbnail": {Width: 100, Height: 100},
@@ -467,7 +464,7 @@ func TestGetImagePredefinedVariants_AfterDirectSet(t *testing.T) {
 
 func TestSetImageConfig_NilIsNoOp(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.SetImageConfig(nil)
 
@@ -477,7 +474,7 @@ func TestSetImageConfig_NilIsNoOp(t *testing.T) {
 
 func TestSetImageConfig_RegistersProviders(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	imgConfig := &image_domain.ImageConfig{
 		Providers: map[string]image_domain.TransformerPort{
@@ -498,7 +495,7 @@ func TestSetImageConfig_RegistersProviders(t *testing.T) {
 
 func TestAddCacheProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	provider := &stubCacheProvider{}
 	c.AddCacheProvider("redis", provider)
@@ -509,7 +506,7 @@ func TestAddCacheProvider(t *testing.T) {
 
 func TestSetCacheDefaultProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.SetCacheDefaultProvider("redis")
 
@@ -518,7 +515,7 @@ func TestSetCacheDefaultProvider(t *testing.T) {
 
 func TestAddLLMProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	provider := &stubLLMProviderPort{}
 	c.AddLLMProvider("openai", provider)
@@ -529,7 +526,7 @@ func TestAddLLMProvider(t *testing.T) {
 
 func TestSetLLMDefaultProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.SetLLMDefaultProvider("openai")
 
@@ -538,7 +535,7 @@ func TestSetLLMDefaultProvider(t *testing.T) {
 
 func TestAddCryptoProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	provider := &stubEncryptionProvider{}
 	c.AddCryptoProvider("aes", provider)
@@ -549,7 +546,7 @@ func TestAddCryptoProvider(t *testing.T) {
 
 func TestAddNotificationProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	provider := &stubNotificationProviderPort{}
 	c.AddNotificationProvider("slack", provider)
@@ -560,7 +557,7 @@ func TestAddNotificationProvider(t *testing.T) {
 
 func TestSetNotificationDefaultProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.SetNotificationDefaultProvider("slack")
 
@@ -569,7 +566,7 @@ func TestSetNotificationDefaultProvider(t *testing.T) {
 
 func TestSetEmailDispatcherConfig(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.False(t, c.hasEmailDispatcher, "should be false by default")
 
@@ -582,7 +579,7 @@ func TestSetEmailDispatcherConfig(t *testing.T) {
 
 func TestSetGetEmailTemplateService(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetEmailTemplateService(), "should be nil by default")
 
@@ -594,7 +591,7 @@ func TestSetGetEmailTemplateService(t *testing.T) {
 
 func TestSetStoragePresignBaseURL(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Empty(t, c.storagePresignBaseURL)
 
@@ -605,7 +602,7 @@ func TestSetStoragePresignBaseURL(t *testing.T) {
 
 func TestSetStoragePublicBaseURL(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Empty(t, c.storagePublicBaseURL)
 
@@ -616,7 +613,7 @@ func TestSetStoragePublicBaseURL(t *testing.T) {
 
 func TestSetStorageDispatcherConfig(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.False(t, c.hasStorageDispatcher, "should be false by default")
 
@@ -629,7 +626,7 @@ func TestSetStorageDispatcherConfig(t *testing.T) {
 
 func TestSetCoordinatorCodeEmitterOverride(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.coordinatorCodeEmitterOverride)
 
@@ -644,7 +641,7 @@ func TestSetCoordinatorCodeEmitterOverride(t *testing.T) {
 
 func TestSetCoordinatorDiagnosticOutputOverride(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.coordinatorDiagnosticOutputOverride)
 
@@ -659,7 +656,7 @@ func TestSetCoordinatorDiagnosticOutputOverride(t *testing.T) {
 
 func TestSetFSReaderOverride(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.coordinatorFSReaderOverride)
 
@@ -672,7 +669,7 @@ func TestSetFSReaderOverride(t *testing.T) {
 
 func TestSetResolverOverride(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.resolverOverride)
 
@@ -684,7 +681,7 @@ func TestSetResolverOverride(t *testing.T) {
 
 func TestSetSearchService(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.searchServiceOverride)
 
@@ -696,7 +693,7 @@ func TestSetSearchService(t *testing.T) {
 
 func TestSetEventsProvider(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.eventsProviderOverride)
 
@@ -708,7 +705,7 @@ func TestSetEventsProvider(t *testing.T) {
 
 func TestSetPMLTransformer(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	transformer := &stubPMLTransformer{}
 	c.SetPMLTransformer(transformer)
@@ -721,7 +718,7 @@ func TestSetPMLTransformer(t *testing.T) {
 
 func TestSetCSRFCookieSource(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	source := &stubCSRFCookieSourceAdapter{}
 	c.SetCSRFCookieSource(source)
@@ -732,7 +729,7 @@ func TestSetCSRFCookieSource(t *testing.T) {
 
 func TestSetRegistryMetadataCacheConfig(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.registryMetadataCacheConfig, "should be nil by default")
 
@@ -749,31 +746,31 @@ func TestSetRegistryMetadataCacheConfig(t *testing.T) {
 	assert.True(t, c.registryMetadataCacheConfig.StatsEnabled)
 }
 
-func TestGetConfigProvider(t *testing.T) {
+func TestGetServerConfig(t *testing.T) {
 	t.Parallel()
-	configProvider := config.NewConfigProvider()
-	c := NewContainer(configProvider)
+	c := NewContainer()
 
-	assert.Same(t, configProvider, c.GetConfigProvider())
+	assert.NotNil(t, c.GetServerConfig())
+	assert.NotNil(t, c.GetWebsiteConfig())
 }
 
 func TestGetEmailDispatcher_NilByDefault(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetEmailDispatcher())
 }
 
 func TestGetNotificationDispatcher_NilByDefault(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetNotificationDispatcher())
 }
 
 func TestGetDispatcherInspector_NilWhenNoDispatchers(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetDispatcherInspector(),
 		"should return nil when neither email nor notification dispatchers are configured")
@@ -789,7 +786,7 @@ func TestDefaultMetadataCacheProvider_ReturnsNil(t *testing.T) {
 
 func TestSetGetMarkdownParser(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.GetMarkdownParser(), "should be nil by default")
 
@@ -801,7 +798,7 @@ func TestSetGetMarkdownParser(t *testing.T) {
 
 func TestSetValidator_NilClearsOverride(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	c.SetValidator(nil)
 
@@ -810,7 +807,7 @@ func TestSetValidator_NilClearsOverride(t *testing.T) {
 
 func TestSetValidator_SetsOverride(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	v := &stubStructValidator{}
 	c.SetValidator(v)

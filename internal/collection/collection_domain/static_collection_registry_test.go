@@ -20,9 +20,11 @@ package collection_domain
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/collection/collection_adapters"
@@ -177,7 +179,7 @@ func TestGetStaticCollectionItem_WithRealEncoder(t *testing.T) {
 
 	RegisterStaticCollectionBlob(context.Background(), "real-test", blob)
 
-	metadata, contentAST, excerptAST, err := GetStaticCollectionItem(context.Background(), "real-test", "/test/item")
+	metadata, contentAST, excerptAST, err := GetStaticCollectionItem(context.Background(), "real-test", "test-item")
 	if err != nil {
 		t.Fatalf("GetStaticCollectionItem(context.Background(),) failed: %v", err)
 	}
@@ -190,7 +192,7 @@ func TestGetStaticCollectionItem_WithRealEncoder(t *testing.T) {
 	_ = excerptAST
 }
 
-func TestGetStaticCollectionItem_RouteNotFound(t *testing.T) {
+func TestGetStaticCollectionItem_SlugNotFound(t *testing.T) {
 	ResetStaticCollectionRegistry()
 
 	items := []collection_dto.ContentItem{
@@ -209,13 +211,13 @@ func TestGetStaticCollectionItem_RouteNotFound(t *testing.T) {
 
 	RegisterStaticCollectionBlob(context.Background(), "route-test", blob)
 
-	_, _, _, err = GetStaticCollectionItem(context.Background(), "route-test", "/nonexistent/route")
+	_, _, _, err = GetStaticCollectionItem(context.Background(), "route-test", "nonexistent")
 	if err == nil {
-		t.Error("Expected error for nonexistent route")
+		t.Error("Expected error for nonexistent slug")
 	}
 }
 
-func TestGetStaticCollectionItem_IndexFallback(t *testing.T) {
+func TestGetStaticCollectionItem_IndexSlug(t *testing.T) {
 	ResetStaticCollectionRegistry()
 
 	items := []collection_dto.ContentItem{
@@ -237,7 +239,7 @@ func TestGetStaticCollectionItem_IndexFallback(t *testing.T) {
 
 	RegisterStaticCollectionBlob(context.Background(), "index-test", blob)
 
-	metadata, _, _, err := GetStaticCollectionItem(context.Background(), "index-test", "/docs/")
+	metadata, _, _, err := GetStaticCollectionItem(context.Background(), "index-test", "index")
 	if err != nil {
 		t.Fatalf("GetStaticCollectionItem(context.Background(),) failed: %v", err)
 	}
@@ -245,6 +247,79 @@ func TestGetStaticCollectionItem_IndexFallback(t *testing.T) {
 	if metadata["title"] != "Index Page" {
 		t.Errorf("Expected title 'Index Page', got %v", metadata["title"])
 	}
+}
+
+func TestNormaliseLookupSlug(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "plain slug", in: "tutorials/intro", want: "tutorials/intro"},
+		{name: "trailing slash trimmed", in: "tutorials/", want: "tutorials"},
+		{name: "leading slash trimmed", in: "/tutorials", want: "tutorials"},
+		{name: "both slashes trimmed", in: "/tutorials/", want: "tutorials"},
+		{name: "empty resolves to index", in: "", want: rootIndexSlug},
+		{name: "lone slash resolves to index", in: "/", want: rootIndexSlug},
+		{name: "double slashes resolve to index", in: "//", want: rootIndexSlug},
+		{name: "literal index passes through", in: "index", want: "index"},
+		{name: "long key truncated", in: strings.Repeat("a", maxLookupSlugBytes+10), want: strings.Repeat("a", maxLookupSlugBytes)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, normaliseLookupSlug(tt.in))
+		})
+	}
+}
+
+func TestGetStaticCollectionItem_TrailingSlashResolvesToIndex(t *testing.T) {
+	ResetStaticCollectionRegistry()
+
+	items := []collection_dto.ContentItem{
+		{
+			ID:   "tut-index",
+			URL:  "/docs/tutorials/",
+			Slug: "tutorials",
+			Metadata: map[string]any{
+				"title": "Tutorials",
+			},
+		},
+	}
+
+	encoder := collection_adapters.NewFlatBufferEncoder()
+	blob, err := encoder.EncodeCollection(items)
+	require.NoError(t, err)
+
+	RegisterStaticCollectionBlob(context.Background(), "trailing-slash-test", blob)
+
+	metadata, _, _, err := GetStaticCollectionItem(context.Background(), "trailing-slash-test", "tutorials/")
+	require.NoError(t, err)
+	assert.Equal(t, "Tutorials", metadata["title"])
+}
+
+func TestGetStaticCollectionItem_RootEmptyResolvesToIndex(t *testing.T) {
+	ResetStaticCollectionRegistry()
+
+	items := []collection_dto.ContentItem{
+		{
+			ID:       "root-index",
+			Slug:     rootIndexSlug,
+			Metadata: map[string]any{"title": "Welcome"},
+		},
+	}
+	encoder := collection_adapters.NewFlatBufferEncoder()
+	blob, err := encoder.EncodeCollection(items)
+	require.NoError(t, err)
+
+	RegisterStaticCollectionBlob(context.Background(), "root-index-test", blob)
+
+	metadata, _, _, err := GetStaticCollectionItem(context.Background(), "root-index-test", "")
+	require.NoError(t, err)
+	assert.Equal(t, "Welcome", metadata["title"])
 }
 
 func TestGetStaticCollectionItems_CollectionNotFound(t *testing.T) {
@@ -363,7 +438,7 @@ func TestDefaultStaticCollectionRegistry_GetItem(t *testing.T) {
 	RegisterStaticCollectionBlob(context.Background(), "get-item-test", blob)
 
 	registry := NewDefaultStaticCollectionRegistry()
-	result, err := registry.GetItem(context.Background(), "get-item-test", "/registry/item")
+	result, err := registry.GetItem(context.Background(), "get-item-test", "item")
 	if err != nil {
 		t.Fatalf("GetItem() failed: %v", err)
 	}
@@ -474,7 +549,7 @@ func TestStaticCollectionRegistry_ConcurrentRead(t *testing.T) {
 
 	for range numGoroutines {
 		wg.Go(func() {
-			_, _, _, err := GetStaticCollectionItem(context.Background(), "concurrent-read", "/concurrent/item")
+			_, _, _, err := GetStaticCollectionItem(context.Background(), "concurrent-read", "item")
 			if err != nil {
 				t.Errorf("GetStaticCollectionItem(context.Background(),) failed: %v", err)
 			}

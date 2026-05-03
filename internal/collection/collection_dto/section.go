@@ -32,7 +32,7 @@ const (
 // children to build a tree structure for navigation. It works with any content
 // source such as markdown or CMS systems.
 type SectionNode struct {
-	// Title is the heading text, such as "Getting Started".
+	// Title is the heading text, such as "Introduction".
 	Title string
 
 	// Slug is the URL-safe anchor ID (e.g., "getting-started").

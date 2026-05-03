@@ -596,8 +596,8 @@ func buildEventHandlerExpr(
 //
 // For v2 action calls (action.namespace.Name()), the annotator transforms the
 // directive expression into a CallExpr with the callee set to an Identifier
-// containing just the action name. This function extracts the callee name
-// (not the full expression string which would incorrectly include arguments).
+// containing just the action name. Extracts the callee name (not the full
+// expression string which would incorrectly include arguments).
 //
 // Takes d (ast_domain.Directive) which contains the directive expression with
 // the action call.

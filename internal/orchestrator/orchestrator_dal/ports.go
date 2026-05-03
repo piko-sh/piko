@@ -38,7 +38,7 @@ type TaskDAL interface {
 
 	// CreateTasks inserts a batch of tasks into the database.
 	//
-	// This method is designed for bulk insertions and uses multi-row INSERT
+	// Designed for bulk insertions; uses multi-row INSERT
 	// statements for better performance.
 	//
 	// Takes tasks ([]*orchestrator_domain.Task) which contains the tasks to store.

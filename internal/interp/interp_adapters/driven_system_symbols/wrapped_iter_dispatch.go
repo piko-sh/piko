@@ -24,7 +24,6 @@ import (
 	"maps"
 	"reflect"
 	"slices"
-	"sort"
 )
 
 const (
@@ -432,9 +431,22 @@ func sortedFuncDispatch[E any](sequence any, compareFunction func(any, any) int,
 // ordering.
 func reflectSortWithCompareFunction(slice any, compareFunction func(any, any) int) {
 	rv := reflect.ValueOf(slice)
-	sort.SliceStable(slice, func(i, j int) bool { //nolint:revive // reflect-based sort
-		return compareFunction(rv.Index(i).Interface(), rv.Index(j).Interface()) < 0
+	length := rv.Len()
+	indices := make([]int, length)
+	for i := range indices {
+		indices[i] = i
+	}
+	slices.SortStableFunc(indices, func(left, right int) int {
+		return compareFunction(rv.Index(left).Interface(), rv.Index(right).Interface())
 	})
+	swap := reflect.Swapper(slice)
+	for position := range indices {
+		for indices[position] != position {
+			target := indices[position]
+			swap(position, target)
+			indices[position], indices[target] = indices[target], indices[position]
+		}
+	}
 }
 
 // reflectSortOrdered sorts a reflect-created slice of ordered elements using

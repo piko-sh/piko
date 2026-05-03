@@ -21,14 +21,19 @@ package llm_provider_mistral
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	stdjson "encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
+	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/wdk/logger"
 )
 
@@ -37,14 +42,76 @@ const (
 	toolTypeFunction = "function"
 
 	// httpClientTimeout is the time limit for HTTP requests to the Mistral API.
-	httpClientTimeout = 5 * time.Minute
+	// 30 minutes provides a generous upper bound for long-running completions
+	// while preventing stuck connections from leaking goroutines indefinitely.
+	httpClientTimeout = 30 * time.Minute
+
+	// maxLLMResponseBytes bounds the size of a third-party HTTP response body to
+	// prevent unbounded memory consumption from a hostile or malfunctioning peer.
+	maxLLMResponseBytes = 16 * 1024 * 1024
 )
+
+// errResponseTruncated indicates a provider response exceeded the configured
+// size cap and was truncated.
+var errResponseTruncated = errors.New("mistral response exceeded maximum size")
+
+// readBoundedBody reads up to maxLLMResponseBytes+1 bytes from body and reports
+// truncation when the cap is exceeded.
+//
+// Takes body (io.Reader) which is the response body to read.
+//
+// Returns []byte which contains the read bytes (capped at maxLLMResponseBytes).
+// Returns error which wraps a read failure or signals truncation.
+func readBoundedBody(body io.Reader) ([]byte, error) {
+	limited := io.LimitReader(body, maxLLMResponseBytes+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return data, err
+	}
+	if int64(len(data)) > maxLLMResponseBytes {
+		return data[:maxLLMResponseBytes], errResponseTruncated
+	}
+	return data, nil
+}
+
+// decodeBoundedJSON decodes JSON from body with a size cap to prevent
+// unbounded memory consumption.
+//
+// Takes body (io.Reader) which is the response body to decode.
+// Takes target (any) which receives the decoded value.
+//
+// Returns error when the read fails, the body is truncated, or decoding fails.
+func decodeBoundedJSON(body io.Reader, target any) error {
+	data, err := readBoundedBody(body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, target)
+}
+
+// drainAndClose drains any remaining bytes from response.Body before closing
+// so that the underlying TCP connection can be reused by the HTTP client.
+//
+// Takes response (*http.Response) which is the response whose body should be
+// drained and closed.
+func drainAndClose(response *http.Response) {
+	_, _ = io.Copy(io.Discard, response.Body)
+	_ = response.Body.Close()
+}
 
 // mistralProvider implements llm_domain.LLMProviderPort and
 // llm_domain.EmbeddingProviderPort for Mistral AI.
 type mistralProvider struct {
+	// closeContext is the provider-level context whose cancellation signals
+	// background stream goroutines to exit.
+	closeContext context.Context
+
 	// client is the HTTP client used for API requests.
 	client *http.Client
+
+	// closeCancel cancels the provider-level context to signal shutdown to any
+	// in-flight stream goroutines.
+	closeCancel context.CancelCauseFunc
 
 	// defaultModel is the model identifier used when none is specified.
 	defaultModel string
@@ -56,9 +123,16 @@ type mistralProvider struct {
 	// config holds the provider configuration settings.
 	config Config
 
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for
+	// them to drain.
+	streamWaitGroup sync.WaitGroup
+
 	// embeddingDimensions is the default vector dimension for the configured
 	// embedding model.
 	embeddingDimensions int
+
+	// closeOnce ensures Close is idempotent.
+	closeOnce sync.Once
 }
 
 var _ llm_domain.LLMProviderPort = (*mistralProvider)(nil)
@@ -73,6 +147,8 @@ var _ llm_domain.EmbeddingProviderPort = (*mistralProvider)(nil)
 // Returns *llm_dto.CompletionResponse which contains the generated response.
 // Returns error when the request to Mistral fails.
 func (p *mistralProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.Complete")
+
 	ctx, l := logger.From(ctx, log)
 	completeCount.Add(ctx, 1)
 	start := time.Now()
@@ -156,7 +232,7 @@ type mistralMessage struct {
 	// Content holds the message body as raw JSON. For text-only messages this
 	// is a JSON string; for multimodal messages it is a JSON array of content
 	// part objects.
-	Content json.RawMessage `json:"content"`
+	Content stdjson.RawMessage `json:"content"`
 
 	// Name is an optional name for the message author, used to distinguish
 	// between multiple participants with the same role.
@@ -360,6 +436,8 @@ func (*mistralProvider) SupportsMessageName() bool { return true }
 // Returns []llm_dto.ModelInfo which contains the available model details.
 // Returns error when the request fails or the API returns an error.
 func (p *mistralProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.ListModels")
+
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, p.config.BaseURL+"/v1/models", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -371,11 +449,10 @@ func (p *mistralProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to list mistral models: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response)
 
 	if response.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(response.Body)
-		return nil, fmt.Errorf("mistral API error (status %d): %s", response.StatusCode, string(respBody))
+		return nil, classifyMistralAPIError(response, "mistral API error", "mistral request rejected")
 	}
 
 	var listResp struct {
@@ -386,7 +463,10 @@ func (p *mistralProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, 
 		} `json:"data"`
 	}
 
-	if err := json.NewDecoder(response.Body).Decode(&listResp); err != nil {
+	if err := decodeBoundedJSON(response.Body, &listResp); err != nil {
+		if errors.Is(err, errResponseTruncated) {
+			return nil, fmt.Errorf("mistral models response exceeded %d bytes: %w", maxLLMResponseBytes, err)
+		}
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -405,11 +485,41 @@ func (p *mistralProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, 
 	return result, nil
 }
 
-// Close releases resources held by the Mistral provider.
+// Close releases resources held by the Mistral provider, signalling any
+// in-flight stream goroutines to exit and waiting for them to drain.
 //
-// Returns error when resources cannot be released.
-func (*mistralProvider) Close(_ context.Context) error {
-	return nil
+// Returns error when resources cannot be released within the bounded wait.
+//
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
+// signal active stream goroutines, waits on streamWaitGroup, then closes idle
+// HTTP connections.
+func (p *mistralProvider) Close(ctx context.Context) error {
+	var closeErr error
+	p.closeOnce.Do(func() {
+		if p.closeCancel != nil {
+			p.closeCancel(errors.New("mistral provider closing"))
+		}
+
+		done := make(chan struct{})
+		go func() {
+			defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.Close.wait")
+			p.streamWaitGroup.Wait()
+			close(done)
+		}()
+
+		waitContext, cancel := context.WithTimeoutCause(ctx, 30*time.Second,
+			errors.New("mistral provider close drain exceeded 30s"))
+		defer cancel()
+
+		select {
+		case <-done:
+		case <-waitContext.Done():
+			closeErr = fmt.Errorf("mistral provider close timed out: %w", context.Cause(waitContext))
+		}
+
+		p.client.CloseIdleConnections()
+	})
+	return closeErr
 }
 
 // DefaultModel implements LLMProviderPort.DefaultModel.
@@ -466,6 +576,8 @@ type mistralEmbedData struct {
 // embeddings.
 // Returns error when the request fails.
 func (p *mistralProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.Embed")
+
 	ctx, l := logger.From(ctx, log)
 	embedCount.Add(ctx, 1)
 	start := time.Now()
@@ -548,15 +660,17 @@ func (p *mistralProvider) doEmbedRequest(
 	if err != nil {
 		return nil, fmt.Errorf("mistral embedding request failed: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response)
 
 	if response.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(response.Body)
-		return nil, fmt.Errorf("mistral embedding API error (status %d): %s", response.StatusCode, string(respBody))
+		return nil, classifyMistralAPIError(response, "mistral embedding API error", "mistral embedding request rejected")
 	}
 
 	var apiResp mistralEmbedResponse
-	if err := json.NewDecoder(response.Body).Decode(&apiResp); err != nil {
+	if err := decodeBoundedJSON(response.Body, &apiResp); err != nil {
+		if errors.Is(err, errResponseTruncated) {
+			return nil, fmt.Errorf("mistral embedding response exceeded %d bytes: %w", maxLLMResponseBytes, err)
+		}
 		return nil, fmt.Errorf("failed to decode embedding response: %w", err)
 	}
 
@@ -674,8 +788,8 @@ func (p *mistralProvider) convertMessage(message llm_dto.Message) mistralMessage
 // Takes parts ([]llm_dto.ContentPart) which contains the content parts to
 // convert.
 //
-// Returns json.RawMessage which is the JSON-encoded content array.
-func (*mistralProvider) convertContentParts(parts []llm_dto.ContentPart) json.RawMessage {
+// Returns stdjson.RawMessage which is the JSON-encoded content array.
+func (*mistralProvider) convertContentParts(parts []llm_dto.ContentPart) stdjson.RawMessage {
 	mParts := make([]mistralContentPart, 0, len(parts))
 	for _, part := range parts {
 		switch part.Type {
@@ -818,15 +932,17 @@ func (p *mistralProvider) doRequest(ctx context.Context, apiReq *mistralRequest)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response)
 
 	if response.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(response.Body)
-		return nil, fmt.Errorf("mistral API error (status %d): %s", response.StatusCode, string(respBody))
+		return nil, classifyMistralAPIError(response, "mistral API error", "mistral request rejected")
 	}
 
 	var apiResp mistralResponse
-	if err := json.NewDecoder(response.Body).Decode(&apiResp); err != nil {
+	if err := decodeBoundedJSON(response.Body, &apiResp); err != nil {
+		if errors.Is(err, errResponseTruncated) {
+			return nil, fmt.Errorf("mistral response exceeded %d bytes: %w", maxLLMResponseBytes, err)
+		}
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -915,10 +1031,14 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 	}
 	config = config.WithDefaults()
 
+	closeContext, closeCancel := context.WithCancelCause(context.Background())
+
 	return &mistralProvider{
 		client: &http.Client{
 			Timeout: httpClientTimeout,
 		},
+		closeContext:          closeContext,
+		closeCancel:           closeCancel,
 		config:                config,
 		defaultModel:          config.DefaultModel,
 		defaultEmbeddingModel: config.DefaultEmbeddingModel,
@@ -968,8 +1088,39 @@ func convertEmbedResponse(apiResp *mistralEmbedResponse) *llm_dto.EmbeddingRespo
 //
 // Takes s (string) which is the string to encode as JSON.
 //
-// Returns json.RawMessage which contains the JSON-encoded string.
-func marshalStringContent(s string) json.RawMessage {
+// Returns stdjson.RawMessage which contains the JSON-encoded string.
+func marshalStringContent(s string) stdjson.RawMessage {
 	data, _ := json.Marshal(s)
 	return data
+}
+
+// classifyMistralAPIError converts a non-OK Mistral response into either a
+// safeerror-wrapped 4xx (user-rejection) or a transient 5xx-style error.
+// The caller is responsible for draining and closing the response body
+// (typically via a deferred drainAndClose).
+//
+// Takes response (*http.Response) which is the non-OK upstream response.
+// Takes errorContext (string) which prefixes the error message
+// (e.g. "mistral API error", "mistral embedding API error").
+// Takes rejectMessage (string) which is the user-safe message used when the
+// status code is a 4xx client error.
+//
+// Returns error which carries the classified upstream failure with a
+// *llm_domain.ProviderError underneath so retry classification and
+// Retry-After hints flow through.
+func classifyMistralAPIError(response *http.Response, errorContext, rejectMessage string) error {
+	respBody, readErr := readBoundedBody(response.Body)
+	detail := http.StatusText(response.StatusCode)
+	if len(respBody) > 0 {
+		detail = string(respBody)
+	}
+	if readErr != nil && !errors.Is(readErr, errResponseTruncated) {
+		detail = fmt.Sprintf("%s (read error: %v)", detail, readErr)
+	}
+	baseErr := fmt.Errorf("%s (status %d): %s", errorContext, response.StatusCode, detail)
+	providerErr := newProviderError(response, fmt.Sprintf("%s: %s", errorContext, detail), baseErr)
+	if response.StatusCode >= http.StatusBadRequest && response.StatusCode < http.StatusInternalServerError {
+		return safeerror.NewError(rejectMessage, providerErr)
+	}
+	return providerErr
 }

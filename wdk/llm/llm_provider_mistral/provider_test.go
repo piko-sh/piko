@@ -369,9 +369,9 @@ func TestMistralProvider_ConvertToolChoice(t *testing.T) {
 	p := newTestProvider(t)
 
 	testCases := []struct {
-		name     string
-		choice   *llm_dto.ToolChoice
 		expected any
+		choice   *llm_dto.ToolChoice
+		name     string
 	}{
 		{
 			name:     "auto",

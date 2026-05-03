@@ -20,10 +20,9 @@ package interp_domain
 
 import "unsafe"
 
-// DispatchContext is the flat struct passed to the ASM dispatch loop.
-// It serves as the sole interface between Go and assembly; the ASM
-// code reads and writes only through this struct, never touching Go
-// object internals directly.
+// DispatchContext is the flat struct passed to the ASM dispatch loop. It serves as
+// the sole interface between Go and assembly; the ASM code reads and writes only
+// through the context, never touching Go object internals directly.
 //
 // Field offsets are hardcoded in the ASM handlers and verified by
 // TestDispatchContextOffsets. If you add, remove, or reorder fields,

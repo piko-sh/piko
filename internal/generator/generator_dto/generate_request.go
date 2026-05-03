@@ -22,29 +22,31 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// VirtualPageInstanceData represents a single virtual page instance with its
-// route and data. It is used when generating code for collection pages that
-// share a single compiled package.
+// VirtualPageInstanceData represents a single virtual page instance produced
+// by collection-directive expansion. It is used when generating code for
+// collection pages that share a single compiled package; the emitter gates
+// the collection-loading prelude on len(request.VirtualInstances) > 0.
 type VirtualPageInstanceData struct {
 	// InitialProps holds the properties for this instance.
 	InitialProps map[string]any
 
-	// Route is the URL path for this page (e.g. "/blog/test-post").
-	Route string
+	// Slug identifies the collection item backing this instance.
+	// Carried for tooling and direct lookups; at runtime the effective slug
+	// comes from the request's path parameter rather than this value.
+	Slug string
 }
 
 // ConvertVirtualInstances translates annotator-side virtual page instances
-// into the emitter-side data type. The emitter gates the collection-loading
-// prelude (GetStaticCollectionItem + WithCollectionData) on
-// len(request.VirtualInstances) > 0; callers that skip this conversion will
-// silently produce BuildAST functions that never populate r's CollectionData,
-// leaving piko.GetData[T] to return zero values.
+// into the emitter-side data type.
 //
-// Takes instances ([]annotator_dto.VirtualPageInstance) which are the
-// per-item bindings produced by the annotator's collection-directive
-// expansion.
+// Callers that skip this conversion will silently produce BuildAST functions
+// that never populate r's CollectionData, leaving piko.GetData[T] to return
+// zero values.
 //
-// Returns []VirtualPageInstanceData of matching length, or nil when no
+// Takes instances ([]annotator_dto.VirtualPageInstance) which is the input
+// slice from the annotator stage.
+//
+// Returns []VirtualPageInstanceData which mirrors instances, or nil when no
 // instances exist so the emitter's gate stays intact for non-collection
 // pages.
 func ConvertVirtualInstances(instances []annotator_dto.VirtualPageInstance) []VirtualPageInstanceData {
@@ -54,7 +56,7 @@ func ConvertVirtualInstances(instances []annotator_dto.VirtualPageInstance) []Vi
 	result := make([]VirtualPageInstanceData, len(instances))
 	for index, instance := range instances {
 		result[index] = VirtualPageInstanceData{
-			Route:        instance.Route,
+			Slug:         instance.Slug,
 			InitialProps: instance.InitialProps,
 		}
 	}
@@ -93,7 +95,14 @@ type GenerateRequest struct {
 	// non-virtual pages.
 	CollectionName string
 
-	// ModuleName is the Go module name from go.mod (e.g., "github.com/org/repo").
+	// CollectionParamName is the URL parameter name (from `p-param`, defaulting
+	// to "slug") that the generated BuildAST reads to look up the collection
+	// item for the current request, e.g. for `pages/blog/{slug}.pk` with the
+	// default param BuildAST reads `r.PathParam("slug")` and passes the value
+	// to GetStaticCollectionItem.
+	CollectionParamName string
+
+	// ModuleName is the Go module name from go.mod (e.g., a GitHub-hosted module path).
 	// Used for @/ alias resolution in dynamic src attributes at runtime.
 	ModuleName string
 

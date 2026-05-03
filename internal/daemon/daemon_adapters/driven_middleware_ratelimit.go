@@ -19,6 +19,7 @@
 package daemon_adapters
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -78,7 +79,7 @@ func (m *rateLimitMiddleware) Handler(next http.Handler) http.Handler {
 
 		clientIP := security_dto.ClientIPFromRequest(r)
 
-		result := m.checkRateLimit(clientIP, "global", m.config.Global)
+		result := m.checkRateLimit(r.Context(), clientIP, "global", m.config.Global)
 
 		if m.config.HeadersEnabled {
 			m.setRateLimitHeaders(w, result)
@@ -132,7 +133,7 @@ func (m *rateLimitMiddleware) ActionHandler(
 		}
 	}
 
-	result := m.checkRateLimit(clientIP, keySuffix, tierConfig)
+	result := m.checkRateLimit(r.Context(), clientIP, keySuffix, tierConfig)
 
 	if m.config.HeadersEnabled {
 		m.setRateLimitHeaders(w, result)
@@ -179,13 +180,15 @@ func (m *rateLimitMiddleware) CheckActionAllowed(
 		}
 	}
 
-	result := m.checkRateLimit(clientIP, keySuffix, tierConfig)
+	result := m.checkRateLimit(r.Context(), clientIP, keySuffix, tierConfig)
 	return result.Allowed
 }
 
 // checkRateLimit checks if a request is within the rate limit for a given key
 // and tier.
 //
+// Takes ctx (context.Context) which carries cancellation through to the
+// underlying counter store call.
 // Takes clientIP (string) which identifies the client making the request.
 // Takes keySuffix (string) which specifies the rate limit bucket name.
 // Takes tier (security_dto.RateLimitTierValues) which defines the limit
@@ -195,6 +198,7 @@ func (m *rateLimitMiddleware) CheckActionAllowed(
 // remaining quota. If the service returns an error, the request is denied (fail
 // closed) to prevent rate limit bypass during backend outages.
 func (m *rateLimitMiddleware) checkRateLimit(
+	ctx context.Context,
 	clientIP string,
 	keySuffix string,
 	tier security_dto.RateLimitTierValues,
@@ -202,7 +206,7 @@ func (m *rateLimitMiddleware) checkRateLimit(
 	window := time.Minute
 	key := "ratelimit:" + keySuffix + ":" + clientIP
 
-	result, err := m.service.CheckLimit(key, tier.RequestsPerMinute, window)
+	result, err := m.service.CheckLimit(ctx, key, tier.RequestsPerMinute, window)
 	if err != nil {
 		return ratelimiter_dto.Result{
 			Allowed:    false,

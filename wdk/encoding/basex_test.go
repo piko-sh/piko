@@ -20,6 +20,7 @@ package encoding_test
 
 import (
 	"bytes"
+	"errors"
 	"math"
 	"testing"
 
@@ -89,6 +90,38 @@ func TestEncodeDecodeBytes(t *testing.T) {
 				t.Errorf("Round-trip mismatch.\nOriginal: %v\nDecoded:  %v", tt.input, decoded)
 			}
 		})
+	}
+}
+
+func TestBaseX_Decode_RejectsOversizedInput(t *testing.T) {
+	encoding.SetMaxBaseXInputBytes(64)
+	t.Cleanup(func() { encoding.SetMaxBaseXInputBytes(0) })
+
+	alphabet := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	enc, err := encoding.NewEncoding(alphabet)
+	if err != nil {
+		t.Fatalf("creating encoding: %v", err)
+	}
+
+	tooLarge := make([]byte, 65)
+	for i := range tooLarge {
+		tooLarge[i] = '0'
+	}
+
+	_, decodeErr := enc.DecodeBytes(string(tooLarge))
+	if decodeErr == nil {
+		t.Fatalf("expected error for oversize decode input")
+	}
+	if !errors.Is(decodeErr, encoding.ErrBaseXInputTooLarge) {
+		t.Fatalf("expected ErrBaseXInputTooLarge, got %v", decodeErr)
+	}
+
+	oversizeBytes := make([]byte, 65)
+	if _, err := enc.TryEncodeBytes(oversizeBytes); !errors.Is(err, encoding.ErrBaseXInputTooLarge) {
+		t.Fatalf("expected encode to surface ErrBaseXInputTooLarge, got %v", err)
+	}
+	if got := enc.EncodeBytes(oversizeBytes); got != "" {
+		t.Fatalf("expected EncodeBytes to return empty string for oversize input, got %q", got)
 	}
 }
 

@@ -22,6 +22,14 @@ func main() {
 		piko.WithDevWidget(),
 		piko.WithDevHotreload(),
 		piko.WithMonitoring(),
+		piko.WithRateLimit(piko.RateLimitConfig{
+			Enabled:        new(true),
+			HeadersEnabled: new(true),
+			Actions: piko.RateLimitTierConfig{
+				RequestsPerMinute: new(1000),
+				BurstSize:         new(100),
+			},
+		}),
 	)
 	if err := ssr.Run(command); err != nil {
 		panic(err)

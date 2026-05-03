@@ -62,7 +62,7 @@ type BatchResolver interface {
 // resolutionJob represents a piece of work for a resolver.
 // Fields are ordered for memory efficiency per the fieldalignment linter.
 type resolutionJob struct {
-	// keyPath is the dotted path to this field, used in error messages.
+	// keyPath is the dotted path to the field, used in error messages.
 	keyPath string
 
 	// prefix is the placeholder prefix (e.g. "env:") that shows the source type.

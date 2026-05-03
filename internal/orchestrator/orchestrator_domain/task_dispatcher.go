@@ -20,6 +20,7 @@ package orchestrator_domain
 
 import (
 	"context"
+	"runtime"
 	"time"
 
 	clockpkg "piko.sh/piko/wdk/clock"
@@ -87,6 +88,10 @@ const (
 
 	// attributeKeyAttempt is the attribute key for the task attempt number.
 	attributeKeyAttempt = "attempt"
+
+	// defaultPersistJobsPerCPU is the multiplier applied to runtime.NumCPU() to
+	// derive the default persist concurrency cap when none is configured.
+	defaultPersistJobsPerCPU = 4
 )
 
 // TaskDispatcher distributes tasks to workers using competing-consumer
@@ -120,11 +125,11 @@ type TaskDispatcher interface {
 	DispatchDelayed(ctx context.Context, task *Task, executeAt time.Time) error
 
 	// RegisterExecutor adds a task executor with the given name.
-	// This must be called before Start() for all executor types.
+	// Must be called before Start() for all executor types.
 	//
 	// Takes ctx (context.Context) which carries logging context.
 	// Takes name (string) which identifies the executor.
-	// Takes executor (TaskExecutor) which handles tasks of this type.
+	// Takes executor (TaskExecutor) which handles tasks of the named kind.
 	RegisterExecutor(ctx context.Context, name string, executor TaskExecutor)
 
 	// Start begins the worker pool and delayed task processor.
@@ -216,9 +221,29 @@ type DispatcherConfig struct {
 	// DefaultTimeout is the timeout used for tasks that do not set their own.
 	DefaultTimeout time.Duration
 
+	// MaxConcurrentPersistJobs caps in-flight async persistence goroutines.
+	//
+	// Without a cap, a burst of completed tasks can spawn an unbounded
+	// number of goroutines and overwhelm the task store. When the limit is
+	// reached, callers fall back to synchronous persistence so the work
+	// still completes but the caller absorbs the backpressure. Default is
+	// runtime.NumCPU() * 4 when zero or negative.
+	MaxConcurrentPersistJobs int
+
 	// SyncPersistence controls whether task updates persist synchronously.
 	// Default is false (async persistence); set to true for testing.
 	SyncPersistence bool
+}
+
+// EffectiveMaxConcurrentPersistJobs returns the configured persist concurrency
+// limit, falling back to runtime.NumCPU() * 4 when unset or non-positive.
+//
+// Returns int which is the effective concurrency cap.
+func (c DispatcherConfig) EffectiveMaxConcurrentPersistJobs() int {
+	if c.MaxConcurrentPersistJobs > 0 {
+		return c.MaxConcurrentPersistJobs
+	}
+	return runtime.NumCPU() * defaultPersistJobsPerCPU
 }
 
 // DispatcherStats holds runtime figures about the dispatcher for monitoring.

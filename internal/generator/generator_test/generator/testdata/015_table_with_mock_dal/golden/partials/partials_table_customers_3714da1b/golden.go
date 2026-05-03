@@ -5,6 +5,7 @@
 package partials_table_customers_3714da1b
 
 import (
+	"cmp"
 	context "context"
 	"fmt"
 	"html"
@@ -22,6 +23,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 
 // line partials/table_customers.pk:47

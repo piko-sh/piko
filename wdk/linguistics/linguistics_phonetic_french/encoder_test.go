@@ -20,6 +20,7 @@ package linguistics_phonetic_french
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -242,4 +243,16 @@ func TestRemoveSilentEndings(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestEncode_MultiByteTruncationInRunes(t *testing.T) {
+	t.Parallel()
+
+	enc, err := NewWithMaxLength(3)
+	require.NoError(t, err)
+
+	result := enc.Encode("éléphantéléphant")
+
+	assert.True(t, utf8.ValidString(result), "result should be valid UTF-8")
+	assert.LessOrEqual(t, utf8.RuneCountInString(result), 3, "rune count must respect maxLength")
 }

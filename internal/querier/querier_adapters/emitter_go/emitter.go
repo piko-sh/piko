@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// GoEmitter implements CodeEmitterPort by delegating to the database/sql
-// emitter. This type exists for backwards compatibility; new code should use
+// GoEmitter implements CodeEmitterPort by delegating to the database/sql emitter.
+// Exists for backwards compatibility; new code should use
 // emitter_go_sql.NewSQLEmitter() directly.
 type GoEmitter struct {
 	// sql holds the underlying database/sql emitter that performs the actual

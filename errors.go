@@ -30,9 +30,9 @@ import (
 // detail is logged server-side. In development mode (dev or dev-i),
 // the full error string is shown for easier debugging.
 //
-// Any error in the chain can implement this interface; the error
-// boundary will discover it via errors.As. Existing sentinels and
-// errors.Is chains are preserved through Unwrap().
+// Any error in the chain can implement Error; the error boundary will discover
+// it via errors.As. Existing sentinels and errors.Is chains are preserved
+// through Unwrap().
 //
 // Example:
 //

@@ -1,75 +1,84 @@
 # WDK Data Services
 
-Use this guide when adding database persistence, file storage, or caching to a Piko application.
+Database access, file storage, and caching. All packages follow hexagonal architecture - the application depends on the port; swap adapters to switch backends.
 
-## Architecture pattern
+## Database (`wdk/db`)
 
-All WDK data packages follow hexagonal architecture (ports and adapters). Your application depends on the port interface; the adapter implements it for a specific backend. Switching backends means swapping the import - no application code changes.
+`wdk/db` provides typed SQL access via named registrations made during bootstrap. Drivers return a standard `*sql.DB`; engines supply dialect configuration.
 
-## Persistence
+### Drivers
 
-The persistence package provides database access for Piko's internal systems (Registry, Orchestrator). Register a driver during bootstrap:
+| Driver | Package | Constructor |
+|--------|---------|-------------|
+| SQLite (CGO, fastest) | `wdk/db/db_driver_sqlite_cgo` | `Open(path string, cfg Config) (*sql.DB, error)` |
+| SQLite (pure Go) | `wdk/db/db_driver_sqlite_nocgo` | `Open(path string, cfg Config) (*sql.DB, error)` |
+| Cloudflare D1 | `wdk/db/db_driver_d1` | `Open(cfg Config) (*sql.DB, error)` |
+| PostgreSQL / MySQL / others | stdlib | `sql.Open(driverName, dsn)` |
+
+No `wdk/db` driver subpackage exists for Postgres or MySQL - open them via `database/sql` with a third-party driver (e.g. `github.com/jackc/pgx/v5/stdlib`).
+
+### Engines
+
+Each engine package exposes a factory returning `db.EngineConfig`:
+
+| Engine | Package | Factory |
+|--------|---------|---------|
+| SQLite | `wdk/db/db_engine_sqlite` | `SQLite()` |
+| PostgreSQL | `wdk/db/db_engine_postgres` | `Postgres()` / `PostgresPgBouncer()` |
+| MySQL | `wdk/db/db_engine_mysql` | `MySQL()` |
+| MariaDB | `wdk/db/db_engine_mariadb` | `MariaDB()` |
+| CockroachDB | `wdk/db/db_engine_cockroachdb` | `CockroachDB()` |
+| DuckDB | `wdk/db/db_engine_duckdb` | `DuckDB()` |
+
+### Bootstrap
 
 ```go
 import (
     "piko.sh/piko"
-    "piko.sh/piko/wdk/persistence"
-    sqlite "piko.sh/piko/wdk/persistence/persistence_driver_sqlite"
+    "piko.sh/piko/wdk/db"
+    "piko.sh/piko/wdk/db/db_driver_sqlite_cgo"
+    "piko.sh/piko/wdk/db/db_engine_sqlite"
 )
+
+sqlDB, err := db_driver_sqlite_cgo.Open("data/app.db", db_driver_sqlite_cgo.Config{})
+// handle err
 
 app := piko.New(
-    persistence.WithDriver(sqlite.New(sqlite.Config{})),
+    piko.WithDatabase("default", &db.DatabaseRegistration{
+        DB:           sqlDB,
+        EngineConfig: db_engine_sqlite.SQLite(),
+        MigrationFS:  migrationsFS,
+    }),
 )
 ```
 
-### Supported drivers
+Reserved names `db.DatabaseNameRegistry` and `db.DatabaseNameOrchestrator` back framework subsystems with SQL instead of the default in-memory store.
 
-| Driver | Package | Best for |
-|--------|---------|----------|
-| SQLite (auto) | `persistence_driver_sqlite` | Development, single-server |
-| SQLite (pure Go) | `persistence_driver_sqlite_nocgo` | Cross-compiling, no C compiler |
-| SQLite (CGO) | `persistence_driver_sqlite_cgo` | Maximum performance |
-| PostgreSQL | `persistence_driver_postgres` | Production, multi-server |
-| Cloudflare D1 | `persistence_driver_d1` | Edge deployments |
+### Connections and migrations
 
-### PostgreSQL example
+Concurrency-safe accessors: `db.GetDatabaseConnection(name) (*sql.DB, error)`, `db.GetDatabaseReader(name) (DBTX, error)` (round-robin replicas), `db.GetDatabaseWriter(name) (DBTX, error)`.
+
+Bootstrap auto-runs migrations when `MigrationFS` is set. To build manually:
 
 ```go
-import postgres "piko.sh/piko/wdk/persistence/persistence_driver_postgres"
-
-provider, err := postgres.New(postgres.Config{
-    URL:      "postgres://user:pass@localhost:5432/dbname?sslmode=disable",
-    MaxConns: 10,
-    MinConns: 2,
-})
+executor := db.NewMigrationExecutor(sqlDB, db.SQLiteDialect())
+reader := db.NewFSFileReader(migrationsFS)
+service := db.NewMigrationService(executor, reader, "migrations")
 ```
 
-### Cloudflare D1 example
+D1 migrations must use the Wrangler CLI - the framework cannot run them remotely.
 
-```go
-import d1 "piko.sh/piko/wdk/persistence/persistence_driver_d1"
+## Storage (`wdk/storage`)
 
-provider, err := d1.New(d1.Config{
-    APIToken:   os.Getenv("CF_API_TOKEN"),
-    AccountID:  os.Getenv("CF_ACCOUNT_ID"),
-    DatabaseID: os.Getenv("CF_DATABASE_ID"),
-})
-```
+### Providers
 
-Migrations run automatically for SQLite and PostgreSQL. D1 migrations must use the Wrangler CLI.
-
-## Storage
-
-The storage package provides object storage with a unified API across providers.
-
-### Supported providers
-
-| Provider | Package | Features |
-|----------|---------|----------|
-| Disk | `storage_provider_disk` | Atomic writes, metadata sidecars |
-| S3 | `storage_provider_s3` | Presigned URLs, multipart uploads |
-| GCS | `storage_provider_gcs` | Presigned URLs, multipart uploads |
-| R2 | `storage_provider_r2` | Cloudflare R2 (S3-compatible) |
+| Provider | Package | Constructor |
+|----------|---------|-------------|
+| Disk | `storage_provider_disk` | `NewDiskProvider(config, opts...)` |
+| S3 | `storage_provider_s3` | `NewS3Provider(ctx, *Config, opts...)` |
+| GCS | `storage_provider_gcs` | `NewGCSProvider(ctx, config, opts...)` |
+| R2 | `storage_provider_r2` | `NewR2Provider(ctx, *Config, opts...)` |
+| Mock (tests) | `storage_provider_mock` | - |
 
 ### Setup
 
@@ -77,72 +86,74 @@ The storage package provides object storage with a unified API across providers.
 import "piko.sh/piko/wdk/storage/storage_provider_s3"
 
 provider, err := storage_provider_s3.NewS3Provider(ctx, &storage_provider_s3.Config{
-    Region: "eu-west-1",
-    RepositoryMappings: map[string]string{
-        "default": "my-bucket",
-    },
+    Region:             "eu-west-1",
+    RepositoryMappings: map[string]string{"default": "my-bucket"},
 })
+// handle err
 
-app := piko.New(
-    piko.WithStorageProvider("default", provider),
-)
+app := piko.New(piko.WithStorageProvider("default", provider))
 ```
 
-### Upload and download
+### Upload, download, presign
+
+Builder methods are bare names. Upload terminator is `Do(ctx)`. Request terminators take only `ctx`. Presigned downloads live on the service.
 
 ```go
 import "piko.sh/piko/wdk/storage"
 
-// Upload
-err := storage.NewUpload(reader).
-    WithKey("documents/report.pdf").
-    WithContentType("application/pdf").
-    WithSize(fileSize).
-    Upload(ctx, log)
+service, _ := storage.GetDefaultService()
 
-// Download
-reader, err := storage.NewRequest(storage.StorageRepositoryDefault, "documents/report.pdf").
-    Get(ctx, log)
+uploader, _ := storage.NewUploadBuilder(service, reader)
+err := uploader.
+    Key("documents/report.pdf").
+    ContentType("application/pdf").
+    Size(fileSize).
+    Do(ctx)
 
-// Presigned download URL
-url, err := storage.NewRequest(storage.StorageRepositoryDefault, key).
-    PresignDownload(ctx, log, storage.PresignDownloadParams{
-        ExpiresIn: 1 * time.Hour,
-    })
+request, _ := storage.NewRequestBuilder(service, storage.StorageRepositoryDefault, "documents/report.pdf")
+readCloser, err := request.Get(ctx)
+defer readCloser.Close()
+
+url, err := service.GeneratePresignedDownloadURL(ctx, "default", storage.PresignDownloadParams{
+    Key:       "documents/report.pdf",
+    ExpiresIn: 1 * time.Hour,
+})
 ```
+
+Other request terminators: `Stat(ctx) (*ObjectInfo, error)`, `Remove(ctx) error`, `Hash(ctx) (string, error)`.
 
 ### Stream transformers
 
-Apply compression or encryption transparently:
+Register on the service, opt in per upload. Run in priority order on upload (compress then encrypt) and reverse on download.
 
 ```go
 import "piko.sh/piko/wdk/storage/storage_transformer_zstd"
 
-service.RegisterTransformer(compressor)
+transformer, _ := storage_transformer_zstd.NewZstdTransformer(storage_transformer_zstd.Config{})
+_ = service.RegisterTransformer(ctx, transformer)
 
-storage.NewUpload(data).
-    WithKey("backup.sql.zst").
-    WithTransformer("zstd", nil).
-    Upload(ctx, log)
+err = uploader.Key("backup.sql.zst").Transformer("zstd", nil).Do(ctx)
 ```
 
-Transformers run in priority order on upload (compress then encrypt) and reverse on download.
+## Cache (`wdk/cache`)
 
-## Cache
+Type-safe caching with generic key/value parameters.
 
-The cache package provides type-safe caching with multiple backends.
-
-### Supported providers
+### Providers
 
 | Provider | Package | Use case |
 |----------|---------|----------|
-| Otter | `cache_provider_otter` | In-memory, high-performance (S3-FIFO) |
+| Otter | `cache_provider_otter` | In-memory, S3-FIFO, high performance |
 | Redis | `cache_provider_redis` | Distributed |
-| Redis Cluster | `cache_provider_redis_cluster` | Horizontally scaled |
-| Multilevel | `cache_provider_multilevel` | L1 (Otter) + L2 (Redis) |
+| Redis Cluster | `cache_provider_redis_cluster` | Horizontally scaled Redis |
+| Valkey | `cache_provider_valkey` | Distributed (Redis-compatible OSS fork) |
+| Valkey Cluster | `cache_provider_valkey_cluster` | Horizontally scaled Valkey |
+| Multilevel | (built-in) | L1 in-memory + L2 distributed |
 | Mock | `cache_provider_mock` | Unit testing |
 
-### Basic usage
+### Setup and basic usage
+
+Builder methods are bare names. `Build(ctx)`, `RegisterProvider(ctx, name, provider)`, and `RegisterTransformer(ctx, transformer)` all require ctx.
 
 ```go
 import (
@@ -150,59 +161,58 @@ import (
     "piko.sh/piko/wdk/cache/cache_provider_otter"
 )
 
-svc := cache.NewService("otter")
-provider := cache_provider_otter.NewOtterProvider()
-svc.RegisterProvider("otter", provider)
+service := cache.NewService("otter")
+_ = service.RegisterProvider(ctx, "otter", cache_provider_otter.NewOtterProvider())
 
-userCache, err := cache.NewCacheBuilder[string, User](svc).
+builder, _ := cache.NewCacheBuilder[string, User](service)
+userCache, err := builder.
     Provider("otter").
     Namespace("users").
     MaximumSize(10000).
     WriteExpiration(1 * time.Hour).
-    Build()
-
-// Use the cache
-userCache.Set("user:123", user)
-if user, found := userCache.GetIfPresent("user:123"); found { ... }
+    Build(ctx)
 ```
 
-### Cache with loader (prevents stampede)
+### Cache interface
+
+All operations take `ctx`; mutations return `error`. `Get` with a loader prevents stampede - one in-flight load per key. Use `Compute(ctx, key, fn)` for atomic read-modify-write.
 
 ```go
+if err := userCache.Set(ctx, "user:123", user, "user", "active"); err != nil {
+    return err
+}
+
+value, found, err := userCache.GetIfPresent(ctx, "user:123")
+
 loader := cache.LoaderFunc[string, User](func(ctx context.Context, key string) (User, error) {
-    return db.GetUser(ctx, key)
+    return loadUserFromDB(ctx, key)
 })
-user, err := myCache.Get(ctx, "user:123", loader)
+user, err := userCache.Get(ctx, "user:123", loader)
+
+removed, err := userCache.InvalidateByTags(ctx, "user")
 ```
 
-### Multilevel caching
+### Multilevel and search
 
-```go
-myCache, err := cache.NewCacheBuilder[string, User](svc).
-    MultiLevel("otter", "redis").
-    MaximumSize(10000).
-    L2CircuitBreaker(5, 30*time.Second).
-    Build()
-```
+For L1+L2: chain `.MultiLevel("otter", "redis").L2CircuitBreaker(5, 30*time.Second)` before `Build(ctx)`.
 
-### Tag-based invalidation
-
-```go
-myCache.Set("user:1", user, "user", "active")
-myCache.InvalidateByTags("user")  // Removes all entries with "user" tag
-```
+For searchable caches: build a `*SearchSchema` with field constructors (`TagField`, `NumericField`, `TextField`, `GeoField`, `VectorField(name, dim)`, `VectorFieldWithMetric(name, dim, metric)`), pass to `.Searchable(schema)` on the builder, then call `cache.Search(ctx, query, *SearchOptions)`.
 
 ## LLM mistake checklist
 
-- Forgetting to register the provider before building caches
-- Using `GetIfPresent` + manual set instead of `Get` with a loader (causes cache stampede)
-- Mixing up `storage.StorageRepositoryDefault` with a custom repository name
-- Forgetting `WithSize()` on uploads (disables automatic multipart for large files)
-- Using `persistence_driver_sqlite_cgo` without CGO enabled
-- Forgetting `defer provider.Close()` for PostgreSQL
-- Not importing the correct driver subpackage (each is a separate Go module)
+- Importing `wdk/persistence` - the package is `wdk/db`
+- Calling `db.WithDriver` - use `piko.WithDatabase(name, &db.DatabaseRegistration{...})`
+- Adding `With*` prefixes on upload builders - methods are bare (`Key`, `ContentType`, `Size`, `Transformer`)
+- Calling `.Upload(ctx, log)` - the terminator is `.Do(ctx)`
+- Passing `log` to request builder terminators - they take only `ctx`
+- Calling `.PresignDownload(...)` on `RequestBuilder` - it lives on the service (`service.GeneratePresignedDownloadURL`)
+- Forgetting `ctx` on `Cache.Set`/`GetIfPresent`/`InvalidateByTags`, builder `Build`, `RegisterProvider`, `RegisterTransformer`
+- Ignoring the `error` from `Set`, `(int, error)` from `InvalidateByTags`, or `(V, bool, error)` from `GetIfPresent`
+- `GetIfPresent` + manual `Set` instead of `Get` with loader (causes stampede)
+- Importing `db_driver_sqlite_cgo` without CGO - use `db_driver_sqlite_nocgo`
 
 ## Related
 
 - `references/project-structure.md` - where config files live
 - `references/server-actions.md` - using data services from actions
+- `docs/reference/cache-api.md`, `docs/reference/storage-api.md`, `docs/reference/querier.md` - full API references

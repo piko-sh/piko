@@ -27,9 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/captcha/captcha_provider_turnstile/scripts"
 )
 
@@ -142,10 +142,8 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 		return nil, err
 	}
 
-	score := normalisedPassFailScore(turnstileResult.Success)
-
 	return &captcha_dto.VerifyResponse{
-		Score:      &score,
+		Score:      new(normalisedPassFailScore(turnstileResult.Success)),
 		Success:    turnstileResult.Success,
 		Action:     turnstileResult.Action,
 		ErrorCodes: turnstileResult.ErrorCodes,

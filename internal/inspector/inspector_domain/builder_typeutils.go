@@ -1078,9 +1078,8 @@ func isBuiltin(t *types.Named) bool {
 // extractPackageFromSignature extracts the package path from the first named
 // type found in a function signature's parameters or return values.
 //
-// Unlike declaringPackagePath, this function does not recurse into type
-// arguments of generics, as it is intended to find the package where the
-// container type itself is declared.
+// Unlike declaringPackagePath, does not recurse into type arguments of generics,
+// as it is intended to find the package where the container type itself is declared.
 //
 // Takes sig (*types.Signature) which is the function signature to examine.
 //

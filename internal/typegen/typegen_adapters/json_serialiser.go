@@ -19,10 +19,10 @@
 package typegen_adapters
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/typegen/typegen_dto"
 )
 
@@ -71,16 +71,16 @@ type jsonParam struct {
 	// Name is the parameter name used in JSON serialisation.
 	Name string `json:"name"`
 
-	// GoType is the Go type name for this parameter.
+	// GoType is the Go type name for the parameter.
 	GoType string `json:"goType"`
 
-	// TSType is the TypeScript type name for this parameter.
+	// TSType is the TypeScript type name for the parameter.
 	TSType string `json:"tsType"`
 
 	// JSONName is the field name used in JSON serialisation.
 	JSONName string `json:"jsonName"`
 
-	// Optional indicates whether this parameter can be omitted.
+	// Optional indicates whether the parameter can be omitted.
 	Optional bool `json:"optional"`
 }
 
@@ -89,10 +89,10 @@ type jsonField struct {
 	// Name is the field name used when mapping to ActionField.
 	Name string `json:"name"`
 
-	// GoType is the Go type name for this field.
+	// GoType is the Go type name for the field.
 	GoType string `json:"goType"`
 
-	// TSType is the TypeScript type name for this field.
+	// TSType is the TypeScript type name for the field.
 	TSType string `json:"tsType"`
 
 	// JSONName is the field name used in JSON serialisation.
@@ -101,19 +101,19 @@ type jsonField struct {
 	// Documentation is the doc comment text for the field.
 	Documentation string `json:"documentation"`
 
-	// Optional indicates whether this field may be omitted.
+	// Optional indicates whether the field may be omitted.
 	Optional bool `json:"optional"`
 }
 
 // jsonType represents a type definition in the JSON manifest output.
 type jsonType struct {
-	// Name is the identifier for this JSON type.
+	// Name is the identifier for the JSON type.
 	Name string `json:"name"`
 
-	// PackagePath is the import path of the package containing this type.
+	// PackagePath is the import path of the package containing the type.
 	PackagePath string `json:"packagePath"`
 
-	// Fields contains the field definitions for this type.
+	// Fields contains the field definitions for the type.
 	Fields []jsonField `json:"fields"`
 }
 

@@ -18,7 +18,7 @@ type ProcessOutput struct {
 
 // ProcessAction handles long-running tasks with SSE progress streaming.
 // When the client uses .withOnProgress().call(), Piko calls StreamProgress
-// instead of Call. See https://piko.sh/docs/guide/server-actions
+// instead of Call. See https://piko.sh/docs/reference/server-actions
 type ProcessAction struct {
 	piko.ActionMetadata
 }

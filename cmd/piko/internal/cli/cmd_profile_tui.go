@@ -20,6 +20,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -594,7 +595,7 @@ func runProfileTUI(ctx context.Context, params profileTUIParams) int {
 	phaseCh := make(chan phaseMessage, tuiChannelBuffer)
 	doneCh := make(chan profileDoneMessage, 1)
 
-	pipelineCtx, pipelineCancel := context.WithCancel(ctx)
+	pipelineCtx, pipelineCancel := context.WithCancelCause(ctx)
 	go runProfilePipeline(ctx, profilePipelineParams{
 		factory:      params.factory,
 		flags:        params.flags,
@@ -613,11 +614,11 @@ func runProfileTUI(ctx context.Context, params profileTUIParams) int {
 	p := tea.NewProgram(new(model))
 
 	if _, err := p.Run(); err != nil {
-		pipelineCancel()
+		pipelineCancel(errors.New("profile TUI exited"))
 		_, _ = fmt.Fprintf(params.stderr, "Error: TUI failed: %v\n", err)
 		return 1
 	}
-	pipelineCancel()
+	pipelineCancel(errors.New("profile TUI exited"))
 
 	reportPath := filepath.Join(params.flags.output, "live_performance_report.txt")
 	_, _ = fmt.Fprintf(params.stdout, "\nProfiling complete! Report: %s\n", reportPath)

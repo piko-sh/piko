@@ -26,10 +26,15 @@
 //
 // # Getting started
 //
-// Create a server, optionally configure it, and call Run:
+// Create a server with functional options and call Run. Every
+// configuration knob is a With* option; piko reads no configuration
+// files and no environment variables (apart from PIKO_LOG_LEVEL, which
+// seeds the bootstrap logger before options are applied).
 //
-//	server := piko.New()
-//	server.Configure(piko.PublicConfig{Port: 8080})
+//	server := piko.New(
+//	    piko.WithPort(8080),
+//	    piko.WithLogLevel("info"),
+//	)
 //	if err := server.Run(piko.RunModeDev); err != nil {
 //	    log.Fatal(err)
 //	}

@@ -91,9 +91,6 @@ type ServiceOption func(*ServiceConfig)
 // HealthProbe interfaces, and is the central component of the orchestration
 // domain.
 type orchestratorService struct {
-	// clock provides time operations for scheduling and timing.
-	clock clock.Clock
-
 	// taskStore stores and retrieves tasks.
 	taskStore TaskStore
 
@@ -108,6 +105,9 @@ type orchestratorService struct {
 
 	// runCtx is the context for running background tasks.
 	runCtx context.Context
+
+	// clock provides time operations for scheduling and timing.
+	clock clock.Clock
 
 	// cancel stops the run context to signal shutdown.
 	cancel context.CancelCauseFunc
@@ -127,14 +127,20 @@ type orchestratorService struct {
 	// wg tracks active goroutines to allow graceful shutdown.
 	wg sync.WaitGroup
 
+	// batchTimeout is the maximum time to wait before flushing a partial batch.
+	batchTimeout time.Duration
+
 	// schedulerInterval is the time between scheduler loop ticks.
 	schedulerInterval time.Duration
 
 	// batchSize is the maximum number of tasks to collect before inserting.
 	batchSize int
 
-	// batchTimeout is the maximum time to wait before flushing a partial batch.
-	batchTimeout time.Duration
+	// taskInsertMutex gates writes to taskInsertChan so that the channel can
+	// be closed safely during shutdown without racing with senders. Senders
+	// take RLock; the shutdown path takes Lock to wait for in-flight senders
+	// before closing.
+	taskInsertMutex sync.RWMutex
 
 	// executorsMutex guards access to the executors map.
 	executorsMutex sync.RWMutex
@@ -147,6 +153,11 @@ type orchestratorService struct {
 
 	// isStopped indicates whether the service has been stopped.
 	isStopped bool
+
+	// taskInsertClosed reports whether taskInsertChan has been closed by the
+	// shutdown path. Senders observe this under taskInsertMutex.RLock and
+	// short-circuit with ErrOrchestratorShuttingDown when set.
+	taskInsertClosed bool
 }
 
 // ActiveTasks returns the number of tasks currently being processed by workers.
@@ -223,6 +234,10 @@ func (s *orchestratorService) RegisterExecutor(ctx context.Context, name string,
 //
 // Returns *WorkflowReceipt which tracks the dispatched workflow's progress.
 // Returns error when the task insertion queue is full due to backpressure.
+//
+// Concurrency: acquires taskInsertMutex.RLock to gate the channel send against
+// closure by the shutdown path; observes taskInsertClosed under the read lock
+// to short-circuit with ErrOrchestratorShuttingDown.
 func (s *orchestratorService) Dispatch(ctx context.Context, task *Task) (*WorkflowReceipt, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "OrchestratorService.Dispatch",
@@ -239,6 +254,16 @@ func (s *orchestratorService) Dispatch(ctx context.Context, task *Task) (*Workfl
 	receiptID := uuid.New().String()
 	receipt := newWorkflowReceipt(task.WorkflowID)
 	s.registerReceipt(ctx, receiptID, receipt)
+
+	s.taskInsertMutex.RLock()
+	defer s.taskInsertMutex.RUnlock()
+
+	if s.taskInsertClosed {
+		s.removeReceipt(receipt)
+		l.ReportError(span, ErrOrchestratorShuttingDown, "Refusing dispatch during shutdown")
+		TaskFailureCount.Add(ctx, 1)
+		return nil, fmt.Errorf("dispatching task %q: %w", task.ID, ErrOrchestratorShuttingDown)
+	}
 
 	select {
 	case s.taskInsertChan <- task:
@@ -259,8 +284,8 @@ func (s *orchestratorService) Dispatch(ctx context.Context, task *Task) (*Workfl
 // the async batch insertion queue. This is primarily for testing where
 // deterministic, synchronous task dispatch is required.
 //
-// Unlike Dispatch, this method blocks until the task is persisted and
-// dispatched, making tests predictable without timing dependencies.
+// Unlike Dispatch, blocks until the task is persisted and dispatched, making tests
+// predictable without timing dependencies.
 //
 // Takes task (*Task) which specifies the task to persist and dispatch.
 //
@@ -320,6 +345,10 @@ func (s *orchestratorService) DispatchDirect(ctx context.Context, task *Task) (*
 //
 // Returns *WorkflowReceipt which tracks the scheduled workflow's progress.
 // Returns error when the task queue is full.
+//
+// Concurrency: acquires taskInsertMutex.RLock to gate the channel send against
+// closure by the shutdown path; observes taskInsertClosed under the read lock
+// to short-circuit with ErrOrchestratorShuttingDown.
 func (s *orchestratorService) Schedule(ctx context.Context, task *Task, executeAt time.Time) (*WorkflowReceipt, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "OrchestratorService.Schedule",
@@ -338,6 +367,16 @@ func (s *orchestratorService) Schedule(ctx context.Context, task *Task, executeA
 	receiptID := uuid.New().String()
 	receipt := newWorkflowReceipt(task.WorkflowID)
 	s.registerReceipt(ctx, receiptID, receipt)
+
+	s.taskInsertMutex.RLock()
+	defer s.taskInsertMutex.RUnlock()
+
+	if s.taskInsertClosed {
+		s.removeReceipt(receipt)
+		l.ReportError(span, ErrOrchestratorShuttingDown, "Refusing schedule during shutdown")
+		TaskFailureCount.Add(ctx, 1)
+		return nil, fmt.Errorf("scheduling task %q: %w", task.ID, ErrOrchestratorShuttingDown)
+	}
 
 	select {
 	case s.taskInsertChan <- task:

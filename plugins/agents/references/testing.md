@@ -21,15 +21,13 @@ req := piko.NewTestRequest("GET", "/customers").
     WithQueryParam("sort", "desc").
     WithPathParam("id", "123").
     WithFormData("name", "Test").
-    WithContext(ctx).
     WithLocale("fr").
     WithHost("example.com").
-    Build()
+    Build(ctx)
 ```
 
 | Method | Purpose |
 |--------|---------|
-| `WithContext(ctx)` | Inject dependencies via context |
 | `WithQueryParam(key, value)` | Add URL query parameter |
 | `WithPathParam(key, value)` | Add route path parameter |
 | `WithFormData(key, value)` | Add form field |
@@ -38,7 +36,7 @@ req := piko.NewTestRequest("GET", "/customers").
 | `WithGlobalTranslations(t)` | Set global translations |
 | `WithLocalTranslations(t)` | Set component translations |
 | `WithCollectionData(data)` | Set collection data |
-| `Build()` | Build `*RequestData` |
+| `Build(ctx)` | Build `*RequestData` (context required for dependency injection) |
 
 ## Mocking dependencies
 
@@ -47,7 +45,7 @@ Pass mocks via context (recommended):
 ```go
 mockRepo := &MockCustomerRepo{Customers: []Customer{{Name: "Acme"}}}
 ctx := context.WithValue(context.Background(), "repo", mockRepo)
-req := piko.NewTestRequest("GET", "/").WithContext(ctx).Build()
+req := piko.NewTestRequest("GET", "/").Build(ctx)
 ```
 
 ## Component testing
@@ -111,22 +109,40 @@ Requires a `RenderService`. AST queries are significantly faster.
 ## Server action testing
 
 ```go
-import "myapp/actions"
+import (
+    "context"
+    "net/http"
 
-tester := piko.NewActionTester(t, &actions.CustomerCreate{})
+    "myapp/actions"
+    "piko.sh/piko"
+)
 
-resp := tester.Invoke(map[string]any{
+ctx := context.Background()
+entry := piko.ActionHandlerEntry{
+    Name:   "CustomerCreate",
+    Method: http.MethodPost,
+    Create: func() any { return &actions.CustomerCreateAction{} },
+    Invoke: func(ctx context.Context, action any, arguments map[string]any) (any, error) {
+        return action.(*actions.CustomerCreateAction).Call(
+            arguments["name"].(string),
+            arguments["email"].(string),
+        )
+    },
+}
+tester := piko.NewActionTester(t, entry)
+
+result := tester.Invoke(ctx, map[string]any{
     "name":  "Acme",
     "email": "contact@acme.com",
 })
 
-// Assertions (called on resp, not tester)
-resp.AssertSuccess()
-resp.AssertHelper("redirect")
-resp.AssertError()
+// Assertions (called on result, not tester)
+result.AssertSuccess()
+result.AssertHelper("redirect")
+result.AssertError()
 ```
 
-Note: `Invoke` takes a `map[string]any` where keys match `Call` parameter names. Assertions are methods on the result object, not the tester.
+Note: `NewActionTester` takes an `ActionHandlerEntry` descriptor, not an action struct pointer. The generator emits one entry per action; in production tests prefer constructing the entry inline as above. `Invoke` requires `ctx` first. Assertions are methods on the result object, not the tester.
 
 ## Snapshot testing
 
@@ -145,8 +161,9 @@ PIKO_UPDATE_SNAPSHOTS=1 go test ./...
 
 ```go
 func BenchmarkCustomersPage(b *testing.B) {
+    ctx := context.Background()
     tester := piko.NewComponentTester(b, customers.BuildAST)
-    req := piko.NewTestRequest("GET", "/customers").WithContext(ctx).Build()
+    req := piko.NewTestRequest("GET", "/customers").Build(ctx)
     tester.Benchmark(req, piko.NoProps{})
 }
 ```
@@ -392,7 +409,10 @@ go test -tags=e2e ./e2e/...            # E2E browser tests
 - Forgetting to import the compiled component package (not the source `.pk` file)
 - Sharing mutable mock state across parallel subtests
 - Testing too many things in one test (unclear failure messages)
-- Forgetting `Build()` on the test request builder
+- Forgetting `Build(ctx)` on the test request builder (note: `Build` requires a `context.Context` argument)
+- Calling a non-existent `WithContext(ctx)` method on the request builder; pass `ctx` to `Build(ctx)` instead
+- Passing an action struct pointer (e.g. `&actions.Foo{}`) to `NewActionTester`; it expects an `ActionHandlerEntry` descriptor
+- Calling `tester.Invoke(args)` without a `ctx`; the real signature is `Invoke(ctx, args)`
 - Using `InvokeExpectError` when the action returns a validation error via response (not a Go error)
 - Forgetting `//go:build e2e` tag on E2E test files (they'll run with normal tests)
 - Forgetting `defer p.Close()` on browser pages (leaks browser contexts)

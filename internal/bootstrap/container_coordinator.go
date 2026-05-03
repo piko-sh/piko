@@ -78,7 +78,7 @@ func (c *Container) GetAnnotatorService() (annotator_domain.AnnotatorPort, error
 func (c *Container) createDefaultAnnotatorService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default AnnotatorService...")
-	baseDir := deref(c.config.ServerConfig.Paths.BaseDir, ".")
+	baseDir := deref(c.serverConfig.Paths.BaseDir, ".")
 
 	resolver, err := c.GetResolver()
 	if err != nil {
@@ -159,7 +159,7 @@ func (c *Container) createAnnotatorServiceInstance(
 		FSReader:            fsReader,
 		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(typeInspectorManager),
 		CSSProcessor:        cssProcessor,
-		PathsConfig:         NewAnnotatorPathsConfig(&c.config.ServerConfig),
+		PathsConfig:         NewAnnotatorPathsConfig(&c.serverConfig),
 		AssetsConfig:        c.GetAssetsConfig(),
 		Cache:               annotator_adapters.NewComponentCache(),
 		CompilationLogLevel: compilationLogLevel,
@@ -286,7 +286,7 @@ func (c *Container) createCoordinatorFSReader() (annotator_domain.FSReaderPort, 
 	if c.coordinatorFSReaderOverride != nil {
 		return c.coordinatorFSReaderOverride, nil
 	}
-	serverConfig := c.config.ServerConfig
+	serverConfig := c.serverConfig
 	sourceSandbox, err := c.createSandbox("coordinator-source", deref(serverConfig.Paths.BaseDir, "."), safedisk.ModeReadOnly)
 	if err != nil {
 		return nil, fmt.Errorf("creating coordinator source sandbox: %w", err)
@@ -313,7 +313,7 @@ func (c *Container) getCoordinatorOptions() []coordinator_domain.CoordinatorOpti
 		opts = append(opts, coordinator_domain.WithClientScriptEmitter(c.coordinatorClientScriptEmitterOverride))
 	}
 
-	serverConfig := c.config.ServerConfig
+	serverConfig := c.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
 	baseDirSandbox, err := c.createSandbox("coordinator-basedir", baseDir, safedisk.ModeReadOnly)
 	if err == nil {
@@ -460,7 +460,7 @@ func (c *Container) GetResolver() (resolver_domain.ResolverPort, error) {
 			c.resolver = c.resolverOverride
 			return
 		}
-		localResolver := resolver_adapters.NewLocalModuleResolver(deref(c.config.ServerConfig.Paths.BaseDir, "."))
+		localResolver := resolver_adapters.NewLocalModuleResolver(deref(c.serverConfig.Paths.BaseDir, "."))
 		cacheResolver := resolver_adapters.NewGoModuleCacheResolver()
 		resolver := resolver_adapters.NewChainedResolver(localResolver, cacheResolver)
 		if err := resolver.DetectLocalModule(c.GetAppContext()); err != nil {
@@ -475,7 +475,7 @@ func (c *Container) GetResolver() (resolver_domain.ResolverPort, error) {
 // createDefaultGeneratorService sets up the generator service with default
 // settings.
 func (c *Container) createDefaultGeneratorService() {
-	serverConfig := &c.config.ServerConfig
+	serverConfig := &c.serverConfig
 
 	sandboxes, err := c.createGeneratorSandboxes(serverConfig)
 	if err != nil {
@@ -512,12 +512,12 @@ type generatorSandboxes struct {
 // createGeneratorSandboxes creates the source and output sandboxes for the
 // generator.
 //
-// Takes serverConfig (*config.ServerConfig) which provides the paths
+// Takes serverConfig (*ServerConfig) which provides the paths
 // configuration.
 //
 // Returns generatorSandboxes which contains the source and output sandboxes.
 // Returns error when either sandbox cannot be created.
-func (c *Container) createGeneratorSandboxes(serverConfig *config.ServerConfig) (generatorSandboxes, error) {
+func (c *Container) createGeneratorSandboxes(serverConfig *ServerConfig) (generatorSandboxes, error) {
 	sourceSandbox, err := c.createSandbox("generator-source", deref(serverConfig.Paths.BaseDir, "."), safedisk.ModeReadOnly)
 	if err != nil {
 		return generatorSandboxes{}, fmt.Errorf("creating generator source sandbox: %w", err)
@@ -536,12 +536,12 @@ func (c *Container) createGeneratorSandboxes(serverConfig *config.ServerConfig) 
 
 // createGeneratorPorts creates all the ports for the generator service.
 //
-// Takes serverConfig (*config.ServerConfig) which provides server settings.
+// Takes serverConfig (*ServerConfig) which provides server settings.
 // Takes sandboxes (generatorSandboxes) which specifies input and output paths.
 //
 // Returns generator_domain.GeneratorPorts which contains all configured ports.
 // Returns error when any port dependency fails to initialise.
-func (c *Container) createGeneratorPorts(serverConfig *config.ServerConfig, sandboxes generatorSandboxes) (generator_domain.GeneratorPorts, error) {
+func (c *Container) createGeneratorPorts(serverConfig *ServerConfig, sandboxes generatorSandboxes) (generator_domain.GeneratorPorts, error) {
 	fsWriter := generator_adapters.NewFSWriter(sandboxes.output)
 
 	coordinator, err := c.GetCoordinatorService()
@@ -674,7 +674,7 @@ func (c *Container) GetTypeInspectorManager() (*inspector_domain.TypeBuilder, er
 func (c *Container) createDefaultTypeInspectorManager() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default TypeInspectorManager...")
-	serverConfig := c.config.ServerConfig
+	serverConfig := c.serverConfig
 	cacheDir := filepath.Join(deref(serverConfig.Paths.BaseDir, "."), ".piko", "cache", "types")
 
 	cacheSandbox, err := c.createSandbox("type-inspector-cache", cacheDir, safedisk.ModeReadWrite)

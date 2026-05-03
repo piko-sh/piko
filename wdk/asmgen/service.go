@@ -19,11 +19,14 @@
 package asmgen
 
 import (
+	"errors"
 	"fmt"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"piko.sh/piko/wdk/safedisk"
 )
 
 // licenseHeader is the standard license text placed at the top of
@@ -308,9 +311,23 @@ func resolveArchInclude[A ArchitecturePort](include string, arch A) string {
 // Returns error when the file cannot be read.
 func compareWithExisting(path string, generated []byte) (*Mismatch, error) {
 	cleanedPath := filepath.Clean(path)
-	existing, err := os.ReadFile(cleanedPath)
+	directory := filepath.Dir(cleanedPath)
+	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadOnly)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
+			return &Mismatch{
+				File:     path,
+				Line:     1,
+				Expected: "<file does not exist>",
+				Actual:   "(generated content)",
+			}, nil
+		}
+		return nil, fmt.Errorf("opening directory %q: %w", directory, err)
+	}
+	defer func() { _ = sandbox.Close() }()
+	existing, err := sandbox.ReadFile(filepath.Base(cleanedPath))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
 			return &Mismatch{
 				File:     path,
 				Line:     1,

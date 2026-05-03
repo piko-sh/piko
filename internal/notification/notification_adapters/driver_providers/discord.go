@@ -33,19 +33,19 @@ import (
 var _ notification_domain.NotificationProviderPort = (*DiscordProvider)(nil)
 
 const (
-	// discordColorError is the Discord embed colour for critical priority
+	// discordColourError is the Discord embed colour for critical priority
 	// messages.
-	discordColorError = 15158332
+	discordColourError = 15158332
 
-	// discordColorWarn is the Discord embed colour for high priority
+	// discordColourWarn is the Discord embed colour for high priority
 	// notifications.
-	discordColorWarn = 15844367
+	discordColourWarn = 15844367
 
-	// discordColorInfo is the Discord embed colour for informational messages.
-	discordColorInfo = 3447003
+	// discordColourInfo is the Discord embed colour for informational messages.
+	discordColourInfo = 3447003
 
-	// discordColorDefault is the fallback embed colour for Discord notifications.
-	discordColorDefault = 9807270
+	// discordColourDefault is the fallback embed colour for Discord notifications.
+	discordColourDefault = 9807270
 
 	// discordMaxEmbedSize is the maximum character length for Discord embed
 	// content.
@@ -78,8 +78,9 @@ type discordEmbed struct {
 	// Fields contains additional field sections displayed in the embed.
 	Fields []discordEmbedField `json:"fields,omitempty"`
 
-	// Color is the embed sidebar colour as a decimal integer.
-	Color int `json:"color"`
+	// Colour is the embed sidebar colour as a decimal integer. The JSON tag
+	// stays `color` because Discord's API uses the American spelling.
+	Colour int `json:"color"`
 }
 
 // discordPayload represents the complete payload sent to Discord webhooks.
@@ -171,7 +172,7 @@ func (*DiscordProvider) Close(_ context.Context) error {
 // Returns []byte which is the JSON-encoded Discord webhook payload.
 // Returns error when JSON marshalling fails.
 func (d *DiscordProvider) formatDiscordPayload(params *notification_dto.SendParams) ([]byte, error) {
-	color := d.priorityToDiscordColor(params.Context.Priority)
+	colour := d.priorityToDiscordColour(params.Context.Priority)
 
 	var description strings.Builder
 	if params.Content.Message != "" {
@@ -201,7 +202,7 @@ func (d *DiscordProvider) formatDiscordPayload(params *notification_dto.SendPara
 		Title:       params.Content.Title,
 		Description: description.String(),
 		Timestamp:   params.Context.Timestamp.UTC().Format(time.RFC3339),
-		Color:       color,
+		Colour:      colour,
 		Fields:      []discordEmbedField{},
 	}
 
@@ -212,21 +213,21 @@ func (d *DiscordProvider) formatDiscordPayload(params *notification_dto.SendPara
 	return json.Marshal(payload)
 }
 
-// priorityToDiscordColor maps notification priority to Discord embed colour.
+// priorityToDiscordColour maps notification priority to Discord embed colour.
 //
 // Takes priority (NotificationPriority) which specifies the notification level.
 //
 // Returns int which is the Discord embed colour code for the given priority.
-func (*DiscordProvider) priorityToDiscordColor(priority notification_dto.NotificationPriority) int {
+func (*DiscordProvider) priorityToDiscordColour(priority notification_dto.NotificationPriority) int {
 	switch priority {
 	case notification_dto.PriorityCritical:
-		return discordColorError
+		return discordColourError
 	case notification_dto.PriorityHigh:
-		return discordColorWarn
+		return discordColourWarn
 	case notification_dto.PriorityNormal:
-		return discordColorInfo
+		return discordColourInfo
 	default:
-		return discordColorDefault
+		return discordColourDefault
 	}
 }
 

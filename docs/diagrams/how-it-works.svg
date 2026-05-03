@@ -1,7 +1,10 @@
-<svg viewBox="0 0 560 85" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 560 85" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="how-it-works-title how-it-works-desc">
+  <title id="how-it-works-title">Piko build pipeline</title>
+  <desc id="how-it-works-desc">Four stages from left to right: write PK files, run the project's scaffolded generator (cmd/generator/main.go), get Go source, run go build, ship a single binary. Dashed teal arrows connect the stages.</desc>
   <defs>
     <marker id="arrowH" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
-      <path d="M0,0 L7,2.5 L0,5" fill="none" stroke="#6BD5CC" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M0,0 L7,2.5 L0,5" fill="none" stroke="#0F766E" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
     </marker>
   </defs>
 
@@ -9,29 +12,29 @@
   <text x="49" y="28" text-anchor="middle" fill="#6BD5CC" font-family="monospace" font-size="11" font-weight="600">write .pk</text>
   <text x="49" y="42" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="8">your code</text>
 
-  <line x1="98" y1="31" x2="114" y2="31" stroke="#6BD5CC" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrowH)"/>
+  <line x1="98" y1="31" x2="114" y2="31" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrowH)"/>
 
   <rect x="118" y="8" width="98" height="46" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
-  <text x="167" y="28" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">piko generate</text>
-  <text x="167" y="42" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="8">code generator</text>
+  <text x="167" y="28" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">cmd/generator</text>
+  <text x="167" y="42" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="8">scaffolded per project</text>
 
-  <line x1="220" y1="31" x2="236" y2="31" stroke="#6BD5CC" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrowH)"/>
+  <line x1="220" y1="31" x2="236" y2="31" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrowH)"/>
 
   <rect x="240" y="8" width="90" height="46" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
   <text x="285" y="28" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Go source</text>
   <text x="285" y="42" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="8">typed output</text>
 
-  <line x1="334" y1="31" x2="350" y2="31" stroke="#6BD5CC" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrowH)"/>
+  <line x1="334" y1="31" x2="350" y2="31" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrowH)"/>
 
   <rect x="354" y="8" width="90" height="46" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
   <text x="399" y="28" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10" font-weight="600">go build</text>
   <text x="399" y="42" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="8">standard Go</text>
 
-  <line x1="448" y1="31" x2="464" y2="31" stroke="#6BD5CC" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrowH)"/>
+  <line x1="448" y1="31" x2="464" y2="31" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round" marker-end="url(#arrowH)"/>
 
   <rect x="468" y="8" width="86" height="46" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
   <text x="511" y="28" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">binary</text>
   <text x="511" y="42" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="8">ship it</text>
 
-  <text x="280" y="78" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">No Node.js. No runtime template parsing. Your types are checked at compile time.</text>
+  <text x="280" y="78" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">No Node.js. No runtime template parsing. Your types are checked at compile time.</text>
 </svg>

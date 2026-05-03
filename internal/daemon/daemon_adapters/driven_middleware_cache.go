@@ -563,6 +563,7 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 	statusChan := make(chan int, 1)
 	go func() {
 		defer func() { _ = pw.Close() }()
+		defer goroutine.RecoverPanic(ctx, "daemon.cacheMiddlewareUpstream")
 		recorder := getPipeResponseWriter(pw)
 		next.ServeHTTP(recorder, r.WithContext(ctx))
 		statusChan <- recorder.statusCode

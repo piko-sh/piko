@@ -28,7 +28,7 @@ import (
 
 // CollectionProvider is the primary interface for data source adapters.
 //
-// Every data source (CMS, database, API, etc.) must implement this interface
+// Every data source (CMS, database, API, etc.) must implement CollectionProvider
 // to integrate with the Piko collection system.
 //
 // The interface supports three provider types:
@@ -39,7 +39,7 @@ type CollectionProvider = collection_domain.CollectionProvider
 
 // RuntimeProvider defines the interface for providers that operate at runtime.
 //
-// Dynamic and Hybrid providers must implement this interface AND register it
+// Dynamic and Hybrid providers must implement RuntimeProvider AND register it
 // with the runtime when the application starts.
 type RuntimeProvider = collection_domain.RuntimeProvider
 

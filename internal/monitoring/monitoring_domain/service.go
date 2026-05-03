@@ -318,9 +318,8 @@ func (s *Service) SetWatchdogInspector(inspector WatchdogInspector) {
 	s.watchdogInspector = inspector
 }
 
-// Start begins background collection and, when a transport factory is
-// configured, the transport server. This method blocks until the context is
-// cancelled or an error occurs.
+// Start begins background collection and, when a transport factory is configured,
+// the transport server. Blocks until the context is cancelled or an error occurs.
 //
 // Returns error when the transport fails to start.
 //

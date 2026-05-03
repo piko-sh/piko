@@ -25,7 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
-	"piko.sh/piko/internal/config"
 )
 
 func TestBuildersDispatchTable(t *testing.T) {
@@ -82,16 +81,6 @@ func TestWithMemoryRegistryCache(t *testing.T) {
 	assert.True(t, container.registryMetadataCacheConfig.StatsEnabled)
 }
 
-func TestWithServerConfigDefaults(t *testing.T) {
-	container := &Container{}
-	defaults := &config.ServerConfig{}
-
-	opt := WithServerConfigDefaults(defaults)
-	opt(container)
-
-	assert.Same(t, defaults, container.configServerDefaults)
-}
-
 func TestWithValidator(t *testing.T) {
 	container := &Container{}
 	customValidator := &testStructValidator{}
@@ -107,23 +96,18 @@ type testStructValidator struct{}
 func (*testStructValidator) Struct(any) error { return nil }
 
 func TestNewContainer(t *testing.T) {
-	configProvider := config.NewConfigProvider()
-
-	container := NewContainer(configProvider)
+	container := NewContainer()
 
 	assert.NotNil(t, container)
-	assert.Same(t, configProvider, container.config)
 	assert.NotNil(t, container.metadataCacheProvider)
-
 	assert.Nil(t, container.typeDataProvider)
 	assert.NotNil(t, container.csrfSecretKeyProvider)
 }
 
 func TestNewContainerWithOptions(t *testing.T) {
-	configProvider := config.NewConfigProvider()
 	secret := []byte("test-secret")
 
-	container := NewContainer(configProvider,
+	container := NewContainer(
 		WithCSRFSecret(secret),
 		WithMemoryRegistryCache(),
 	)

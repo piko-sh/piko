@@ -44,11 +44,7 @@ FROM golang:1.26.0 as runtime
 
 WORKDIR /app
 
-ENV PIKO_ENV="production"
-
 COPY --from=build /app/bin/my-app /app
-COPY --from=build /app/piko.yaml /app
-COPY --from=build /app/config.json /app
 COPY --from=build /app/.piko /app/.piko
 COPY --from=build /app/.out /app/.out
 

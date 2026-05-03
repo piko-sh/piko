@@ -84,7 +84,7 @@ func TestRateLimitService_CheckLimit_FirstRequest_ReturnsAllowed(t *testing.T) {
 	counter, _ := newStatefulCounter()
 	service := newTestService(counter)
 
-	result, err := service.CheckLimit("user:123", 10, time.Minute)
+	result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 
 	assert.NoError(t, err)
 	assert.True(t, result.Allowed)
@@ -97,7 +97,7 @@ func TestRateLimitService_CheckLimit_BelowLimit_ReturnsAllowed(t *testing.T) {
 	service := newTestService(counter)
 
 	for range 5 {
-		result, err := service.CheckLimit("user:123", 10, time.Minute)
+		result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 		require.NoError(t, err)
 		assert.True(t, result.Allowed, "request should be allowed")
 	}
@@ -108,7 +108,7 @@ func TestRateLimitService_CheckLimit_AtLimit_ReturnsAllowed(t *testing.T) {
 	service := newTestService(counter)
 
 	for range 10 {
-		result, err := service.CheckLimit("user:123", 10, time.Minute)
+		result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 		require.NoError(t, err)
 		assert.True(t, result.Allowed, "request should be allowed")
 	}
@@ -119,12 +119,12 @@ func TestRateLimitService_CheckLimit_AboveLimit_ReturnsDenied(t *testing.T) {
 	service := newTestService(counter)
 
 	for range 10 {
-		result, err := service.CheckLimit("user:123", 10, time.Minute)
+		result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 		require.NoError(t, err)
 		require.True(t, result.Allowed)
 	}
 
-	result, err := service.CheckLimit("user:123", 10, time.Minute)
+	result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 
 	assert.NoError(t, err)
 	assert.False(t, result.Allowed)
@@ -137,11 +137,11 @@ func TestRateLimitService_CheckLimit_WellAboveLimit_ReturnsDenied(t *testing.T) 
 	service := newTestService(counter)
 
 	for range 10 {
-		_, _ = service.CheckLimit("user:123", 10, time.Minute)
+		_, _ = service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 	}
 
 	for i := range 5 {
-		result, err := service.CheckLimit("user:123", 10, time.Minute)
+		result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 		assert.NoError(t, err)
 		assert.False(t, result.Allowed, "request %d over limit should be denied", i+1)
 	}
@@ -156,7 +156,7 @@ func TestRateLimitService_CheckLimit_StorageError_FailOpen(t *testing.T) {
 
 	service := newTestService(counter)
 
-	result, err := service.CheckLimit("user:123", 10, time.Minute)
+	result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 
 	assert.NoError(t, err)
 	assert.True(t, result.Allowed)
@@ -176,7 +176,7 @@ func TestRateLimitService_CheckLimit_StorageError_FailClosed(t *testing.T) {
 	)
 	service := NewRateLimitService(limiter)
 
-	result, err := service.CheckLimit("user:123", 10, time.Minute)
+	result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 
 	assert.Error(t, err)
 	assert.False(t, result.Allowed)
@@ -187,12 +187,12 @@ func TestRateLimitService_CheckLimit_IndependentKeys(t *testing.T) {
 	service := newTestService(counter)
 
 	for range 10 {
-		result, err := service.CheckLimit("user:1", 10, time.Minute)
+		result, err := service.CheckLimit(context.Background(), "user:1", 10, time.Minute)
 		require.NoError(t, err)
 		require.True(t, result.Allowed)
 	}
 
-	result, err := service.CheckLimit("user:2", 10, time.Minute)
+	result, err := service.CheckLimit(context.Background(), "user:2", 10, time.Minute)
 
 	assert.NoError(t, err)
 	assert.True(t, result.Allowed)
@@ -204,7 +204,7 @@ func TestRateLimitService_CheckLimit_DifferentLimits(t *testing.T) {
 
 	results := make([]bool, 0, 5)
 	for range 5 {
-		result, err := service.CheckLimit("user:123", 3, time.Minute)
+		result, err := service.CheckLimit(context.Background(), "user:123", 3, time.Minute)
 		require.NoError(t, err)
 		results = append(results, result.Allowed)
 	}
@@ -220,11 +220,11 @@ func TestRateLimitService_CheckLimit_LimitOfOne(t *testing.T) {
 	counter, _ := newStatefulCounter()
 	service := newTestService(counter)
 
-	result1, err1 := service.CheckLimit("user:123", 1, time.Minute)
+	result1, err1 := service.CheckLimit(context.Background(), "user:123", 1, time.Minute)
 	assert.NoError(t, err1)
 	assert.True(t, result1.Allowed)
 
-	result2, err2 := service.CheckLimit("user:123", 1, time.Minute)
+	result2, err2 := service.CheckLimit(context.Background(), "user:123", 1, time.Minute)
 	assert.NoError(t, err2)
 	assert.False(t, result2.Allowed)
 }
@@ -234,7 +234,7 @@ func TestRateLimitService_CheckLimit_LimitOfZero_AlwaysDenied(t *testing.T) {
 	service := newTestService(counter)
 
 	for i := range 5 {
-		result, err := service.CheckLimit("user:123", 0, time.Minute)
+		result, err := service.CheckLimit(context.Background(), "user:123", 0, time.Minute)
 		assert.NoError(t, err)
 		assert.False(t, result.Allowed, "request %d should be denied with limit=0", i+1)
 	}
@@ -244,7 +244,7 @@ func TestRateLimitService_CheckLimit_EmptyKey_Allowed(t *testing.T) {
 	counter, _ := newStatefulCounter()
 	service := newTestService(counter)
 
-	result, err := service.CheckLimit("", 10, time.Minute)
+	result, err := service.CheckLimit(context.Background(), "", 10, time.Minute)
 
 	assert.NoError(t, err)
 	assert.True(t, result.Allowed)
@@ -255,7 +255,7 @@ func TestRateLimitService_CheckLimit_ReturnsCorrectRemaining(t *testing.T) {
 	service := newTestService(counter)
 
 	for i := range 5 {
-		result, err := service.CheckLimit("user:123", 10, time.Minute)
+		result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 		require.NoError(t, err)
 		assert.Equal(t, 10-(i+1), result.Remaining, "remaining should decrease with each request")
 	}
@@ -266,10 +266,10 @@ func TestRateLimitService_CheckLimit_ReturnsRetryAfterWhenDenied(t *testing.T) {
 	service := newTestService(counter)
 
 	for range 10 {
-		_, _ = service.CheckLimit("user:123", 10, time.Minute)
+		_, _ = service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 	}
 
-	result, err := service.CheckLimit("user:123", 10, time.Minute)
+	result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 
 	require.NoError(t, err)
 	assert.False(t, result.Allowed)
@@ -280,7 +280,7 @@ func TestRateLimitService_CheckLimit_NoRetryAfterWhenAllowed(t *testing.T) {
 	counter, _ := newStatefulCounter()
 	service := newTestService(counter)
 
-	result, err := service.CheckLimit("user:123", 10, time.Minute)
+	result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 
 	require.NoError(t, err)
 	assert.True(t, result.Allowed)
@@ -292,12 +292,12 @@ func TestRateLimitService_CheckLimit_RateLimitRecovery(t *testing.T) {
 	service := newTestService(counter)
 
 	for range 10 {
-		result, err := service.CheckLimit("user:123", 10, time.Minute)
+		result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 		require.NoError(t, err)
 		require.True(t, result.Allowed)
 	}
 
-	result, err := service.CheckLimit("user:123", 10, time.Minute)
+	result, err := service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 	require.NoError(t, err)
 	assert.False(t, result.Allowed)
 
@@ -307,7 +307,7 @@ func TestRateLimitService_CheckLimit_RateLimitRecovery(t *testing.T) {
 	state.err = nil
 	state.mu.Unlock()
 
-	result, err = service.CheckLimit("user:123", 10, time.Minute)
+	result, err = service.CheckLimit(context.Background(), "user:123", 10, time.Minute)
 	assert.NoError(t, err)
 	assert.True(t, result.Allowed)
 }
@@ -325,7 +325,7 @@ func TestRateLimitService_ConcurrentRequests_SameKey(t *testing.T) {
 	for range goroutines {
 		go func() {
 			for range requestsPerGoroutine {
-				result, err := service.CheckLimit("shared:key", limit, time.Minute)
+				result, err := service.CheckLimit(context.Background(), "shared:key", limit, time.Minute)
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
 					return
@@ -350,6 +350,51 @@ func TestRateLimitService_ConcurrentRequests_SameKey(t *testing.T) {
 	assert.LessOrEqual(t, allowedCount, limit, "allowed count should not exceed limit")
 }
 
+func TestRateLimitService_CheckLimit_HonoursRequestContext(t *testing.T) {
+	cancelCause := errors.New("test cancelled the request")
+
+	observed := make(chan context.Context, 1)
+	mockCounter := &ratelimiter_domain.MockCounterStore{
+		IncrementAndGetFunc: func(ctx context.Context, _ string, _ int64, _ time.Duration) (ratelimiter_dto.CounterResult, error) {
+			select {
+			case observed <- ctx:
+			default:
+			}
+			if err := ctx.Err(); err != nil {
+				return ratelimiter_dto.CounterResult{}, err
+			}
+			return ratelimiter_dto.CounterResult{
+				Count:       1,
+				WindowStart: time.Now(),
+			}, nil
+		},
+	}
+
+	limiter := ratelimiter_domain.NewLimiter(
+		ratelimiter_adapters.NoopTokenBucketStore{},
+		mockCounter,
+		ratelimiter_domain.WithFailPolicy(ratelimiter_dto.FailClosed),
+	)
+	service := NewRateLimitService(limiter)
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(cancelCause)
+
+	result, err := service.CheckLimit(ctx, "user:cancelled", 10, time.Minute)
+
+	require.Error(t, err)
+	assert.False(t, result.Allowed)
+
+	select {
+	case got := <-observed:
+		require.NotNil(t, got)
+		assert.ErrorIs(t, got.Err(), context.Canceled, "downstream call must observe cancellation")
+		assert.ErrorIs(t, context.Cause(got), cancelCause)
+	default:
+		t.Fatal("expected counter store to be invoked with the cancelled context")
+	}
+}
+
 func TestRateLimitService_ConcurrentRequests_DifferentKeys(t *testing.T) {
 	counter, _ := newStatefulCounter()
 	service := newTestService(counter)
@@ -363,7 +408,7 @@ func TestRateLimitService_ConcurrentRequests_DifferentKeys(t *testing.T) {
 		key := "user:" + string(rune('A'+i))
 		go func(userKey string) {
 			for range requestsPerGoroutine {
-				result, err := service.CheckLimit(userKey, 100, time.Minute)
+				result, err := service.CheckLimit(context.Background(), userKey, 100, time.Minute)
 				if err != nil || !result.Allowed {
 					t.Errorf("user %s request: allowed=%v, err=%v", userKey, result.Allowed, err)
 					return

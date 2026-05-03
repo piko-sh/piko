@@ -62,7 +62,7 @@ type interfaceSpec struct {
 	// name is the interface name being documented.
 	name string
 
-	// packagePath is the import path of the package containing this interface.
+	// packagePath is the import path of the package containing the interface.
 	packagePath string
 }
 

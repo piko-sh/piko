@@ -122,7 +122,7 @@ type InfoEntry struct {
 // repositories.
 //
 // Discovery uses structural type assertion, following the same pattern as
-// ResourceDescriptor. Services that do not implement this interface are
+// ResourceDescriptor. Services that do not implement SubResourceDescriptor are
 // unaffected; the CLI falls back to the filtered provider list.
 type SubResourceDescriptor interface {
 	// ResourceSubResourceName returns the plural display name for the

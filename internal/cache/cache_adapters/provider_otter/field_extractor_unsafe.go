@@ -22,6 +22,7 @@ package provider_otter
 
 import (
 	"reflect"
+	"runtime"
 	"unsafe"
 
 	"piko.sh/piko/internal/cache/cache_dto"
@@ -64,8 +65,7 @@ func (fe *FieldExtractor[V]) compareFieldDirect(value V, fieldPath string, opera
 	}
 
 	var ptr unsafe.Pointer
-	var zeroV V
-	if reflect.TypeOf(zeroV).Kind() == reflect.Pointer {
+	if reflect.TypeFor[V]().Kind() == reflect.Pointer {
 		ptr = unsafe.Pointer(*(*unsafe.Pointer)(unsafe.Pointer(&value)))
 		if ptr == nil {
 			return false, false
@@ -76,7 +76,9 @@ func (fe *FieldExtractor[V]) compareFieldDirect(value V, fieldPath string, opera
 
 	fieldPtr := unsafe.Add(ptr, accessor.offset)
 
-	return fe.compareByKind(fieldPtr, accessor.kind, operator, targetValue, targetValues)
+	matched, ok = fe.compareByKind(fieldPtr, accessor.kind, operator, targetValue, targetValues)
+	runtime.KeepAlive(value)
+	return matched, ok
 }
 
 // compareByKind compares a field value based on its type without allocation.
@@ -115,16 +117,15 @@ func (*FieldExtractor[V]) compareByKind(fieldPtr unsafe.Pointer, kind reflect.Ki
 // Returns any which is the extracted field value, or nil if extraction fails.
 // Returns bool which indicates whether the extraction was successful.
 //
-// Note: This function is intentionally not decomposed into helpers
-// despite high complexity. Extracting helper functions causes them to
-// not be inlined, which reintroduces allocations in the hot path.
+// Note: intentionally not decomposed into helpers despite high complexity.
+// Extracting helper functions causes them to not be inlined, which reintroduces
+// allocations in the hot path.
 //
 //nolint:revive // inlined for zero-alloc
 func (*FieldExtractor[V]) extractWithAccessor(value V, accessor *fieldAccessor) (any, bool) {
 	if accessor.isDirect {
 		var ptr unsafe.Pointer
-		var zeroV V
-		if reflect.TypeOf(zeroV).Kind() == reflect.Pointer {
+		if reflect.TypeFor[V]().Kind() == reflect.Pointer {
 			ptr = unsafe.Pointer(*(*unsafe.Pointer)(unsafe.Pointer(&value)))
 			if ptr == nil {
 				return nil, false
@@ -135,38 +136,44 @@ func (*FieldExtractor[V]) extractWithAccessor(value V, accessor *fieldAccessor) 
 
 		fieldPtr := unsafe.Add(ptr, accessor.offset)
 
+		var (
+			result any
+			okOut  bool
+		)
 		switch accessor.kind {
 		case reflect.Int:
-			return *(*int)(fieldPtr), true
+			result, okOut = *(*int)(fieldPtr), true
 		case reflect.Int8:
-			return *(*int8)(fieldPtr), true
+			result, okOut = *(*int8)(fieldPtr), true
 		case reflect.Int16:
-			return *(*int16)(fieldPtr), true
+			result, okOut = *(*int16)(fieldPtr), true
 		case reflect.Int32:
-			return *(*int32)(fieldPtr), true
+			result, okOut = *(*int32)(fieldPtr), true
 		case reflect.Int64:
-			return *(*int64)(fieldPtr), true
+			result, okOut = *(*int64)(fieldPtr), true
 		case reflect.Uint:
-			return *(*uint)(fieldPtr), true
+			result, okOut = *(*uint)(fieldPtr), true
 		case reflect.Uint8:
-			return *(*uint8)(fieldPtr), true
+			result, okOut = *(*uint8)(fieldPtr), true
 		case reflect.Uint16:
-			return *(*uint16)(fieldPtr), true
+			result, okOut = *(*uint16)(fieldPtr), true
 		case reflect.Uint32:
-			return *(*uint32)(fieldPtr), true
+			result, okOut = *(*uint32)(fieldPtr), true
 		case reflect.Uint64:
-			return *(*uint64)(fieldPtr), true
+			result, okOut = *(*uint64)(fieldPtr), true
 		case reflect.Float32:
-			return *(*float32)(fieldPtr), true
+			result, okOut = *(*float32)(fieldPtr), true
 		case reflect.Float64:
-			return *(*float64)(fieldPtr), true
+			result, okOut = *(*float64)(fieldPtr), true
 		case reflect.String:
-			return *(*string)(fieldPtr), true
+			result, okOut = *(*string)(fieldPtr), true
 		case reflect.Bool:
-			return *(*bool)(fieldPtr), true
+			result, okOut = *(*bool)(fieldPtr), true
 		default:
-			return nil, false
+			result, okOut = nil, false
 		}
+		runtime.KeepAlive(value)
+		return result, okOut
 	}
 
 	v := reflect.ValueOf(value)

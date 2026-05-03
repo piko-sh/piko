@@ -5,6 +5,7 @@
 package partials_row_actions_c2843091
 
 import (
+	"cmp"
 	fmt "fmt"
 	"html"
 	"sort"
@@ -21,6 +22,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 
 // line partials/row_actions.pk:38

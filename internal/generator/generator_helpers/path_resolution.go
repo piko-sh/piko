@@ -40,10 +40,10 @@ func ClearModulePathCaches() {
 // ResolveModulePath resolves module-aliased paths (starting with "@/") to
 // their full path by prepending the module name.
 //
-// This function does not return errors. If the path starts with @ but
-// moduleName is empty, it returns the path unchanged, degrading gracefully
-// rather than causing runtime panics. The error surfaces later during
-// registry lookup where it can be properly logged.
+// Does not return errors. If the path starts with @ but moduleName is empty, it
+// returns the path unchanged, degrading gracefully rather than causing runtime
+// panics. The error surfaces later during registry lookup where it can be properly
+// logged.
 //
 // Takes path (string) which is the path to resolve, possibly module-aliased.
 // Takes moduleName (string) which is the module name to prepend.

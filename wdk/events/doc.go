@@ -19,9 +19,9 @@
 // Package events provides access to Piko's message bus infrastructure
 // powered by Watermill.
 //
-// Unlike other Piko facades, this package intentionally does NOT wrap
-// Watermill types. Users should import Watermill types directly for
-// Message, Publisher, Subscriber, and Router:
+// Unlike other Piko facades, the events facade intentionally does NOT wrap
+// Watermill types. Users should import Watermill types directly for Message,
+// Publisher, Subscriber, and Router:
 //
 //	import "github.com/ThreeDotsLabs/watermill/message"
 //

@@ -20,6 +20,7 @@ package captcha_domain
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -751,4 +752,196 @@ func (m *mockRateLimiter) IsAllowed(ctx context.Context, key string, limit int, 
 		return m.isAllowedFunc(ctx, key, limit, window)
 	}
 	return true, nil
+}
+
+func TestService_VerifyRateLimitFailsClosedOnStorageError(t *testing.T) {
+	t.Parallel()
+
+	config := captcha_dto.DefaultServiceConfig()
+	config.VerifyRateLimit = 5
+
+	limiter := &mockRateLimiter{
+		isAllowedFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (bool, error) {
+			return false, errors.New("backing store unavailable")
+		},
+	}
+
+	service, err := NewCaptchaService(config, WithRateLimiter(limiter))
+	require.NoError(t, err)
+
+	provider := &mockCaptchaProvider{
+		verifyFunc: func(_ context.Context, _ *captcha_dto.VerifyRequest) (*captcha_dto.VerifyResponse, error) {
+			t.Fatal("provider must not be invoked when rate limiter fails")
+			return nil, nil
+		},
+	}
+	require.NoError(t, service.RegisterProvider(t.Context(), "test", provider))
+	require.NoError(t, service.SetDefaultProvider("test"))
+
+	err = service.Verify(t.Context(), "token-value", "127.0.0.1", "submit")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, captcha_dto.ErrRateLimited)
+}
+
+func TestService_ChallengeRateLimitFailsClosedOnStorageError(t *testing.T) {
+	t.Parallel()
+
+	config := captcha_dto.DefaultServiceConfig()
+	config.ChallengeRateLimit = 5
+
+	limiter := &mockRateLimiter{
+		isAllowedFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (bool, error) {
+			return false, errors.New("backing store unavailable")
+		},
+	}
+
+	service, err := NewCaptchaService(config, WithRateLimiter(limiter))
+	require.NoError(t, err)
+
+	innerCalled := false
+	challenger := &mockChallengeProvider{
+		handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			innerCalled = true
+			w.WriteHeader(http.StatusOK)
+		}),
+	}
+	require.NoError(t, service.RegisterProvider(t.Context(), "test", challenger))
+	require.NoError(t, service.SetDefaultProvider("test"))
+
+	handler := service.(*captchaService).ChallengeHandler()
+	require.NotNil(t, handler)
+
+	request, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "/challenge", nil)
+	request.RemoteAddr = "10.0.0.1:1234"
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	assert.False(t, innerCalled, "challenge handler must not run when rate limiter fails")
+	assert.Equal(t, http.StatusTooManyRequests, recorder.Code)
+}
+
+func TestSanitiseRateLimitIP_ValidIP_PassesThrough(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{input: "127.0.0.1", want: "127.0.0.1"},
+		{input: "  10.0.0.1  ", want: "10.0.0.1"},
+		{input: "::1", want: "::1"},
+		{input: "2001:db8::1", want: "2001:db8::1"},
+	}
+	for _, c := range cases {
+		got := sanitiseRateLimitIP(c.input)
+		assert.Equal(t, c.want, got, "input=%q", c.input)
+	}
+}
+
+func TestSanitiseRateLimitIP_MalformedReturnsHash(t *testing.T) {
+	t.Parallel()
+
+	malformed := []string{
+		"not-an-ip\nX-Forwarded-For: 1.2.3.4",
+		"127.0.0.1:8080",
+		"\x00\x01\x02control",
+		"::garbage::",
+		"",
+	}
+	for _, input := range malformed {
+		got := sanitiseRateLimitIP(input)
+		assert.Len(t, got, 64, "expected 64-char hex digest for %q", input)
+		_, err := hex.DecodeString(got)
+		assert.NoError(t, err, "expected hex-decodable digest for %q", input)
+		assert.NotContains(t, got, "\n", "must not preserve injection bytes")
+		assert.NotContains(t, got, ":", "must not preserve key separator")
+	}
+}
+
+func TestSanitiseRateLimitIP_StableForSameInput(t *testing.T) {
+	t.Parallel()
+
+	malformed := "attacker\nspoof-header"
+	first := sanitiseRateLimitIP(malformed)
+	second := sanitiseRateLimitIP(malformed)
+	assert.Equal(t, first, second, "expected stable bucket key for the same malformed input")
+
+	other := sanitiseRateLimitIP("attacker\nspoof-header2")
+	assert.NotEqual(t, first, other, "different inputs must yield different buckets")
+}
+
+func TestVerifyRateLimit_UsesSanitisedIPInKey(t *testing.T) {
+	t.Parallel()
+
+	config := captcha_dto.DefaultServiceConfig()
+	config.VerifyRateLimit = 5
+
+	var capturedKey string
+	limiter := &mockRateLimiter{
+		isAllowedFunc: func(_ context.Context, key string, _ int, _ time.Duration) (bool, error) {
+			capturedKey = key
+			return true, nil
+		},
+	}
+
+	service, err := NewCaptchaService(config, WithRateLimiter(limiter))
+	require.NoError(t, err)
+
+	provider := &mockCaptchaProvider{}
+	require.NoError(t, service.RegisterProvider(t.Context(), "test", provider))
+	require.NoError(t, service.SetDefaultProvider("test"))
+
+	err = service.Verify(t.Context(), "token", "malformed\nip", "submit")
+	_ = err
+
+	assert.True(t, strings.HasPrefix(capturedKey, "captcha:verify:"),
+		"key prefix must be intact, got %q", capturedKey)
+	suffix := strings.TrimPrefix(capturedKey, "captcha:verify:")
+	assert.NotContains(t, suffix, "\n", "newline must not survive sanitisation")
+	assert.Len(t, suffix, 64, "malformed input should produce hex digest segment")
+}
+
+func TestChallengeRateLimit_UsesSanitisedIPInKey(t *testing.T) {
+	t.Parallel()
+
+	config := captcha_dto.DefaultServiceConfig()
+	config.ChallengeRateLimit = 5
+
+	var capturedKey string
+	limiter := &mockRateLimiter{
+		isAllowedFunc: func(_ context.Context, key string, _ int, _ time.Duration) (bool, error) {
+			capturedKey = key
+			return true, nil
+		},
+	}
+
+	service, err := NewCaptchaService(config,
+		WithRateLimiter(limiter),
+		WithClientIPExtractor(&mockIPExtractor{ip: "weird\nvalue:"}),
+	)
+	require.NoError(t, err)
+
+	challenger := &mockChallengeProvider{
+		handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}),
+	}
+	require.NoError(t, service.RegisterProvider(t.Context(), "test", challenger))
+	require.NoError(t, service.SetDefaultProvider("test"))
+
+	handler := service.(*captchaService).ChallengeHandler()
+	require.NotNil(t, handler)
+
+	request, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "/challenge", nil)
+	request.RemoteAddr = "192.168.1.1:1234"
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	assert.True(t, strings.HasPrefix(capturedKey, "captcha:challenge:"),
+		"key prefix must be intact, got %q", capturedKey)
+	suffix := strings.TrimPrefix(capturedKey, "captcha:challenge:")
+	assert.NotContains(t, suffix, "\n", "newline must not survive sanitisation")
+	assert.Len(t, suffix, 64, "malformed input should produce hex digest segment")
 }

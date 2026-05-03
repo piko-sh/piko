@@ -27,6 +27,7 @@ import (
 	"log/slog"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -345,6 +346,59 @@ type mockTransport struct {
 func (m *mockTransport) SendGroupedErrors(ctx context.Context, batch map[string]*logger_domain.GroupedError) error {
 	m.batches = append(m.batches, batch)
 	return nil
+}
+
+func TestLifecycleManager_Shutdown_AllowsHooksToRegister(t *testing.T) {
+	lm := logger_domain.NewLifecycleManager()
+
+	innerCalled := false
+	lm.RegisterShutdownHook(func() {
+		lm.RegisterShutdownHook(func() {
+			innerCalled = true
+		})
+	})
+
+	closer := &mockCloser{}
+	lm.RegisterShutdownHook(func() {
+		lm.RegisterClosable(closer)
+	})
+
+	done := make(chan error, 1)
+	go func() {
+		done <- lm.Shutdown(context.Background())
+	}()
+
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("Shutdown deadlocked when a hook tried to register another hook")
+	}
+
+	assert.False(t, innerCalled,
+		"hook registered during shutdown should not run in the same shutdown cycle")
+	assert.False(t, closer.IsClosed(),
+		"closable registered during shutdown should not be closed in the same cycle")
+
+	require.NoError(t, lm.Shutdown(context.Background()))
+	assert.True(t, innerCalled,
+		"hook registered during shutdown should run on the next shutdown")
+	assert.True(t, closer.IsClosed(),
+		"closable registered during shutdown should be closed on the next shutdown")
+}
+
+func TestLifecycleManager_Shutdown_JoinsErrors(t *testing.T) {
+	lm := logger_domain.NewLifecycleManager()
+
+	first := errors.New("first close failure")
+	second := errors.New("second close failure")
+	lm.RegisterClosable(&mockCloser{closeErr: first})
+	lm.RegisterClosable(&mockCloser{closeErr: second})
+
+	err := lm.Shutdown(context.Background())
+	require.Error(t, err)
+	assert.ErrorIs(t, err, first, "joined error should wrap the first close failure")
+	assert.ErrorIs(t, err, second, "joined error should wrap the second close failure")
 }
 
 func TestClearLifecycle(t *testing.T) {

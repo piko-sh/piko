@@ -20,7 +20,9 @@ package monitoring_transport_grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -67,11 +69,12 @@ func NewWatchdogInspectorService(inspector monitoring_domain.WatchdogInspector) 
 // ListProfiles returns metadata for all stored watchdog profile files.
 //
 // Returns *pb.ListProfilesResponse which contains the profile entries.
-// Returns error when the profile directory cannot be read.
+// Returns error when the profile directory cannot be read; the error is
+// converted to an appropriate gRPC status code via toGRPCError.
 func (s *WatchdogInspectorService) ListProfiles(ctx context.Context, _ *pb.ListProfilesRequest) (*pb.ListProfilesResponse, error) {
 	profiles, err := s.inspector.ListProfiles(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "listing watchdog profiles: %v", err)
+		return nil, toGRPCError(fmt.Errorf("listing watchdog profiles: %w", err))
 	}
 
 	entries := make([]*pb.WatchdogProfileEntry, len(profiles))
@@ -105,7 +108,7 @@ func (s *WatchdogInspectorService) DownloadSidecar(ctx context.Context, request 
 
 	data, present, err := s.inspector.DownloadSidecar(ctx, filename)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "downloading sidecar for %q: %v", filename, err)
+		return nil, toGRPCError(fmt.Errorf("downloading sidecar for %q: %w", filename, err))
 	}
 	if int64(len(data)) > maxSidecarBytes {
 		return nil, status.Errorf(codes.ResourceExhausted, "sidecar for %q exceeds %d byte limit", filename, maxSidecarBytes)
@@ -130,17 +133,20 @@ func (s *WatchdogInspectorService) DownloadSidecar(ctx context.Context, request 
 func (s *WatchdogInspectorService) DownloadProfile(request *pb.DownloadProfileRequest, stream pb.WatchdogInspectorService_DownloadProfileServer) error {
 	filename := request.GetFilename()
 	if filename == "" {
-		return status.Errorf(codes.InvalidArgument, "filename must not be empty")
+		return status.Error(codes.InvalidArgument, "filename must not be empty")
 	}
 
 	downloadBuffer := newLimitedBuffer(maxDownloadBytes)
 
 	err := s.inspector.DownloadProfile(stream.Context(), filename, downloadBuffer)
 	if err != nil {
-		return status.Errorf(codes.NotFound, "downloading profile %q: %v", filename, err)
+		return toGRPCError(fmt.Errorf("downloading profile %q: %w", filename, err))
 	}
 
-	return sendDownloadChunks(stream, downloadBuffer.Bytes())
+	if sendErr := sendDownloadChunks(stream, downloadBuffer.Bytes()); sendErr != nil {
+		return toGRPCError(sendErr)
+	}
+	return nil
 }
 
 // PruneProfiles removes stored watchdog profile files and returns the count
@@ -154,7 +160,7 @@ func (s *WatchdogInspectorService) DownloadProfile(request *pb.DownloadProfileRe
 func (s *WatchdogInspectorService) PruneProfiles(ctx context.Context, request *pb.PruneProfilesRequest) (*pb.PruneProfilesResponse, error) {
 	deletedCount, err := s.inspector.PruneProfiles(ctx, request.GetProfileType())
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "pruning watchdog profiles: %v", err)
+		return nil, toGRPCError(fmt.Errorf("pruning watchdog profiles: %w", err))
 	}
 
 	return &pb.PruneProfilesResponse{
@@ -234,7 +240,7 @@ func (s *WatchdogInspectorService) RunContentionDiagnostic(ctx context.Context, 
 func (s *WatchdogInspectorService) GetStartupHistory(ctx context.Context, _ *pb.GetStartupHistoryRequest) (*pb.GetStartupHistoryResponse, error) {
 	entries, err := s.inspector.GetStartupHistory(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "reading startup history: %v", err)
+		return nil, toGRPCError(fmt.Errorf("reading startup history: %w", err))
 	}
 
 	pbEntries := make([]*pb.StartupHistoryEntry, len(entries))
@@ -301,8 +307,11 @@ func (s *WatchdogInspectorService) WatchEvents(request *pb.WatchEventsRequest, s
 
 	for event := range ch {
 		if err := stream.Send(watchdogEventToProto(event)); err != nil {
-			return fmt.Errorf("sending watchdog event: %w", err)
+			return toGRPCError(fmt.Errorf("sending watchdog event: %w", err))
 		}
+	}
+	if ctxErr := stream.Context().Err(); ctxErr != nil {
+		return toGRPCError(ctxErr)
 	}
 	return nil
 }
@@ -321,6 +330,47 @@ func watchdogEventToProto(event monitoring_domain.WatchdogEventInfo) *pb.Watchdo
 		Message:     event.Message,
 		Fields:      event.Fields,
 		EmittedAtMs: event.EmittedAt.UnixMilli(),
+	}
+}
+
+// toGRPCError translates a domain or transport error into a gRPC status
+// error with an appropriate code. Errors that are already gRPC status
+// errors are returned unchanged so the original code is preserved.
+//
+// Mapping summary:
+//   - context.Canceled            -> codes.Canceled
+//   - context.DeadlineExceeded    -> codes.DeadlineExceeded
+//   - monitoring_domain.ErrWatchdogStopped
+//   - monitoring_domain.ErrEventSubscriberCapExceeded
+//   - monitoring_domain.ErrProfilingControllerNil  -> codes.Unavailable
+//   - fs.ErrNotExist              -> codes.NotFound
+//   - default                     -> codes.Internal
+//
+// Takes err (error) which is the originating failure to translate.
+//
+// Returns error which is the gRPC status-coded error, or nil when err is nil.
+func toGRPCError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if _, ok := status.FromError(err); ok {
+		return err
+	}
+	switch {
+	case errors.Is(err, context.Canceled):
+		return status.Error(codes.Canceled, err.Error())
+	case errors.Is(err, context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, err.Error())
+	case errors.Is(err, monitoring_domain.ErrWatchdogStopped):
+		return status.Error(codes.Unavailable, err.Error())
+	case errors.Is(err, monitoring_domain.ErrEventSubscriberCapExceeded):
+		return status.Error(codes.ResourceExhausted, err.Error())
+	case errors.Is(err, monitoring_domain.ErrProfilingControllerNil):
+		return status.Error(codes.Unavailable, err.Error())
+	case errors.Is(err, fs.ErrNotExist):
+		return status.Error(codes.NotFound, err.Error())
+	default:
+		return status.Error(codes.Internal, err.Error())
 	}
 }
 

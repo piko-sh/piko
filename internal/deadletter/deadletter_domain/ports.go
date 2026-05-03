@@ -69,7 +69,7 @@ type DeadLetterPort[T any] interface {
 }
 
 // Entry defines the methods that dead letter entry types must provide. The
-// generic dead letter queue uses this interface to work with any entry type.
+// generic dead letter queue uses Entry to work with any entry type.
 type Entry interface {
 	// GetID returns the unique identifier for this entry.
 	GetID() string

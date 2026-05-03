@@ -132,20 +132,39 @@ func (d *DAL) Close() error {
 // scoped to this transaction.
 //
 // Returns error when fn returns an error (after rolling back all
-// mutations).
+// mutations) or when the transaction context is cancelled before commit.
 //
 // Panics if fn panics; the transaction is rolled back before the
 // panic is re-raised.
 //
-// Safe for concurrent use; acquires a write lock for the entire
-// duration.
+// Concurrency: safe for concurrent use; acquires a write lock for the entire duration.
+//
+// IMPORTANT: fn MUST NOT block on I/O, network, or any external resource. The
+// DAL holds an exclusive write lock for the entire duration of fn, so any
+// blocking work inside the callback stalls every other reader and writer of
+// this DAL. The provided ctx carries a maxTransactionTimeout deadline (see
+// the constant) which fn should respect by checking ctx.Err() at decision
+// points; on timeout the transaction is rolled back at the goto cancel/commit
+// path. The lock-wide model is intentional for the in-memory otter DAL where
+// cross-key journalling and tag-index integrity demand consistent reads of
+// non-cache state during the callback. A sharded or per-key locking refactor
+// would require redesigning the snapshot/rollback protocol and is tracked
+// outside this fix.
 func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error {
 	ctx, cancel := context.WithTimeoutCause(ctx, maxTransactionTimeout,
 		fmt.Errorf("transaction exceeded maximum duration of %s", maxTransactionTimeout))
 	defer cancel()
 
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("transaction context cancelled before lock acquisition: %w", context.Cause(ctx))
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
+
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("transaction context cancelled after lock acquisition: %w", context.Cause(ctx))
+	}
 
 	transactionCache := cache_domain.BeginTransaction(ctx, d.artefacts)
 	tx := &otterTransactionDAL{
@@ -174,6 +193,11 @@ func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transa
 	if err != nil {
 		tx.rollback(rollbackCtx)
 		return err
+	}
+
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		tx.rollback(rollbackCtx)
+		return fmt.Errorf("transaction context cancelled before commit: %w", context.Cause(ctx))
 	}
 
 	if commitErr := transactionCache.Commit(ctx); commitErr != nil {
@@ -820,7 +844,7 @@ func (d *DAL) PopGCHints(_ context.Context, limit int) ([]registry_dto.GCHint, e
 //
 // Returns error when any action fails.
 //
-// Safe for concurrent use; the method holds a mutex for the entire batch.
+// Safe for concurrent use; holds a mutex for the entire batch.
 func (d *DAL) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()

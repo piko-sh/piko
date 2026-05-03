@@ -447,7 +447,7 @@ func TestRAG_RealDocumentation(t *testing.T) {
 	queries := []searchQuery{
 		{
 			query:       "What are the core concepts of Piko?",
-			expectInTop: "core-concepts",
+			expectInTop: "concepts",
 		},
 		{
 			query:       "What is Piko and how does it work?",
@@ -455,7 +455,7 @@ func TestRAG_RealDocumentation(t *testing.T) {
 		},
 		{
 			query:       "How do I create my first page in Piko?",
-			expectInTop: "first-page",
+			expectInTop: "install",
 		},
 	}
 

@@ -151,9 +151,9 @@ func scanExportedFunctionWithFlag(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	return function
 }
 
-// findTopLevelFunctions extracts all top-level function declarations from
-// source code using token scanning. This method works with both JavaScript and
-// TypeScript, unlike full AST parsing which fails on TypeScript type hints.
+// findTopLevelFunctions extracts all top-level function declarations from source
+// code using token scanning. Works with both JavaScript and TypeScript, unlike
+// full AST parsing which fails on TypeScript type hints.
 //
 // The function finds both exported and non-exported functions, and tracks
 // whether each function had an export keyword via the wasExported field.

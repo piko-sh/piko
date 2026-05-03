@@ -20,10 +20,14 @@ package captcha_domain
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
+	"net/netip"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/sony/gobreaker/v2"
@@ -58,6 +62,12 @@ const (
 	// maxActionLength is the maximum allowed length of an action name at the
 	// service level. This provides defence-in-depth above the provider layer.
 	maxActionLength = 256
+
+	// rateLimitKeyMaxLength caps the length of the IP segment in rate limit
+	// keys to prevent oversized inputs from bloating storage. SHA-256 hex is
+	// 64 characters and a parsed netip.Addr canonical form is well below
+	// this, so any caller-supplied value beyond this length is truncated.
+	rateLimitKeyMaxLength = 64
 )
 
 var (
@@ -287,10 +297,14 @@ func (s *captchaService) GetProviderByName(ctx context.Context, name string) (Ca
 }
 
 // SiteKey returns the public site key of the default captcha provider.
+// Lookups are static so an internal background context is acceptable; the
+// provider implementation itself does not honour cancellation.
 //
 // Returns string which is the site key, or empty if no provider is set.
 func (s *captchaService) SiteKey() string {
-	provider, err := s.getProvider(context.Background())
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(errors.New("captchaService.SiteKey returning"))
+	provider, err := s.getProvider(ctx)
 	if err != nil {
 		return ""
 	}
@@ -298,10 +312,14 @@ func (s *captchaService) SiteKey() string {
 }
 
 // ScriptURL returns the JavaScript SDK URL of the default captcha provider.
+// Lookups are static so an internal background context is acceptable; the
+// provider implementation itself does not honour cancellation.
 //
 // Returns string which is the script URL, or empty if not applicable.
 func (s *captchaService) ScriptURL() string {
-	provider, err := s.getProvider(context.Background())
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(errors.New("captchaService.ScriptURL returning"))
+	provider, err := s.getProvider(ctx)
 	if err != nil {
 		return ""
 	}
@@ -338,7 +356,9 @@ func (s *captchaService) RegisterProvider(ctx context.Context, name string, prov
 //
 // Returns error when the named provider does not exist.
 func (s *captchaService) SetDefaultProvider(name string) error {
-	return s.registry.SetDefaultProvider(context.Background(), name)
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(errors.New("captchaService.SetDefaultProvider returning"))
+	return s.registry.SetDefaultProvider(ctx, name)
 }
 
 // GetProviders returns a sorted list of all registered provider names.
@@ -383,12 +403,15 @@ func (s *captchaService) HealthCheck(ctx context.Context) error {
 }
 
 // ChallengeHandler returns an HTTP handler for generating challenge tokens if
-// the default provider supports it, or nil otherwise.
+// the default provider supports it, or nil otherwise. Provider lookup is a
+// static read so the internal context only needs cancellation on return.
 //
 // Returns http.Handler which generates challenge tokens, or nil if the provider
 // does not support challenge generation.
 func (s *captchaService) ChallengeHandler() http.Handler {
-	provider, err := s.getProvider(context.Background())
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(errors.New("captchaService.ChallengeHandler returning"))
+	provider, err := s.getProvider(ctx)
 	if err != nil {
 		return nil
 	}
@@ -408,23 +431,63 @@ func (s *captchaService) Close(ctx context.Context) error {
 	return s.registry.CloseAll(ctx)
 }
 
-// checkVerifyRateLimit checks whether the client IP has exceeded the captcha
-// verification rate limit, returning nil if rate limiting is disabled, the
-// request is allowed, or on storage errors (fail open).
+// sanitiseRateLimitIP normalises an IP string for use as a rate-limit key.
+//
+// Whitespace is trimmed and the input is validated with netip.ParseAddr so
+// unparseable values cannot be used to inject key separators or otherwise
+// spoof distinct buckets. Inputs that fail to parse fall back to the
+// SHA-256 hex of the trimmed value, which yields a stable bucket per
+// attacker without leaking attacker-controlled bytes into the key. The
+// result is capped at rateLimitKeyMaxLength characters.
+//
+// Takes ip (string) which is the raw IP candidate, typically from
+// ClientIPExtractor.ExtractClientIP or http.Request.RemoteAddr.
+//
+// Returns string which is the sanitised key segment.
+func sanitiseRateLimitIP(ip string) string {
+	trimmed := strings.TrimSpace(ip)
+	if addr, err := netip.ParseAddr(trimmed); err == nil {
+		canonical := addr.String()
+		if len(canonical) > rateLimitKeyMaxLength {
+			return canonical[:rateLimitKeyMaxLength]
+		}
+		return canonical
+	}
+	digest := sha256.Sum256([]byte(trimmed))
+	hashed := hex.EncodeToString(digest[:])
+	if len(hashed) > rateLimitKeyMaxLength {
+		return hashed[:rateLimitKeyMaxLength]
+	}
+	return hashed
+}
+
+// checkVerifyRateLimit enforces the per-IP captcha verification limit.
+//
+// Storage failures are treated as fail-closed (the request is rate limited)
+// so an unavailable backing store cannot be exploited as a rate limit
+// bypass.
 //
 // Takes remoteIP (string) which is the client's IP address used as the rate
 // limit key.
 //
-// Returns error which is ErrRateLimited if the limit is exceeded, or nil
-// otherwise.
+// Returns error which is ErrRateLimited if the limit is exceeded or the
+// backing store fails, or nil when the limiter is unconfigured, the
+// configured limit is non-positive, or the limiter explicitly allowed the
+// request.
 func (s *captchaService) checkVerifyRateLimit(ctx context.Context, remoteIP string) error {
 	if s.rateLimiter == nil || s.config.VerifyRateLimit <= 0 {
 		return nil
 	}
+	ctx, l := logger_domain.From(ctx, log)
+	keyIP := sanitiseRateLimitIP(remoteIP)
 	allowed, err := s.rateLimiter.IsAllowed(ctx,
-		"captcha:verify:"+remoteIP, s.config.VerifyRateLimit, time.Minute)
+		"captcha:verify:"+keyIP, s.config.VerifyRateLimit, time.Minute)
 	if err != nil {
-		return nil
+		l.Warn("Captcha verify rate limiter unavailable; failing closed",
+			logger_domain.String("remote_ip", remoteIP),
+			logger_domain.Error(err),
+		)
+		return fmt.Errorf("captcha verify rate limiter unavailable: %w", captcha_dto.ErrRateLimited)
 	}
 	if !allowed {
 		return captcha_dto.ErrRateLimited
@@ -432,14 +495,17 @@ func (s *captchaService) checkVerifyRateLimit(ctx context.Context, remoteIP stri
 	return nil
 }
 
-// wrapChallengeRateLimit wraps an http.Handler with per-IP rate limiting for
-// challenge token generation, returning the handler unchanged if no rate
-// limiter is configured or the limit is zero.
+// wrapChallengeRateLimit adds per-IP challenge rate limiting to a handler.
+//
+// Backend failures fail closed (the request is rate limited) and are
+// surfaced via the structured logger so an unavailable backing store
+// cannot be used to bypass the limit.
 //
 // Takes next (http.Handler) which is the handler to wrap with rate limiting.
 //
 // Returns http.Handler which enforces the challenge rate limit before
-// delegating to next.
+// delegating to next, or next unchanged when no rate limiter is configured
+// or the limit is zero.
 func (s *captchaService) wrapChallengeRateLimit(next http.Handler) http.Handler {
 	if s.rateLimiter == nil || s.config.ChallengeRateLimit <= 0 {
 		return next
@@ -449,16 +515,29 @@ func (s *captchaService) wrapChallengeRateLimit(next http.Handler) http.Handler 
 		if s.ipExtractor != nil {
 			clientIP = s.ipExtractor.ExtractClientIP(r)
 		}
-		allowed, err := s.rateLimiter.IsAllowed(r.Context(),
-			"captcha:challenge:"+clientIP, s.config.ChallengeRateLimit, time.Minute)
-		if err == nil && !allowed {
+		ctx, l := logger_domain.From(r.Context(), log)
+		keyIP := sanitiseRateLimitIP(clientIP)
+		allowed, err := s.rateLimiter.IsAllowed(ctx,
+			"captcha:challenge:"+keyIP, s.config.ChallengeRateLimit, time.Minute)
+		if err != nil {
+			l.Warn("Captcha challenge rate limiter unavailable; failing closed",
+				logger_domain.String("remote_ip", clientIP),
+				logger_domain.Error(err),
+			)
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Retry-After", "60")
 			w.WriteHeader(http.StatusTooManyRequests)
 			_, _ = w.Write([]byte(`{"error":"rate limit exceeded"}`))
 			return
 		}
-		next.ServeHTTP(w, r)
+		if !allowed {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Retry-After", "60")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"error":"rate limit exceeded"}`))
+			return
+		}
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

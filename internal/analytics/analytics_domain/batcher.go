@@ -41,6 +41,12 @@ const (
 
 	// logFieldBatcher is the logging field name for batcher identification.
 	logFieldBatcher = "batcher"
+
+	// defaultMaxBufferSize caps the in-memory batcher buffer when the
+	// caller does not supply a value. Items in excess of the cap evict the
+	// oldest entries so a slow downstream cannot drive the process to OOM
+	// under sustained load.
+	defaultMaxBufferSize = 10000
 )
 
 // analyticsErrorClassifier determines whether a batch send error is
@@ -85,6 +91,13 @@ type BatcherConfig struct {
 	// BatchSize is the number of items that triggers an immediate
 	// flush signal. Must be > 0.
 	BatchSize int
+
+	// MaxBufferSize caps the in-memory buffer.
+	//
+	// When Add would exceed this cap, the oldest items are evicted so the
+	// process cannot OOM under sustained load when the downstream is slow
+	// or unavailable. A value <= 0 selects defaultMaxBufferSize.
+	MaxBufferSize int
 }
 
 // CircuitBreakerConfig holds settings for a batcher's circuit
@@ -147,6 +160,12 @@ type Batcher[T any] struct {
 	// batchSize.
 	flushCh chan struct{}
 
+	// lastFlushErr is the result of the most recent completed flush,
+	// returned to Flush callers whose target was covered by a
+	// concurrent drain so errors are never silently swallowed
+	// (protected by flushMu).
+	lastFlushErr error
+
 	// name identifies this batcher in logs and metrics.
 	name string
 
@@ -161,12 +180,34 @@ type Batcher[T any] struct {
 	// flush signal.
 	batchSize int
 
+	// maxBufferSize caps len(buffer); over-cap Adds evict the oldest
+	// entries.
+	maxBufferSize int
+
+	// droppedCount counts items evicted because the buffer was full.
+	// Useful for tests and diagnostic logging.
+	droppedCount uint64
+
+	// addCount is the total number of items appended via Add,
+	// snapshotted by Flush as the target sequence the caller
+	// expects to be drained before returning (incremented under mu).
+	addCount uint64
+
+	// drainedCount is the addCount snapshot from the most recent
+	// drain, used by Flush to detect that a caller's target was
+	// already processed by a concurrent flush.
+	drainedCount uint64
+
 	// closeOnce ensures Close is idempotent.
 	closeOnce sync.Once
 
-	// mu guards buffer access from concurrent Add and flushLoop
-	// calls.
+	// mu guards buffer and addCount access from concurrent Add and
+	// drainBuffer calls.
 	mu sync.Mutex
+
+	// flushMu serialises drain + send + result-record across the
+	// background flushLoop and explicit Flush callers.
+	flushMu sync.Mutex
 
 	// stopped is set during Close before closing stopCh. Checked by
 	// Add to prevent silent buffer leaks after shutdown.
@@ -195,16 +236,23 @@ func NewBatcher[T any](config BatcherConfig, sendFunc BatchSendFunc[T]) (*Batche
 	}
 
 	batchSize := config.BatchSize
+	maxBufferSize := config.MaxBufferSize
+	if maxBufferSize <= 0 {
+		maxBufferSize = defaultMaxBufferSize
+	}
+	if maxBufferSize < batchSize {
+		maxBufferSize = batchSize
+	}
 	b := &Batcher[T]{
 		sendFunc:      sendFunc,
 		name:          config.Name,
 		batchSize:     batchSize,
+		maxBufferSize: maxBufferSize,
 		flushInterval: config.FlushInterval,
 		retryConfig:   config.Retry,
 		batchPool: sync.Pool{
 			New: func() any {
-				s := make([]T, 0, batchSize)
-				return &s
+				return new(make([]T, 0, batchSize))
 			},
 		},
 		stopCh:  make(chan struct{}),
@@ -238,6 +286,10 @@ func (b *Batcher[T]) Start(ctx context.Context) {
 // When the buffer reaches batchSize the flush goroutine is signalled
 // to send the batch asynchronously; Add itself never performs I/O.
 //
+// When the buffer is at the configured cap, the oldest entries are
+// evicted before appending so the buffer cannot grow without bound under
+// sustained load. The number of evictions is tracked via DroppedCount.
+//
 // Takes item (T) which is the item to buffer.
 //
 // Concurrency: acquires b.mu briefly to append the item.
@@ -247,7 +299,18 @@ func (b *Batcher[T]) Add(item T) {
 	}
 
 	b.mu.Lock()
+	if len(b.buffer) >= b.maxBufferSize {
+		dropCount := len(b.buffer) - b.maxBufferSize + 1
+		copy(b.buffer, b.buffer[dropCount:])
+		var zero T
+		for i := len(b.buffer) - dropCount; i < len(b.buffer); i++ {
+			b.buffer[i] = zero
+		}
+		b.buffer = b.buffer[:len(b.buffer)-dropCount]
+		b.droppedCount += safeconv.IntToUint64(dropCount)
+	}
 	b.buffer = append(b.buffer, item)
+	b.addCount++
 	full := len(b.buffer) >= b.batchSize
 	b.mu.Unlock()
 
@@ -259,19 +322,71 @@ func (b *Batcher[T]) Add(item T) {
 	}
 }
 
-// Flush sends any buffered items via the send function. The mutex
-// is only held while copying the buffer; HTTP I/O and retries run
-// without the lock so that Add is never blocked by network latency.
+// DroppedCount returns the cumulative number of items evicted because the
+// buffer was at its configured cap when Add was called.
+//
+// Returns uint64 which is the running total of dropped items since the
+// Batcher was created.
+//
+// Safe for concurrent use.
+func (b *Batcher[T]) DroppedCount() uint64 {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.droppedCount
+}
+
+// Flush sends any buffered items via the send function.
+//
+// Waits for any concurrent flush to complete; by the time Flush
+// returns, every item Added before this call has been processed
+// (sent or failed). When a concurrent flushLoop has already drained
+// the caller's items, Flush returns the result of that flush rather
+// than nil so errors are never silently swallowed by a race.
 //
 // Returns error when the send function fails.
+//
+// Concurrency: holds flushMu for the entire flush including I/O
+// and retries. Add is never blocked because it acquires only b.mu.
 func (b *Batcher[T]) Flush(ctx context.Context) error {
-	batch := b.drainBuffer()
+	target := b.addCountSnapshot()
+
+	b.flushMu.Lock()
+	defer b.flushMu.Unlock()
+
+	if b.drainedCount >= target {
+		return b.lastFlushErr
+	}
+	return b.flushLocked(ctx)
+}
+
+// flushLocked performs one drain-and-send cycle and records the
+// result. Caller must hold flushMu.
+//
+// Returns error from sendWithResilience, or nil when the buffer was
+// already drained by a concurrent flush.
+func (b *Batcher[T]) flushLocked(ctx context.Context) error {
+	batch, snapshot := b.drainBuffer()
 	if batch == nil {
+		if snapshot > b.drainedCount {
+			b.drainedCount = snapshot
+		}
 		return nil
 	}
 	err := b.sendWithResilience(ctx, *batch)
 	b.releaseBatch(batch)
+	b.lastFlushErr = err
+	b.drainedCount = snapshot
 	return err
+}
+
+// addCountSnapshot reads addCount under b.mu so the value is
+// consistent with concurrent Add calls.
+//
+// Returns uint64 which is the current addCount.
+func (b *Batcher[T]) addCountSnapshot() uint64 {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.addCount
 }
 
 // Close stops the flush timer and waits for the flush goroutine to
@@ -298,6 +413,10 @@ func (b *Batcher[T]) Close() error {
 // It also listens for immediate flush signals when the buffer reaches
 // batchSize. The backgroundCtx carries context values (logger, trace
 // spans) without cancellation.
+//
+// Concurrency: holds flushMu for each flush so it cooperates with
+// explicit Flush callers via the same lock; this prevents two
+// flushes from racing to drain the buffer.
 func (b *Batcher[T]) flushLoop(backgroundCtx context.Context) {
 	defer close(b.doneCh)
 	defer goroutine.RecoverPanic(backgroundCtx, "analytics.batcher."+b.name+".flushLoop")
@@ -308,13 +427,19 @@ func (b *Batcher[T]) flushLoop(backgroundCtx context.Context) {
 	for {
 		select {
 		case <-ticker.C():
-			if err := b.Flush(backgroundCtx); err != nil {
+			b.flushMu.Lock()
+			err := b.flushLocked(backgroundCtx)
+			b.flushMu.Unlock()
+			if err != nil {
 				l.Warn("Analytics batcher periodic flush failed",
 					logger_domain.String(logFieldBatcher, b.name),
 					logger_domain.Error(err))
 			}
 		case <-b.flushCh:
-			if err := b.Flush(backgroundCtx); err != nil {
+			b.flushMu.Lock()
+			err := b.flushLocked(backgroundCtx)
+			b.flushMu.Unlock()
+			if err != nil {
 				l.Warn("Analytics batcher signal flush failed",
 					logger_domain.String(logFieldBatcher, b.name),
 					logger_domain.Error(err))
@@ -330,25 +455,26 @@ func (b *Batcher[T]) flushLoop(backgroundCtx context.Context) {
 //
 // Returns *[]T which is the pooled batch, or nil when the buffer
 // is empty.
+// Returns uint64 which is the addCount snapshot at drain time.
 //
 // Concurrency: acquires b.mu for the duration of the copy. The lock
 // is released before any subsequent I/O.
-func (b *Batcher[T]) drainBuffer() *[]T {
+func (b *Batcher[T]) drainBuffer() (*[]T, uint64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	snapshot := b.addCount
 	if len(b.buffer) == 0 {
-		return nil
+		return nil, snapshot
 	}
 
 	batch, ok := b.batchPool.Get().(*[]T)
 	if !ok {
-		fresh := make([]T, 0, b.batchSize)
-		batch = &fresh
+		batch = new(make([]T, 0, b.batchSize))
 	}
 	*batch = append((*batch)[:0], b.buffer...)
 	b.buffer = b.buffer[:0]
-	return batch
+	return batch, snapshot
 }
 
 // releaseBatch returns a batch slice to the pool after the send

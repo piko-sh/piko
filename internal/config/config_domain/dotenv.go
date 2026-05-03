@@ -27,12 +27,17 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// tokenType identifies the kind of token in a configuration value.
-type tokenType int
+// defaultMaxDotenvBytes is the default upper bound on the size of a dotenv
+// file that the parser will accept. The cap is intentionally generous for
+// legitimate operator workflows yet small enough to defend against a hostile
+// or accidentally truncated stream that would otherwise allocate without
+// bound.
+const defaultMaxDotenvBytes int64 = 1 * 1024 * 1024
 
 const (
 	// tokenIllegal marks a character that the lexer does not recognise.
@@ -100,7 +105,49 @@ const (
 
 	// escapeBackslash is the backslash escape sequence character.
 	escapeBackslash = '\\'
+
+	// defaultExpansionDepthHint preallocates the cycle-detection set used
+	// during variable expansion. It does not bound recursion; it just
+	// avoids a tiny initial allocation for typical workflows.
+	defaultExpansionDepthHint = 4
 )
+
+// tokenType identifies the kind of token in a configuration value.
+type tokenType int
+
+// ErrDotenvFileTooLarge is returned when a dotenv stream exceeds the
+// configured maximum size. Callers should wrap or compare with errors.Is.
+var ErrDotenvFileTooLarge = errors.New("dotenv file exceeds maximum size")
+
+// maxDotenvBytes holds the active maximum dotenv stream size in bytes.
+// It is initialised at package load to defaultMaxDotenvBytes and may be
+// overridden by SetMaxDotenvBytes for tests or operator-controlled tuning.
+var maxDotenvBytes atomic.Int64
+
+func init() {
+	maxDotenvBytes.Store(defaultMaxDotenvBytes)
+}
+
+// SetMaxDotenvBytes overrides the maximum byte size accepted when reading a
+// dotenv stream. A value of zero or below disables the cap, which is not
+// recommended for attacker-influenced input.
+//
+// Takes maxBytes (int64) which is the new cap in bytes.
+func SetMaxDotenvBytes(maxBytes int64) {
+	if maxBytes < 0 {
+		maxBytes = 0
+	}
+	maxDotenvBytes.Store(maxBytes)
+}
+
+// MaxDotenvBytes returns the active byte-size cap enforced when reading a
+// dotenv stream.
+//
+// Returns int64 which is the current cap; a value of zero indicates no cap
+// is enforced.
+func MaxDotenvBytes() int64 {
+	return maxDotenvBytes.Load()
+}
 
 // token represents a single piece of text from the configuration file parser.
 type token struct {
@@ -365,7 +412,9 @@ func (p *parser) expandVariables() map[string]string {
 
 	for k, entry := range p.rawValues {
 		if !entry.isSingleQuoted {
-			expandedMap[k] = p.customExpand(entry.value, k, expandedMap)
+			visiting := make(map[string]struct{}, defaultExpansionDepthHint)
+			visiting[k] = struct{}{}
+			expandedMap[k] = p.customExpand(entry.value, k, expandedMap, visiting)
 		}
 	}
 
@@ -379,9 +428,11 @@ func (p *parser) expandVariables() map[string]string {
 // Takes value (string) which is the string containing variables to expand.
 // Takes currentKey (string) which identifies the key being processed.
 // Takes expandedMap (map[string]string) which caches already expanded values.
+// Takes visiting (map[string]struct{}) which records the active expansion
+// chain so that mutual references can be detected and short-circuited.
 //
 // Returns string which is the input with all variables expanded.
-func (p *parser) customExpand(value string, currentKey string, expandedMap map[string]string) string {
+func (p *parser) customExpand(value string, currentKey string, expandedMap map[string]string, visiting map[string]struct{}) string {
 	result := strings.Builder{}
 	i := 0
 	for i < len(value) {
@@ -391,7 +442,7 @@ func (p *parser) customExpand(value string, currentKey string, expandedMap map[s
 			continue
 		}
 
-		expanded, consumed := p.tryExpandVariable(value, i, currentKey, expandedMap)
+		expanded, consumed := p.tryExpandVariable(value, i, currentKey, expandedMap, visiting)
 		if consumed > 0 {
 			_, _ = result.WriteString(expanded)
 			i += consumed
@@ -421,16 +472,18 @@ func (*parser) isVariableStart(value string, i int) bool {
 // Takes i (int) which specifies the position of the dollar sign.
 // Takes currentKey (string) which identifies the key being expanded.
 // Takes expandedMap (map[string]string) which stores already expanded values.
+// Takes visiting (map[string]struct{}) which records the active expansion
+// chain to detect mutual reference cycles.
 //
 // Returns string which contains the expanded variable value, or empty if none.
 // Returns int which indicates the number of characters used, or 0 if no valid
 // variable pattern is found.
-func (p *parser) tryExpandVariable(value string, i int, currentKey string, expandedMap map[string]string) (string, int) {
-	if expanded, consumed := p.tryExpandBracedVariable(value, i, currentKey, expandedMap); consumed > 0 {
+func (p *parser) tryExpandVariable(value string, i int, currentKey string, expandedMap map[string]string, visiting map[string]struct{}) (string, int) {
+	if expanded, consumed := p.tryExpandBracedVariable(value, i, currentKey, expandedMap, visiting); consumed > 0 {
 		return expanded, consumed
 	}
 
-	if expanded, consumed := p.tryExpandBareVariable(value, i, currentKey, expandedMap); consumed > 0 {
+	if expanded, consumed := p.tryExpandBareVariable(value, i, currentKey, expandedMap, visiting); consumed > 0 {
 		return expanded, consumed
 	}
 
@@ -442,15 +495,17 @@ func (p *parser) tryExpandVariable(value string, i int, currentKey string, expan
 // Takes value (string) which is the string containing the variable reference.
 // Takes i (int) which is the position of the dollar sign in value.
 // Takes currentKey (string) which is the key being expanded, used to detect
-// cycles.
+// direct self-references.
 // Takes expandedMap (map[string]string) which holds variables that have already
 // been expanded.
+// Takes visiting (map[string]struct{}) which records the active expansion
+// chain so mutual references between variables are detected.
 //
 // Returns string which is the expanded variable value, or empty if this is not
 // a braced variable.
 // Returns int which is the number of characters consumed, or zero if this is
 // not a braced variable.
-func (p *parser) tryExpandBracedVariable(value string, i int, currentKey string, expandedMap map[string]string) (string, int) {
+func (p *parser) tryExpandBracedVariable(value string, i int, currentKey string, expandedMap map[string]string, visiting map[string]struct{}) (string, int) {
 	if value[i+1] != '{' {
 		return "", 0
 	}
@@ -461,7 +516,7 @@ func (p *parser) tryExpandBracedVariable(value string, i int, currentKey string,
 	}
 
 	varName := value[i+2 : closingBrace]
-	expanded := p.expandVariable(varName, currentKey, expandedMap)
+	expanded := p.expandVariable(varName, currentKey, expandedMap, visiting)
 	consumed := closingBrace - i + 1
 	return expanded, consumed
 }
@@ -487,10 +542,12 @@ func (*parser) findClosingBrace(value string, position int) int {
 // Takes i (int) which is the position of the dollar sign in value.
 // Takes currentKey (string) which identifies the variable being expanded.
 // Takes expandedMap (map[string]string) which tracks already expanded values.
+// Takes visiting (map[string]struct{}) which records the active expansion
+// chain so mutual references between variables are detected.
 //
 // Returns string which is the expanded variable value, or empty if not valid.
 // Returns int which is the number of characters used, or zero if not valid.
-func (p *parser) tryExpandBareVariable(value string, i int, currentKey string, expandedMap map[string]string) (string, int) {
+func (p *parser) tryExpandBareVariable(value string, i int, currentKey string, expandedMap map[string]string, visiting map[string]struct{}) (string, int) {
 	if !isValidVarStart(value[i+1]) {
 		return "", 0
 	}
@@ -505,7 +562,7 @@ func (p *parser) tryExpandBareVariable(value string, i int, currentKey string, e
 		return "", 0
 	}
 
-	expanded := p.expandVariable(varName, currentKey, expandedMap)
+	expanded := p.expandVariable(varName, currentKey, expandedMap, visiting)
 	consumed := j - i
 	return expanded, consumed
 }
@@ -524,17 +581,22 @@ func (*parser) shouldExpandBareVariable(varName string) bool {
 // expandVariable finds and expands a variable by name.
 //
 // The method first checks the parser's raw values, then falls back to the
-// shell environment. It handles self-references by returning an empty string
-// and returns the literal "${}" for empty variable names.
+// shell environment. It handles direct self-references and mutual reference
+// cycles (for example A=$B, B=$A) by returning an empty string, and returns
+// the literal "${}" for empty variable names. Cycle detection relies on the
+// visiting set, which records every variable currently being expanded along
+// the active call chain.
 //
 // Takes varName (string) which is the name of the variable to expand.
 // Takes currentKey (string) which is the key being processed, used to detect
-// self-references.
+// direct self-references.
 // Takes expandedMap (map[string]string) which caches expanded values to avoid
-// repeated work and detect cycles.
+// repeated work.
+// Takes visiting (map[string]struct{}) which records the active expansion
+// chain so that mutual references between variables are detected and broken.
 //
 // Returns string which is the expanded value.
-func (p *parser) expandVariable(varName string, currentKey string, expandedMap map[string]string) string {
+func (p *parser) expandVariable(varName string, currentKey string, expandedMap map[string]string, visiting map[string]struct{}) string {
 	if varName == "" {
 		return "${}"
 	}
@@ -543,11 +605,16 @@ func (p *parser) expandVariable(varName string, currentKey string, expandedMap m
 		if varName == currentKey {
 			return ""
 		}
+		if _, cycle := visiting[varName]; cycle {
+			return ""
+		}
 		if expandedValue, exists := expandedMap[varName]; exists {
 			return expandedValue
 		}
+		visiting[varName] = struct{}{}
+		defer delete(visiting, varName)
 		if !rawEntry.isSingleQuoted {
-			expandedMap[varName] = p.customExpand(rawEntry.value, varName, expandedMap)
+			expandedMap[varName] = p.customExpand(rawEntry.value, varName, expandedMap, visiting)
 		} else {
 			expandedMap[varName] = rawEntry.value
 		}
@@ -720,16 +787,28 @@ func isCommonSingleLetterVar(varName string) bool {
 }
 
 // parseDotEnvStream parses environment variables from a stream and returns
-// the expanded key-value pairs.
+// the expanded key-value pairs. The stream is read up to the cap configured
+// by SetMaxDotenvBytes; oversized streams are rejected with
+// ErrDotenvFileTooLarge to bound memory consumption from hostile or
+// accidentally truncated inputs.
 //
 // Takes r (io.Reader) which provides the .env file content to parse.
 //
 // Returns map[string]string which contains the parsed and expanded variables.
-// Returns error when the stream cannot be read.
+// Returns error when the stream cannot be read or exceeds the configured
+// maximum size.
 func parseDotEnvStream(r io.Reader) (map[string]string, error) {
-	content, err := io.ReadAll(r)
+	maxBytes := maxDotenvBytes.Load()
+	reader := r
+	if maxBytes > 0 {
+		reader = io.LimitReader(r, maxBytes+1)
+	}
+	content, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read .env stream: %w", err)
+	}
+	if maxBytes > 0 && int64(len(content)) > maxBytes {
+		return nil, fmt.Errorf("read .env stream: %w (limit %d bytes)", ErrDotenvFileTooLarge, maxBytes)
 	}
 
 	dotEnvLexer := newLexer(string(content))

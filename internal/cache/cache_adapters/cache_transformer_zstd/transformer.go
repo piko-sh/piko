@@ -19,8 +19,12 @@
 package cache_transformer_zstd
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"sync"
 
 	"github.com/klauspost/compress/zstd"
 	"piko.sh/piko/internal/cache/cache_domain"
@@ -39,7 +43,22 @@ const (
 
 	// logKeyTransformer is the standard log key for transformer name.
 	logKeyTransformer = "transformer"
+
+	// DefaultMaxDecompressedCacheBytes is the default cap on bytes that may be
+	// produced by a single Reverse decompression.
+	//
+	// Cache values are typically small in-memory blobs, so a 64 MiB ceiling
+	// is a generous default that still prevents pathological decompression
+	// bombs from dominating the heap in callers that buffer the result.
+	// Override with WithMaxDecompressedCacheBytes for stricter or more
+	// relaxed limits.
+	DefaultMaxDecompressedCacheBytes int64 = 64 * 1024 * 1024
 )
+
+// ErrDecompressedCacheTooLarge is returned by Reverse when the decompressed
+// payload exceeds the configured maximum decompressed size. Callers can use
+// errors.Is to distinguish this from ordinary decompression failures.
+var ErrDecompressedCacheTooLarge = errors.New("cache_transformer_zstd: decompressed cache value exceeds maximum allowed size")
 
 // ZstdCacheTransformer implements CacheTransformerPort for Zstandard
 // compression. Zstandard provides excellent compression ratios with fast
@@ -59,6 +78,15 @@ type ZstdCacheTransformer struct {
 
 	// priority is the execution order for this transformer; lower values run first.
 	priority int
+
+	// maxDecompressedBytes caps the bytes returned from Reverse, preventing
+	// decompression bombs from exhausting memory in downstream consumers. A
+	// non-positive value disables the cap.
+	maxDecompressedBytes int64
+
+	// closeOnce guards the encoder/decoder release sequence so Close is safe
+	// to invoke repeatedly.
+	closeOnce sync.Once
 }
 
 var _ cache_domain.CacheTransformerPort = (*ZstdCacheTransformer)(nil)
@@ -77,17 +105,44 @@ type Config struct {
 	// Priority determines execution order; lower values run first on Set.
 	// Recommended range is 100-199 for compression transformers; default is 100.
 	Priority int
+
+	// MaxDecompressedBytes caps the decompressed output size in bytes
+	// produced by Reverse.
+	//
+	// When zero, DefaultMaxDecompressedCacheBytes is used. Negative values
+	// disable the cap (not recommended for untrusted cache contents).
+	MaxDecompressedBytes int64
+}
+
+// Option configures a ZstdCacheTransformer at construction time.
+type Option func(*ZstdCacheTransformer)
+
+// WithMaxDecompressedCacheBytes sets the maximum number of decompressed
+// bytes produced by Reverse before ErrDecompressedCacheTooLarge is surfaced.
+//
+// Pass a non-positive value to disable the cap (only safe for fully trusted
+// cache contents).
+//
+// Takes maxBytes (int64) which is the cap in bytes; non-positive disables.
+//
+// Returns Option which sets the cap on a transformer.
+func WithMaxDecompressedCacheBytes(maxBytes int64) Option {
+	return func(t *ZstdCacheTransformer) {
+		t.maxDecompressedBytes = maxBytes
+	}
 }
 
 // NewZstdCacheTransformer creates a new zstd cache compression transformer.
 //
 // Takes config (Config) which specifies the compression settings including
-// name, priority, and compression level.
+// name, priority, compression level, and decompression cap.
+// Takes options (...Option) which override settings on the constructed
+// transformer (e.g. WithMaxDecompressedCacheBytes).
 //
 // Returns *ZstdCacheTransformer which is ready to compress and decompress
 // cached data.
 // Returns error when the zstd encoder or decoder cannot be created.
-func NewZstdCacheTransformer(config Config) (*ZstdCacheTransformer, error) {
+func NewZstdCacheTransformer(config Config, options ...Option) (*ZstdCacheTransformer, error) {
 	if config.Name == "" {
 		config.Name = defaultTransformerName
 	}
@@ -96,6 +151,9 @@ func NewZstdCacheTransformer(config Config) (*ZstdCacheTransformer, error) {
 	}
 	if config.Level == 0 {
 		config.Level = zstd.SpeedDefault
+	}
+	if config.MaxDecompressedBytes == 0 {
+		config.MaxDecompressedBytes = DefaultMaxDecompressedCacheBytes
 	}
 
 	encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(config.Level))
@@ -109,13 +167,20 @@ func NewZstdCacheTransformer(config Config) (*ZstdCacheTransformer, error) {
 		return nil, fmt.Errorf("failed to create zstd decoder: %w", err)
 	}
 
-	return &ZstdCacheTransformer{
-		name:     config.Name,
-		priority: config.Priority,
-		level:    config.Level,
-		encoder:  encoder,
-		decoder:  decoder,
-	}, nil
+	t := &ZstdCacheTransformer{
+		name:                 config.Name,
+		priority:             config.Priority,
+		level:                config.Level,
+		encoder:              encoder,
+		decoder:              decoder,
+		maxDecompressedBytes: config.MaxDecompressedBytes,
+	}
+
+	for _, opt := range options {
+		opt(t)
+	}
+
+	return t, nil
 }
 
 // Name returns the unique identifier for this transformer.
@@ -173,29 +238,90 @@ func (z *ZstdCacheTransformer) Transform(ctx context.Context, input []byte, opti
 
 // Reverse decompresses the input bytes using zstd.
 //
+// The decompressed output is capped at the configured maximum (see
+// WithMaxDecompressedCacheBytes); attempts to decompress beyond the cap
+// surface ErrDecompressedCacheTooLarge instead of allowing unbounded
+// allocations. A non-positive cap disables the limit.
+//
 // Options are not used for decompression.
 //
 // Takes input ([]byte) which contains the compressed data to
 // decompress.
 //
 // Returns []byte which contains the decompressed data.
-// Returns error when decompression fails.
+// Returns error when decompression fails or the configured cap is exceeded.
 func (z *ZstdCacheTransformer) Reverse(ctx context.Context, input []byte, _ any) ([]byte, error) {
 	_, l := logger_domain.From(ctx, log)
 
 	l.Trace("Decompressing cache value with zstd",
 		logger_domain.String(logKeyTransformer, z.name),
-		logger_domain.Int("compressed_size", len(input)))
+		logger_domain.Int("compressed_size", len(input)),
+		logger_domain.Int64("max_decompressed_bytes", z.maxDecompressedBytes))
 
-	decompressed, err := z.decoder.DecodeAll(input, nil)
+	decompressed, err := z.decompress(input)
 	if err != nil {
-		return nil, fmt.Errorf("zstd decompression failed: %w", err)
+		return nil, err
 	}
 
 	l.Trace("Zstd decompression complete",
 		logger_domain.String(logKeyTransformer, z.name),
 		logger_domain.Int("compressed_size", len(input)),
 		logger_domain.Int("decompressed_size", len(decompressed)))
+
+	return decompressed, nil
+}
+
+// Close releases the encoder and decoder held by the transformer. It is safe
+// to call Close repeatedly; subsequent invocations are no-ops.
+//
+// Returns error which is always nil; included so the transformer can satisfy
+// io.Closer for resource-aware callers.
+func (z *ZstdCacheTransformer) Close() error {
+	z.closeOnce.Do(func() {
+		if z.encoder != nil {
+			_ = z.encoder.Close()
+		}
+		if z.decoder != nil {
+			z.decoder.Close()
+		}
+	})
+	return nil
+}
+
+// decompress runs the bounded zstd decompression. When the cap is enabled, a
+// streaming decoder is used so that decompression terminates as soon as the
+// limit is exceeded; the LimitReader+1 idiom distinguishes "exactly at cap"
+// from "over cap" without buffering the whole result first.
+//
+// Takes input ([]byte) which contains the compressed payload.
+//
+// Returns []byte which is the decompressed payload.
+// Returns error when decompression fails or the cap is exceeded.
+func (z *ZstdCacheTransformer) decompress(input []byte) ([]byte, error) {
+	if z.maxDecompressedBytes <= 0 {
+		decompressed, err := z.decoder.DecodeAll(input, nil)
+		if err != nil {
+			return nil, fmt.Errorf("zstd decompression failed: %w", err)
+		}
+		return decompressed, nil
+	}
+
+	reader, err := zstd.NewReader(bytes.NewReader(input))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create zstd decoder: %w", err)
+	}
+	defer reader.Close()
+
+	limited := io.LimitReader(reader, z.maxDecompressedBytes+1)
+	decompressed, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, fmt.Errorf("zstd decompression failed: %w", err)
+	}
+
+	if int64(len(decompressed)) > z.maxDecompressedBytes {
+		return nil, fmt.Errorf("%w: decompressed at least %d bytes, cap %d",
+			ErrDecompressedCacheTooLarge, len(decompressed), z.maxDecompressedBytes)
+	}
 
 	return decompressed, nil
 }
@@ -227,13 +353,14 @@ func (z *ZstdCacheTransformer) getCompressionLevel(options any) zstd.EncoderLeve
 
 // DefaultConfig returns sensible defaults for zstd compression.
 //
-// Returns Config which contains the default transformer name, priority, and
-// compression level.
+// Returns Config which contains the default transformer name, priority,
+// compression level, and decompression cap.
 func DefaultConfig() Config {
 	return Config{
-		Name:     defaultTransformerName,
-		Priority: defaultPriority,
-		Level:    zstd.SpeedDefault,
+		Name:                 defaultTransformerName,
+		Priority:             defaultPriority,
+		Level:                zstd.SpeedDefault,
+		MaxDecompressedBytes: DefaultMaxDecompressedCacheBytes,
 	}
 }
 
@@ -288,6 +415,11 @@ func parseMapConfig(c map[string]any, config Config) Config {
 	}
 	if level, ok := c["level"].(int); ok {
 		config.Level = zstd.EncoderLevel(level)
+	}
+	if maxBytes, ok := c["max_decompressed_bytes"].(int64); ok {
+		config.MaxDecompressedBytes = maxBytes
+	} else if maxBytes, ok := c["max_decompressed_bytes"].(int); ok {
+		config.MaxDecompressedBytes = int64(maxBytes)
 	}
 	return config
 }

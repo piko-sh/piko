@@ -20,6 +20,7 @@ package provider_otter
 
 import (
 	"cmp"
+	"maps"
 	"math"
 	"slices"
 	"strings"
@@ -341,11 +342,10 @@ func (idx *InvertedIndex[K]) intersectTerms(terms []string, skipTerm string, can
 			return false
 		}
 
-		for k := range candidates {
-			if _, exists := termKeys[k]; !exists {
-				delete(candidates, k)
-			}
-		}
+		maps.DeleteFunc(candidates, func(k K, _ struct{}) bool {
+			_, exists := termKeys[k]
+			return !exists
+		})
 
 		if len(candidates) == 0 {
 			return false
@@ -625,9 +625,7 @@ func (*InvertedIndex[K]) tokeniseDefault(text string) []string {
 	}
 	defer func() {
 		buffers.words = buffers.words[:0]
-		for k := range buffers.seen {
-			delete(buffers.seen, k)
-		}
+		clear(buffers.seen)
 		buffers.result = buffers.result[:0]
 		tokenisePool.Put(buffers)
 	}()

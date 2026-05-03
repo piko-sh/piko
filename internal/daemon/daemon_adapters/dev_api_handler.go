@@ -24,6 +24,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/safeerror"
 )
 
 // DevAPIHandler serves JSON REST endpoints for the dev tools overlay widget.
@@ -44,6 +45,29 @@ type DevAPIHandler struct {
 
 	// providerInfo provides resource type and provider discovery data.
 	providerInfo monitoring_domain.ProviderInfoInspector
+
+	// developmentMode controls whether internal error details are echoed back
+	// to clients. Production deployments should leave this false so that
+	// raw err.Error() output never reaches the dev tools client.
+	developmentMode bool
+}
+
+// DevAPIHandlerOption configures optional behaviour for DevAPIHandler.
+// Options are applied in order; later options override earlier ones.
+type DevAPIHandlerOption func(*DevAPIHandler)
+
+// WithDevAPIDevelopmentMode toggles whether the dev API echoes raw internal
+// error messages back to the client. Production deployments must leave this
+// false so the handler returns a sanitised generic message instead.
+//
+// Takes enabled (bool) which is true when development mode is active.
+//
+// Returns DevAPIHandlerOption which sets the development mode flag when
+// passed to NewDevAPIHandler.
+func WithDevAPIDevelopmentMode(enabled bool) DevAPIHandlerOption {
+	return func(h *DevAPIHandler) {
+		h.developmentMode = enabled
+	}
 }
 
 // NewDevAPIHandler creates a new handler for dev tool REST endpoints.
@@ -55,16 +79,23 @@ type DevAPIHandler struct {
 // Takes orchestrator
 // (orchestrator_domain.OrchestratorInspector) which supplies
 // build pipeline state.
+// Takes opts (...DevAPIHandlerOption) which configure optional behaviour
+// such as toggling development mode for error sanitisation.
 //
 // Returns *DevAPIHandler which is the initialised handler.
 func NewDevAPIHandler(
 	systemStats monitoring_domain.SystemStatsProvider,
 	orchestrator orchestrator_domain.OrchestratorInspector,
+	opts ...DevAPIHandlerOption,
 ) *DevAPIHandler {
-	return &DevAPIHandler{
+	h := &DevAPIHandler{
 		systemStats:  systemStats,
 		orchestrator: orchestrator,
 	}
+	for _, opt := range opts {
+		opt(h)
+	}
+	return h
 }
 
 // SetHealthProbeService sets the health probe provider. Must be called before
@@ -130,7 +161,10 @@ func (h *DevAPIHandler) handleBuild(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	summary, err := h.orchestrator.ListTaskSummary(ctx)
 	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{"available": false, "error": err.Error()})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"available": false,
+			"error":     safeerror.ExtractSafeMessage(err, h.developmentMode),
+		})
 		return
 	}
 

@@ -166,6 +166,51 @@ func TestServerHandle_ReportErrorFallsBackToPrintf(t *testing.T) {
 	assert.Contains(t, output, "profiling server error: boom")
 }
 
+func TestProfilerServer_PanicInHandlerIsContained(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/panic", func(_ http.ResponseWriter, _ *http.Request) {
+		panic("induced handler panic")
+	})
+	mux.HandleFunc("/healthy", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	panicResponse, err := server.Client().Get(server.URL + "/panic")
+	if err == nil {
+		_ = panicResponse.Body.Close()
+		assert.NotEqual(t, http.StatusOK, panicResponse.StatusCode,
+			"panicking handler should not produce a 200 OK")
+	}
+
+	healthyResponse, err := server.Client().Get(server.URL + "/healthy")
+	require.NoError(t, err, "subsequent requests must continue to be served after a handler panic")
+	defer func() { _ = healthyResponse.Body.Close() }()
+	require.Equal(t, http.StatusOK, healthyResponse.StatusCode)
+	body, err := io.ReadAll(healthyResponse.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "ok", string(body))
+}
+
+func TestStartServer_GoroutineRecoversFromListenAndServePanic(t *testing.T) {
+	t.Parallel()
+
+	handle, err := StartServer(Config{
+		BindAddress: DefaultBindAddress,
+		Port:        0,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, handle)
+
+	require.NoError(t, handle.Shutdown(context.Background()),
+		"shutdown must complete even though the listener goroutine is panic-protected")
+}
+
 type fakeTraceRecorder struct {
 	enabled bool
 	data    []byte

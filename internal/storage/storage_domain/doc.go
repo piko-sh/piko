@@ -16,20 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage_domain defines the core storage abstractions and
-// business logic for Piko's object storage hexagon. Storage adapters
-// implement the port interfaces in this package to work with
-// multi-provider storage operations, stream transformation pipelines,
-// content-addressable storage, presigned URL generation, and
-// asynchronous dispatch.
+// Package storage_domain defines the core storage abstractions and business
+// logic for Piko's object storage hexagon. Storage adapters implement the port
+// interfaces defined here to work with multi-provider storage operations,
+// stream transformation pipelines, content-addressable storage, presigned URL
+// generation, and asynchronous dispatch.
 //
-// The package includes composable resilience decorators: retry with
-// exponential backoff and jitter, circuit breaker, token bucket rate
-// limiting, dead letter queue, and singleflight deduplication for
-// concurrent reads of small objects.
+// The package includes composable resilience decorators: retry with exponential
+// backoff and jitter, circuit breaker, token bucket rate limiting, dead letter
+// queue, and singleflight deduplication for concurrent reads of small objects.
 //
 // All terminal operations honour context cancellation and deadlines.
 //
-// All service methods and resilience wrappers are safe for concurrent
-// use.
+// All service methods and resilience wrappers are safe for concurrent use.
 package storage_domain

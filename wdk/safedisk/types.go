@@ -25,6 +25,12 @@ import (
 	"time"
 )
 
+// DefaultReadFileMaxBytes is the safety cap applied by Sandbox.ReadFile so
+// that a single read cannot allocate unbounded memory. Callers expecting
+// larger files should use ReadFileLimit with an explicit cap or stream via
+// Open.
+const DefaultReadFileMaxBytes int64 = 256 * 1024 * 1024
+
 // Mode specifies whether a sandbox allows write operations.
 // It implements fmt.Stringer.
 type Mode uint8
@@ -70,8 +76,8 @@ func (m Mode) String() string {
 }
 
 // FileHandle provides an interface for sandboxed file operations.
-// This interface enables dependency injection and testing with mock
-// implementations that can simulate errors for test coverage.
+// Enables dependency injection and testing with mock implementations that can
+// simulate errors for test coverage.
 //
 // The default implementation is *File, which wraps os.File.
 type FileHandle interface {
@@ -135,13 +141,19 @@ type Sandbox interface {
 	// Returns error if the file cannot be opened or path escapes sandbox.
 	Open(name string) (FileHandle, error)
 
-	// ReadFile reads the entire contents of a file within the sandbox.
-	// This is equivalent to Open followed by io.ReadAll.
+	// ReadFile reads the entire contents of a file within the sandbox up
+	// to DefaultReadFileMaxBytes.
+	//
+	// The cap exists to prevent unbounded memory allocation when the
+	// underlying file has unexpectedly grown. Callers that know the file is
+	// small may use this; callers expecting larger content should use
+	// ReadFileLimit with an explicit cap, or stream via Open.
 	//
 	// Takes name (string) the relative path within the sandbox.
 	//
 	// Returns []byte the file contents.
-	// Returns error if the file cannot be read or path escapes sandbox.
+	// Returns error if the file cannot be read, path escapes sandbox, or the
+	// file exceeds DefaultReadFileMaxBytes (wrapped as ErrFileExceedsLimit).
 	ReadFile(name string) ([]byte, error)
 
 	// ReadFileLimit reads up to maxBytes of a file within the sandbox after

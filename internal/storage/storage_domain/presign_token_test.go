@@ -325,6 +325,39 @@ func TestGeneratePresignRID(t *testing.T) {
 	})
 }
 
+func TestParseAndVerifyPresignTokenRejectsOversizeInput(t *testing.T) {
+	secret := testSecret()
+
+	huge := strings.Repeat("A", presignMaxTokenLength+1)
+
+	_, err := ParseAndVerifyPresignToken(secret, huge)
+	if err == nil {
+		t.Fatalf("expected error for oversize token, got nil")
+	}
+	if !errors.Is(err, ErrPresignTokenTooLarge) {
+		t.Errorf("expected ErrPresignTokenTooLarge, got %v", err)
+	}
+
+	_, err = ParseAndVerifyPresignDownloadToken(secret, huge)
+	if err == nil {
+		t.Fatalf("expected error for oversize download token, got nil")
+	}
+	if !errors.Is(err, ErrPresignTokenTooLarge) {
+		t.Errorf("expected ErrPresignTokenTooLarge for download, got %v", err)
+	}
+
+	tok, err := GeneratePresignToken(secret, validTokenData())
+	if err != nil {
+		t.Fatalf("setup: failed to generate valid token: %v", err)
+	}
+	if len(tok) > presignMaxTokenLength {
+		t.Fatalf("legitimate token exceeded cap: %d > %d", len(tok), presignMaxTokenLength)
+	}
+	if _, err := ParseAndVerifyPresignToken(secret, tok); err != nil {
+		t.Errorf("legitimate token rejected: %v", err)
+	}
+}
+
 func TestTokenRoundTrip(t *testing.T) {
 	secret := testSecret()
 	originalData := validTokenData()

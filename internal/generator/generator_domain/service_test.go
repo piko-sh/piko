@@ -230,7 +230,7 @@ func TestGenerateStaticCollections(t *testing.T) {
 								CollectionName: "docs",
 							},
 							VirtualInstances: []annotator_dto.VirtualPageInstance{
-								{Route: "/docs/intro", InitialProps: map[string]any{}},
+								{Slug: "intro", InitialProps: map[string]any{}},
 							},
 						},
 					},
@@ -256,7 +256,7 @@ func TestGenerateStaticCollections(t *testing.T) {
 								CollectionName: "docs",
 							},
 							VirtualInstances: []annotator_dto.VirtualPageInstance{
-								{Route: "/docs/intro", InitialProps: map[string]any{}},
+								{Slug: "intro", InitialProps: map[string]any{}},
 							},
 						},
 					},

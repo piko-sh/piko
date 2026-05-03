@@ -666,6 +666,7 @@ func (m *MockSandbox) Open(name string) (FileHandle, error) {
 }
 
 // ReadFile reads the entire contents of a file within the sandbox.
+// The mock has no size cap (returns whatever fixture bytes were registered).
 //
 // Takes name (string) which is the path of the file to read.
 //
@@ -887,18 +888,26 @@ func (m *MockSandbox) OpenFile(name string, flag int, _ fs.FileMode) (FileHandle
 		return nil, errReadOnly
 	}
 
-	m.mu.RLock()
+	m.mu.Lock()
 	file, exists := m.files[name]
-	m.mu.RUnlock()
-
 	if !exists {
 		if flag&flagCreate == 0 {
+			m.mu.Unlock()
 			return nil, fs.ErrNotExist
 		}
 		file = NewMockFileHandle(name, m.root+"/"+name, nil)
-		m.mu.Lock()
 		m.files[name] = file
-		m.mu.Unlock()
+	}
+	m.mu.Unlock()
+
+	if (flag & flagAppend) != 0 {
+		_, _ = file.Seek(0, 2)
+		return file, nil
+	}
+	if (flag & flagTrunc) != 0 {
+		_ = file.Truncate(0)
+		_, _ = file.Seek(0, 0)
+		return file, nil
 	}
 
 	return NewMockFileHandle(file.name, file.absolutePath, file.Data()), nil

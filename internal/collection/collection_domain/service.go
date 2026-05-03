@@ -88,8 +88,8 @@ type CollectionServiceOption func(*collectionService)
 // ProcessCollectionDirective expands a p-collection directive into entry
 // points.
 //
-// This method is the public interface called by the Annotator. It uses DTO
-// types for cross-hexagon communication.
+// Acts as the public interface called by the Annotator. Uses DTO types for
+// cross-hexagon communication.
 //
 // Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies the
 // collection to expand, including provider name, collection name, and layout.
@@ -185,7 +185,7 @@ func (s *collectionService) ProcessGetCollectionCall(
 
 // ValidateConfiguration checks all provider configurations at startup.
 //
-// This method validates:
+// Validates:
 //  1. Default provider is registered
 //  2. All explicitly configured providers are registered
 //  3. All collection providers are registered

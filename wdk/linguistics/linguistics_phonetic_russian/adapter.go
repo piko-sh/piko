@@ -21,6 +21,7 @@ package linguistics_phonetic_russian
 import (
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
@@ -85,7 +86,7 @@ var cyrillicHandlers = [cyrillicAlphabetSize]runeHandler{
 // Encoder provides phonetic encoding using Russian phonetic rules.
 // It implements the linguistics_domain.PhoneticEncoderPort interface.
 type Encoder struct {
-	// maxLength is the maximum number of characters in the output code.
+	// maxLength is the maximum length in runes of the output code.
 	maxLength int
 }
 
@@ -110,7 +111,7 @@ func NewWithMaxLength(maxLength int) (*Encoder, error) {
 // Takes word (string) which is the word to encode phonetically. The word should
 // be in Cyrillic script.
 //
-// Returns string which is the phonetic code.
+// Returns string which is the phonetic code, capped at maxLength runes.
 func (e *Encoder) Encode(word string) string {
 	if len(word) == 0 {
 		return ""
@@ -121,15 +122,12 @@ func (e *Encoder) Encode(word string) string {
 	var result strings.Builder
 	position := 0
 
-	for position < len(runes) && result.Len() < e.maxLength {
+	maxBytes := e.maxLength * utf8.UTFMax
+	for position < len(runes) && result.Len() < maxBytes {
 		position = processCharacter(runes, position, &result)
 	}
 
-	code := result.String()
-	if len(code) > e.maxLength {
-		return code[:e.maxLength]
-	}
-	return code
+	return linguistics_domain.TruncateRunes(result.String(), e.maxLength)
 }
 
 // GetLanguage returns the language this encoder is configured for.

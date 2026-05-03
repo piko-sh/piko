@@ -388,6 +388,7 @@ func TestRunDev_GracefulShutdown(t *testing.T) {
 		case <-mockServer.shutdownCh:
 			return http.ErrServerClosed
 		case <-time.After(15 * time.Second):
+			t.Error("ListenAndServeFunc: shutdown channel never closed within 15s")
 			return http.ErrServerClosed
 		}
 	}
@@ -787,5 +788,140 @@ func TestStop_StopsOrchestratorService(t *testing.T) {
 
 	if atomic.LoadInt64(&mockOrchestrator.StopCallCount) == 0 {
 		t.Error("expected orchestrator Stop() to be called")
+	}
+}
+
+func TestNewService_DefaultsSEOSemaphoreCapacity(t *testing.T) {
+	t.Parallel()
+
+	deps := &DaemonServiceDeps{}
+
+	service := mustBuildDaemonService(t, deps)
+
+	if service.seoSemaphore == nil {
+		t.Fatal("expected SEO semaphore to be initialised")
+	}
+
+	if cap(service.seoSemaphore) <= 0 {
+		t.Errorf("expected positive default semaphore capacity, got %d", cap(service.seoSemaphore))
+	}
+}
+
+func TestNewService_HonoursMaxConcurrentSEOJobsConfig(t *testing.T) {
+	t.Parallel()
+
+	cfg := testDaemonConfig()
+	cfg.MaxConcurrentSEOJobs = 3
+
+	deps := &DaemonServiceDeps{
+		DaemonConfig: cfg,
+	}
+
+	service := mustBuildDaemonService(t, deps)
+
+	if got := cap(service.seoSemaphore); got != 3 {
+		t.Errorf("expected semaphore capacity 3, got %d", got)
+	}
+}
+
+func TestProcessSEOArtefacts_BoundsConcurrencyToSemaphoreCapacity(t *testing.T) {
+	t.Parallel()
+
+	const burst = 8
+	const slots = 2
+
+	release := make(chan struct{})
+	var inFlight int64
+	var peak int64
+
+	mockSEO := &MockSEOService{
+		GenerateArtefactsFunc: func(_ context.Context, _ *seo_dto.ProjectView) error {
+			current := atomic.AddInt64(&inFlight, 1)
+			defer atomic.AddInt64(&inFlight, -1)
+
+			for {
+				existing := atomic.LoadInt64(&peak)
+				if current <= existing || atomic.CompareAndSwapInt64(&peak, existing, current) {
+					break
+				}
+			}
+
+			<-release
+			return nil
+		},
+	}
+
+	cfg := testDaemonConfig()
+	cfg.MaxConcurrentSEOJobs = slots
+
+	deps := &DaemonServiceDeps{
+		DaemonConfig: cfg,
+		SEOService:   mockSEO,
+	}
+
+	service := mustBuildDaemonService(t, deps)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for range burst {
+			service.processSEOArtefacts(&annotator_dto.ProjectAnnotationResult{})
+		}
+	}()
+
+	if !waitForCondition(2*time.Second, func() bool {
+		return atomic.LoadInt64(&inFlight) >= int64(slots)
+	}) {
+		t.Fatal("timed out waiting for semaphore to fill")
+	}
+
+	close(release)
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("processSEOArtefacts loop did not return")
+	}
+
+	service.seoWg.Wait()
+
+	if got := atomic.LoadInt64(&peak); got > int64(slots) {
+		t.Errorf("expected peak in-flight <= %d, got %d", slots, got)
+	}
+
+	if calls := atomic.LoadInt64(&mockSEO.GenerateArtefactsCallCount); calls != burst {
+		t.Errorf("expected %d generate calls, got %d", burst, calls)
+	}
+}
+
+func TestProcessSEOArtefacts_SkipsWhenSEOContextCancelled(t *testing.T) {
+	t.Parallel()
+
+	mockSEO := &MockSEOService{
+		GenerateArtefactsFunc: func(_ context.Context, _ *seo_dto.ProjectView) error {
+			return nil
+		},
+	}
+
+	cfg := testDaemonConfig()
+	cfg.MaxConcurrentSEOJobs = 1
+
+	deps := &DaemonServiceDeps{
+		DaemonConfig: cfg,
+		SEOService:   mockSEO,
+	}
+
+	service := mustBuildDaemonService(t, deps)
+
+	service.seoSemaphore <- struct{}{}
+
+	service.seoCancel(errors.New("test: cancelling SEO context"))
+
+	service.processSEOArtefacts(&annotator_dto.ProjectAnnotationResult{})
+
+	service.releaseSEOSlot()
+
+	if calls := atomic.LoadInt64(&mockSEO.GenerateArtefactsCallCount); calls != 0 {
+		t.Errorf("expected GenerateArtefacts NOT to be called when context cancelled, got %d", calls)
 	}
 }

@@ -21,7 +21,7 @@ package inspector
 import (
 	"reflect"
 
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 )
 
 func init() {
@@ -31,6 +31,6 @@ func init() {
 	}
 
 	for _, t := range pretouchTypes {
-		_ = pikojson.Pretouch(t)
+		_ = json.Pretouch(t)
 	}
 }

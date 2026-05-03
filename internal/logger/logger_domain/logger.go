@@ -21,7 +21,7 @@ package logger_domain
 import (
 	"context"
 	"encoding"
-	"encoding/json"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -31,12 +31,12 @@ import (
 	"sync"
 	"time"
 
-	pikojson "piko.sh/piko/internal/json"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"piko.sh/piko/internal/caller"
+	"piko.sh/piko/internal/json"
 )
 
 const (
@@ -198,15 +198,15 @@ type Logger interface {
 	Span(ctx context.Context, spanName string, attrs ...slog.Attr) (context.Context, trace.Span, Logger)
 
 	// WithSpanContext returns a logger bound to the given span context without
-	// calling WithAttrs on the underlying handler. This is a low-allocation
-	// alternative to Span() for hot paths where you create the OTEL span directly
-	// and only need the logger for correlation.
+	// calling WithAttrs on the underlying handler. Acts as a low-allocation
+	// alternative to Span() for hot paths where the OTEL span is created
+	// directly and only the logger is needed for correlation.
 	//
-	// Use this when:
-	//   - You create the span via otel.Tracer().Start() directly
-	//   - You set attributes on the span via span.SetAttributes()
-	//   - You need a logger that correlates with the span but don't need
-	//     the attributes repeated on every log line
+	// Use when:
+	//   - The span is created via otel.Tracer().Start() directly
+	//   - Attributes are set on the span via span.SetAttributes()
+	//   - A logger that correlates with the span is needed without
+	//     repeating the attributes on every log line
 	//
 	// Takes ctx (context.Context) which contains the span from tracer.Start().
 	//
@@ -231,7 +231,7 @@ type Logger interface {
 	// Takes attrs (...Attr) which provides optional span
 	// attributes.
 	//
-	// Returns error when the function returns an error.
+	// Returns error which propagates any failure raised by the operation.
 	RunInSpan(ctx context.Context, spanName string, operation func(context.Context, Logger) error, attrs ...Attr) error
 
 	// AddSpanLifecycleHook registers a hook for span lifecycle events.
@@ -246,7 +246,7 @@ type Logger interface {
 	// which by default records the caller's package and method on every log call.
 	//
 	// Loggers created via GetLogger() automatically capture KeyContext (package)
-	// and KeyMethod on every call. Use this method for performance-critical paths
+	// and KeyMethod on every call. Use for performance-critical paths
 	// where caller capture overhead is unacceptable.
 	//
 	// Returns Logger which does not capture caller information.
@@ -455,8 +455,8 @@ func (l *slogLogger) Panic(message string, arguments ...Attr) {
 // ReportError logs an error with a stack trace and records it on the provided
 // span.
 //
-// If the error is nil, this method is a no-op. The span's status is set to
-// Error when the span is recording.
+// If the error is nil, the call is a no-op. The span's status is set to Error when
+// the span is recording.
 //
 // Takes span (trace.Span) which receives the error recording and status.
 // Takes err (error) which is the error to log and record.
@@ -592,15 +592,15 @@ func (l *slogLogger) With(attrs ...Attr) Logger {
 	}
 }
 
-// WithSpanContext returns a logger bound to the given span context without
-// calling WithAttrs on the underlying handler. This is a low-allocation
-// alternative to Span() for hot paths where you create the OTEL span directly
-// and only need the logger for correlation.
+// WithSpanContext returns a logger bound to the given span context without calling
+// WithAttrs on the underlying handler. Acts as a low-allocation alternative to
+// Span() for hot paths where the OTEL span is created directly and only the logger
+// is needed for correlation.
 //
-// This method saves ~400MB of allocations over 500K requests compared to Span()
-// by avoiding the WithAttrs() call on the handler chain. The trade-off is that
-// span attributes set via span.SetAttributes() won't appear on log lines, but
-// logs will still be correlated with the span via trace context.
+// Saves ~400MB of allocations over 500K requests compared to Span() by avoiding the
+// WithAttrs() call on the handler chain. The trade-off is that span attributes set
+// via span.SetAttributes() won't appear on log lines, but logs will still be
+// correlated with the span via trace context.
 //
 // Returns Logger which is bound to the span context for log correlation.
 func (l *slogLogger) WithSpanContext(ctx context.Context) Logger {
@@ -666,14 +666,14 @@ func (l *slogLogger) WithoutAutoCaller() Logger {
 // RunInSpan executes the provided function within a new span, handling
 // lifecycle and errors.
 //
-// If the function returns an error, it is reported to the span and the span
-// status is set to Error. On success, the span status is set to Ok.
+// Any error from the operation is reported to the span and the span status is
+// set to Error. On success, the span status is set to Ok.
 //
 // Takes spanName (string) which identifies the span for tracing.
 // Takes operation (func(...)) which is the function to execute within the span.
 // Takes attrs (...Attr) which are optional attributes to attach to the span.
 //
-// Returns error when the provided function returns an error.
+// Returns error which propagates any failure raised by the operation.
 func (l *slogLogger) RunInSpan(ctx context.Context, spanName string, operation func(context.Context, Logger) error, attrs ...Attr) error {
 	spanCtx, span, spanLog := l.Span(ctx, spanName, attrs...)
 	defer span.End()
@@ -1336,7 +1336,7 @@ func addGroupAttr(kvs *[]attribute.KeyValue, key string, a slog.Attr) {
 }
 
 // addAnyAttr converts a value of any type to an OpenTelemetry attribute.
-// It handles common types such as json.Marshaler, encoding.TextMarshaler,
+// It handles common types such as stdjson.Marshaler, encoding.TextMarshaler,
 // error, fmt.Stringer, and string slices.
 //
 // Takes kvs (*[]attribute.KeyValue) which receives the converted attribute.
@@ -1344,7 +1344,7 @@ func addGroupAttr(kvs *[]attribute.KeyValue, key string, a slog.Attr) {
 // Takes anyVal (any) which is the value to convert based on its type.
 func addAnyAttr(kvs *[]attribute.KeyValue, key string, anyVal any) {
 	switch v := anyVal.(type) {
-	case json.Marshaler:
+	case stdjson.Marshaler:
 		addJSONMarshalerAttr(kvs, key, v)
 	case encoding.TextMarshaler:
 		addTextMarshalerAttr(kvs, key, v)
@@ -1359,13 +1359,13 @@ func addAnyAttr(kvs *[]attribute.KeyValue, key string, anyVal any) {
 	}
 }
 
-// addJSONMarshalerAttr converts a json.Marshaler value to JSON and adds it as
+// addJSONMarshalerAttr converts a stdjson.Marshaler value to JSON and adds it as
 // a string attribute. If marshalling fails, it uses fmt.Sprintf instead.
 //
 // Takes kvs (*[]attribute.KeyValue) which receives the new attribute.
 // Takes key (string) which specifies the attribute name.
-// Takes v (json.Marshaler) which provides the value to convert.
-func addJSONMarshalerAttr(kvs *[]attribute.KeyValue, key string, v json.Marshaler) {
+// Takes v (stdjson.Marshaler) which provides the value to convert.
+func addJSONMarshalerAttr(kvs *[]attribute.KeyValue, key string, v stdjson.Marshaler) {
 	if b, err := v.MarshalJSON(); err == nil {
 		*kvs = append(*kvs, attribute.String(key, string(b)))
 	} else {
@@ -1384,7 +1384,7 @@ func addTextMarshalerAttr(kvs *[]attribute.KeyValue, key string, v encoding.Text
 	if b, err := v.MarshalText(); err == nil {
 		*kvs = append(*kvs, attribute.String(key, string(b)))
 	} else {
-		if s, err := pikojson.MarshalString(v); err == nil {
+		if s, err := json.MarshalString(v); err == nil {
 			*kvs = append(*kvs, attribute.String(key, s))
 		} else {
 			*kvs = append(*kvs, attribute.String(key, fmt.Sprintf("%+v", v)))
@@ -1399,7 +1399,7 @@ func addTextMarshalerAttr(kvs *[]attribute.KeyValue, key string, v encoding.Text
 // Takes key (string) which is the attribute name.
 // Takes anyVal (any) which is the value to convert.
 func addFallbackAttr(kvs *[]attribute.KeyValue, key string, anyVal any) {
-	if s, err := pikojson.MarshalString(anyVal); err == nil {
+	if s, err := json.MarshalString(anyVal); err == nil {
 		*kvs = append(*kvs, attribute.String(key, s))
 	} else {
 		*kvs = append(*kvs, attribute.String(key, fmt.Sprintf("%+v", anyVal)))

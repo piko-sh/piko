@@ -49,7 +49,7 @@ func (*jsInterop) MarshalToJS(_ any) (any, error) {
 	return nil, errors.New("JS interop not available outside WASM")
 }
 
-// UnmarshalFromJS returns an error as this method is not available outside
+// UnmarshalFromJS returns an error because JS interop is not available outside
 // WASM builds.
 //
 // Returns error when called outside a WASM environment.

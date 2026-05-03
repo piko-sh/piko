@@ -261,7 +261,7 @@ func (b *CacheBuilder[K, V]) MultiLevel(l1Provider, l2Provider string) *CacheBui
 }
 
 // L1Options sets provider-specific configuration for the L1 cache in a
-// multi-level setup. This method should only be used after calling MultiLevel.
+// multi-level setup. Should only be used after calling MultiLevel.
 //
 // Takes options (any) which provides provider-specific L1 configuration.
 //
@@ -272,7 +272,7 @@ func (b *CacheBuilder[K, V]) L1Options(options any) *CacheBuilder[K, V] {
 }
 
 // L2Options sets provider-specific configuration for the L2 cache in a
-// multi-level setup. This method should only be used after calling MultiLevel.
+// multi-level setup. Should only be used after calling MultiLevel.
 //
 // Takes options (any) which provides provider-specific L2 configuration.
 //
@@ -451,8 +451,8 @@ func (b *CacheBuilder[K, V]) Encoder(encoder AnyEncoder) *CacheBuilder[K, V] {
 }
 
 // TypedEncoder registers a type-specific encoder with compile-time type safety.
-// This method verifies that the encoder's type matches the cache's value type
-// V, preventing runtime type errors.
+// Verifies that the encoder's type matches the cache's value type V, preventing
+// runtime type errors.
 //
 // This is the recommended method for registering encoders as it catches type
 // mismatches at compile time rather than runtime.
@@ -736,7 +736,7 @@ func (c *accessExpiryCalculator[K, V]) ExpireAfterRead(cache_dto.Entry[K, V]) ti
 
 // Build constructs and returns the configured cache instance.
 //
-// This method performs all the complex wiring internally:
+// Performs all the complex wiring internally:
 //   - Creates registries for transformers and encoders
 //   - Wraps providers with TransformerWrapper when needed
 //   - Configures provider-specific options

@@ -171,8 +171,7 @@ type ServiceStats struct {
 
 // Uptime returns the duration since the service started.
 //
-// This method uses the system clock; for testing, use UptimeAt with a
-// controlled time.
+// Uses the system clock; for testing, use UptimeAt with a controlled time.
 //
 // Returns time.Duration which is the elapsed time since service start.
 func (s *ServiceStats) Uptime() time.Duration {

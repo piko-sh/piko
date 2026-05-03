@@ -56,12 +56,13 @@ Supplemental references (only when needed):
 
 WDK and infrastructure references (load for backend/service tasks):
 - `references/wdk-data.md` - persistence (SQLite/Postgres/D1), storage (S3/GCS/R2), cache (Otter/Redis)
+- `references/querier.md` - migration .sql files, query .sql files, generated Queries struct, migration/seed services
 - `references/wdk-email-events.md` - email (SMTP/SES/SendGrid), events (NATS/GoChannel)
 - `references/wdk-security.md` - encryption (AES-GCM/AWS KMS/GCP KMS), security headers, rate limiting
 - `references/wdk-media.md` - image processing (vips/imaging), video transcoding (FFmpeg)
 - `references/wdk-llm.md` - LLM completions, streaming, tool calling, RAG, embeddings, vector store
 - `references/testing.md` - component testing, action testing, E2E browser testing, snapshots, benchmarks
-- `references/configuration.md` - piko.yaml, config.json, secret resolution, deployment, Docker/K8s
+- `references/configuration.md` - piko.New() with With* options, secret resolution, deployment, Docker/K8s
 
 ## 4) Generate implementation
 
@@ -75,7 +76,7 @@ For each artefact, include:
 Provide the appropriate command sequence:
 - `go run ./cmd/generator/main.go all` to regenerate assets
 - `go build ./...` to verify Go compilation
-- `air` or `go run ./cmd/main` to start dev server
+- `air` or `go run ./cmd/main/main.go` to start dev server
 
 ## 6) Output contract
 
@@ -97,7 +98,7 @@ If these reference files don't answer your question, locate the Piko repository 
 Inside the Piko root you will find:
 
 - **`docs/`** - full documentation covering APIs, directives, configuration, and guides
-- **`examples/`** - complete working example projects at the repository root
+- **`examples/`** - complete working example projects under `examples/scenarios/NNN_name/src/`
 - **`tests/integration/`** - hundreds of integration tests with realistic `.pk`, `.pkc`, and action files (especially `tests/integration/e2e_browser/testdata/` which contains numbered test scenarios covering nearly every framework feature)
 - **The codebase itself** - extensively documented with comments and real usage throughout `internal/`, `frontend/`, and `wdk/`
 

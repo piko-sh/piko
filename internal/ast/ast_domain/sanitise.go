@@ -26,9 +26,9 @@ import (
 	"reflect"
 )
 
-// SanitiseForEncoding creates a deep clone of the AST and prepares it
-// for stable, portable serialisation. This is the primary entry point for
-// this functionality.
+// SanitiseForEncoding creates a deep clone of the AST and prepares it for
+// stable, portable serialisation. Acts as the primary entry point for the
+// sanitisation feature.
 //
 // The sanitisation process includes:
 //   - Removing all diagnostics, which are transient and not part of the

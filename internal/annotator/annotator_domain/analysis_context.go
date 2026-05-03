@@ -726,11 +726,11 @@ func defineExportedSymbol(ctx *AnalysisContext, symbolName string, typeExpr goas
 
 // inferDataType returns the Go type for the data variable on collection pages.
 //
-// This function was planned to scan Render() for piko.GetData[T](r) calls to
-// find typed data. However, the design changed: components now use
-// GetData[T](r) directly in their Render function and pass processed data to
-// templates via state. The data symbol is kept for possible future use but
-// templates do not currently use it.
+// Was planned to scan Render() for piko.GetData[T](r) calls to find typed data.
+// However, the design changed: components now use GetData[T](r) directly in
+// their Render function and pass processed data to templates via state. The
+// data symbol is kept for possible future use but templates do not currently
+// use it.
 //
 // Returns *ast_domain.ResolvedTypeInfo which is map[string]interface{} as a
 // fallback type.

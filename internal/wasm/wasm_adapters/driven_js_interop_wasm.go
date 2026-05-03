@@ -21,10 +21,10 @@
 package wasm_adapters
 
 import (
-	"encoding/json"
 	"fmt"
 	"syscall/js"
 
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/wasm/wasm_domain"
 )
 

@@ -182,14 +182,13 @@ func TestService_ZeroCollectors(t *testing.T) {
 }
 
 func Test_acquireEventCopy(t *testing.T) {
-	rev := maths.NewMoneyFromString("29.99", "GBP")
 	src := analytics_dto.AcquireEvent()
 	src.Path = "/original"
 	src.ClientIP = "1.2.3.4"
 	src.Hostname = "example.com"
 	src.URL = "/original?ref=test"
 	src.EventName = "purchase"
-	src.Revenue = &rev
+	src.Revenue = new(maths.NewMoneyFromString("29.99", "GBP"))
 	src.Properties = map[string]string{"key": "value"}
 
 	cp := acquireEventCopy(src)

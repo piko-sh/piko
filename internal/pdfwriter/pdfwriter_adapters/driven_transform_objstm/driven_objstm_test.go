@@ -20,6 +20,7 @@ package driven_transform_objstm_test
 
 import (
 	"bytes"
+	"compress/lzw"
 	"context"
 	"fmt"
 	"strings"
@@ -239,4 +240,93 @@ func TestObjStmTransformer_InvalidPDF(t *testing.T) {
 	_, err := tr.Transform(context.Background(), []byte("not a pdf"), pdfwriter_dto.ObjStmOptions{})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "parsing PDF")
+}
+
+func buildLZWStream(t *testing.T, payload []byte) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	w := lzw.NewWriter(&buf, lzw.MSB, 8)
+	_, err := w.Write(payload)
+	require.NoError(t, err)
+	require.NoError(t, w.Close())
+	return buf.Bytes()
+}
+
+func buildPDFWithLZWStream(t *testing.T, payload []byte) []byte {
+	t.Helper()
+
+	w := pdfparse.NewWriter()
+
+	w.SetObject(catalogNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Catalog")},
+		{Key: "Pages", Value: pdfparse.RefObj(pagesNum, 0)},
+	}}))
+
+	w.SetObject(pagesNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Pages")},
+		{Key: "Kids", Value: pdfparse.Arr(pdfparse.RefObj(pageNum, 0))},
+		{Key: "Count", Value: pdfparse.Int(1)},
+	}}))
+
+	w.SetObject(pageNum, pdfparse.DictObj(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Type", Value: pdfparse.Name("Page")},
+		{Key: "Parent", Value: pdfparse.RefObj(pagesNum, 0)},
+		{Key: "MediaBox", Value: pdfparse.Arr(
+			pdfparse.Int(0), pdfparse.Int(0), pdfparse.Int(612), pdfparse.Int(792),
+		)},
+		{Key: "Contents", Value: pdfparse.RefObj(streamNum, 0)},
+	}}))
+
+	streamBytes := buildLZWStream(t, payload)
+	streamDict := pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Filter", Value: pdfparse.Name("LZWDecode")},
+	}}
+	w.SetObject(streamNum, pdfparse.StreamObj(streamDict, streamBytes))
+
+	w.SetTrailer(pdfparse.Dict{Pairs: []pdfparse.DictPair{
+		{Key: "Root", Value: pdfparse.RefObj(catalogNum, 0)},
+	}})
+
+	data, err := w.Write()
+	require.NoError(t, err)
+	return data
+}
+
+func TestObjStmTransformer_DecompressedStreamCap_RejectsOversize(t *testing.T) {
+	payload := bytes.Repeat([]byte("Hello World "), 256)
+	pdf := buildPDFWithLZWStream(t, payload)
+
+	tr := driven_transform_objstm.New(driven_transform_objstm.WithMaxDecompressedStreamSize(64))
+	result, err := tr.Transform(context.Background(), pdf, pdfwriter_dto.ObjStmOptions{})
+	require.NoError(t, err)
+
+	doc, err := pdfparse.Parse(result)
+	require.NoError(t, err)
+
+	streamObj, err := doc.GetObject(streamNum)
+	require.NoError(t, err)
+	dict, ok := streamObj.Value.(pdfparse.Dict)
+	require.True(t, ok)
+	assert.Equal(t, "LZWDecode", dict.GetName("Filter"),
+		"oversize LZW stream must be left untouched, not silently truncated")
+}
+
+func TestObjStmTransformer_DecompressedStreamCap_AllowsUnderLimit(t *testing.T) {
+	payload := []byte("Hello World")
+	pdf := buildPDFWithLZWStream(t, payload)
+
+	tr := driven_transform_objstm.New(driven_transform_objstm.WithMaxDecompressedStreamSize(1 << 20))
+	result, err := tr.Transform(context.Background(), pdf, pdfwriter_dto.ObjStmOptions{})
+	require.NoError(t, err)
+
+	doc, err := pdfparse.Parse(result)
+	require.NoError(t, err)
+
+	streamObj, err := doc.GetObject(streamNum)
+	require.NoError(t, err)
+	dict, ok := streamObj.Value.(pdfparse.Dict)
+	require.True(t, ok)
+	assert.NotEqual(t, "LZWDecode", dict.GetName("Filter"),
+		"in-limit LZW stream must be re-encoded with FlateDecode")
 }

@@ -22,7 +22,6 @@ import (
 	"context"
 	"fmt"
 
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -31,9 +30,8 @@ import (
 // services (image processing, storage, cache, persistence) without running an
 // HTTP server.
 //
-// Unlike ConfigAndContainer, this function:
+// Unlike ConfigAndContainer, this entry point:
 //   - Does not require an AppRouter or Dependencies struct
-//   - Does not load configuration files (piko.yaml, config.json)
 //   - Does not initialise the logger from configuration
 //   - Does not set up frontend assets or the .piko directory
 //
@@ -42,9 +40,9 @@ import (
 // providers that are accessible via the global service functions such as
 // media.GetImageDimensions and storage.GetDefaultService.
 //
-// This function must be called before any code that uses global service access.
-// It can only be called once per process (subsequent calls are no-ops due to
-// sync.Once in initialiseGlobalServices).
+// Must be called before any code that uses global service access. Can only
+// be called once per process (subsequent calls are no-ops due to sync.Once in
+// initialiseGlobalServices).
 //
 // Takes opts which configure the container with providers.
 //
@@ -54,8 +52,7 @@ func InitialiseHeadless(opts ...Option) (*Container, error) {
 	_, l := logger_domain.From(context.Background(), log)
 	l.Internal("Initialising Piko in headless mode...")
 
-	configProvider := config.NewConfigProvider()
-	container := NewContainer(configProvider, opts...)
+	container := NewContainer(opts...)
 
 	l.Internal("Validating provider configuration...")
 	if err := container.ValidateProviderConfiguration(); err != nil {

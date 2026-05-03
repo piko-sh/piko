@@ -749,7 +749,7 @@ func (o *InterpretedBuildOrchestrator) populateProgCacheForComponent(
 	linkFn func(entry *templater_adapters.PageEntry, component *annotator_dto.VirtualComponent) error,
 	target map[string]*templater_adapters.PageEntry,
 ) error {
-	if len(component.VirtualInstances) == 0 {
+	if len(component.VirtualInstances) == 0 || isCollectionBacked(component) {
 		entry := o.createPageEntry(ctx, manifest, component)
 		if err := linkFn(entry, component); err != nil {
 			return err
@@ -772,6 +772,18 @@ func (o *InterpretedBuildOrchestrator) populateProgCacheForComponent(
 	}
 	maps.Copy(target, staged)
 	return nil
+}
+
+// isCollectionBacked reports whether the component declares a
+// p-collection consumer. These pages register a single dynamic route
+// instead of per-item routes; the runtime resolves items by slug.
+//
+// Takes component (*annotator_dto.VirtualComponent) which is the
+// component descriptor to inspect.
+//
+// Returns bool which is true when the component consumes a p-collection.
+func isCollectionBacked(component *annotator_dto.VirtualComponent) bool {
+	return component != nil && component.Source != nil && component.Source.HasCollection
 }
 
 // createInstancePageEntry builds a per-instance PageEntry using the

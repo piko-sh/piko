@@ -28,6 +28,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -41,8 +42,6 @@ import (
 	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/storage"
 )
-
-var _ storage.ProviderPort = (*S3Provider)(nil)
 
 const (
 	// defaultMultipartThreshold is the file size in bytes above which multipart
@@ -77,6 +76,12 @@ const (
 	attributeKeyName = "key"
 )
 
+// errS3ProviderClosed is returned by Close when the provider has already been
+// shut down.
+var errS3ProviderClosed = errors.New("s3 provider already closed")
+
+var _ storage.ProviderPort = (*S3Provider)(nil)
+
 // S3Provider implements the StorageProviderPort interface using the AWS SDK for
 // Go V2.
 type S3Provider struct {
@@ -91,6 +96,10 @@ type S3Provider struct {
 
 	// repositoryBuckets maps repository names to their S3 bucket names.
 	repositoryBuckets map[string]string
+
+	// closed is set by Close to make subsequent calls a no-op that returns
+	// errS3ProviderClosed.
+	closed atomic.Bool
 }
 
 // Config holds the settings needed to create an S3Provider.
@@ -522,13 +531,18 @@ func (*S3Provider) SupportsPresignedURLs() bool {
 	return true
 }
 
-// Close is a no-op as the SDK manages connection pools.
+// Close marks the provider as shut down. The AWS SDK manages connection
+// pools so there is nothing to release; the closed flag exists so callers
+// can detect double-close.
 //
-// Takes ctx (context.Context) which is unused but required by the
-// interface.
+// Takes ctx (context.Context) which is unused but required by the interface.
 //
-// Returns error which is always nil for this provider.
-func (*S3Provider) Close(context.Context) error {
+// Returns error which is errS3ProviderClosed when invoked more than once,
+// otherwise nil.
+func (p *S3Provider) Close(context.Context) error {
+	if !p.closed.CompareAndSwap(false, true) {
+		return errS3ProviderClosed
+	}
 	return nil
 }
 

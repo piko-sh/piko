@@ -739,10 +739,10 @@ func convertOuterKey(outerKey ast_domain.Expression, keyType reflect.Type, fullP
 // newFieldInfoForType creates a fieldInfo struct for a given type with
 // unmarshaler detection.
 //
-// This function is used to reduce repeated code in handleSliceIndexExpr and
-// handleMapIndexExpr. The Offset, Kind, and CanDirect fields are set to zero
-// or false because these are for dynamic paths, not fixed struct fields that
-// could use unsafe direct access.
+// Used to reduce repeated code in handleSliceIndexExpr and handleMapIndexExpr.
+// The Offset, Kind, and CanDirect fields are set to zero or false because these
+// are for dynamic paths, not fixed struct fields that could use unsafe direct
+// access.
 //
 // Takes path (string) which specifies the field path for error messages.
 // Takes t (reflect.Type) which specifies the type to create field info for.

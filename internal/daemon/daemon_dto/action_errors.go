@@ -24,8 +24,8 @@ import (
 )
 
 // ActionError is the base interface for action errors with HTTP semantics.
-// Errors implementing this interface are automatically discriminated by the
-// action handler to return appropriate HTTP status codes and structured responses.
+// Errors implementing the contract are automatically discriminated by the action
+// handler to return appropriate HTTP status codes and structured responses.
 type ActionError interface {
 	error
 

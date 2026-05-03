@@ -19,8 +19,7 @@
 // Package logger_integration_otel_grpc registers the gRPC OTLP
 // protocol with the OpenTelemetry driver.
 //
-// Importing this package makes the "grpc" protocol available for
-// trace and metric export. It creates OTLP trace and metric
-// exporters over gRPC connections, with support for TLS
-// configuration and custom metadata headers.
+// Importing the package makes the "grpc" protocol available for trace and
+// metric export. It creates OTLP trace and metric exporters over gRPC
+// connections, with support for TLS configuration and custom metadata headers.
 package logger_integration_otel_grpc

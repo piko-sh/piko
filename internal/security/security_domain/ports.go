@@ -122,7 +122,7 @@ type SecureCookieWriter interface {
 	SetCookie(w http.ResponseWriter, cookie *http.Cookie)
 
 	// IsHTTPS returns whether the current request is served over HTTPS.
-	// This is used to check if the Secure flag should be set on cookies.
+	// Used to check if the Secure flag should be set on cookies.
 	//
 	// Returns bool which is true if the request uses HTTPS, false otherwise.
 	IsHTTPS() bool

@@ -5,6 +5,7 @@
 package pages_home_dab9c3dd
 
 import (
+	"cmp"
 	"fmt"
 	"html"
 	piko "piko.sh/piko"
@@ -20,6 +21,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {

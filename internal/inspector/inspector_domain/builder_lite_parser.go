@@ -201,8 +201,8 @@ func (*liteTypeExtractor) buildImportMap(file *ast.File) map[string]string {
 
 // extractTypesFromFile extracts type declarations from a single file.
 //
-// Takes ctx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes file (*ast.File) which contains the parsed Go source file.
 // Takes filePath (string) which specifies the path to the source file.
 // Takes pkg (*inspector_dto.Package) which receives the extracted types.
@@ -221,8 +221,8 @@ func (e *liteTypeExtractor) extractTypesFromFile(ctx context.Context, file *ast.
 
 // extractTypesFromGenDecl extracts types from a generic declaration.
 //
-// Takes ctx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes genDecl (*ast.GenDecl) which is the declaration to extract from.
 // Takes filePath (string) which is the source file path for the declaration.
 // Takes pkg (*inspector_dto.Package) which receives the extracted types.
@@ -239,8 +239,8 @@ func (e *liteTypeExtractor) extractTypesFromGenDecl(ctx context.Context, genDecl
 // extractAndAddType extracts a single type specification and adds it to the
 // package if successful.
 //
-// Takes ctx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes typeSpec (*ast.TypeSpec) which is the type specification to extract.
 // Takes filePath (string) which is the source file containing the type.
 // Takes pkg (*inspector_dto.Package) which receives the extracted type.
@@ -262,8 +262,8 @@ func (e *liteTypeExtractor) extractAndAddType(ctx context.Context, typeSpec *ast
 
 // extractType extracts a single type definition from an AST node.
 //
-// Takes ctx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes spec (*ast.TypeSpec) which is the AST node for the type declaration.
 // Takes filePath (string) which is the path to the source file.
 // Takes packagePath (string) which is the import path of the package.
@@ -329,8 +329,8 @@ func (e *liteTypeExtractor) extractAliasType(typ *inspector_dto.Type, spec *ast.
 
 // extractNonAliasType populates a Type DTO based on the underlying type kind.
 //
-// Takes ctx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes typ (*inspector_dto.Type) which is the type DTO to populate.
 // Takes spec (*ast.TypeSpec) which contains the AST type specification.
 // Takes filePath (string) which identifies the source file.
@@ -357,8 +357,8 @@ func (e *liteTypeExtractor) extractNonAliasType(ctx context.Context, typ *inspec
 
 // extractStructTypeDTO extracts struct fields into the Type DTO.
 //
-// Takes ctx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes typ (*inspector_dto.Type) which is the type to populate with fields.
 // Takes st (*ast.StructType) which is the AST node for the struct.
 // Takes filePath (string) which identifies the source file location.
@@ -408,8 +408,8 @@ func (e *liteTypeExtractor) extractSimpleTypeDTO(typ *inspector_dto.Type, typeEx
 
 // extractStructFields extracts fields from a struct type.
 //
-// Takes ctx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes st (*ast.StructType) which is the struct type node to extract from.
 // Takes filePath (string) which is the path to the file containing the struct.
 // Takes typeName (string) which is the name of the struct type.
@@ -435,8 +435,8 @@ func (e *liteTypeExtractor) extractStructFields(ctx context.Context, st *ast.Str
 // extractStructField extracts field(s) from a single AST field entry.
 // Returns multiple fields when the field has multiple names (e.g., "x, y int").
 //
-// Takes ctx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes field (*ast.Field) which is the AST field entry to extract from.
 // Takes filePath (string) which identifies the source file for error reporting.
 // Takes typeName (string) which is the name of the containing struct type.
@@ -453,11 +453,11 @@ func (e *liteTypeExtractor) extractStructField(ctx context.Context, field *ast.F
 // tryExtractEmbeddedField tries to extract an embedded field from an AST node.
 // It logs a warning if extraction fails.
 //
-// Takes ctx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes field (*ast.Field) which is the AST field node to extract.
 // Takes filePath (string) which is the path to the source file.
-// Takes typeName (string) which is the name of the type that contains this field.
+// Takes typeName (string) which is the name of the containing type.
 //
 // Returns []*inspector_dto.Field which holds the extracted field if it is
 // exported and extraction succeeds, or nil if there is an error or the field

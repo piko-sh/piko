@@ -71,18 +71,22 @@ func NewMockSignalNotifier() *MockSignalNotifier {
 // Returns context.CancelFunc which cancels the returned context.
 func (n *MockSignalNotifier) NotifyContext(parent context.Context) (context.Context, context.CancelFunc) {
 	atomic.AddInt64(&n.NotifyContextCallCount, 1)
+
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if n.NotifyContextFunc != nil {
+		ctx, cancel = n.NotifyContextFunc(parent)
+	} else {
+		ctx, cancel = context.WithCancel(parent)
+	}
+	n.cancelFunc.Store(cancel)
+
 	n.notifyContextOnce.Do(func() {
 		if n.notifyContextCalled != nil {
 			close(n.notifyContextCalled)
 		}
 	})
 
-	if n.NotifyContextFunc != nil {
-		return n.NotifyContextFunc(parent)
-	}
-
-	ctx, cancel := context.WithCancel(parent)
-	n.cancelFunc.Store(cancel)
 	return ctx, cancel
 }
 

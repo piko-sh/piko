@@ -215,7 +215,7 @@ func WithExpandShorthands(expand bool) Option {
 // Non-HTTP links are automatically skipped:
 //   - mailto: links
 //   - tel: links
-//   - javascript: pseudo-protocols
+//   - JavaScript pseudo-protocols (javascript:)
 //   - Anchor-only links (#section)
 //
 // Takes params (map[string]string) which specifies the query parameters to

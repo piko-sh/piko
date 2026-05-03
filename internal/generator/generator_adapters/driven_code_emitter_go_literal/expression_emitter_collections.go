@@ -74,7 +74,7 @@ func (ee *expressionEmitter) tryEmitCollectionCall(expression ast_domain.Express
 // emitDynamicCollectionFetcher creates a call to a generated collection
 // fetcher function.
 //
-// This method handles dynamic collection providers that fetch data at runtime.
+// Handles dynamic collection providers that fetch data at runtime.
 // It takes the blueprint from the Collection Service and:
 //  1. Creates a unique function name.
 //  2. Copies the provider's fetcher function AST.

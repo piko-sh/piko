@@ -75,7 +75,7 @@ var charHandlers = [latinAlphabetSize]charHandler{
 // Encoder provides phonetic encoding using French phonetic rules.
 // It implements the linguistics_domain.PhoneticEncoderPort interface.
 type Encoder struct {
-	// maxLength is the maximum number of characters in the output code.
+	// maxLength is the maximum length in runes of the output code.
 	maxLength int
 }
 
@@ -117,11 +117,7 @@ func (e *Encoder) Encode(word string) string {
 		position = processCharacter(word, position, &result)
 	}
 
-	code := result.String()
-	if len(code) > e.maxLength {
-		return code[:e.maxLength]
-	}
-	return code
+	return linguistics_domain.TruncateRunes(result.String(), e.maxLength)
 }
 
 // GetLanguage returns the language this encoder is configured for.

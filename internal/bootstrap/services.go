@@ -184,7 +184,7 @@ func GetImageService() (image_domain.Service, error) {
 }
 
 // GetImagePredefinedVariants returns the map of predefined image variants.
-// This function is safe to call from multiple goroutines.
+// Safe to call from multiple goroutines.
 //
 // Returns map[string]image_dto.TransformationSpec which maps variant names
 // to their transformation settings. Returns nil if the framework is not
@@ -306,7 +306,7 @@ func GetNotificationService() (notification_domain.Service, error) {
 }
 
 // GetDatabaseConnection returns the *sql.DB for a named database registered
-// via AddDatabase during bootstrap. This function is concurrency-safe.
+// via AddDatabase during bootstrap. Concurrency-safe.
 //
 // Takes name (string) which identifies the database.
 //
@@ -357,8 +357,7 @@ func GetDatabaseWriter(name string) (DBTX, error) {
 }
 
 // GetMigrationService returns the migration service for a named database
-// registered via AddDatabase during bootstrap. This function is
-// concurrency-safe.
+// registered via AddDatabase during bootstrap. Concurrency-safe.
 //
 // Takes name (string) which identifies the database.
 //
@@ -374,9 +373,8 @@ func GetMigrationService(name string) (querier_domain.MigrationServicePort, erro
 	return container.GetQuerierMigrationService(name)
 }
 
-// GetSeedService returns the seed service for a named database registered
-// during bootstrap. This function is concurrency-safe and can be called from
-// multiple goroutines.
+// GetSeedService returns the seed service for a named database registered during
+// bootstrap. Concurrency-safe and can be called from multiple goroutines.
 //
 // Takes name (string) which identifies the database.
 //

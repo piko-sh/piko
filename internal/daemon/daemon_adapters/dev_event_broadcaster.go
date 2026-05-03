@@ -20,12 +20,15 @@ package daemon_adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 )
@@ -56,7 +59,25 @@ const (
 	// devSSEWorkflowSummaryLimit is the maximum number of workflow summaries to
 	// include in build update events.
 	devSSEWorkflowSummaryLimit = 5
+
+	// devBroadcasterShutdownTimeout bounds how long Close waits for the
+	// periodic stats goroutine to exit during shutdown.
+	devBroadcasterShutdownTimeout = 5 * time.Second
+
+	// devSSEWriteTimeout bounds how long any single SSE write to a dev
+	// tools client may block. The deadline is reset before every write so
+	// slow-loris peers are dropped without truncating long-lived streams
+	// for healthy clients.
+	devSSEWriteTimeout = 5 * time.Second
 )
+
+// errDevBroadcasterShutdown is the cause attached to the periodic-stats
+// context when Close is called.
+var errDevBroadcasterShutdown = errors.New("dev broadcaster shutdown")
+
+// errDevBroadcasterCloseTimeout is returned when Close cannot drain the
+// periodic stats goroutine within devBroadcasterShutdownTimeout.
+var errDevBroadcasterCloseTimeout = errors.New("dev broadcaster close timed out waiting for stats goroutine")
 
 // DevBuildEvent is the payload sent to connected browsers when a dev build
 // completes.
@@ -94,14 +115,21 @@ type DevEventBroadcaster struct {
 	// orchestrator provides build pipeline state for SSE push.
 	orchestrator orchestrator_domain.OrchestratorInspector
 
-	// statsCancel stops the periodic system stats goroutine.
-	statsCancel context.CancelFunc
+	// statsCancel stops the periodic system stats goroutine. Always paired
+	// with WithCancelCause so the cause is observable on shutdown.
+	statsCancel context.CancelCauseFunc
 
 	// clients holds the set of connected SSE client channels.
 	clients map[chan []byte]struct{}
 
+	// statsWG tracks the periodic stats goroutine so Close can wait for it.
+	statsWG sync.WaitGroup
+
 	// mu guards clients, closed, and statsRunning fields.
 	mu sync.RWMutex
+
+	// closeOnce guards single execution of Close.
+	closeOnce sync.Once
 
 	// closed indicates whether the broadcaster has been shut down.
 	closed bool
@@ -187,14 +215,11 @@ func (b *DevEventBroadcaster) SetOrchestratorInspector(p orchestrator_domain.Orc
 // Takes w (http.ResponseWriter) which is the response writer for the SSE stream.
 // Takes r (*http.Request) which is the incoming HTTP request.
 func (b *DevEventBroadcaster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
+	baseFlusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
 		return
 	}
-
-	rc := http.NewResponseController(w)
-	_ = rc.SetWriteDeadline(time.Time{})
 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -202,10 +227,13 @@ func (b *DevEventBroadcaster) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 
-	_, _ = fmt.Fprint(w, "retry: 2000\nevent: connected\ndata: {}\n\n")
+	deadlineWriter := newSSEDeadlineWriter(w, devSSEWriteTimeout)
+	flusher := resolveSSEFlusher(deadlineWriter, baseFlusher)
+
+	_, _ = fmt.Fprint(deadlineWriter, "retry: 2000\nevent: connected\ndata: {}\n\n")
 	flusher.Flush()
 
-	b.writeInitialState(w, flusher)
+	b.writeInitialState(deadlineWriter, flusher)
 
 	ch := make(chan []byte, devSSEClientBuffer)
 	b.addClient(ch)
@@ -223,13 +251,34 @@ func (b *DevEventBroadcaster) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			if !ok {
 				return
 			}
-			_, _ = w.Write(msg)
+			if _, err := deadlineWriter.Write(msg); err != nil {
+				return
+			}
 			flusher.Flush()
 		case <-keepalive.C:
-			_, _ = fmt.Fprint(w, "event: ping\ndata: {}\n\n")
+			if _, err := fmt.Fprint(deadlineWriter, "event: ping\ndata: {}\n\n"); err != nil {
+				return
+			}
 			flusher.Flush()
 		}
 	}
+}
+
+// resolveSSEFlusher returns the http.Flusher for the SSE stream, preferring
+// the deadline writer's flusher when available so writes go through the
+// timeout-aware path. The fallback is the underlying ResponseWriter, which the
+// caller has already type-asserted to http.Flusher.
+//
+// Takes deadlineWriter (io.Writer) which wraps the response writer with a
+// per-write deadline.
+// Takes fallback (http.Flusher) which is the unwrapped ResponseWriter flusher.
+//
+// Returns http.Flusher which is the flusher to drive the SSE stream.
+func resolveSSEFlusher(deadlineWriter io.Writer, fallback http.Flusher) http.Flusher {
+	if flusher, ok := deadlineWriter.(http.Flusher); ok {
+		return flusher
+	}
+	return fallback
 }
 
 // Broadcast sends an event to all connected SSE clients. Clients whose
@@ -345,26 +394,45 @@ func (b *DevEventBroadcaster) BroadcastBuildSummary(summary DevBuildSummary) {
 	}
 }
 
-// Close shuts down the broadcaster and closes all client channels.
+// Close shuts down the broadcaster, cancels the periodic stats goroutine,
+// waits for it to exit (bounded by devBroadcasterShutdownTimeout), and closes
+// all client channels.
 //
-// Safe for concurrent use; acquires mu.Lock to mark closed and drain clients.
-func (b *DevEventBroadcaster) Close() {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+// Returns error which joins a timeout error (if the stats goroutine did not
+// exit in time) with the context cause; nil on a clean shutdown.
+//
+// Safe for concurrent use; idempotent via sync.Once.
+func (b *DevEventBroadcaster) Close() error {
+	var closeErr error
+	b.closeOnce.Do(func() {
+		b.mu.Lock()
+		if b.closed {
+			b.mu.Unlock()
+			return
+		}
+		b.closed = true
 
-	if b.closed {
-		return
-	}
-	b.closed = true
+		b.stopPeriodicStatsLocked()
 
-	if b.statsCancel != nil {
-		b.statsCancel()
-	}
+		for ch := range b.clients {
+			close(ch)
+			delete(b.clients, ch)
+		}
+		b.mu.Unlock()
 
-	for ch := range b.clients {
-		close(ch)
-		delete(b.clients, ch)
-	}
+		done := make(chan struct{})
+		go func() {
+			b.statsWG.Wait()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+		case <-time.After(devBroadcasterShutdownTimeout):
+			closeErr = errDevBroadcasterCloseTimeout
+		}
+	})
+	return closeErr
 }
 
 // ClientCount returns the number of currently connected SSE clients.
@@ -420,12 +488,14 @@ func (b *DevEventBroadcaster) startPeriodicStatsLocked() {
 	if b.statsRunning {
 		return
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancelCause(context.Background())
 	b.statsCancel = cancel
 	b.statsRunning = true
 	provider := b.systemStats
 
-	go func() {
+	b.statsWG.Go(func() {
+		defer goroutine.RecoverPanic(ctx, "daemon.devBroadcasterPeriodicStats")
+
 		statsTicker := time.NewTicker(devSSEStatsInterval)
 		fullStateTicker := time.NewTicker(devSSEFullStateInterval)
 		defer statsTicker.Stop()
@@ -441,7 +511,7 @@ func (b *DevEventBroadcaster) startPeriodicStatsLocked() {
 				b.broadcastFullState(ctx, provider)
 			}
 		}
-	}()
+	})
 }
 
 // stopPeriodicStatsLocked stops the periodic system stats goroutine.
@@ -449,7 +519,7 @@ func (b *DevEventBroadcaster) startPeriodicStatsLocked() {
 // Must be called with b.mu held.
 func (b *DevEventBroadcaster) stopPeriodicStatsLocked() {
 	if b.statsCancel != nil {
-		b.statsCancel()
+		b.statsCancel(errDevBroadcasterShutdown)
 		b.statsCancel = nil
 	}
 	b.statsRunning = false
@@ -491,12 +561,11 @@ func (b *DevEventBroadcaster) broadcastSystemStats(provider monitoring_domain.Sy
 	}
 }
 
-// broadcastFullState pushes build, health, resources, providers, and
-// memory-detail SSE events to all connected clients. Each event is
-// independent so a nil provider simply skips that event.
+// broadcastFullState pushes build, health, resources, providers, and memory-detail
+// SSE events to all connected clients. Each event is independent so a nil provider
+// skips that event.
 //
-// Takes statsProvider
-// (monitoring_domain.SystemStatsProvider) which supplies
+// Takes statsProvider (monitoring_domain.SystemStatsProvider) which supplies
 // system metrics for memory-detail events.
 //
 // Safe for concurrent use; reads provider fields under mu.RLock.

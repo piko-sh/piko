@@ -22,7 +22,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -30,9 +29,28 @@ import (
 	"time"
 
 	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/wdk/logger"
 )
+
+const (
+	// maxSSELineBytes bounds a single SSE line so a malicious or malfunctioning
+	// peer cannot cause unbounded memory growth by streaming a single oversized
+	// `data:` line without a newline. Real SSE lines are typically much smaller,
+	// so 1 MiB is a generous ceiling.
+	maxSSELineBytes = 1 * 1024 * 1024
+
+	// initialSSEScannerBufferBytes is the initial buffer size used by the SSE
+	// line scanner; it grows up to maxSSELineBytes as needed.
+	initialSSEScannerBufferBytes = 64 * 1024
+)
+
+// ErrSSELineTooLarge indicates that a Mistral SSE stream line exceeded the
+// per-line size cap, suggesting either a hostile peer or a malfunctioning
+// upstream emitter.
+var ErrSSELineTooLarge = errors.New("mistral SSE line exceeded maximum size")
 
 // streamState holds the data gathered during stream processing.
 type streamState struct {
@@ -65,6 +83,8 @@ type streamState struct {
 // Spawns a goroutine to process the stream. The channel is closed when the
 // stream ends or the context is cancelled.
 func (p *mistralProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.Stream")
+
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
 
@@ -85,7 +105,9 @@ func (p *mistralProvider) Stream(ctx context.Context, request *llm_dto.Completio
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.config.BaseURL+"/v1/chat/completions", bytes.NewReader(body))
+	streamContext := p.streamContext(ctx)
+
+	httpReq, err := http.NewRequestWithContext(streamContext, http.MethodPost, p.config.BaseURL+"/v1/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -100,16 +122,64 @@ func (p *mistralProvider) Stream(ctx context.Context, request *llm_dto.Completio
 	}
 
 	if response.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(response.Body)
-		_ = response.Body.Close()
-		return nil, fmt.Errorf("mistral API error (status %d): %s", response.StatusCode, string(respBody))
+		return nil, classifyStreamErrorResponse(response)
 	}
 
 	events := make(chan llm_dto.StreamEvent)
 
-	go p.processStream(ctx, response, events)
+	p.streamWaitGroup.Add(1)
+	go p.processStream(streamContext, response, events)
 
 	return events, nil
+}
+
+// classifyStreamErrorResponse classifies a non-OK Mistral streaming response.
+//
+// The response body is drained and closed before returning.
+//
+// Takes response (*http.Response) which is the non-OK upstream response.
+//
+// Returns error which carries the classified upstream failure as either a
+// safeerror-wrapped 4xx (user-rejection) or a transient 5xx-style error;
+// the returned error wraps a *llm_domain.ProviderError so the retry
+// executor can classify the failure and honour any Retry-After hint.
+func classifyStreamErrorResponse(response *http.Response) error {
+	respBody, readErr := readBoundedBody(response.Body)
+	detail := http.StatusText(response.StatusCode)
+	if len(respBody) > 0 {
+		detail = string(respBody)
+	}
+	if readErr != nil && !errors.Is(readErr, errResponseTruncated) {
+		detail = fmt.Sprintf("%s (read error: %v)", detail, readErr)
+	}
+	baseErr := fmt.Errorf("mistral API error (status %d): %s", response.StatusCode, detail)
+	providerErr := newProviderError(response, fmt.Sprintf("mistral API error: %s", detail), baseErr)
+	drainAndClose(response)
+	if response.StatusCode >= http.StatusBadRequest && response.StatusCode < http.StatusInternalServerError {
+		return safeerror.NewError("mistral stream rejected", providerErr)
+	}
+	return providerErr
+}
+
+// streamContext returns a context that is cancelled when either the caller's
+// context is cancelled or the provider is closed. The returned cancel function
+// must be called when the stream goroutine completes to release the watcher.
+//
+// Takes ctx (context.Context) which is the caller's context.
+//
+// Returns context.Context which carries the merged cancellation signal.
+func (p *mistralProvider) streamContext(ctx context.Context) context.Context {
+	if p.closeContext == nil {
+		return ctx
+	}
+	merged, cancel := context.WithCancelCause(ctx)
+	stopWatch := context.AfterFunc(p.closeContext, func() {
+		cancel(context.Cause(p.closeContext))
+	})
+	context.AfterFunc(merged, func() {
+		stopWatch()
+	})
+	return merged
 }
 
 // mistralStreamChunk represents a chunk from Mistral's streaming API.
@@ -164,20 +234,21 @@ type mistralDelta struct {
 // Takes events (chan<- llm_dto.StreamEvent) which receives the converted stream
 // events.
 func (p *mistralProvider) processStream(ctx context.Context, response *http.Response, events chan<- llm_dto.StreamEvent) {
+	defer p.streamWaitGroup.Done()
 	defer close(events)
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response)
 	defer goroutine.RecoverPanic(ctx, "llm.mistralProcessStream")
 	start := time.Now()
 
 	state := &streamState{}
-	reader := bufio.NewReader(response.Body)
+	scanner := newBoundedSSEScanner(response.Body)
 
 	for {
 		if p.isContextCancelled(ctx, events) {
 			return
 		}
 
-		line, done := p.readSSELine(ctx, events, reader)
+		line, done := p.readSSELine(ctx, events, scanner)
 		if done {
 			break
 		}
@@ -200,7 +271,23 @@ func (p *mistralProvider) processStream(ctx context.Context, response *http.Resp
 
 	streamDuration.Record(ctx, float64(time.Since(start).Milliseconds()))
 
-	events <- llm_dto.NewDoneEvent(p.buildFinalResponse(state))
+	select {
+	case events <- llm_dto.NewDoneEvent(p.buildFinalResponse(state)):
+	case <-ctx.Done():
+	}
+}
+
+// newBoundedSSEScanner constructs a bufio.Scanner whose buffer is capped at
+// maxSSELineBytes. When a single SSE line exceeds the cap, scanner.Scan
+// returns false and scanner.Err returns bufio.ErrTooLong.
+//
+// Takes body (io.Reader) which is the SSE response body.
+//
+// Returns *bufio.Scanner configured with the bounded buffer.
+func newBoundedSSEScanner(body io.Reader) *bufio.Scanner {
+	scanner := bufio.NewScanner(body)
+	scanner.Buffer(make([]byte, initialSSEScannerBufferBytes), maxSSELineBytes)
+	return scanner
 }
 
 // isContextCancelled checks if the context has been cancelled and sends an
@@ -213,35 +300,52 @@ func (p *mistralProvider) processStream(ctx context.Context, response *http.Resp
 func (*mistralProvider) isContextCancelled(ctx context.Context, events chan<- llm_dto.StreamEvent) bool {
 	select {
 	case <-ctx.Done():
-		events <- llm_dto.NewErrorEvent(context.Cause(ctx))
+		select {
+		case events <- llm_dto.NewErrorEvent(context.Cause(ctx)):
+		default:
+		}
 		return true
 	default:
 		return false
 	}
 }
 
-// readSSELine reads a single line from the SSE stream.
+// readSSELine reads a single line from the SSE stream via the bounded
+// scanner.
 //
 // Takes events (chan<- llm_dto.StreamEvent) which receives error events when
-// stream reading fails.
-// Takes reader (*bufio.Reader) which provides the SSE stream to read from.
+// stream reading fails or when an oversized line is detected.
+// Takes scanner (*bufio.Scanner) which provides the bounded SSE stream.
 //
 // Returns []byte which contains the parsed data payload, or nil when the line
 // should be skipped or the stream has ended.
-// Returns bool which is true when the stream has ended (EOF or done signal),
-// false when processing should continue.
-func (*mistralProvider) readSSELine(ctx context.Context, events chan<- llm_dto.StreamEvent, reader *bufio.Reader) ([]byte, bool) {
-	line, err := reader.ReadBytes('\n')
-	if err != nil {
-		if errors.Is(err, io.EOF) {
+// Returns bool which is true when the stream has ended (EOF, done signal, or
+// fatal read error), false when processing should continue.
+func (*mistralProvider) readSSELine(ctx context.Context, events chan<- llm_dto.StreamEvent, scanner *bufio.Scanner) ([]byte, bool) {
+	if !scanner.Scan() {
+		err := scanner.Err()
+		if err == nil {
 			return nil, true
 		}
 		streamErrorCount.Add(ctx, 1)
-		events <- llm_dto.NewErrorEvent(fmt.Errorf("mistral stream read error: %w", err))
+		if errors.Is(err, bufio.ErrTooLong) {
+			select {
+			case events <- llm_dto.NewErrorEvent(safeerror.NewError(
+				"mistral stream rejected",
+				fmt.Errorf("SSE line exceeded %d bytes: %w", maxSSELineBytes, ErrSSELineTooLarge),
+			)):
+			case <-ctx.Done():
+			}
+			return nil, true
+		}
+		select {
+		case events <- llm_dto.NewErrorEvent(fmt.Errorf("mistral stream read error: %w", err)):
+		case <-ctx.Done():
+		}
 		return nil, true
 	}
 
-	line = bytes.TrimSpace(line)
+	line := bytes.TrimSpace(scanner.Bytes())
 	if len(line) == 0 {
 		return nil, false
 	}
@@ -255,7 +359,9 @@ func (*mistralProvider) readSSELine(ctx context.Context, events chan<- llm_dto.S
 		return nil, true
 	}
 
-	return data, false
+	out := make([]byte, len(data))
+	copy(out, data)
+	return out, false
 }
 
 // parseSSEData parses the SSE data into a mistralStreamChunk.
@@ -432,7 +538,10 @@ func (*mistralProvider) sendEvent(ctx context.Context, events chan<- llm_dto.Str
 	case events <- event:
 		return true
 	case <-ctx.Done():
-		events <- llm_dto.NewErrorEvent(context.Cause(ctx))
+		select {
+		case events <- llm_dto.NewErrorEvent(context.Cause(ctx)):
+		default:
+		}
 		return false
 	}
 }

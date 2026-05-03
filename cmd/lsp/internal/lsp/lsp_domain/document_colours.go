@@ -25,6 +25,11 @@ import (
 )
 
 const (
+	// utf16BMPMaxRune is the highest Unicode code point representable in a
+	// single UTF-16 code unit (the Basic Multilingual Plane upper bound).
+	// Code points above this require a surrogate pair (two UTF-16 units).
+	utf16BMPMaxRune = 0xFFFF
+
 	// hexLengthShort is the length of a short hex colour (such as #RGB).
 	hexLengthShort = 3
 
@@ -106,7 +111,7 @@ func (d *document) GetDocumentColors() ([]protocol.ColorInformation, error) {
 		return []protocol.ColorInformation{}, nil
 	}
 
-	colors := []protocol.ColorInformation{}
+	colours := []protocol.ColorInformation{}
 
 	for _, block := range styleBlocks {
 		if block.Content == "" {
@@ -114,14 +119,14 @@ func (d *document) GetDocumentColors() ([]protocol.ColorInformation, error) {
 		}
 
 		startLine := block.ContentLocation.Line
-		startCol := block.ContentLocation.Column
+		startColumn := block.ContentLocation.Column
 
-		colors = append(colors, d.findHexColorsWithOffset(block.Content, startLine, startCol)...)
-		colors = append(colors, d.findRGBColorsWithOffset(block.Content, startLine, startCol)...)
-		colors = append(colors, d.findHSLColorsWithOffset(block.Content, startLine, startCol)...)
+		colours = append(colours, d.findHexColorsWithOffset(block.Content, startLine, startColumn)...)
+		colours = append(colours, d.findRGBColorsWithOffset(block.Content, startLine, startColumn)...)
+		colours = append(colours, d.findHSLColorsWithOffset(block.Content, startLine, startColumn)...)
 	}
 
-	return colors, nil
+	return colours, nil
 }
 
 // hexColorMatch holds a hex colour value and its position within the content.
@@ -145,7 +150,7 @@ type hexColorMatch struct {
 // Returns []protocol.ColorInformation which contains the found colours with
 // their positions.
 func (*document) findHexColorsWithOffset(content string, baseLine, baseCol int) []protocol.ColorInformation {
-	var colors []protocol.ColorInformation
+	var colours []protocol.ColorInformation
 
 	for i := 0; i < len(content); {
 		match := matchHexColor(content, i)
@@ -154,12 +159,12 @@ func (*document) findHexColorsWithOffset(content string, baseLine, baseCol int) 
 			continue
 		}
 
-		colorInfo := buildHexColorInfo(content, match, baseLine, baseCol)
-		colors = append(colors, colorInfo)
+		colourInfo := buildHexColorInfo(content, match, baseLine, baseCol)
+		colours = append(colours, colourInfo)
 		i = match.end
 	}
 
-	return colors
+	return colours
 }
 
 // colorFuncMatch holds a matched CSS colour function found in content.
@@ -186,7 +191,7 @@ type colorFuncMatch struct {
 // Returns []protocol.ColorInformation which contains all found colours with
 // their positions adjusted by the base offsets.
 func (*document) findRGBColorsWithOffset(content string, baseLine, baseCol int) []protocol.ColorInformation {
-	colors := []protocol.ColorInformation{}
+	colours := []protocol.ColorInformation{}
 
 	for i := 0; i < len(content); {
 		match := matchRGBFunc(content, i)
@@ -195,14 +200,14 @@ func (*document) findRGBColorsWithOffset(content string, baseLine, baseCol int) 
 			continue
 		}
 
-		if color, ok := parseRGBColor(match); ok {
-			colorInfo := buildColorInfo(content, match, baseLine, baseCol, color)
-			colors = append(colors, colorInfo)
+		if color, ok := parseRGBColour(match); ok {
+			colourInfo := buildColourInfo(content, match, baseLine, baseCol, color)
+			colours = append(colours, colourInfo)
 		}
 		i = match.end
 	}
 
-	return colors
+	return colours
 }
 
 // colorFuncMatcher holds settings for matching a colour function.
@@ -231,7 +236,7 @@ var (
 // Returns []protocol.ColorInformation which contains the found colours with
 // their positions.
 func (*document) findHSLColorsWithOffset(content string, baseLine, baseCol int) []protocol.ColorInformation {
-	colors := []protocol.ColorInformation{}
+	colours := []protocol.ColorInformation{}
 
 	for i := 0; i < len(content); {
 		match := matchHSLFunc(content, i)
@@ -240,14 +245,14 @@ func (*document) findHSLColorsWithOffset(content string, baseLine, baseCol int) 
 			continue
 		}
 
-		if color, ok := parseHSLColor(match); ok {
-			colorInfo := buildColorInfo(content, match, baseLine, baseCol, color)
-			colors = append(colors, colorInfo)
+		if color, ok := parseHSLColour(match); ok {
+			colourInfo := buildColourInfo(content, match, baseLine, baseCol, color)
+			colours = append(colours, colourInfo)
 		}
 		i = match.end
 	}
 
-	return colors
+	return colours
 }
 
 // GetColorPresentations provides alternate representations for a colour value.
@@ -293,26 +298,68 @@ func (*document) GetColorPresentations(color protocol.Color) ([]protocol.ColorPr
 	return presentations, nil
 }
 
-// convertCharPosToLineColumn changes a character position in a string into a line
-// and column position.
+// convertCharPosToLineColumn maps a byte offset to LSP line and column.
+//
+// The column is reported in UTF-16 code units to comply with LSP 3.17,
+// which mandates UTF-16 positions: ASCII and BMP runes count as one unit
+// while supplementary characters (such as most emoji) consume a surrogate
+// pair and count as two units.
 //
 // Takes content (string) which holds the text to search through.
-// Takes charPos (int) which is the character offset to change.
+// Takes charPos (int) which is the byte offset to change.
 //
 // Returns line (int) which is the line number, starting from zero.
-// Returns column (int) which is the column number, starting from zero.
+// Returns column (int) which is the UTF-16 column number, starting from zero.
 func convertCharPosToLineColumn(content string, charPos int) (line, column int) {
+	if charPos > len(content) {
+		charPos = len(content)
+	}
 	line = 0
 	column = 0
-	for i := 0; i < charPos && i < len(content); i++ {
-		if content[i] == '\n' {
+	for _, runeValue := range content[:charPos] {
+		if runeValue == '\n' {
 			line++
 			column = 0
-		} else {
-			column++
+			continue
 		}
+		column += utf16UnitsForRune(runeValue)
 	}
 	return line, column
+}
+
+// byteOffsetToUTF16Column counts the UTF-16 code units between the start of
+// line and byteOffset. LSP 3.17 column positions are UTF-16-based, so byte
+// offsets must be translated whenever the line contains multi-byte runes.
+//
+// Takes line (string) which is the single line of source text being measured.
+// Takes byteOffset (int) which is the byte offset within line whose column is
+// required.
+//
+// Returns int which is the UTF-16 code-unit column corresponding to byteOffset.
+func byteOffsetToUTF16Column(line string, byteOffset int) int {
+	if byteOffset > len(line) {
+		byteOffset = len(line)
+	}
+	column := 0
+	for _, runeValue := range line[:byteOffset] {
+		column += utf16UnitsForRune(runeValue)
+	}
+	return column
+}
+
+// utf16UnitsForRune reports how many UTF-16 code units the given rune occupies.
+// BMP code points (including ASCII and most letters) take a single unit;
+// supplementary code points above U+FFFF (such as emoji) are encoded with a
+// surrogate pair and take two units.
+//
+// Takes runeValue (rune) which is the code point being measured.
+//
+// Returns int which is 1 for BMP runes and 2 for supplementary runes.
+func utf16UnitsForRune(runeValue rune) int {
+	if runeValue > utf16BMPMaxRune {
+		return 2
+	}
+	return 1
 }
 
 // matchHexColor tries to match a hex colour at the given position.
@@ -367,7 +414,7 @@ func isValidHexLength(length int) bool {
 // in the document.
 func buildHexColorInfo(content string, match *hexColorMatch, baseLine, baseCol int) protocol.ColorInformation {
 	r, g, b, a := parseHexColor(match.hexValue)
-	return buildColorInfo(content, &colorFuncMatch{
+	return buildColourInfo(content, &colorFuncMatch{
 		functionName:    "",
 		argumentsString: "",
 		start:           match.start,
@@ -427,14 +474,14 @@ func matchRGBFunc(content string, position int) *colorFuncMatch {
 	return matchColorFunc(content, position, rgbMatcher)
 }
 
-// parseRGBColor parses RGB or RGBA colour function arguments.
+// parseRGBColour parses RGB or RGBA colour function arguments.
 //
 // Takes match (*colorFuncMatch) which contains the function name and argument
 // string to parse.
 //
 // Returns protocol.Color which holds the parsed RGBA colour values.
 // Returns bool which is true when parsing succeeds, false otherwise.
-func parseRGBColor(match *colorFuncMatch) (protocol.Color, bool) {
+func parseRGBColour(match *colorFuncMatch) (protocol.Color, bool) {
 	arguments := parseColorArgs(match.argumentsString)
 
 	isRGB := match.functionName == "rgb" && len(arguments) == rgbArgCount
@@ -466,14 +513,14 @@ func matchHSLFunc(content string, position int) *colorFuncMatch {
 	return matchColorFunc(content, position, hslMatcher)
 }
 
-// parseHSLColor parses HSL or HSLA colour arguments and converts them to RGB.
+// parseHSLColour parses HSL or HSLA colour arguments and converts them to RGB.
 //
 // Takes match (*colorFuncMatch) which contains the function name and arguments
 // to parse.
 //
 // Returns protocol.Color which is the parsed colour converted to RGB values.
 // Returns bool which indicates whether parsing succeeded.
-func parseHSLColor(match *colorFuncMatch) (protocol.Color, bool) {
+func parseHSLColour(match *colorFuncMatch) (protocol.Color, bool) {
 	arguments := parseColorArgs(match.argumentsString)
 
 	isHSL := match.functionName == "hsl" && len(arguments) == rgbArgCount
@@ -521,7 +568,7 @@ func findClosingParen(content string, start int) int {
 	return j
 }
 
-// buildColorInfo creates a ColorInformation from a colour function match.
+// buildColourInfo creates a ColorInformation from a colour function match.
 //
 // Takes content (string) which is the document text used to convert positions.
 // Takes match (*colorFuncMatch) which holds the start and end character
@@ -531,7 +578,7 @@ func findClosingParen(content string, start int) int {
 // Takes color (protocol.Color) which is the parsed colour value.
 //
 // Returns protocol.ColorInformation which holds the range and colour data.
-func buildColorInfo(content string, match *colorFuncMatch, baseLine, baseCol int, color protocol.Color) protocol.ColorInformation {
+func buildColourInfo(content string, match *colorFuncMatch, baseLine, baseCol int, color protocol.Color) protocol.ColorInformation {
 	startLine, startCol := convertCharPosToLineColumn(content, match.start)
 	endLine, endCol := convertCharPosToLineColumn(content, match.end)
 

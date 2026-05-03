@@ -30,8 +30,8 @@ import (
 const maxTagSearchLines = 10
 
 // findComponentTagAtPosition finds the template node (component tag) that
-// contains the given position. This is used to locate the exact tag where a
-// diagnostic was reported.
+// contains the given position. Locates the exact tag where a diagnostic was
+// reported.
 //
 // Takes rootNodes ([]*ast_domain.TemplateNode) which is the list of
 // root template nodes to search through.
@@ -76,7 +76,7 @@ func findComponentTagAtPosition(rootNodes []*ast_domain.TemplateNode, line, _ ui
 }
 
 // calculateTagEndPosition finds the closing > or /> in a component tag.
-// This is used to determine where to insert missing attributes.
+// Determines where to insert missing attributes.
 //
 // Takes content ([]byte) which contains the template source.
 // Takes node (*ast_domain.TemplateNode) which specifies the tag to search from.

@@ -1,0 +1,52 @@
+<svg viewBox="0 0 500 300" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="t02-title t02-desc">
+  <title id="t02-title">Tutorial 2 preview: reactive counter and todo list</title>
+  <desc id="t02-desc">A browser window showing the finished page from tutorial 2. On the left, a counter widget with increment and decrement buttons and a live count of 3. On the right, a todo list with a checkbox, two items, and an input to add more. Both widgets are PKC components running client-side with local reactive state.</desc>
+  <defs/>
+
+  <text x="250" y="18" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">WHAT YOU WILL BUILD</text>
+
+  
+  <rect x="30" y="35" width="440" height="230" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M40,35 H460 A10,10 0 0 1 470,45 V65 H30 V45 A10,10 0 0 1 40,35 Z" fill="#1C544F"/>
+  <circle cx="46" cy="49" r="4" fill="#ff5f57"/>
+  <circle cx="60" cy="49" r="4" fill="#febc2e"/>
+  <circle cx="74" cy="49" r="4" fill="#28c840"/>
+
+  <rect x="100" y="42" width="340" height="14" rx="4" fill="#364049"/>
+  <text x="115" y="53" fill="#C9F5F2" font-family="monospace" font-size="9">http://localhost:8080/</text>
+
+  
+  <rect x="60" y="85" width="180" height="150" rx="8" fill="#1C544F" stroke="#6BD5CC" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="75" y="102" fill="#FFEE9C" font-family="monospace" font-size="10" font-weight="600">&lt;pp-counter&gt;</text>
+  <text x="150" y="138" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="11">Count:</text>
+  <text x="150" y="172" text-anchor="middle" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="32" font-weight="700">3</text>
+  <rect x="85" y="195" width="50" height="26" rx="6" fill="#236962" stroke="#6BD5CC" stroke-width="1"/>
+  <text x="110" y="212" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">-</text>
+  <rect x="165" y="195" width="50" height="26" rx="6" fill="#236962" stroke="#6BD5CC" stroke-width="1"/>
+  <text x="190" y="212" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">+</text>
+
+  
+  <rect x="260" y="85" width="180" height="150" rx="8" fill="#1C544F" stroke="#6BD5CC" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="275" y="102" fill="#FFEE9C" font-family="monospace" font-size="10" font-weight="600">&lt;pp-todo&gt;</text>
+
+  
+  <rect x="275" y="115" width="12" height="12" rx="2" fill="#6BD5CC"/>
+  <text x="295" y="125" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" text-decoration="line-through">Write first tutorial</text>
+
+  
+  <rect x="275" y="135" width="12" height="12" rx="2" fill="#236962" stroke="#6BD5CC" stroke-width="1"/>
+  <text x="295" y="145" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">Ship the feature</text>
+
+  
+  <rect x="275" y="155" width="12" height="12" rx="2" fill="#236962" stroke="#6BD5CC" stroke-width="1"/>
+  <text x="295" y="165" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">Write tests</text>
+
+  
+  <rect x="275" y="185" width="118" height="22" rx="5" fill="#236962" stroke="#485461" stroke-width="1"/>
+  <text x="282" y="200" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">Add a todo...</text>
+  <rect x="398" y="185" width="32" height="22" rx="5" fill="#236962" stroke="#6BD5CC" stroke-width="1"/>
+  <text x="414" y="200" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">+</text>
+
+  <text x="250" y="288" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11">Two PKC components on one server-rendered page, each owning its own state</text>
+</svg>

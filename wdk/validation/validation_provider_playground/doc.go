@@ -20,9 +20,9 @@
 // backed by go-playground/validator/v10 with Piko's built-in Money
 // and Decimal validation rules pre-registered.
 //
-// This is an optional WDK module. The core Piko framework defines
-// only the bootstrap.StructValidator interface; this package
-// supplies a concrete implementation that most projects will want.
-// Custom validation rules can be added via [WithRegistration], and
-// underlying playground options via [WithPlaygroundOption].
+// Optional WDK module: the core Piko framework defines only the
+// bootstrap.StructValidator interface; this adapter supplies a concrete
+// implementation that most projects will want. Custom validation rules can be
+// added via [WithRegistration], and underlying playground options via
+// [WithPlaygroundOption].
 package validation_provider_playground

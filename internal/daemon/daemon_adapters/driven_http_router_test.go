@@ -1213,3 +1213,134 @@ func TestWriteDevErrorFallback(t *testing.T) {
 		assert.Contains(t, body, "&lt;script&gt;")
 	})
 }
+
+func TestAliasCatchAllParam(t *testing.T) {
+	t.Parallel()
+
+	t.Run("aliases inner catch-all when nested under parent", func(t *testing.T) {
+		t.Parallel()
+
+		rctx := chi.NewRouteContext()
+
+		rctx.URLParams.Add("*", "docs/get-started/introduction")
+		rctx.URLParams.Add("*", "get-started/introduction")
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(
+			context.WithValue(context.Background(), chi.RouteCtxKey, rctx),
+		)
+
+		aliasCatchAllParam(req, "slug")
+
+		got := chi.URLParam(req, "slug")
+		assert.Equal(t, "get-started/introduction", got, "alias must reflect the inner subrouter's capture, not the parent's")
+	})
+
+	t.Run("no-op when chi route context is absent", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		assert.NotPanics(t, func() {
+			aliasCatchAllParam(req, "slug")
+		})
+	})
+
+	t.Run("no-op when wildcard not captured", func(t *testing.T) {
+		t.Parallel()
+
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("id", "42")
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(
+			context.WithValue(context.Background(), chi.RouteCtxKey, rctx),
+		)
+
+		aliasCatchAllParam(req, "slug")
+		assert.Empty(t, chi.URLParam(req, "slug"))
+	})
+
+	t.Run("aliases deepest catch-all when three subrouters stack", func(t *testing.T) {
+		t.Parallel()
+
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("*", "outer/middle/inner")
+		rctx.URLParams.Add("*", "middle/inner")
+		rctx.URLParams.Add("*", "inner")
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(
+			context.WithValue(context.Background(), chi.RouteCtxKey, rctx),
+		)
+
+		aliasCatchAllParam(req, "slug")
+		assert.Equal(t, "inner", chi.URLParam(req, "slug"),
+			"alias must reflect the deepest subrouter's capture")
+	})
+}
+
+func TestTranslateCatchAllForChi(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		pattern     string
+		wantPattern string
+		wantAlias   string
+	}{
+		{
+			name:        "no regex segment passes through",
+			pattern:     "/blog/{slug}",
+			wantPattern: "/blog/{slug}",
+			wantAlias:   "",
+		},
+		{
+			name:        "static path passes through",
+			pattern:     "/about",
+			wantPattern: "/about",
+			wantAlias:   "",
+		},
+		{
+			name:        "trailing dot-plus is translated",
+			pattern:     "/docs/{slug:.+}",
+			wantPattern: "/docs/*",
+			wantAlias:   "slug",
+		},
+		{
+			name:        "trailing dot-star is translated",
+			pattern:     "/docs/{slug:.*}",
+			wantPattern: "/docs/*",
+			wantAlias:   "slug",
+		},
+		{
+			name:        "non-greedy regex is translated",
+			pattern:     "/docs/{slug:.+?}",
+			wantPattern: "/docs/*",
+			wantAlias:   "slug",
+		},
+		{
+			name:        "character-class regex is translated",
+			pattern:     "/files/{path:[a-zA-Z0-9/_-]+}",
+			wantPattern: "/files/*",
+			wantAlias:   "path",
+		},
+		{
+			name:        "regex without name passes through",
+			pattern:     "/blog/{:.+}",
+			wantPattern: "/blog/{:.+}",
+			wantAlias:   "",
+		},
+		{
+			name:        "trailing brace without opener passes through",
+			pattern:     "stray}",
+			wantPattern: "stray}",
+			wantAlias:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotPattern, gotAlias := translateCatchAllForChi(tt.pattern)
+			assert.Equal(t, tt.wantPattern, gotPattern)
+			assert.Equal(t, tt.wantAlias, gotAlias)
+		})
+	}
+}

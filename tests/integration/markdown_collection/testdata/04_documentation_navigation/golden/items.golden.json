@@ -4,28 +4,6 @@
       "Draft": false,
       "Sections": [
         {
-          "Title": "Deployment",
-          "Slug": "deployment",
-          "Level": 1
-        }
-      ],
-      "Title": "Deployment Guide",
-      "WordCount": 6
-    },
-    "id": "deployment",
-    "slug": "deployment",
-    "locale": "en",
-    "translationKey": "docs/guides/deployment",
-    "url": "/docs/guides/deployment",
-    "readingTime": 1,
-    "hasContentAST": true,
-    "hasExcerptAST": true
-  },
-  {
-    "metadata": {
-      "Draft": false,
-      "Sections": [
-        {
           "Title": "API Endpoints",
           "Slug": "api-endpoints",
           "Level": 1
@@ -34,33 +12,11 @@
       "Title": "API Endpoints",
       "WordCount": 6
     },
-    "id": "endpoints",
-    "slug": "endpoints",
+    "id": "api/endpoints",
+    "slug": "api/endpoints",
     "locale": "en",
     "translationKey": "docs/api/endpoints",
     "url": "/docs/api/endpoints",
-    "readingTime": 1,
-    "hasContentAST": true,
-    "hasExcerptAST": true
-  },
-  {
-    "metadata": {
-      "Draft": false,
-      "Sections": [
-        {
-          "Title": "Installation",
-          "Slug": "installation",
-          "Level": 1
-        }
-      ],
-      "Title": "Installation",
-      "WordCount": 8
-    },
-    "id": "installation",
-    "slug": "installation",
-    "locale": "en",
-    "translationKey": "docs/getting-started/installation",
-    "url": "/docs/getting-started/installation",
     "readingTime": 1,
     "hasContentAST": true,
     "hasExcerptAST": true
@@ -78,11 +34,33 @@
       "Title": "API Overview",
       "WordCount": 8
     },
-    "id": "overview",
-    "slug": "overview",
+    "id": "api/overview",
+    "slug": "api/overview",
     "locale": "en",
     "translationKey": "docs/api/overview",
     "url": "/docs/api/overview",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Installation",
+          "Slug": "installation",
+          "Level": 1
+        }
+      ],
+      "Title": "Installation",
+      "WordCount": 8
+    },
+    "id": "getting-started/installation",
+    "slug": "getting-started/installation",
+    "locale": "en",
+    "translationKey": "docs/getting-started/installation",
+    "url": "/docs/getting-started/installation",
     "readingTime": 1,
     "hasContentAST": true,
     "hasExcerptAST": true
@@ -100,11 +78,33 @@
       "Title": "Quick Start",
       "WordCount": 9
     },
-    "id": "quick-start",
-    "slug": "quick-start",
+    "id": "getting-started/quick-start",
+    "slug": "getting-started/quick-start",
     "locale": "en",
     "translationKey": "docs/getting-started/quick-start",
     "url": "/docs/getting-started/quick-start",
+    "readingTime": 1,
+    "hasContentAST": true,
+    "hasExcerptAST": true
+  },
+  {
+    "metadata": {
+      "Draft": false,
+      "Sections": [
+        {
+          "Title": "Deployment",
+          "Slug": "deployment",
+          "Level": 1
+        }
+      ],
+      "Title": "Deployment Guide",
+      "WordCount": 6
+    },
+    "id": "guides/deployment",
+    "slug": "guides/deployment",
+    "locale": "en",
+    "translationKey": "docs/guides/deployment",
+    "url": "/docs/guides/deployment",
     "readingTime": 1,
     "hasContentAST": true,
     "hasExcerptAST": true

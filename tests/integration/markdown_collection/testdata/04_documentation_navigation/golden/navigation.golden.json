@@ -5,7 +5,7 @@
         {
           "children": [
             {
-              "id": "endpoints",
+              "id": "api/endpoints",
               "title": "API Endpoints",
               "section": "api",
               "url": "/docs/api/endpoints",
@@ -13,7 +13,7 @@
               "order": 999
             },
             {
-              "id": "overview",
+              "id": "api/overview",
               "title": "API Overview",
               "section": "api",
               "url": "/docs/api/overview",
@@ -30,7 +30,7 @@
         {
           "children": [
             {
-              "id": "installation",
+              "id": "getting-started/installation",
               "title": "Installation",
               "section": "getting-started",
               "url": "/docs/getting-started/installation",
@@ -38,7 +38,7 @@
               "order": 999
             },
             {
-              "id": "quick-start",
+              "id": "getting-started/quick-start",
               "title": "Quick Start",
               "section": "getting-started",
               "url": "/docs/getting-started/quick-start",
@@ -55,7 +55,7 @@
         {
           "children": [
             {
-              "id": "deployment",
+              "id": "guides/deployment",
               "title": "Deployment Guide",
               "section": "guides",
               "url": "/docs/guides/deployment",

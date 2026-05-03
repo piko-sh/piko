@@ -2,7 +2,7 @@
 
 ## Requirements
 
-Go 1.26+. Node.js 22+ if you're touching frontend or plugins. `make help` lists all the targets.
+Go 1.26+. Node.js 22+ if you are touching frontend or plugins. `make help` lists all the targets.
 
 ---
 
@@ -15,13 +15,13 @@ go mod tidy
 make test
 ```
 
-If you're touching FlatBuffers, Protocol Buffers, or quicktemplate schemas, also run `make tools-download` and `make generate-all`.
+If you are touching FlatBuffers, Protocol Buffers, or quicktemplate schemas, also run `make tools-download` and `make generate-all`.
 
 ---
 
 ## Code organisation
 
-Packages under `internal/` are often split into three directories, these are called hexagons:
+Piko often splits packages under `internal/` into three directories, called hexagons:
 
 ```text
 internal/cache/
@@ -30,11 +30,11 @@ internal/cache/
 └── cache_dto/         # Data transfer objects
 ```
 
-Quite a lot of packages follow this pattern, it allows extensibility. Domain defines the ports, adapters implement them, DTOs cross boundaries. Packages which could support extensibility should follow this pattern.
+Most public-facing packages follow this pattern because it allows extensibility. Domain defines the ports, adapters implement them, DTOs cross boundaries. Packages that could support extensibility should follow this pattern.
 
 The `wdk/` directory is the public API surface. It re-exports internal types via aliases so users get a stable interface without importing `internal/` directly.
 
-Dependency injection happens in `internal/bootstrap/`, using functional options (`WithEventBus(...)`, `WithCacheService(...)`, etc.). These are exposed through the options system, at the root, or in a facade in wdk.
+Dependency injection happens in `internal/bootstrap/`, using functional options (`WithEventBus(...)`, `WithCacheService(...)`, etc.). The options system exposes these at the root, or through a facade in wdk.
 
 Entry points are in `cmd/`: `cli/` (wizard, formatter), `lsp/` (language server), `wasm/` (WebAssembly target).
 
@@ -52,15 +52,15 @@ Tests must pass in both modes.
 
 ### Code generation
 
-We use FlatBuffers, Protocol Buffers, and quicktemplate. Schemas live in `*_schema/` directories. Run `make generate-all` after pulling changes that touch them.
+Piko uses FlatBuffers, Protocol Buffers, and quicktemplate. Schemas live in `*_schema/` directories. Run `make generate-all` after pulling changes that touch them.
 
 ### Other bits
 
-The `hack/` directory has scripts for building, testing, linting, and code generation. All Make targets are implemented there.
+The `hack/` directory has scripts for building, testing, linting, and code generation. All Make targets live there.
 
-Each package defines its OTEL metrics and traces in a dedicated `otel.go` file. Logger and meter are package-level vars in that file. Every package also has a `doc.go` with the licence header and a package comment.
+Each package defines its OTEL metrics and traces in a dedicated `otel.go` file. `Logger` and `Meter` are package-level vars in that file. Every package also has a `doc.go` with the licence header and a package comment.
 
-We have a custom 7-level logger: TRACE and INTERNAL are framework-only (invisible to end users unless explicitly enabled), DEBUG and INFO are user-facing, and NOTICE/WARN/ERROR are shared.
+Piko ships a custom seven-level logger. TRACE and INTERNAL are framework-only and stay invisible to end users unless explicitly enabled. DEBUG and INFO target users directly, and the NOTICE, WARN, and ERROR levels serve both framework and user code.
 
 ---
 
@@ -121,7 +121,7 @@ Configuration is in `.golangci.yml` and `revive.toml`. The limits that tend to c
 | Function arguments | 7 |
 | Line length | 200 characters |
 
-Suppress with `//nolint:linter // reason` when you have a good reason (e.g. `//nolint:revive // cyclomatic: dispatch table`).
+Suppress with `//nolint:linter // reason` when you have a good reason (for example `//nolint:revive // cyclomatic: dispatch table`).
 
 ---
 
@@ -129,12 +129,12 @@ Suppress with `//nolint:linter // reason` when you have a good reason (e.g. `//n
 
 ### Linux prerequisites
 
-Several integration test packages create `fsnotify` watchers that recursively watch directory trees. When `go test ./...` runs many packages in parallel the default kernel inotify limits can be exhausted, causing `too many open files` errors. Check your current limits and raise them if needed:
+Some integration test packages create `fsnotify` watchers that recursively watch directory trees. When `go test ./...` runs packages in parallel, the test suite can exhaust the default kernel inotify limits, causing `too many open files` errors. Check your current limits and raise them if needed:
 
 ```bash
 # Check current values
 cat /proc/sys/fs/inotify/max_user_instances   # default 128 - needs raising
-cat /proc/sys/fs/inotify/max_user_watches     # default 8192–65536 - needs raising
+cat /proc/sys/fs/inotify/max_user_watches     # default 8192-65536 - needs raising
 cat /proc/sys/fs/inotify/max_queued_events    # default 16384 - usually fine
 
 # Temporary (resets on reboot)

@@ -196,10 +196,8 @@ func getDriverConfig() (driverMode, tcpAddr string) {
 // Returns lspServices which contains the initialised container, config
 // provider, document cache, and LSP file reader.
 func initialiseLSP() lspServices {
-	configProvider := config.NewConfigProvider()
 	deps := &bootstrap.Dependencies{
-		ConfigProvider: configProvider,
-		AppRouter:      chi.NewRouter(),
+		AppRouter: chi.NewRouter(),
 	}
 
 	container, err := bootstrap.ConfigAndContainer(context.Background(), deps)
@@ -211,7 +209,10 @@ func initialiseLSP() lspServices {
 
 	docCache := lsp_domain.NewDocumentCache()
 	osReader := lsp_adapters.NewOsFSReader()
-	lspReader := lsp_adapters.NewLspFSReader(docCache, osReader)
+	lspReader, err := lsp_adapters.NewLspFSReader(docCache, osReader)
+	if err != nil {
+		fatalf("Failed to create LSP file reader: %v", err)
+	}
 
 	container.SetCoordinatorDiagnosticOutputOverride(coordinator_adapters.NewSilentDiagnosticOutput())
 	container.SetFSReaderOverride(lspReader)
@@ -219,7 +220,7 @@ func initialiseLSP() lspServices {
 
 	return lspServices{
 		container:   container,
-		pathsConfig: &configProvider.ServerConfig.Paths,
+		pathsConfig: &container.GetServerConfig().Paths,
 		docCache:    docCache,
 		lspReader:   lspReader,
 	}
@@ -249,7 +250,7 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 	switch driverMode {
 	case "tcp":
 		getLog().Info("Creating TCP driver adapter", logger.String("address", tcpAddr))
-		return lsp_adapters.NewTCPAdapter(lsp_adapters.TCPAdapterDeps{
+		driver, driverErr := lsp_adapters.NewTCPAdapter(lsp_adapters.TCPAdapterDeps{
 			Addr:                 tcpAddr,
 			CoordinatorService:   coordinatorService,
 			Resolver:             resolver,
@@ -259,9 +260,17 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 			PathsConfig:          service.pathsConfig,
 			FormattingEnabled:    *flagFormatting,
 		})
+		if driverErr != nil {
+			fatalf("Failed to create TCP driver adapter: %v", driverErr)
+		}
+		return driver
 	case "stdio":
 		getLog().Info("Creating STDIO driver adapter")
-		return lsp_adapters.NewStdioAdapter(coordinatorService, resolver, typeInspectorMgr, service.docCache, service.lspReader, service.pathsConfig, *flagFormatting)
+		driver, driverErr := lsp_adapters.NewStdioAdapter(coordinatorService, resolver, typeInspectorMgr, service.docCache, service.lspReader, service.pathsConfig, *flagFormatting)
+		if driverErr != nil {
+			fatalf("Failed to create STDIO driver adapter: %v", driverErr)
+		}
+		return driver
 	default:
 		fatalf("Unknown driver mode: %s (must be 'stdio' or 'tcp')", driverMode)
 		return nil

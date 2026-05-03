@@ -46,8 +46,8 @@ const (
 )
 
 // BasePanel provides shared behaviour for all panels in the TUI.
-// Embed this struct in panel types to get default key bindings, focus
-// handling, and scroll support.
+// Embed in panel types to get default key bindings, focus handling, and scroll
+// support.
 type BasePanel struct {
 	// id is the unique identifier for this panel.
 	id string
@@ -243,9 +243,9 @@ func (*BasePanel) DetailView(_, _ int) string {
 
 // Selection is the default implementation of Panel.Selection.
 //
-// It returns the empty Selection so panels without selectable rows can
-// embed BasePanel without adding boilerplate. Panels with row
-// selection shadow this method.
+// It returns the empty Selection so panels without selectable rows can embed
+// BasePanel without adding boilerplate. Panels with row selection shadow the
+// default.
 //
 // Returns Selection which is the zero value.
 func (*BasePanel) Selection() Selection {

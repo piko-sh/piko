@@ -90,7 +90,7 @@ func createHealthProbeService(c *Container) (healthprobe_domain.Service, error) 
 	l.Internal("Creating health probe service...")
 
 	registry := healthprobe_adapters.NewInMemoryRegistry()
-	config := c.GetConfigProvider().ServerConfig
+	config := c.serverConfig
 	checkTimeout := time.Duration(deref(config.HealthProbe.CheckTimeoutSeconds, defaultCheckTimeoutSeconds)) * time.Second
 
 	registerServiceProbes(c, registry)
@@ -177,7 +177,7 @@ func registerCustomProbes(c *Container, registry healthprobe_domain.Registry) {
 func setupHealthProbeServer(
 	c *Container,
 ) (daemon_domain.ServerAdapter, http.Handler, daemon_domain.DrainSignaller, error) {
-	config := c.GetConfigProvider().ServerConfig
+	config := c.serverConfig
 
 	if !deref(config.HealthProbe.Enabled, true) {
 		return nil, nil, nil, nil

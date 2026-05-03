@@ -186,28 +186,8 @@ func (rcv *ManifestFB) ErrorPagesLength() int {
 	return 0
 }
 
-func (rcv *ManifestFB) CollectionFallbackRoutes(obj *CollectionFallbackRouteFB, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
-		return true
-	}
-	return false
-}
-
-func (rcv *ManifestFB) CollectionFallbackRoutesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
-	}
-	return 0
-}
-
 func ManifestFBStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(5)
 }
 func ManifestFBAddPages(builder *flatbuffers.Builder, pages flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(pages), 0)
@@ -237,12 +217,6 @@ func ManifestFBAddErrorPages(builder *flatbuffers.Builder, errorPages flatbuffer
 	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(errorPages), 0)
 }
 func ManifestFBStartErrorPagesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
-}
-func ManifestFBAddCollectionFallbackRoutes(builder *flatbuffers.Builder, collectionFallbackRoutes flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(collectionFallbackRoutes), 0)
-}
-func ManifestFBStartCollectionFallbackRoutesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func ManifestFBEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {

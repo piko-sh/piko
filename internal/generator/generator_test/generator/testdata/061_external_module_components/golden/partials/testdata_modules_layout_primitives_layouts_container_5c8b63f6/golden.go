@@ -5,6 +5,7 @@
 package testdata_modules_layout_primitives_layouts_container_5c8b63f6
 
 import (
+	"cmp"
 	"fmt"
 	"html"
 	"sort"
@@ -21,6 +22,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 
 // line ../../../testdata-modules/layout-primitives/layouts/Container.pk:34

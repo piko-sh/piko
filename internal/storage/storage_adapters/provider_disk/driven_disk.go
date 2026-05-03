@@ -96,6 +96,17 @@ const (
 	// md5HashHexLength is the length of an MD5 hash in hexadecimal form (32
 	// chars).
 	md5HashHexLength = 32
+
+	// defaultMaxSidecarBytes caps reads from sidecar files.
+	//
+	// Sidecars hold tiny payloads (an md5 digest or a JSON metadata map of opaque
+	// keys/values), so the cap is generous (1 MiB) and just defends against a
+	// corrupted or attacker-influenced sidecar that would otherwise be slurped
+	// whole into memory.
+	//
+	// TODO(piko): expose as DiskProvider Config option once a broader storage
+	// adapter config refactor lands.
+	defaultMaxSidecarBytes int64 = 1 * 1024 * 1024
 )
 
 // DiskProvider implements StorageProviderPort using the local filesystem.
@@ -164,6 +175,11 @@ func (d *DiskProvider) Put(ctx context.Context, params *storage_dto.PutParams) e
 	defer func() { _ = d.sandbox.Remove(tmpName) }()
 
 	bytesWritten, err := io.Copy(tmpFile, contextaware.NewReader(ctx, params.Reader))
+	if err == nil {
+		if syncErr := tmpFile.Sync(); syncErr != nil {
+			err = fmt.Errorf("failed to fsync temporary file '%s': %w", tmpName, syncErr)
+		}
+	}
 	if closeErr := tmpFile.Close(); closeErr != nil && err == nil {
 		err = fmt.Errorf("failed to close temporary file: %w", closeErr)
 	}
@@ -176,6 +192,8 @@ func (d *DiskProvider) Put(ctx context.Context, params *storage_dto.PutParams) e
 		OperationErrorsTotal.Add(ctx, 1, metric.WithAttributes(attribute.String(metricAttrOperation, logOpPut)))
 		return fmt.Errorf("failed to atomically move file to '%s': %w", path, err)
 	}
+
+	d.syncDirectoryAfterRename(ctx, directory)
 
 	d.writeMetadataSidecar(ctx, path, params.Metadata)
 
@@ -863,8 +881,12 @@ func (d *DiskProvider) readAndValidateCache(ctx context.Context, objectPath, sid
 		return "", errors.New("stale cache: object file modified after cache was written")
 	}
 
-	data, err := d.sandbox.ReadFile(sidecarPath)
+	data, _, err := d.sandbox.ReadFileLimit(sidecarPath, defaultMaxSidecarBytes)
 	if err != nil {
+		if errors.Is(err, safedisk.ErrFileExceedsLimit) {
+			return "", fmt.Errorf("%w: hash sidecar %q: %w",
+				storage_domain.ErrDiskObjectTooLarge, sidecarPath, err)
+		}
 		return "", fmt.Errorf("failed to read cache sidecar: %w", err)
 	}
 
@@ -959,7 +981,9 @@ func (d *DiskProvider) writeMetadataSidecar(ctx context.Context, objectPath stri
 }
 
 // readMetadataSidecar reads and deserialises object metadata from a JSON
-// sidecar file.
+// sidecar file. The read is bounded by defaultMaxSidecarBytes; a sidecar
+// larger than the cap is rejected with storage_domain.ErrDiskObjectTooLarge
+// so a corrupted or attacker-influenced sidecar cannot dominate memory.
 //
 // Takes objectPath (string) which is the path to the object file.
 //
@@ -968,8 +992,12 @@ func (d *DiskProvider) writeMetadataSidecar(ctx context.Context, objectPath stri
 func (d *DiskProvider) readMetadataSidecar(ctx context.Context, objectPath string) (map[string]string, error) {
 	_, l := logger_domain.From(ctx, log)
 	metadataPath := objectPath + metadataSidecarSuffix
-	metadataData, err := d.sandbox.ReadFile(metadataPath)
+	metadataData, _, err := d.sandbox.ReadFileLimit(metadataPath, defaultMaxSidecarBytes)
 	if err != nil {
+		if errors.Is(err, safedisk.ErrFileExceedsLimit) {
+			return nil, fmt.Errorf("%w: metadata sidecar %q: %w",
+				storage_domain.ErrDiskObjectTooLarge, metadataPath, err)
+		}
 		return nil, fmt.Errorf("reading metadata sidecar %q: %w", metadataPath, err)
 	}
 
@@ -1081,6 +1109,45 @@ func NewDiskProvider(config Config, opts ...storage_domain.ProviderOption) (stor
 	}
 
 	return d, nil
+}
+
+// syncDirectoryAfterRename fsyncs the parent directory after a rename.
+//
+// Required on filesystems where the metadata journal is flushed
+// independently of file data. Without this step, a crash between the
+// rename and the next metadata flush can leave the file invisible after
+// recovery despite a successful rename return.
+//
+// The fsync is best-effort: any error is logged but not surfaced because the
+// data itself was already fsynced and callers cannot recover meaningfully.
+//
+// Takes ctx (context.Context) which carries the logger.
+// Takes directory (string) which is the relative path to the directory inside
+// the sandbox.
+func (d *DiskProvider) syncDirectoryAfterRename(ctx context.Context, directory string) {
+	if directory == "" {
+		directory = "."
+	}
+	dirHandle, err := d.sandbox.OpenFile(directory, os.O_RDONLY, 0)
+	if err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Trace("opening directory for fsync skipped",
+			logger_domain.String(logFieldPath, directory),
+			logger_domain.Error(err))
+		return
+	}
+	if syncErr := dirHandle.Sync(); syncErr != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Trace("fsync of directory failed",
+			logger_domain.String(logFieldPath, directory),
+			logger_domain.Error(syncErr))
+	}
+	if closeErr := dirHandle.Close(); closeErr != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Trace("closing directory handle failed",
+			logger_domain.String(logFieldPath, directory),
+			logger_domain.Error(closeErr))
+	}
 }
 
 // repoPath returns the relative path for a repository and key within the

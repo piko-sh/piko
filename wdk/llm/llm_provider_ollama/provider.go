@@ -30,20 +30,37 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/ollama/ollama/api"
 
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/safeconv"
+)
+
+const (
+	// closeDrainTimeout bounds the time Close waits for active stream
+	// goroutines to drain before returning a timeout error.
+	closeDrainTimeout = 30 * time.Second
 )
 
 // ollamaProvider implements llm_domain.LLMProviderPort and
 // llm_domain.EmbeddingProviderPort for Ollama.
 type ollamaProvider struct {
+	// closeContext is the provider-level context whose cancellation signals
+	// background stream goroutines to exit.
+	closeContext context.Context
+
+	// closeCancel cancels closeContext on Close to signal in-flight stream
+	// goroutines to wind down.
+	closeCancel context.CancelCauseFunc
+
 	// client is the Ollama API client.
 	client *api.Client
 
@@ -66,10 +83,17 @@ type ollamaProvider struct {
 	// config holds the provider configuration settings.
 	config Config
 
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for
+	// them to drain.
+	streamWaitGroup sync.WaitGroup
+
 	// embeddingDim caches the vector dimension reported by the embedding
 	// model. Populated eagerly from Show during construction, or lazily
 	// from the first Embed response.
 	embeddingDim atomic.Int32
+
+	// closeOnce guards Close so it is idempotent.
+	closeOnce sync.Once
 }
 
 var _ llm_domain.LLMProviderPort = (*ollamaProvider)(nil)
@@ -84,6 +108,8 @@ var _ llm_domain.EmbeddingProviderPort = (*ollamaProvider)(nil)
 // Returns *llm_dto.CompletionResponse which contains the generated completion.
 // Returns error when the API request fails.
 func (p *ollamaProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.ollamaProvider.Complete")
+
 	ctx, l := logger.From(ctx, log)
 	completeCount.Add(ctx, 1)
 	start := time.Now()
@@ -115,10 +141,26 @@ func (p *ollamaProvider) Complete(ctx context.Context, request *llm_dto.Completi
 	})
 	if err != nil {
 		completeErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("ollama completion failed: %w", wrapError(err))
+		wrapped := fmt.Errorf("ollama completion failed: %w", wrapError(err))
+		return nil, sanitiseProviderError(wrapped, "ollama request rejected")
 	}
 
 	return p.convertChatResponse(&chatResp, model), nil
+}
+
+// sanitiseProviderError wraps a 4xx provider error in a safeerror so HTTP edges
+// can sanitise it before returning to the user. Non-4xx errors are returned
+// unchanged so retry classification continues to work.
+//
+// Takes err (error) which is the error to inspect.
+// Takes safeMessage (string) which is shown to end users for 4xx errors.
+//
+// Returns error which is wrapped when err carries a 4xx status code.
+func sanitiseProviderError(err error, safeMessage string) error {
+	if providerErr, ok := errors.AsType[*llm_domain.ProviderError](err); ok && providerErr.StatusCode >= http.StatusBadRequest && providerErr.StatusCode < http.StatusInternalServerError {
+		return safeerror.NewError(safeMessage, err)
+	}
+	return err
 }
 
 // Embed generates embeddings for the given input texts.
@@ -129,6 +171,8 @@ func (p *ollamaProvider) Complete(ctx context.Context, request *llm_dto.Completi
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
 func (p *ollamaProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.ollamaProvider.Embed")
+
 	ctx, l := logger.From(ctx, log)
 	embedCount.Add(ctx, 1)
 	start := time.Now()
@@ -155,7 +199,8 @@ func (p *ollamaProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 	})
 	if err != nil {
 		embedErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("ollama embedding failed: %w", wrapError(err))
+		wrapped := fmt.Errorf("ollama embedding failed: %w", wrapError(err))
+		return nil, sanitiseProviderError(wrapped, "ollama embedding rejected")
 	}
 
 	embeddings := make([]llm_dto.Embedding, len(embedResp.Embeddings))
@@ -272,17 +317,51 @@ func (*ollamaProvider) SupportsParallelToolCalls() bool { return false }
 // Returns bool which is false.
 func (*ollamaProvider) SupportsMessageName() bool { return false }
 
-// Close releases resources. If the provider started a managed Ollama
-// subprocess, it is terminated.
+// Close releases resources. Cancels in-flight stream goroutines, waits for
+// them to drain within a bounded timeout, releases idle HTTP connections, and
+// terminates any managed Ollama subprocess.
 //
-// Returns error when resource cleanup fails.
-func (p *ollamaProvider) Close(_ context.Context) error {
-	p.transport.CloseIdleConnections()
+// Returns error when the close drain exceeds its bounded wait or process
+// termination fails.
+//
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
+// signal active stream goroutines, then waits on streamWaitGroup before
+// returning.
+func (p *ollamaProvider) Close(ctx context.Context) error {
+	var closeErr error
+	p.closeOnce.Do(func() {
+		if p.closeCancel != nil {
+			p.closeCancel(errors.New("ollama provider closing"))
+		}
 
-	if p.process != nil {
-		return p.process.Stop()
-	}
-	return nil
+		done := make(chan struct{})
+		go func() {
+			defer goroutine.RecoverPanic(ctx, "llm.ollamaProvider.Close.wait")
+			p.streamWaitGroup.Wait()
+			close(done)
+		}()
+
+		waitContext, cancel := context.WithTimeoutCause(ctx, closeDrainTimeout,
+			fmt.Errorf("ollama provider close drain exceeded %s", closeDrainTimeout))
+		defer cancel()
+
+		select {
+		case <-done:
+		case <-waitContext.Done():
+			closeErr = fmt.Errorf("ollama provider close timed out: %w", context.Cause(waitContext))
+		}
+
+		if p.transport != nil {
+			p.transport.CloseIdleConnections()
+		}
+
+		if p.process != nil {
+			if processErr := p.process.Stop(); processErr != nil && closeErr == nil {
+				closeErr = processErr
+			}
+		}
+	})
+	return closeErr
 }
 
 // DefaultModel returns the name of the default model.
@@ -469,7 +548,10 @@ func (p *ollamaProvider) fetchImage(ctx context.Context, imageURL string) ([]byt
 	if err != nil {
 		return nil, fmt.Errorf("fetching image: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() {
+		_, _ = io.Copy(io.Discard, response.Body)
+		_ = response.Body.Close()
+	}()
 
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("fetching image: HTTP %d", response.StatusCode)
@@ -537,10 +619,14 @@ func newProvider(config Config) (*ollamaProvider, error) {
 	}
 	config = config.WithDefaults()
 
+	closeContext, closeCancel := context.WithCancelCause(context.Background())
+
 	p := &ollamaProvider{
 		config:                config,
 		defaultModel:          config.DefaultModel,
 		defaultEmbeddingModel: config.DefaultEmbeddingModel,
+		closeContext:          closeContext,
+		closeCancel:           closeCancel,
 	}
 
 	if !isServerReachable(config.Host) {

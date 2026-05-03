@@ -609,7 +609,7 @@ func TestCheckRateLimit(t *testing.T) {
 	t.Run("returns service result when check succeeds", func(t *testing.T) {
 		var capturedKey string
 		mockService := &security_domain.MockRateLimitService{
-			CheckLimitFunc: func(key string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+			CheckLimitFunc: func(_ context.Context, key string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 				capturedKey = key
 				return ratelimiter_dto.Result{
 					Allowed:   true,
@@ -628,7 +628,7 @@ func TestCheckRateLimit(t *testing.T) {
 			BurstSize:         10,
 		}
 
-		result := m.checkRateLimit("192.168.1.1", "global", tier)
+		result := m.checkRateLimit(context.Background(), "192.168.1.1", "global", tier)
 
 		assert.True(t, result.Allowed)
 		assert.Equal(t, 100, result.Limit)
@@ -639,7 +639,7 @@ func TestCheckRateLimit(t *testing.T) {
 	t.Run("returns denied result when service returns error (fail closed)", func(t *testing.T) {
 		mockClock := clock.NewMockClock(time.Unix(1700000000, 0))
 		mockService := &security_domain.MockRateLimitService{
-			CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+			CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 				return ratelimiter_dto.Result{}, assert.AnError
 			},
 		}
@@ -652,7 +652,7 @@ func TestCheckRateLimit(t *testing.T) {
 			BurstSize:         10,
 		}
 
-		result := m.checkRateLimit("192.168.1.1", "action", tier)
+		result := m.checkRateLimit(context.Background(), "192.168.1.1", "action", tier)
 
 		assert.False(t, result.Allowed)
 		assert.Equal(t, 100, result.Limit)
@@ -663,7 +663,7 @@ func TestCheckRateLimit(t *testing.T) {
 	t.Run("constructs correct key with keySuffix", func(t *testing.T) {
 		var capturedKey string
 		mockService := &security_domain.MockRateLimitService{
-			CheckLimitFunc: func(key string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+			CheckLimitFunc: func(_ context.Context, key string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 				capturedKey = key
 				return ratelimiter_dto.Result{Allowed: true}, nil
 			},
@@ -674,7 +674,7 @@ func TestCheckRateLimit(t *testing.T) {
 		}
 		tier := security_dto.RateLimitTierValues{RequestsPerMinute: 100}
 
-		m.checkRateLimit("10.0.0.1", "login", tier)
+		m.checkRateLimit(context.Background(), "10.0.0.1", "login", tier)
 
 		assert.Equal(t, "ratelimit:login:10.0.0.1", capturedKey)
 	})
@@ -684,7 +684,7 @@ func TestHandler_AllowedRequest_PassesThrough(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:   true,
 				Limit:     100,
@@ -728,7 +728,7 @@ func TestHandler_DeniedRequest_Returns429(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:    false,
 				Limit:      100,
@@ -773,7 +773,7 @@ func TestHandler_ExemptPath_BypassesRateLimit(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{Allowed: false}, nil
 		},
 	}
@@ -805,7 +805,7 @@ func TestHandler_HeadersDisabled_NoRateLimitHeaders(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:   true,
 				Limit:     100,
@@ -845,7 +845,7 @@ func TestActionHandler_AllowedRequest_ReturnsTrue(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:   true,
 				Limit:     50,
@@ -882,7 +882,7 @@ func TestActionHandler_DeniedRequest_ReturnsFalse(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:    false,
 				Limit:      50,
@@ -922,7 +922,7 @@ func TestActionHandler_WithOverride_UsesCustomSettings(t *testing.T) {
 
 	var capturedKey string
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(key string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, key string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			capturedKey = key
 			return ratelimiter_dto.Result{
 				Allowed:   true,
@@ -968,7 +968,7 @@ func TestActionHandler_OverridePartialFields(t *testing.T) {
 	var capturedKey string
 	var capturedLimit int
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(key string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, key string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			capturedKey = key
 			capturedLimit = limit
 			return ratelimiter_dto.Result{Allowed: true}, nil
@@ -1012,7 +1012,7 @@ func TestActionHandler_HeadersDisabled_NoHeaders(t *testing.T) {
 	t.Parallel()
 
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{
 				Allowed:   true,
 				Limit:     50,
@@ -1451,7 +1451,7 @@ func TestActionHandler_OverrideRequestsPerMinute_PassedToService(t *testing.T) {
 
 	var capturedLimit int
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			capturedLimit = limit
 			return ratelimiter_dto.Result{Allowed: true}, nil
 		},
@@ -1492,7 +1492,7 @@ func TestActionHandler_NilOverride_UsesDefaultActionConfig(t *testing.T) {
 	var capturedKey string
 	var capturedLimit int
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(key string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, key string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			capturedKey = key
 			capturedLimit = limit
 			return ratelimiter_dto.Result{Allowed: true}, nil
@@ -1579,7 +1579,7 @@ func TestCheckRateLimit_FailClosed_UsesClockForResetAt(t *testing.T) {
 	fixedTime := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
 	mockClock := clock.NewMockClock(fixedTime)
 	mockService := &security_domain.MockRateLimitService{
-		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{}, assert.AnError
 		},
 	}
@@ -1591,7 +1591,7 @@ func TestCheckRateLimit_FailClosed_UsesClockForResetAt(t *testing.T) {
 		RequestsPerMinute: 50,
 	}
 
-	result := m.checkRateLimit("1.2.3.4", "test", tier)
+	result := m.checkRateLimit(context.Background(), "1.2.3.4", "test", tier)
 
 	assert.False(t, result.Allowed)
 	assert.Equal(t, 50, result.Limit)

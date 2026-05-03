@@ -70,6 +70,10 @@ const (
 
 	// fieldPath is the logging field name for file paths.
 	fieldPath = "path"
+
+	// rebuildDrainTimeout bounds how long Stop waits for in-flight targeted
+	// rebuild goroutines to complete before reporting a drain error.
+	rebuildDrainTimeout = 30 * time.Second
 )
 
 // lifecycleService is the core domain service for build-to-runtime lifecycle
@@ -154,11 +158,15 @@ type lifecycleService struct {
 	// need module resolution at build time.
 	externalComponents []component_dto.ComponentDefinition
 
-	// configProvider holds the server and website settings.
-	configProvider config.Provider
+	// websiteConfig provides theme/font/favicon metadata for theme building.
+	websiteConfig config.WebsiteConfig
 
 	// mu guards access to entryPoints for safe concurrent reads and writes.
 	mu sync.RWMutex
+
+	// rebuildWG tracks in-flight targeted rebuild goroutines so Stop can wait
+	// for them to drain before returning.
+	rebuildWG sync.WaitGroup
 
 	// stopOnce guards single execution of Stop.
 	stopOnce sync.Once
@@ -208,7 +216,7 @@ type LifecycleServiceDeps struct {
 	// Nil in production mode.
 	DevEventNotifier DevEventNotifier
 
-	// FileSystem provides file system operations; nil uses the OS file system.
+	// FileSystem provides filesystem operations; nil uses the OS filesystem.
 	FileSystem FileSystem
 
 	// ComponentRegistry holds the PKC component registry for auto-discovery.
@@ -229,8 +237,9 @@ type LifecycleServiceDeps struct {
 	// to disk directories and discovers .pkc files there.
 	ExternalComponents []component_dto.ComponentDefinition
 
-	// ConfigProvider supplies configuration settings for the lifecycle service.
-	ConfigProvider config.Provider
+	// WebsiteConfig provides theme/font/favicon metadata for the lifecycle
+	// service's theme rebuild step.
+	WebsiteConfig config.WebsiteConfig
 }
 
 // Start begins the lifecycle management: file watching and build
@@ -285,9 +294,15 @@ func (ls *lifecycleService) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop shuts down the lifecycle service and releases its resources.
+// Stop shuts down the lifecycle service and releases its resources. It waits
+// for any in-flight targeted rebuilds to drain, bounded by
+// rebuildDrainTimeout, before returning.
 //
-// Returns error when the file watcher fails to close.
+// Returns error when the file watcher fails to close or when outstanding
+// rebuilds do not drain within the timeout.
+//
+// Concurrency: idempotent via sync.Once; awaits the rebuild WaitGroup under
+// a context-bounded drain timeout.
 func (ls *lifecycleService) Stop(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "LifecycleService.Stop")
 	defer span.End()
@@ -306,9 +321,25 @@ func (ls *lifecycleService) Stop(ctx context.Context) error {
 			ls.unsubscribe()
 		}
 
+		drainCtx, cancel := context.WithTimeoutCause(ctx, rebuildDrainTimeout,
+			fmt.Errorf("targeted rebuild drain exceeded %s", rebuildDrainTimeout))
+		defer cancel()
+
+		done := make(chan struct{})
+		go func() {
+			ls.rebuildWG.Wait()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+		case <-drainCtx.Done():
+			stopErr = errors.Join(stopErr, fmt.Errorf("waiting for rebuilds to drain: %w", context.Cause(drainCtx)))
+		}
+
 		if ls.watcherAdapter != nil {
 			if err := ls.watcherAdapter.Close(); err != nil {
-				stopErr = fmt.Errorf("failed to close file watcher: %w", err)
+				stopErr = errors.Join(stopErr, fmt.Errorf("failed to close file watcher: %w", err))
 			}
 		}
 	})
@@ -346,12 +377,6 @@ func (ls *lifecycleService) RunInitialTasks(ctx context.Context) error {
 	wg.Go(func() {
 		if err := ls.seedCaptchaInitScripts(ctx); err != nil {
 			errChan <- fmt.Errorf("failed to seed captcha init scripts: %w", err)
-		}
-	})
-
-	wg.Go(func() {
-		if err := ls.configProvider.LoadWebsiteConfig(); err != nil {
-			l.Warn("Site config.json not loaded, some features may be disabled", logger_domain.Error(err))
 		}
 	})
 
@@ -544,8 +569,12 @@ func (ls *lifecycleService) processWalkedFile(ctx context.Context, path string, 
 		return nil
 	}
 
-	fileChan <- lifecycle_dto.FileEvent{Path: path, Type: lifecycle_dto.FileEventTypeCreate}
-	return nil
+	select {
+	case fileChan <- lifecycle_dto.FileEvent{Path: path, Type: lifecycle_dto.FileEventTypeCreate}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // processFilesWithLimiter processes files simultaneously with a
@@ -593,7 +622,7 @@ func (ls *lifecycleService) seedThemeArtefact(ctx context.Context) error {
 		return nil
 	}
 
-	cssBytes, err := ls.renderer.BuildThemeCSS(ctx, &ls.configProvider.WebsiteConfig)
+	cssBytes, err := ls.renderer.BuildThemeCSS(ctx, &ls.websiteConfig)
 	if err != nil {
 		span.RecordError(err)
 		return fmt.Errorf("failed to build theme CSS: %w", err)
@@ -964,7 +993,7 @@ func NewLifecycleService(deps *LifecycleServiceDeps) LifecycleService {
 
 	return &lifecycleService{
 		pathsConfig:             deps.PathsConfig,
-		configProvider:          deps.ConfigProvider,
+		websiteConfig:           deps.WebsiteConfig,
 		watcherAdapter:          deps.WatcherAdapter,
 		registryService:         deps.RegistryService,
 		coordinatorService:      deps.CoordinatorService,

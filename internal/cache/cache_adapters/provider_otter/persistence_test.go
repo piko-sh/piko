@@ -414,3 +414,44 @@ func TestBuildStateFromEntries_Clear(t *testing.T) {
 	assert.Contains(t, state, "key3")
 	assert.Equal(t, "Third", state["key3"].Value.Title)
 }
+
+func TestOtterAdapter_Close_Idempotent(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	opts := cache_dto.Options[string, testArticle]{
+		MaximumSize:      100,
+		ProviderSpecific: newPersistenceConfig(directory),
+	}
+
+	adapter, err := OtterProviderFactory(opts)
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	require.NoError(t, adapter.Set(ctx, "article-1", testArticle{Title: "First", Views: 1}))
+
+	firstErr := adapter.Close(ctx)
+	require.NoError(t, firstErr, "first Close should succeed")
+
+	secondErr := adapter.Close(ctx)
+	require.NoError(t, secondErr, "second Close must be a safe no-op")
+
+	thirdErr := adapter.Close(ctx)
+	require.NoError(t, thirdErr, "third Close must remain safe")
+}
+
+func TestOtterAdapter_Close_Idempotent_NoPersistence(t *testing.T) {
+	t.Parallel()
+
+	opts := cache_dto.Options[string, testArticle]{
+		MaximumSize:      100,
+		ProviderSpecific: nil,
+	}
+
+	adapter, err := OtterProviderFactory(opts)
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	require.NoError(t, adapter.Close(ctx))
+	require.NoError(t, adapter.Close(ctx), "double-close on in-memory adapter must remain safe")
+}

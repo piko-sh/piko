@@ -1,0 +1,145 @@
+<svg viewBox="0 0 760 660" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="cg-title cg-desc">
+  <title id="cg-title">How the named pieces of a Piko project fit together</title>
+  <desc id="cg-desc">Five labelled zones arranged top to bottom. File formats holds PK files and PKC components, with template machinery (directives, partials, i18n) shown nested below them as the shared interior of both file formats. Request handling shows routing dispatching to Render with actions alongside; pages from PK files arrive into routing through the left gutter, and PKC components call actions over RPC through the right gutter. Data holds collections (which generate routes) and the querier (called by Render and actions). Runtime services sit at the bottom and are accessed from anywhere through hexagonal ports.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrow-weak" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#475569" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <text x="30" y="30" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">FILE FORMATS</text>
+
+  
+  <rect x="30" y="42" width="320" height="72" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M40,42 H340 A10,10 0 0 1 350,52 V64 H30 V52 A10,10 0 0 1 40,42 Z" fill="#1C544F"/>
+  <text x="190" y="58" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">PK files</text>
+  <text x="190" y="84" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">.pk</text>
+  <text x="190" y="102" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">template + Go + CSS + i18n</text>
+
+  
+  <rect x="410" y="42" width="320" height="72" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M420,42 H720 A10,10 0 0 1 730,52 V64 H410 V52 A10,10 0 0 1 420,42 Z" fill="#1C544F"/>
+  <text x="570" y="58" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">PKC components</text>
+  <text x="570" y="84" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">.pkc</text>
+  <text x="570" y="102" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">client-side Web Component</text>
+
+  
+  <rect x="184" y="114" width="12" height="10" fill="#1C544F"/>
+  <rect x="564" y="114" width="12" height="10" fill="#1C544F"/>
+
+  
+  <text x="30" y="136" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="0.5">TEMPLATE MACHINERY (in every PK and PKC)</text>
+
+  
+  <rect x="30" y="146" width="220" height="44" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.2"/>
+  <text x="140" y="162" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">directives</text>
+  <text x="140" y="180" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="9">p-if, p-for, p-on, p-model</text>
+
+  <rect x="270" y="146" width="220" height="44" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.2"/>
+  <text x="380" y="162" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">partials and slots</text>
+  <text x="380" y="180" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="9">&lt;piko:partial is="..."&gt;</text>
+
+  <rect x="510" y="146" width="220" height="44" rx="8" fill="#236962" stroke="#6BD5CC" stroke-width="1.2"/>
+  <text x="620" y="162" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">i18n</text>
+  <text x="620" y="180" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="9">T("key") per locale</text>
+
+  
+
+  
+  <path d="M30,78 H18 Q15,78 15,82 V200 Q15,204 19,204 H167 Q170,204 170,208 V237"
+        stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" fill="none" marker-end="url(#arrow)"/>
+  <text x="22" y="142" transform="rotate(-90, 22, 142)" text-anchor="middle" fill="#A16207" font-family="system-ui, sans-serif" font-size="10" font-weight="600">pages/</text>
+
+  
+  <path d="M730,78 H742 Q745,78 745,82 V200 Q745,204 741,204 H593 Q590,204 590,208 V237"
+        stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" fill="none" marker-end="url(#arrow)"/>
+  <text x="738" y="142" transform="rotate(-90, 738, 142)" text-anchor="middle" fill="#A16207" font-family="system-ui, sans-serif" font-size="10" font-weight="600">PKC calls</text>
+
+  
+  <text x="30" y="228" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">REQUEST HANDLING</text>
+
+  
+  <rect x="30" y="240" width="210" height="80" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M40,240 H230 A10,10 0 0 1 240,250 V262 H30 V250 A10,10 0 0 1 40,240 Z" fill="#1C544F"/>
+  <text x="135" y="256" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">routing</text>
+  <text x="135" y="280" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">pages/about.pk</text>
+  <text x="135" y="298" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">&#8594; /about</text>
+
+  
+  <rect x="275" y="240" width="210" height="80" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M285,240 H475 A10,10 0 0 1 485,250 V262 H275 V250 A10,10 0 0 1 285,240 Z" fill="#1C544F"/>
+  <text x="380" y="256" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Render() (server)</text>
+  <text x="380" y="280" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">typed Response</text>
+  <text x="380" y="298" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">returns HTML</text>
+
+  
+  <rect x="520" y="240" width="210" height="80" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M530,240 H720 A10,10 0 0 1 730,250 V262 H520 V250 A10,10 0 0 1 530,240 Z" fill="#1C544F"/>
+  <text x="625" y="256" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">actions (RPC)</text>
+  <text x="625" y="280" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">Call() on Go struct</text>
+  <text x="625" y="298" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">typed in both lanes</text>
+
+  
+  <line x1="240" y1="280" x2="272" y2="280" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  
+
+  
+  <line x1="135" y1="378" x2="135" y2="324" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow-weak)"/>
+  <text x="148" y="354" fill="#475569" font-family="system-ui, sans-serif" font-size="9">generates</text>
+
+  
+  <line x1="450" y1="378" x2="450" y2="324" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow-weak)"/>
+  
+  <line x1="625" y1="378" x2="625" y2="324" stroke="#475569" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow-weak)"/>
+  <text x="525" y="354" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">called by Render() and actions</text>
+
+  
+  <text x="30" y="368" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">DATA</text>
+
+  <rect x="30" y="380" width="340" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M40,380 H360 A10,10 0 0 1 370,390 V402 H30 V390 A10,10 0 0 1 40,380 Z" fill="#1C544F"/>
+  <text x="200" y="396" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">collections</text>
+  <text x="200" y="420" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">content/blog/*.md  &#8594;  /blog/{slug}</text>
+  <text x="200" y="438" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">generate one route per item at build time</text>
+  <text x="200" y="456" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">markdown default; SQL, JSON, custom providers</text>
+
+  <rect x="390" y="380" width="340" height="90" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M400,380 H720 A10,10 0 0 1 730,390 V402 H390 V390 A10,10 0 0 1 400,380 Z" fill="#1C544F"/>
+  <text x="560" y="396" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">the querier</text>
+  <text x="560" y="420" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">db/queries/*.sql  &#8594;  typed Go funcs</text>
+  <text x="560" y="438" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">SQLite, Postgres, MySQL, DuckDB</text>
+  <text x="560" y="456" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">called from Render() and actions</text>
+
+  
+  <text x="30" y="494" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">RUNTIME SERVICES (hexagonal ports)</text>
+
+  <rect x="30" y="506" width="700" height="100" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M40,506 H720 A10,10 0 0 1 730,516 V528 H30 V516 A10,10 0 0 1 40,506 Z" fill="#1C544F"/>
+  <text x="380" y="522" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="11" font-weight="600">services &#183; bootstrap with With* options</text>
+
+  <rect x="40" y="546" width="128" height="24" rx="6" fill="#1C544F"/>
+  <text x="104" y="562" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">cache</text>
+
+  <rect x="178" y="546" width="128" height="24" rx="6" fill="#1C544F"/>
+  <text x="242" y="562" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">storage</text>
+
+  <rect x="316" y="546" width="128" height="24" rx="6" fill="#1C544F"/>
+  <text x="380" y="562" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">email</text>
+
+  <rect x="454" y="546" width="128" height="24" rx="6" fill="#1C544F"/>
+  <text x="518" y="562" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">LLM</text>
+
+  <rect x="592" y="546" width="128" height="24" rx="6" fill="#1C544F"/>
+  <text x="656" y="562" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="10">notifications</text>
+
+  <text x="380" y="594" text-anchor="middle" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">accessed from Render(), actions, and anywhere else &#183; adapter swapped at bootstrap</text>
+
+  
+  <text x="380" y="638" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">teal arrow = primary flow &#183; grey arrow = data into Render() and actions</text>
+</svg>

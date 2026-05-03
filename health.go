@@ -50,17 +50,20 @@ import (
 // application-specific checks by implementing the HealthProbe interface and
 // registering it with WithCustomHealthProbe.
 //
-// Example configuration (piko.yaml):
-// healthProbe:
-//   enabled: true
-//   port: "9090"
-//   bindAddress: "127.0.0.1"  # localhost only (secure)
-//   livePath: "/live"
-//   readyPath: "/ready"
-//   checkTimeoutSeconds: 5
-// To expose health checks externally (e.g., for Docker health checks):
-// healthProbe:
-//   bindAddress: "0.0.0.0"  # WARNING: Exposes internal health data
+// Example configuration:
+//
+//	piko.New(
+//	    piko.WithHealthEnabled(true),
+//	    piko.WithHealthProbePort(9090),
+//	    piko.WithHealthBindAddress("127.0.0.1"),  // localhost only (secure)
+//	    piko.WithHealthLivePath("/live"),
+//	    piko.WithHealthReadyPath("/ready"),
+//	    piko.WithHealthCheckTimeout(5*time.Second),
+//	)
+//
+// To expose health checks externally (e.g. for Docker health checks),
+// use WithHealthBindAddress("0.0.0.0") - WARNING: this exposes internal
+// health data so do not use on a public interface.
 
 const (
 	// HealthStateHealthy indicates the component is working normally.
@@ -84,8 +87,8 @@ const (
 )
 
 // HealthProbe is the interface that custom application health checks must
-// implement. Implementing this interface allows your application to take part
-// in Piko's health check system, which is exposed via the /live and /ready
+// implement. Implementing HealthProbe allows your application to take part in
+// Piko's health check system, which is exposed via the /live and /ready
 // endpoints.
 //
 // Interface definition:

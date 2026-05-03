@@ -25,8 +25,45 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/cmd/lsp/internal/lsp/lsp_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
+
+func TestNewLspFSReader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns reader when both dependencies are non-nil", func(t *testing.T) {
+		t.Parallel()
+
+		docCache := lsp_domain.NewDocumentCache()
+		fallback := NewOsFSReader()
+
+		reader, err := NewLspFSReader(docCache, fallback)
+
+		require.NoError(t, err)
+		require.NotNil(t, reader)
+	})
+
+	t.Run("returns error when docCache is nil", func(t *testing.T) {
+		t.Parallel()
+
+		reader, err := NewLspFSReader(nil, NewOsFSReader())
+
+		require.Error(t, err)
+		assert.Nil(t, reader)
+		assert.Contains(t, err.Error(), "docCache cannot be nil")
+	})
+
+	t.Run("returns error when fallback is nil", func(t *testing.T) {
+		t.Parallel()
+
+		reader, err := NewLspFSReader(lsp_domain.NewDocumentCache(), nil)
+
+		require.Error(t, err)
+		assert.Nil(t, reader)
+		assert.Contains(t, err.Error(), "fallback reader cannot be nil")
+	})
+}
 
 func TestNewOsFSReader(t *testing.T) {
 	t.Parallel()

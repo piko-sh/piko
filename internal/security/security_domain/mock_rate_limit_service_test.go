@@ -19,6 +19,7 @@
 package security_domain
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -42,7 +43,7 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 			CheckLimitCallCount: 0,
 		}
 
-		result, err := mock.CheckLimit("key-1", 100, time.Minute)
+		result, err := mock.CheckLimit(context.Background(), "key-1", 100, time.Minute)
 
 		require.NoError(t, err)
 		assert.Equal(t, ratelimiter_dto.Result{}, result)
@@ -66,7 +67,7 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 		var capturedWindow time.Duration
 
 		mock := &MockRateLimitService{
-			CheckLimitFunc: func(key string, limit int, window time.Duration) (ratelimiter_dto.Result, error) {
+			CheckLimitFunc: func(_ context.Context, key string, limit int, window time.Duration) (ratelimiter_dto.Result, error) {
 				capturedKey = key
 				capturedLimit = limit
 				capturedWindow = window
@@ -75,7 +76,7 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 			CheckLimitCallCount: 0,
 		}
 
-		result, err := mock.CheckLimit("api:user:42", 50, 5*time.Minute)
+		result, err := mock.CheckLimit(context.Background(), "api:user:42", 50, 5*time.Minute)
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
@@ -89,13 +90,13 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockRateLimitService{
-			CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
+			CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 				return ratelimiter_dto.Result{}, errors.New("rate limiter unavailable")
 			},
 			CheckLimitCallCount: 0,
 		}
 
-		result, err := mock.CheckLimit("key", 10, time.Second)
+		result, err := mock.CheckLimit(context.Background(), "key", 10, time.Second)
 
 		require.Error(t, err)
 		assert.Equal(t, "rate limiter unavailable", err.Error())
@@ -109,7 +110,7 @@ func TestMockRateLimitService_ZeroValueIsUsable(t *testing.T) {
 
 	var mock MockRateLimitService
 
-	result, err := mock.CheckLimit("zero-key", 100, time.Minute)
+	result, err := mock.CheckLimit(context.Background(), "zero-key", 100, time.Minute)
 
 	require.NoError(t, err)
 	assert.Equal(t, ratelimiter_dto.Result{}, result)
@@ -132,7 +133,7 @@ func TestMockRateLimitService_ConcurrentAccess(t *testing.T) {
 	for range goroutines {
 		go func() {
 			defer wg.Done()
-			_, _ = mock.CheckLimit("concurrent-key", 10, time.Second)
+			_, _ = mock.CheckLimit(context.Background(), "concurrent-key", 10, time.Second)
 		}()
 	}
 

@@ -191,8 +191,8 @@ func (mv *ModuleVirtualiser) Virtualise(
 }
 
 // injectDefaultBoilerplateFuncs adds missing Render and CachePolicy functions
-// to each component. If a component lacks either function, this method inserts
-// a safe default into its Go AST before type analysis runs.
+// to each component. If a component lacks either function, a safe default is
+// inserted into its Go AST before type analysis runs.
 //
 // Takes ctx (context.Context) which carries cancellation and logging.
 //
@@ -322,7 +322,7 @@ func (vc *virtualisationContext) collectEntryPointMetadata(ctx context.Context) 
 			continue
 		}
 		vc.recordEntryPointFlags(meta, resolvedPath, ep)
-		vc.recordVirtualPageSource(meta, resolvedPath, ep, baseDir)
+		vc.recordVirtualPageSource(ctx, meta, resolvedPath, ep, baseDir)
 	}
 	return meta
 }
@@ -364,11 +364,11 @@ func (*virtualisationContext) recordEntryPointFlags(meta *entryPointMetadata, re
 // Takes resolvedPath (string) which is the key for storing instances.
 // Takes ep (annotator_dto.EntryPoint) which provides the virtual page source.
 // Takes baseDir (string) which is the base folder for path resolution.
-func (vc *virtualisationContext) recordVirtualPageSource(meta *entryPointMetadata, resolvedPath string, ep annotator_dto.EntryPoint, baseDir string) {
+func (vc *virtualisationContext) recordVirtualPageSource(ctx context.Context, meta *entryPointMetadata, resolvedPath string, ep annotator_dto.EntryPoint, baseDir string) {
 	if ep.VirtualPageSource == nil || ep.VirtualPageSource.InitialProps == nil {
 		return
 	}
-	instance := vc.createVirtualInstance(ep, baseDir)
+	instance := vc.createVirtualInstance(ctx, ep, baseDir)
 	meta.virtualInstances[resolvedPath] = append(meta.virtualInstances[resolvedPath], instance)
 }
 
@@ -501,86 +501,88 @@ func (vc *virtualisationContext) calculateRelativePartialPath(ctx context.Contex
 	return relativePath
 }
 
-// createVirtualInstance builds a VirtualPageInstance from an entry point that
-// has a VirtualPageSource.
+// createVirtualInstance builds a VirtualPageInstance from an entry point.
 //
-// Takes ep (annotator_dto.EntryPoint) which provides the entry point data.
-// Takes baseDir (string) which specifies the base directory for path
-// calculations.
+// The entry point must carry a VirtualPageSource. The returned instance holds
+// the slug and manifest key only; the per-item URL is computed later by the
+// manifest builder from the consuming page's route pattern, so the URL is a
+// function of where the page lives in `pages/` rather than the collection
+// name.
 //
-// Returns annotator_dto.VirtualPageInstance which contains the manifest key,
-// route, and initial properties from the entry point.
-func (vc *virtualisationContext) createVirtualInstance(ep annotator_dto.EntryPoint, baseDir string) annotator_dto.VirtualPageInstance {
+// Takes ep (annotator_dto.EntryPoint) which provides the virtual page source.
+// Takes baseDir (string) which is the project root used to compute the
+// manifest key.
+//
+// Returns annotator_dto.VirtualPageInstance which is ready for downstream
+// stages.
+func (vc *virtualisationContext) createVirtualInstance(ctx context.Context, ep annotator_dto.EntryPoint, baseDir string) annotator_dto.VirtualPageInstance {
 	vps := ep.VirtualPageSource
 
-	manifestKey := vc.calculateVirtualManifestKey(vps, baseDir)
-
-	route := vc.calculateVirtualRoute(vps)
+	slug := extractItemSlug(vps)
+	if slug == "" {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Virtual page source has no slug; downstream encode will reject as ErrEmptySlug",
+			logger_domain.String("template_path", vps.TemplatePath))
+	}
+	manifestKey := vc.calculateVirtualManifestKey(vps, baseDir, slug)
 
 	return annotator_dto.VirtualPageInstance{
 		ManifestKey:  manifestKey,
-		Route:        route,
+		Slug:         slug,
 		InitialProps: vps.InitialProps,
 	}
 }
 
+// extractItemSlug pulls the canonical slug from a VirtualPageSource.
+//
+// Takes vps (*annotator_dto.VirtualPageSource) which carries the page's
+// initial props. May be nil.
+//
+// Returns string which is the slug from page metadata, or "" when vps is
+// nil, InitialProps is nil, or the page metadata lacks a slug.
+func extractItemSlug(vps *annotator_dto.VirtualPageSource) string {
+	if vps == nil || vps.InitialProps == nil {
+		return ""
+	}
+	page, ok := vps.InitialProps["page"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	slug, ok := page[collection_dto.MetaKeySlug].(string)
+	if !ok {
+		return ""
+	}
+	return slug
+}
+
 // calculateVirtualManifestKey creates a manifest key for a virtual page.
-// For collection pages, it builds a unique key from the full URL path.
+//
+// The slug is substituted into the consuming page's file-path-derived dynamic
+// parameter; for example a consuming page `pages/blog/{slug}.pk` with slug
+// "test-post" yields the key "pages/blog/test-post.pk". The key drives where
+// the generated dist package lives. Crucially the key is derived from the
+// consuming page's location, not the collection name, so a page at
+// `pages/Y/{slug}.pk` consuming collection X yields keys under `pages/Y/`
+// even when X != Y.
 //
 // Takes vps (*annotator_dto.VirtualPageSource) which holds the virtual page
 // data including initial props with page metadata.
 // Takes baseDir (string) which is the base directory for working out relative
-// paths in the fallback case.
+// paths.
+// Takes slug (string) which is the canonical slug of the collection item.
 //
 // Returns string which is the manifest key in the format "pages/path.pk".
-func (*virtualisationContext) calculateVirtualManifestKey(vps *annotator_dto.VirtualPageSource, baseDir string) string {
-	if page, ok := vps.InitialProps["page"].(map[string]any); ok {
-		if url, ok := page[collection_dto.MetaKeyURL].(string); ok {
-			url = strings.TrimPrefix(url, "/")
-			return "pages/" + url + ".pk"
-		}
-	}
-
+func (*virtualisationContext) calculateVirtualManifestKey(vps *annotator_dto.VirtualPageSource, baseDir, slug string) string {
 	relativePath, err := filepath.Rel(baseDir, vps.TemplatePath)
 	if err != nil {
 		relativePath = vps.TemplatePath
 	}
 
-	slug := ""
-	if page, ok := vps.InitialProps["page"].(map[string]any); ok {
-		if s, ok := page[collection_dto.MetaKeySlug].(string); ok {
-			slug = s
-		}
-	}
-
-	if slug == "" {
-		return filepath.ToSlash(relativePath)
-	}
-
 	key := filepath.ToSlash(relativePath)
-	key = dynamicParamRegex.ReplaceAllString(key, slug)
-	return key
-}
-
-// calculateVirtualRoute builds the URL route for a virtual page.
-//
-// Takes vps (*annotator_dto.VirtualPageSource) which provides the page source
-// data, including route overrides and initial properties.
-//
-// Returns string which is the resolved route, or an empty string if no route
-// can be found.
-func (*virtualisationContext) calculateVirtualRoute(vps *annotator_dto.VirtualPageSource) string {
-	if vps.RouteOverride != "" {
-		return vps.RouteOverride
+	if slug == "" {
+		return key
 	}
-
-	if page, ok := vps.InitialProps["page"].(map[string]any); ok {
-		if url, ok := page[collection_dto.MetaKeyURL].(string); ok {
-			return url
-		}
-	}
-
-	return ""
+	return dynamicParamRegex.ReplaceAllString(key, slug)
 }
 
 // rewriteAllScriptASTs processes all component script ASTs and rewrites them

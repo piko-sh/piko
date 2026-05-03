@@ -265,7 +265,7 @@ func cleanAnnotatedType(typ types.Type, ctx *cleaningContext) types.Type {
 }
 
 // cleanCompositeType picks and runs the correct cleaner for a composite type.
-// This function splits the logic of cleanAnnotatedType into smaller parts.
+// Splits the logic of cleanAnnotatedType into smaller parts.
 //
 // Takes typ (types.Type) which is the type to clean.
 // Takes ctx (*cleaningContext) which tracks visited types and cleaning state.

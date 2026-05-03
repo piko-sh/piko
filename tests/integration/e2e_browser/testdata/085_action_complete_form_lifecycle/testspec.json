@@ -18,7 +18,7 @@
     },
     {
       "action": "comment",
-      "value": "Try submitting empty form \u2014 HTML5 validation should block"
+      "value": "Try submitting empty form - HTML5 validation should block"
     },
     {
       "action": "click",
@@ -48,7 +48,7 @@
     },
     {
       "action": "comment",
-      "value": "Submit form \u2014 should dispatch action"
+      "value": "Submit form - should dispatch action"
     },
     {
       "action": "click",

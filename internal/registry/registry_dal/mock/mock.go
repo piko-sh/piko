@@ -197,7 +197,7 @@ func (m *RegistryDAL) ClearData() {
 
 // HealthCheck implements registry_dal.RegistryDAL.
 //
-// Returns error when the configured behaviour for this method returns one.
+// Returns error when the configured behaviour for HealthCheck returns one.
 //
 // Safe for concurrent use.
 func (m *RegistryDAL) HealthCheck(_ context.Context) error {
@@ -669,8 +669,7 @@ func (m *RegistryDAL) GetGCHintCount() int {
 // Returns error when the transaction function fails or when configured
 // mock behaviour returns an error.
 //
-// Safe for concurrent use. The method holds a mutex lock for the duration of
-// the transaction.
+// Safe for concurrent use. Holds a mutex lock for the duration of the transaction.
 func (m *RegistryDAL) withTransaction(ctx context.Context, operation func(ctx context.Context, dal registry_dal.RegistryDAL) error) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

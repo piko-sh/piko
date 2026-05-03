@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -121,6 +122,11 @@ type queuedNotification struct {
 	// failedProviders tracks providers that failed during the current send
 	// attempt.
 	failedProviders []string
+
+	// pendingRetryAfter is the largest Retry-After hint observed among the
+	// failed providers during the current send attempt. The next backoff is
+	// raised to at least this value when greater than zero.
+	pendingRetryAfter time.Duration
 
 	// attempt is the current retry attempt number; starts at 0.
 	attempt int
@@ -665,6 +671,7 @@ func (d *NotificationDispatcher) processBatch(ctx context.Context, batch []*noti
 // Takes qn (*queuedNotification) which contains the notification and targets.
 func (d *NotificationDispatcher) sendToProviders(ctx context.Context, qn *queuedNotification) {
 	qn.failedProviders = nil
+	qn.pendingRetryAfter = 0
 
 	for _, providerName := range qn.targetProviders {
 		if ctx.Err() != nil {
@@ -672,6 +679,9 @@ func (d *NotificationDispatcher) sendToProviders(ctx context.Context, qn *queued
 		}
 		if err := d.sendToSingleProvider(ctx, providerName, qn.params); err != nil {
 			qn.failedProviders = append(qn.failedProviders, providerName)
+			if hint := retryAfterHintFromError(err); hint > qn.pendingRetryAfter {
+				qn.pendingRetryAfter = hint
+			}
 		}
 	}
 
@@ -684,6 +694,32 @@ func (d *NotificationDispatcher) sendToProviders(ctx context.Context, qn *queued
 	} else {
 		d.scheduleRetry(ctx, qn)
 	}
+}
+
+// retryAfterHintFromError extracts a Retry-After hint from a notification
+// provider error when the upstream returned 429 or 503. Returns zero when no
+// usable hint is present.
+//
+// Takes err (error) which is the failure to inspect.
+//
+// Returns time.Duration which is the parsed hint, capped at
+// MaxRetryAfterDuration, or zero when not applicable.
+func retryAfterHintFromError(err error) time.Duration {
+	var providerErr *ProviderError
+	if !errors.As(err, &providerErr) {
+		return 0
+	}
+	if providerErr.RetryAfter <= 0 {
+		return 0
+	}
+	if providerErr.StatusCode != http.StatusTooManyRequests &&
+		providerErr.StatusCode != http.StatusServiceUnavailable {
+		return 0
+	}
+	if providerErr.RetryAfter > MaxRetryAfterDuration {
+		return MaxRetryAfterDuration
+	}
+	return providerErr.RetryAfter
 }
 
 // sendToSingleProvider sends to one provider with circuit breaker
@@ -731,11 +767,16 @@ func (d *NotificationDispatcher) sendToSingleProvider(ctx context.Context, provi
 //
 // Safe for concurrent use. Uses retryMutex to protect the retry
 // heap. Sends a non-blocking signal to wake the retry producer goroutine.
+// When the previous send received a Retry-After hint via pendingRetryAfter,
+// the next retry time is delayed to at least the hinted instant so the
+// dispatcher respects upstream rate-limiting guidance.
 func (d *NotificationDispatcher) scheduleRetry(ctx context.Context, qn *queuedNotification) {
 	ctx, l := logger_domain.From(ctx, log)
 
+	hint := qn.pendingRetryAfter
 	qn.targetProviders = qn.failedProviders
 	qn.failedProviders = nil
+	qn.pendingRetryAfter = 0
 	qn.attempt++
 
 	if !d.retryConfig.ShouldRetry(qn.attempt) {
@@ -743,7 +784,14 @@ func (d *NotificationDispatcher) scheduleRetry(ctx context.Context, qn *queuedNo
 		return
 	}
 
-	qn.nextRetryTime = d.retryConfig.CalculateNextRetry(qn.attempt, d.clock.Now())
+	now := d.clock.Now()
+	qn.nextRetryTime = d.retryConfig.CalculateNextRetry(qn.attempt, now)
+	if hint > 0 {
+		hintedTime := now.Add(hint)
+		if hintedTime.After(qn.nextRetryTime) {
+			qn.nextRetryTime = hintedTime
+		}
+	}
 
 	d.retryMutex.Lock()
 	if d.retryHeap.Len() >= d.maxRetryHeapSize {

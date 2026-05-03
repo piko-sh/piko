@@ -115,7 +115,7 @@ func (fc *FlagCoordinator) RegisterStruct(ptr any, prefix string, loader *Loader
 }
 
 // Parse parses os.Args using the shared FlagSet.
-// This method can only be called once; subsequent calls return immediately.
+// Can only be called once; subsequent calls return immediately.
 //
 // Unknown flags (those not registered with the coordinator) are silently
 // ignored, so commands can define their own flags using the standard flag

@@ -147,8 +147,7 @@ func (s *DiskSnapshot[K, V]) initialiseCompression(ctx context.Context, sandbox 
 //
 // Returns error when encoding, compression, or writing to disk fails.
 //
-// Safe for concurrent use. The method holds a mutex lock for the entire
-// operation.
+// Safe for concurrent use. Holds a mutex lock for the entire operation.
 func (s *DiskSnapshot[K, V]) Save(ctx context.Context, entries []wal_domain.Entry[K, V]) error {
 	startTime := s.clock.Now()
 	s.mu.Lock()
@@ -277,7 +276,36 @@ func (s *DiskSnapshot[K, V]) writeSnapshotFile(ctx context.Context, header, data
 		return fmt.Errorf("renaming snapshot file: %w", err)
 	}
 
+	s.syncSnapshotDirectory(ctx)
+
 	return nil
+}
+
+// syncSnapshotDirectory fsyncs the sandbox root so the rename of the snapshot
+// file is durable on filesystems with journaled metadata. The snapshot file
+// itself was fsynced before the rename; this final step flushes the directory
+// entry for the rename so a crash cannot leave the file invisible after
+// recovery.
+//
+// Errors are best-effort and silently dropped because the data on disk is
+// already durable; the worst case is a re-replay from the WAL on next start.
+//
+// Takes ctx (context.Context) which carries the logger for warning trace.
+func (s *DiskSnapshot[K, V]) syncSnapshotDirectory(ctx context.Context) {
+	dirHandle, err := s.sandbox.OpenFile(".", os.O_RDONLY, 0)
+	if err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Trace("opening snapshot directory for fsync skipped", logger_domain.Error(err))
+		return
+	}
+	if syncErr := dirHandle.Sync(); syncErr != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Trace("fsync of snapshot directory failed", logger_domain.Error(syncErr))
+	}
+	if closeErr := dirHandle.Close(); closeErr != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Trace("closing snapshot directory handle failed", logger_domain.Error(closeErr))
+	}
 }
 
 // writeAndSync writes header and data to the file, syncs, and closes it.

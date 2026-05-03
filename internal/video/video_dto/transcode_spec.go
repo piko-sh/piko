@@ -135,7 +135,7 @@ var (
 	}
 )
 
-// Validate performs basic validation on the transcode specification.
+// Validate checks the transcode specification.
 //
 // Returns error when the codec, dimensions, rates, or encoding options are
 // invalid.

@@ -213,7 +213,7 @@ func (e *InMemoryRegisterEmitter) Emit(ctx context.Context, outputPath string, a
 	return e.fsWriter.WriteFile(ctx, outputPath, content)
 }
 
-// Generate creates register file content for the given package paths.
+// Generate produces register file content for the given package paths.
 //
 // Takes allPackagePaths ([]string) which are the package paths to import.
 //

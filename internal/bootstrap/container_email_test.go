@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"piko.sh/piko/internal/config"
 	email_mock "piko.sh/piko/internal/email/email_adapters/provider_mock"
 	"piko.sh/piko/internal/email/email_domain"
 	"piko.sh/piko/internal/email/email_dto"
@@ -76,7 +75,7 @@ func TestSelectEmailBaseProvider(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c := NewContainer(config.NewConfigProvider())
+			c := NewContainer()
 			c.appCtx = context.Background()
 
 			if len(tc.providers) > 0 {
@@ -144,7 +143,7 @@ func TestCreateEmailDispatcher(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c := NewContainer(config.NewConfigProvider())
+			c := NewContainer()
 			c.hasEmailDispatcher = tc.hasDispatcher
 			c.emailDispatcherConfig = tc.dispatcherConfig
 

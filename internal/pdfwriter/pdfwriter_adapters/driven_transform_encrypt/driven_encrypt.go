@@ -139,7 +139,15 @@ const (
 	// returned by algorithm 2.B, and also the round offset subtracted from
 	// the round number in the termination condition.
 	algorithm2BOutputLen = 32
+
+	// defaultMaxObjectNestingDepth caps recursion when encrypting nested PDF
+	// dictionaries and arrays.
+	defaultMaxObjectNestingDepth = 256
 )
+
+// ErrObjectNestingTooDeep is returned when a PDF object's nested
+// dictionary/array structure exceeds the configured depth limit.
+var ErrObjectNestingTooDeep = errors.New("encrypt: PDF object nesting exceeds depth limit")
 
 // EncryptTransformer applies AES-256 encryption to PDF documents per
 // ISO 32000-2 section 7.6.
@@ -150,23 +158,67 @@ const (
 // to the trailer. Only the "aes-256" algorithm is currently implemented;
 // "aes-128" and "rc4-128" return an unsupported algorithm error.
 type EncryptTransformer struct {
+	// randomSource supplies cryptographic randomness. Defaults to
+	// crypto/rand.Reader.
+	randomSource io.Reader
+
 	// name is the transformer identifier.
 	name string
 
 	// priority is the execution order.
 	priority int
+
+	// maxObjectNestingDepth caps recursion when walking nested
+	// dictionaries and arrays during encryption.
+	maxObjectNestingDepth int
 }
 
 var _ pdfwriter_domain.PdfTransformerPort = (*EncryptTransformer)(nil)
 
+// Option configures an EncryptTransformer at construction time.
+type Option func(*EncryptTransformer)
+
+// WithRandomSource overrides the cryptographic randomness source.
+//
+// Takes r (io.Reader) which is the randomness source.
+//
+// Returns Option which the EncryptTransformer applies at construction.
+func WithRandomSource(r io.Reader) Option {
+	return func(t *EncryptTransformer) { t.randomSource = r }
+}
+
+// WithMaxObjectNestingDepth overrides the maximum recursion depth permitted
+// when encrypting nested PDF dictionaries and arrays. A non-positive value
+// is ignored; callers that want to disable the limit must pass math.MaxInt.
+//
+// Takes depth (int) which is the maximum recursion depth.
+//
+// Returns Option which the EncryptTransformer applies at construction.
+func WithMaxObjectNestingDepth(depth int) Option {
+	return func(t *EncryptTransformer) {
+		if depth > 0 {
+			t.maxObjectNestingDepth = depth
+		}
+	}
+}
+
 // New creates a new encrypt transformer with default name and priority.
 //
+// Takes opts (...Option) which override defaults; callers wanting standard
+// production behaviour can omit them.
+//
 // Returns *EncryptTransformer which is the initialised transformer.
-func New() *EncryptTransformer {
-	return &EncryptTransformer{
-		name:     transformerName,
-		priority: defaultPriority,
+func New(opts ...Option) *EncryptTransformer {
+	t := &EncryptTransformer{
+		name:                  transformerName,
+		priority:              defaultPriority,
+		randomSource:          rand.Reader,
+		maxObjectNestingDepth: defaultMaxObjectNestingDepth,
 	}
+	for _, opt := range opts {
+		opt(t)
+	}
+	return t
 }
 
 // Name returns the transformer's name.
@@ -196,7 +248,7 @@ func (t *EncryptTransformer) Priority() int { return t.priority }
 //
 // Returns []byte which is the encrypted PDF.
 // Returns error when the PDF cannot be parsed or encryption fails.
-func (*EncryptTransformer) Transform(ctx context.Context, pdf []byte, options any) ([]byte, error) {
+func (t *EncryptTransformer) Transform(ctx context.Context, pdf []byte, options any) ([]byte, error) {
 	opts, err := castOptions(options)
 	if err != nil {
 		return nil, err
@@ -216,33 +268,33 @@ func (*EncryptTransformer) Transform(ctx context.Context, pdf []byte, options an
 		return nil, fmt.Errorf("encrypt: creating writer: %w", err)
 	}
 
-	fileKey, err := generateFileKey()
+	fileKey, err := t.generateFileKey()
 	if err != nil {
 		return nil, fmt.Errorf("encrypt: generating file key: %w", err)
 	}
 
-	uValue, ueValue, err := computeUserValues(fileKey, []byte(opts.UserPassword))
+	uValue, ueValue, err := t.computeUserValues(fileKey, []byte(opts.UserPassword))
 	if err != nil {
 		return nil, fmt.Errorf("encrypt: computing U/UE: %w", err)
 	}
 
-	oValue, oeValue, err := computeOwnerValues(fileKey, []byte(opts.OwnerPassword), uValue)
+	oValue, oeValue, err := t.computeOwnerValues(fileKey, []byte(opts.OwnerPassword), uValue)
 	if err != nil {
 		return nil, fmt.Errorf("encrypt: computing O/OE: %w", err)
 	}
 
-	permsValue, err := computePerms(fileKey, opts.Permissions)
+	permsValue, err := t.computePerms(fileKey, opts.Permissions)
 	if err != nil {
 		return nil, fmt.Errorf("encrypt: computing Perms: %w", err)
 	}
 
 	encryptObjNum := addEncryptDict(writer, uValue, ueValue, oValue, oeValue, permsValue, opts.Permissions)
 
-	if err := encryptObjects(ctx, writer, doc, fileKey); err != nil {
+	if err := t.encryptObjects(ctx, writer, doc, fileKey); err != nil {
 		return nil, fmt.Errorf("encrypt: encrypting objects: %w", err)
 	}
 
-	return finaliseEncryptedPDF(writer, encryptObjNum)
+	return t.finaliseEncryptedPDF(writer, encryptObjNum)
 }
 
 // finaliseEncryptedPDF sets the /Encrypt reference in the trailer, ensures a
@@ -253,13 +305,13 @@ func (*EncryptTransformer) Transform(ctx context.Context, pdf []byte, options an
 //
 // Returns []byte which is the finalised encrypted PDF.
 // Returns error when ID generation or PDF writing fails.
-func finaliseEncryptedPDF(writer *pdfparse.Writer, encryptObjNum int) ([]byte, error) {
+func (t *EncryptTransformer) finaliseEncryptedPDF(writer *pdfparse.Writer, encryptObjNum int) ([]byte, error) {
 	trailer := writer.Trailer()
 	trailer.Set("Encrypt", pdfparse.RefObj(encryptObjNum, 0))
 
 	if !trailer.Has("ID") {
 		docID := make([]byte, documentIDLength)
-		if _, idErr := io.ReadFull(rand.Reader, docID); idErr != nil {
+		if _, idErr := io.ReadFull(t.randomSource, docID); idErr != nil {
 			return nil, fmt.Errorf("encrypt: generating document ID: %w", idErr)
 		}
 		trailer.Set("ID", pdfparse.Arr(
@@ -333,9 +385,9 @@ func validateOptions(opts *pdfwriter_dto.EncryptionOptions) error {
 //
 // Returns []byte which is the generated encryption key.
 // Returns error when random byte generation fails.
-func generateFileKey() ([]byte, error) {
+func (t *EncryptTransformer) generateFileKey() ([]byte, error) {
 	key := make([]byte, encryptionKeyLength)
-	if _, err := io.ReadFull(rand.Reader, key); err != nil {
+	if _, err := io.ReadFull(t.randomSource, key); err != nil {
 		return nil, fmt.Errorf("reading random bytes: %w", err)
 	}
 	return key, nil
@@ -425,13 +477,13 @@ func sha256Hash(data []byte) []byte {
 // Returns []byte which is the 48-byte /U value.
 // Returns []byte which is the encrypted /UE value.
 // Returns error when random generation or encryption fails.
-func computeUserValues(fileKey, userPassword []byte) (uValue []byte, ueValue []byte, err error) {
+func (t *EncryptTransformer) computeUserValues(fileKey, userPassword []byte) (uValue []byte, ueValue []byte, err error) {
 	validationSalt := make([]byte, saltLength)
 	keySalt := make([]byte, saltLength)
-	if _, err = io.ReadFull(rand.Reader, validationSalt); err != nil {
+	if _, err = io.ReadFull(t.randomSource, validationSalt); err != nil {
 		return nil, nil, fmt.Errorf("generating user validation salt: %w", err)
 	}
-	if _, err = io.ReadFull(rand.Reader, keySalt); err != nil {
+	if _, err = io.ReadFull(t.randomSource, keySalt); err != nil {
 		return nil, nil, fmt.Errorf("generating user key salt: %w", err)
 	}
 
@@ -473,13 +525,13 @@ func computeUserValues(fileKey, userPassword []byte) (uValue []byte, ueValue []b
 // Returns []byte which is the 48-byte /O value.
 // Returns []byte which is the encrypted /OE value.
 // Returns error when random generation or encryption fails.
-func computeOwnerValues(fileKey, ownerPassword, uBytes []byte) (oValue []byte, oeValue []byte, err error) {
+func (t *EncryptTransformer) computeOwnerValues(fileKey, ownerPassword, uBytes []byte) (oValue []byte, oeValue []byte, err error) {
 	validationSalt := make([]byte, saltLength)
 	keySalt := make([]byte, saltLength)
-	if _, err = io.ReadFull(rand.Reader, validationSalt); err != nil {
+	if _, err = io.ReadFull(t.randomSource, validationSalt); err != nil {
 		return nil, nil, fmt.Errorf("generating owner validation salt: %w", err)
 	}
-	if _, err = io.ReadFull(rand.Reader, keySalt); err != nil {
+	if _, err = io.ReadFull(t.randomSource, keySalt); err != nil {
 		return nil, nil, fmt.Errorf("generating owner key salt: %w", err)
 	}
 
@@ -517,7 +569,7 @@ func computeOwnerValues(fileKey, ownerPassword, uBytes []byte) (oValue []byte, o
 //
 // Returns []byte which is the 16-byte encrypted /Perms value.
 // Returns error when encryption fails.
-func computePerms(fileKey []byte, permissions uint32) ([]byte, error) {
+func (t *EncryptTransformer) computePerms(fileKey []byte, permissions uint32) ([]byte, error) {
 	plaintext := make([]byte, permsPlaintextLength)
 
 	binary.LittleEndian.PutUint32(plaintext[0:permsNoEncryptMetadataStart], permissions)
@@ -532,7 +584,7 @@ func computePerms(fileKey []byte, permissions uint32) ([]byte, error) {
 	plaintext[permsMarkerOffset+1] = permsMarkerByte1
 	plaintext[permsMarkerOffset+2] = permsMarkerByte2
 
-	if _, err := io.ReadFull(rand.Reader, plaintext[permsRandomStart:permsPlaintextLength]); err != nil {
+	if _, err := io.ReadFull(t.randomSource, plaintext[permsRandomStart:permsPlaintextLength]); err != nil {
 		return nil, fmt.Errorf("generating random Perms padding: %w", err)
 	}
 
@@ -603,7 +655,7 @@ func addEncryptDict(
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
 //
 // Returns error when encryption of any object fails or context is cancelled.
-func encryptObjects(ctx context.Context, writer *pdfparse.Writer, doc *pdfparse.Document, fileKey []byte) error {
+func (t *EncryptTransformer) encryptObjects(ctx context.Context, writer *pdfparse.Writer, doc *pdfparse.Document, fileKey []byte) error {
 	for _, objNum := range doc.ObjectNumbers() {
 		if ctx.Err() != nil {
 			return fmt.Errorf("encrypting objects: %w", ctx.Err())
@@ -614,7 +666,7 @@ func encryptObjects(ctx context.Context, writer *pdfparse.Writer, doc *pdfparse.
 			continue
 		}
 
-		encrypted, err := encryptObject(obj, fileKey)
+		encrypted, err := t.encryptObject(obj, fileKey)
 		if err != nil {
 			return fmt.Errorf("object %d: %w", objNum, err)
 		}
@@ -634,16 +686,16 @@ func encryptObjects(ctx context.Context, writer *pdfparse.Writer, doc *pdfparse.
 //
 // Returns pdfparse.Object which is the encrypted object.
 // Returns error when encryption fails.
-func encryptObject(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) {
+func (t *EncryptTransformer) encryptObject(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) {
 	switch obj.Type {
 	case pdfparse.ObjectStream:
-		return encryptStreamObject(obj, fileKey)
+		return t.encryptStreamObject(obj, fileKey)
 	case pdfparse.ObjectDictionary:
 		dict, ok := obj.Value.(pdfparse.Dict)
 		if !ok {
 			return obj, nil
 		}
-		encryptedDict, err := encryptDict(dict, fileKey)
+		encryptedDict, err := t.encryptDict(dict, fileKey, 0)
 		if err != nil {
 			return obj, err
 		}
@@ -661,7 +713,7 @@ func encryptObject(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error)
 //
 // Returns pdfparse.Object which is the encrypted stream object.
 // Returns error when encryption of the stream data or dictionary fails.
-func encryptStreamObject(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) {
+func (t *EncryptTransformer) encryptStreamObject(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) {
 	dict, ok := obj.Value.(pdfparse.Dict)
 	if !ok {
 		return obj, nil
@@ -669,12 +721,12 @@ func encryptStreamObject(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, 
 
 	streamData := obj.StreamData
 
-	encryptedData, err := aes256CBCEncrypt(fileKey, streamData)
+	encryptedData, err := t.aes256CBCEncrypt(fileKey, streamData)
 	if err != nil {
 		return obj, fmt.Errorf("encrypting stream data: %w", err)
 	}
 
-	encryptedDict, err := encryptDict(dict, fileKey)
+	encryptedDict, err := t.encryptDict(dict, fileKey, 0)
 	if err != nil {
 		return obj, fmt.Errorf("encrypting stream dictionary: %w", err)
 	}
@@ -686,13 +738,18 @@ func encryptStreamObject(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, 
 //
 // Takes dict (pdfparse.Dict) which is the dictionary to encrypt.
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
+// Takes depth (int) which is the current recursion depth; values exceeding
+// the configured cap return ErrObjectNestingTooDeep.
 //
 // Returns pdfparse.Dict which is the dictionary with encrypted values.
 // Returns error when encryption of any value fails.
-func encryptDict(dict pdfparse.Dict, fileKey []byte) (pdfparse.Dict, error) {
+func (t *EncryptTransformer) encryptDict(dict pdfparse.Dict, fileKey []byte, depth int) (pdfparse.Dict, error) {
+	if depth > t.maxObjectNestingDepth {
+		return dict, fmt.Errorf("%w (depth %d, limit %d)", ErrObjectNestingTooDeep, depth, t.maxObjectNestingDepth)
+	}
 	result := pdfparse.Dict{Pairs: make([]pdfparse.DictPair, len(dict.Pairs))}
 	for i, pair := range dict.Pairs {
-		encrypted, err := encryptValue(pair.Value, fileKey)
+		encrypted, err := t.encryptValue(pair.Value, fileKey, depth+1)
 		if err != nil {
 			return dict, fmt.Errorf("key %q: %w", pair.Key, err)
 		}
@@ -708,17 +765,18 @@ func encryptDict(dict pdfparse.Dict, fileKey []byte) (pdfparse.Dict, error) {
 //
 // Takes obj (pdfparse.Object) which is the value to encrypt.
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
+// Takes depth (int) which is the current recursion depth.
 //
 // Returns pdfparse.Object which is the encrypted value.
 // Returns error when encryption fails.
-func encryptValue(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) {
+func (t *EncryptTransformer) encryptValue(obj pdfparse.Object, fileKey []byte, depth int) (pdfparse.Object, error) {
 	switch obj.Type {
 	case pdfparse.ObjectString, pdfparse.ObjectHexString:
-		return encryptStringValue(obj, fileKey)
+		return t.encryptStringValue(obj, fileKey)
 	case pdfparse.ObjectDictionary:
-		return encryptDictValue(obj, fileKey)
+		return t.encryptDictValue(obj, fileKey, depth)
 	case pdfparse.ObjectArray:
-		return encryptArrayValue(obj, fileKey)
+		return t.encryptArrayValue(obj, fileKey, depth)
 	default:
 		return obj, nil
 	}
@@ -732,12 +790,12 @@ func encryptValue(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) 
 //
 // Returns pdfparse.Object which is the encrypted hex string.
 // Returns error when encryption fails.
-func encryptStringValue(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) {
+func (t *EncryptTransformer) encryptStringValue(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) {
 	s, ok := obj.Value.(string)
 	if !ok {
 		return obj, nil
 	}
-	encrypted, err := aes256CBCEncrypt(fileKey, []byte(s))
+	encrypted, err := t.aes256CBCEncrypt(fileKey, []byte(s))
 	if err != nil {
 		return obj, fmt.Errorf("encrypting string value: %w", err)
 	}
@@ -748,15 +806,16 @@ func encryptStringValue(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, e
 //
 // Takes obj (pdfparse.Object) which is the dictionary object to encrypt.
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
+// Takes depth (int) which is the current recursion depth.
 //
 // Returns pdfparse.Object which is the dictionary with encrypted values.
 // Returns error when encryption of any value fails.
-func encryptDictValue(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) {
+func (t *EncryptTransformer) encryptDictValue(obj pdfparse.Object, fileKey []byte, depth int) (pdfparse.Object, error) {
 	dict, ok := obj.Value.(pdfparse.Dict)
 	if !ok {
 		return obj, nil
 	}
-	encryptedDict, err := encryptDict(dict, fileKey)
+	encryptedDict, err := t.encryptDict(dict, fileKey, depth)
 	if err != nil {
 		return obj, err
 	}
@@ -767,17 +826,21 @@ func encryptDictValue(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, err
 //
 // Takes obj (pdfparse.Object) which is the array object to encrypt.
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
+// Takes depth (int) which is the current recursion depth.
 //
 // Returns pdfparse.Object which is the array with encrypted elements.
 // Returns error when encryption of any element fails.
-func encryptArrayValue(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, error) {
+func (t *EncryptTransformer) encryptArrayValue(obj pdfparse.Object, fileKey []byte, depth int) (pdfparse.Object, error) {
+	if depth > t.maxObjectNestingDepth {
+		return obj, fmt.Errorf("%w (depth %d, limit %d)", ErrObjectNestingTooDeep, depth, t.maxObjectNestingDepth)
+	}
 	items, ok := obj.Value.([]pdfparse.Object)
 	if !ok {
 		return obj, nil
 	}
 	encrypted := make([]pdfparse.Object, len(items))
 	for i, item := range items {
-		enc, err := encryptValue(item, fileKey)
+		enc, err := t.encryptValue(item, fileKey, depth+1)
 		if err != nil {
 			return obj, err
 		}
@@ -794,7 +857,7 @@ func encryptArrayValue(obj pdfparse.Object, fileKey []byte) (pdfparse.Object, er
 //
 // Returns []byte which is the IV followed by the encrypted ciphertext.
 // Returns error when cipher creation or IV generation fails.
-func aes256CBCEncrypt(key, plaintext []byte) ([]byte, error) {
+func (t *EncryptTransformer) aes256CBCEncrypt(key, plaintext []byte) ([]byte, error) {
 	padded := pkcs7Pad(plaintext, aesBlockSize)
 
 	block, err := aes.NewCipher(key)
@@ -804,7 +867,7 @@ func aes256CBCEncrypt(key, plaintext []byte) ([]byte, error) {
 
 	ciphertext := make([]byte, aesBlockSize+len(padded))
 	iv := ciphertext[:aesBlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+	if _, err := io.ReadFull(t.randomSource, iv); err != nil {
 		return nil, fmt.Errorf("generating IV: %w", err)
 	}
 

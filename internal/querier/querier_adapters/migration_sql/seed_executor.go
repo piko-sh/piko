@@ -50,6 +50,11 @@ type SeedExecutor struct {
 	// database holds the underlying database connection pool.
 	database *sql.DB
 
+	// pinnedSeedLockConnection holds the dedicated connection that owns the
+	// seed advisory lock when one has been acquired via AcquireSeedLock.
+	// Nil when no lock is currently held.
+	pinnedSeedLockConnection *sql.Conn
+
 	// dialectConfig holds the dialect-specific SQL and behaviour.
 	dialectConfig DialectConfig
 }
@@ -111,6 +116,13 @@ func (e *SeedExecutor) AppliedSeeds(ctx context.Context) ([]querier_dto.AppliedS
 // ExecuteSeed runs a single seed's SQL content in a transaction and records it
 // in the history table.
 //
+// The INSERT into piko_seeds is rendered through the dialect's
+// InsertSeedSQLFunc, which yields an idempotent statement (e.g. "ON CONFLICT
+// (version) DO NOTHING" on PostgreSQL/SQLite, "INSERT IGNORE" on MySQL). This
+// keeps concurrent seed runs across multiple replicas safe even if both
+// resolve the same seed as pending: the second writer's record insert becomes
+// a no-op rather than a primary-key violation.
+//
 // Takes seed (querier_dto.SeedRecord) which holds the seed SQL and metadata.
 //
 // Returns error when the seed fails to execute.
@@ -121,7 +133,7 @@ func (e *SeedExecutor) ExecuteSeed(ctx context.Context, seed querier_dto.SeedRec
 	if err != nil {
 		return fmt.Errorf("beginning seed transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() //nolint:gosec,revive // rollback after commit is safe
 
 	if execErr := e.executeSeedSQL(ctx, tx, seed.Content); execErr != nil {
 		return execErr
@@ -129,13 +141,10 @@ func (e *SeedExecutor) ExecuteSeed(ctx context.Context, seed querier_dto.SeedRec
 
 	durationMs := time.Since(start).Milliseconds()
 
-	insertSQL := fmt.Sprintf( //nolint:gosec // hardcoded table name
-		"INSERT INTO piko_seeds (version, name, checksum, duration_ms) VALUES (%s, %s, %s, %s)",
-		e.dialectConfig.PlaceholderFunc(seedPlaceholderVersion),
-		e.dialectConfig.PlaceholderFunc(seedPlaceholderName),
-		e.dialectConfig.PlaceholderFunc(seedPlaceholderChecksum),
-		e.dialectConfig.PlaceholderFunc(seedPlaceholderDurationMs),
-	)
+	insertSQL, insertSQLErr := e.renderSeedInsertSQL()
+	if insertSQLErr != nil {
+		return insertSQLErr
+	}
 
 	if _, insertErr := tx.ExecContext(ctx, insertSQL,
 		seed.Version, seed.Name, seed.Checksum, durationMs,
@@ -144,6 +153,51 @@ func (e *SeedExecutor) ExecuteSeed(ctx context.Context, seed querier_dto.SeedRec
 	}
 
 	return tx.Commit()
+}
+
+// AcquireSeedLock acquires the dialect-specific advisory lock for seed
+// runs. The lock uses a key distinct from the migration lock so seed and
+// migration runs serialise independently rather than starving each other.
+//
+// When the dialect has no SeedLockStrategy configured, this falls back to a
+// no-op lock. That is correct for single-replica deployments (and SQLite,
+// where file-level locking suffices) but unsafe for multi-replica setups
+// using a dialect that has not been updated; callers in such configurations
+// should ensure SeedLockStrategy is set.
+//
+// Takes ctx (context.Context) for cancellation and timeout control.
+//
+// Returns error when the lock cannot be acquired.
+func (e *SeedExecutor) AcquireSeedLock(ctx context.Context) error {
+	strategy := e.dialectConfig.SeedLockStrategy
+	if strategy == nil {
+		strategy = &NoOpLock{}
+	}
+	connection, lockError := strategy.Acquire(ctx, e.database)
+	if lockError != nil {
+		return fmt.Errorf("acquiring seed lock: %w", lockError)
+	}
+	e.pinnedSeedLockConnection = connection
+	return nil
+}
+
+// ReleaseSeedLock releases the dialect-specific advisory lock previously
+// acquired by AcquireSeedLock. Safe to call when no lock is held.
+//
+// Takes ctx (context.Context) for cancellation and timeout control.
+//
+// Returns error when the lock cannot be released.
+func (e *SeedExecutor) ReleaseSeedLock(ctx context.Context) error {
+	strategy := e.dialectConfig.SeedLockStrategy
+	if strategy == nil {
+		strategy = &NoOpLock{}
+	}
+	connection := e.pinnedSeedLockConnection
+	e.pinnedSeedLockConnection = nil
+	if releaseError := strategy.Release(ctx, connection); releaseError != nil {
+		return fmt.Errorf("releasing seed lock: %w", releaseError)
+	}
+	return nil
 }
 
 // ClearSeedHistory removes all records from the piko_seeds table.
@@ -155,6 +209,33 @@ func (e *SeedExecutor) ClearSeedHistory(ctx context.Context) error {
 		return fmt.Errorf("clearing seed history: %w", err)
 	}
 	return nil
+}
+
+// renderSeedInsertSQL builds the dialect-specific idempotent INSERT statement
+// for the piko_seeds history table. Falls back to a plain INSERT only when
+// the dialect has not configured InsertSeedSQLFunc, which is reserved for
+// legacy callers; modern dialect builders always populate the field.
+//
+// Returns string which is the rendered INSERT statement.
+// Returns error when the dialect lacks both the new function and the
+// placeholder helper.
+func (e *SeedExecutor) renderSeedInsertSQL() (string, error) {
+	if e.dialectConfig.PlaceholderFunc == nil {
+		return "", errors.New("seed executor missing PlaceholderFunc")
+	}
+	versionPlaceholder := e.dialectConfig.PlaceholderFunc(seedPlaceholderVersion)
+	namePlaceholder := e.dialectConfig.PlaceholderFunc(seedPlaceholderName)
+	checksumPlaceholder := e.dialectConfig.PlaceholderFunc(seedPlaceholderChecksum)
+	durationPlaceholder := e.dialectConfig.PlaceholderFunc(seedPlaceholderDurationMs)
+	if e.dialectConfig.InsertSeedSQLFunc != nil {
+		return e.dialectConfig.InsertSeedSQLFunc(
+			versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder,
+		), nil
+	}
+	return fmt.Sprintf( //nolint:gosec // hardcoded table name
+		"INSERT INTO piko_seeds (version, name, checksum, duration_ms) VALUES (%s, %s, %s, %s)",
+		versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder,
+	), nil
 }
 
 // executeSeedSQL executes the seed SQL content against the transaction. When
@@ -171,7 +252,12 @@ func (e *SeedExecutor) executeSeedSQL(ctx context.Context, tx *sql.Tx, content [
 		return err
 	}
 
-	for _, stmt := range splitStatements(string(content)) {
+	statements, splitError := splitStatements(string(content))
+	if splitError != nil {
+		return fmt.Errorf("splitting seed statements: %w", splitError)
+	}
+
+	for _, stmt := range statements {
 		trimmed := strings.TrimSpace(stmt)
 		if trimmed == "" {
 			continue

@@ -21,26 +21,53 @@ package llm_provider_gemini
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"mime"
+	"net/http"
 	"path"
 	"slices"
+	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/genai"
 
+	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/safeconv"
+)
+
+const (
+	// httpClientTimeout is a top-level HTTP client timeout that bounds requests
+	// even when the caller does not supply a per-request deadline. It is
+	// generous enough to allow long-running completions but prevents stuck
+	// connections from leaking goroutines indefinitely.
+	httpClientTimeout = 30 * time.Minute
 )
 
 // geminiProvider implements llm_domain.LLMProviderPort and
 // llm_domain.EmbeddingProviderPort for Google Gemini.
 type geminiProvider struct {
+	// closeContext is the provider-level context whose cancellation signals
+	// background stream goroutines to exit.
+	closeContext context.Context
+
 	// client is the Gemini API client for making requests.
 	client *genai.Client
+
+	// httpClient is the underlying *http.Client injected into the Gemini SDK;
+	// retained so tests can verify the configured top-level timeout and idle
+	// connections can be released on Close.
+	httpClient *http.Client
+
+	// closeCancel cancels closeContext on Close to signal in-flight stream
+	// goroutines to wind down.
+	closeCancel context.CancelCauseFunc
 
 	// defaultModel is the model name to use when none is specified.
 	defaultModel string
@@ -52,9 +79,16 @@ type geminiProvider struct {
 	// config holds the Gemini provider settings.
 	config Config
 
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for
+	// them to drain.
+	streamWaitGroup sync.WaitGroup
+
 	// embeddingDimensions is the default vector dimension for the configured
 	// embedding model.
 	embeddingDimensions int
+
+	// closeOnce guards Close so it is idempotent.
+	closeOnce sync.Once
 }
 
 var _ llm_domain.LLMProviderPort = (*geminiProvider)(nil)
@@ -69,6 +103,8 @@ var _ llm_domain.EmbeddingProviderPort = (*geminiProvider)(nil)
 // Returns *llm_dto.CompletionResponse which contains the generated response.
 // Returns error when the Gemini API call fails.
 func (p *geminiProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.Complete")
+
 	ctx, l := logger.From(ctx, log)
 	completeCount.Add(ctx, 1)
 	start := time.Now()
@@ -93,10 +129,45 @@ func (p *geminiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 	response, err := p.client.Models.GenerateContent(ctx, modelName, contents, config)
 	if err != nil {
 		completeErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("gemini completion failed: %w", err)
+		return nil, sanitiseGeminiError(fmt.Errorf("gemini completion failed: %w", err), "gemini request rejected")
 	}
 
 	return p.convertResponse(response, modelName), nil
+}
+
+// sanitiseGeminiError wraps Gemini errors carrying user-visible 4xx semantics
+// in a safeerror so HTTP edges can sanitise them. The Gemini SDK does not
+// expose structured status codes in a portable way, so we treat Authentication
+// and InvalidArgument substrings as user-facing and pass everything else
+// through unchanged for retry classification.
+//
+// Takes err (error) which is the error to inspect.
+// Takes safeMessage (string) which is shown to end users for user-facing
+// errors.
+//
+// Returns error which is wrapped when err looks like a 4xx.
+func sanitiseGeminiError(err error, safeMessage string) error {
+	if err == nil {
+		return nil
+	}
+	msg := err.Error()
+	for _, marker := range []string{"401", "403", "400", "404", "429", "permission", "unauthenticated", "invalid argument"} {
+		if containsFold(msg, marker) {
+			return safeerror.NewError(safeMessage, err)
+		}
+	}
+	return err
+}
+
+// containsFold reports whether substr is contained in s using a
+// case-insensitive comparison.
+//
+// Takes s (string) which is the string to search.
+// Takes substr (string) which is the substring to look for.
+//
+// Returns bool which is true when substr is present case-insensitively.
+func containsFold(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
 
 // SupportsStreaming reports whether the provider supports streaming.
@@ -149,6 +220,8 @@ func (*geminiProvider) SupportsMessageName() bool { return false }
 // Returns []llm_dto.ModelInfo which contains the available models.
 // Returns error when the model listing fails.
 func (p *geminiProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.ListModels")
+
 	var models []llm_dto.ModelInfo
 
 	for m, err := range p.client.Models.All(ctx) {
@@ -170,11 +243,43 @@ func (p *geminiProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, e
 	return models, nil
 }
 
-// Close releases resources.
+// Close releases resources held by the provider, cancelling any in-flight
+// stream goroutines and waiting for them to drain within a bounded timeout.
 //
-// Returns error (always nil as the new SDK client does not require closing).
-func (*geminiProvider) Close(_ context.Context) error {
-	return nil
+// Returns error when the close drain exceeds its bounded wait.
+//
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
+// signal active stream goroutines, then waits on streamWaitGroup before
+// returning.
+func (p *geminiProvider) Close(ctx context.Context) error {
+	var closeErr error
+	p.closeOnce.Do(func() {
+		if p.closeCancel != nil {
+			p.closeCancel(errors.New("gemini provider closing"))
+		}
+
+		done := make(chan struct{})
+		go func() {
+			defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.Close.wait")
+			p.streamWaitGroup.Wait()
+			close(done)
+		}()
+
+		waitContext, cancel := context.WithTimeoutCause(ctx, 30*time.Second,
+			errors.New("gemini provider close drain exceeded 30s"))
+		defer cancel()
+
+		select {
+		case <-done:
+		case <-waitContext.Done():
+			closeErr = fmt.Errorf("gemini provider close timed out: %w", context.Cause(waitContext))
+		}
+
+		if p.httpClient != nil {
+			p.httpClient.CloseIdleConnections()
+		}
+	})
+	return closeErr
 }
 
 // DefaultModel returns the default model identifier.
@@ -197,6 +302,8 @@ func (p *geminiProvider) DefaultModel() string {
 // embeddings.
 // Returns error when the request fails.
 func (p *geminiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.Embed")
+
 	ctx, l := logger.From(ctx, log)
 	embedCount.Add(ctx, 1)
 	start := time.Now()
@@ -230,7 +337,7 @@ func (p *geminiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 	response, err := p.client.Models.EmbedContent(ctx, model, contents, embedConfig)
 	if err != nil {
 		embedErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("gemini embedding failed: %w", err)
+		return nil, sanitiseGeminiError(fmt.Errorf("gemini embedding failed: %w", err), "gemini embedding rejected")
 	}
 
 	embeddings := make([]llm_dto.Embedding, len(response.Embeddings))
@@ -639,16 +746,23 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 	config = config.WithDefaults()
 
 	ctx := context.Background()
+	httpClient := &http.Client{Timeout: httpClientTimeout}
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  config.APIKey,
-		Backend: genai.BackendGeminiAPI,
+		APIKey:     config.APIKey,
+		Backend:    genai.BackendGeminiAPI,
+		HTTPClient: httpClient,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gemini client: %w", err)
 	}
 
+	closeContext, closeCancel := context.WithCancelCause(context.Background())
+
 	return &geminiProvider{
 		client:                client,
+		httpClient:            httpClient,
+		closeContext:          closeContext,
+		closeCancel:           closeCancel,
 		config:                config,
 		defaultModel:          config.DefaultModel,
 		defaultEmbeddingModel: config.DefaultEmbeddingModel,

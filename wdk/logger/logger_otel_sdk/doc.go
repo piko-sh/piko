@@ -19,9 +19,9 @@
 // Package logger_otel_sdk provides the OpenTelemetry SDK provider
 // factory and monitoring adapter implementations.
 //
-// Importing this package registers an OtelProviderFactory that
-// creates SDK-backed tracer and meter providers. It also provides
-// factories for creating [SpanProcessor] and [MetricsCollector]
-// instances that feed span and metric data into a
-// [TelemetryStore] for gRPC access by the monitoring transport.
+// Importing the package registers an OtelProviderFactory that creates
+// SDK-backed tracer and meter providers. It also provides factories for
+// creating [SpanProcessor] and [MetricsCollector] instances that feed span and
+// metric data into a [TelemetryStore] for gRPC access by the monitoring
+// transport.
 package logger_otel_sdk

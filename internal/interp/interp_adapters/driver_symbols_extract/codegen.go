@@ -26,7 +26,7 @@ import (
 	"slices"
 	"strings"
 
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 
 	"piko.sh/piko/internal/goastutil"
 )
@@ -554,7 +554,7 @@ func GenerateTypesDescriptorFile(importPaths []string) ([]byte, error) {
 	slices.Sort(sorted)
 
 	descriptor := typesDescriptor{ImportPaths: sorted}
-	output, err := pikojson.MarshalIndent(descriptor, "", "  ")
+	output, err := json.MarshalIndent(descriptor, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshalling types descriptor: %w", err)
 	}
@@ -571,7 +571,7 @@ func GenerateTypesDescriptorFile(importPaths []string) ([]byte, error) {
 // Returns error when the JSON is malformed.
 func ReadTypesDescriptor(data []byte) ([]string, error) {
 	var descriptor typesDescriptor
-	if err := pikojson.Unmarshal(data, &descriptor); err != nil {
+	if err := json.Unmarshal(data, &descriptor); err != nil {
 		return nil, fmt.Errorf("parsing types descriptor: %w", err)
 	}
 	return descriptor.ImportPaths, nil

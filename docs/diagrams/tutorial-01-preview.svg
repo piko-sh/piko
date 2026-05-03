@@ -1,0 +1,38 @@
+<svg viewBox="0 0 500 285" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="t01-title t01-desc">
+  <title id="t01-title">Tutorial 1 preview: About page with dynamic data and conditional greeting</title>
+  <desc id="t01-desc">A browser window showing the finished About page built in tutorial 1. The page has a heading, a short bio paragraph, a conditional greeting shown when a visitor count exceeds zero, and a scoped styled section. The URL in the address bar is /about.</desc>
+  <defs/>
+
+  <text x="250" y="18" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="1">WHAT YOU WILL BUILD</text>
+
+  
+  <rect x="30" y="35" width="440" height="210" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M40,35 H460 A10,10 0 0 1 470,45 V65 H30 V45 A10,10 0 0 1 40,35 Z" fill="#1C544F"/>
+  <circle cx="46" cy="49" r="4" fill="#ff5f57"/>
+  <circle cx="60" cy="49" r="4" fill="#febc2e"/>
+  <circle cx="74" cy="49" r="4" fill="#28c840"/>
+
+  <rect x="100" y="42" width="340" height="14" rx="4" fill="#364049"/>
+  <text x="115" y="53" fill="#C9F5F2" font-family="monospace" font-size="9">http://localhost:8080/about</text>
+
+  
+  <rect x="60" y="85" width="220" height="18" rx="3" fill="#6BD5CC" opacity="0.9"/>
+  <text x="60" y="98" fill="#236962" font-family="system-ui, sans-serif" font-size="13" font-weight="600">About Piko</text>
+
+  
+  <rect x="60" y="115" width="380" height="4" rx="2" fill="#A7F0E9" opacity="0.6"/>
+  <rect x="60" y="124" width="340" height="4" rx="2" fill="#A7F0E9" opacity="0.5"/>
+  <rect x="60" y="133" width="300" height="4" rx="2" fill="#A7F0E9" opacity="0.4"/>
+
+  
+  <rect x="60" y="155" width="380" height="40" rx="8" fill="#1C544F" stroke="#6BD5CC" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="72" y="172" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">p-if="state.Visitors &gt; 0"</text>
+  <text x="72" y="188" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">Welcome back! You are visitor #42.</text>
+
+  
+  <rect x="60" y="210" width="150" height="4" rx="2" fill="#A7F0E9" opacity="0.3"/>
+  <rect x="60" y="220" width="100" height="4" rx="2" fill="#A7F0E9" opacity="0.25"/>
+
+  <text x="250" y="270" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="11">pages/about.pk renders server-side with typed data and scoped CSS</text>
+</svg>

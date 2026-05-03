@@ -20,13 +20,13 @@ package maths
 
 import (
 	"database/sql/driver"
-	"encoding/json"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/bojanz/currency"
-	pikojson "piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/json"
 )
 
 // Amount returns the underlying numeric value of the Money object as a
@@ -275,12 +275,12 @@ func (m *Money) UnmarshalJSON(data []byte) error {
 	}
 
 	var parsedMoney moneyJSON
-	if err := pikojson.Unmarshal(data, &parsedMoney); err == nil {
+	if err := json.Unmarshal(data, &parsedMoney); err == nil {
 		return m.unmarshalJSONObject(parsedMoney)
 	}
 
 	var strValue string
-	if err := pikojson.Unmarshal(data, &strValue); err == nil {
+	if err := json.Unmarshal(data, &strValue); err == nil {
 		return m.unmarshalJSONString(strValue)
 	}
 
@@ -392,7 +392,7 @@ func extractNumberString(number any) (string, error) {
 	switch v := number.(type) {
 	case string:
 		return v, nil
-	case json.Number:
+	case stdjson.Number:
 		return v.String(), nil
 	case float64, float32, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		return fmt.Sprint(v), nil

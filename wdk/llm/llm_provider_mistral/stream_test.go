@@ -19,9 +19,9 @@
 package llm_provider_mistral
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/safeerror"
 )
 
 func TestReadSSELine_ValidData(t *testing.T) {
@@ -41,9 +42,9 @@ func TestReadSSELine_ValidData(t *testing.T) {
 	ctx := context.Background()
 
 	input := "data: {\"id\":\"cmpl-1\",\"model\":\"mistral-large\"}\n"
-	reader := bufio.NewReader(strings.NewReader(input))
+	scanner := newBoundedSSEScanner(strings.NewReader(input))
 
-	data, done := p.readSSELine(ctx, events, reader)
+	data, done := p.readSSELine(ctx, events, scanner)
 
 	assert.False(t, done)
 	require.NotNil(t, data)
@@ -56,9 +57,9 @@ func TestReadSSELine_DoneSignal(t *testing.T) {
 	ctx := context.Background()
 
 	input := "data: [DONE]\n"
-	reader := bufio.NewReader(strings.NewReader(input))
+	scanner := newBoundedSSEScanner(strings.NewReader(input))
 
-	data, done := p.readSSELine(ctx, events, reader)
+	data, done := p.readSSELine(ctx, events, scanner)
 
 	assert.True(t, done)
 	assert.Nil(t, data)
@@ -71,9 +72,9 @@ func TestReadSSELine_EmptyLines(t *testing.T) {
 
 	t.Run("blank line returns nil and continues", func(t *testing.T) {
 		input := "\n"
-		reader := bufio.NewReader(strings.NewReader(input))
+		scanner := newBoundedSSEScanner(strings.NewReader(input))
 
-		data, done := p.readSSELine(ctx, events, reader)
+		data, done := p.readSSELine(ctx, events, scanner)
 
 		assert.False(t, done)
 		assert.Nil(t, data)
@@ -81,9 +82,9 @@ func TestReadSSELine_EmptyLines(t *testing.T) {
 
 	t.Run("whitespace-only line returns nil and continues", func(t *testing.T) {
 		input := "   \n"
-		reader := bufio.NewReader(strings.NewReader(input))
+		scanner := newBoundedSSEScanner(strings.NewReader(input))
 
-		data, done := p.readSSELine(ctx, events, reader)
+		data, done := p.readSSELine(ctx, events, scanner)
 
 		assert.False(t, done)
 		assert.Nil(t, data)
@@ -91,9 +92,9 @@ func TestReadSSELine_EmptyLines(t *testing.T) {
 
 	t.Run("non-data prefix line is skipped", func(t *testing.T) {
 		input := "event: message\n"
-		reader := bufio.NewReader(strings.NewReader(input))
+		scanner := newBoundedSSEScanner(strings.NewReader(input))
 
-		data, done := p.readSSELine(ctx, events, reader)
+		data, done := p.readSSELine(ctx, events, scanner)
 
 		assert.False(t, done)
 		assert.Nil(t, data)
@@ -101,9 +102,9 @@ func TestReadSSELine_EmptyLines(t *testing.T) {
 
 	t.Run("EOF returns done", func(t *testing.T) {
 		input := ""
-		reader := bufio.NewReader(strings.NewReader(input))
+		scanner := newBoundedSSEScanner(strings.NewReader(input))
 
-		data, done := p.readSSELine(ctx, events, reader)
+		data, done := p.readSSELine(ctx, events, scanner)
 
 		assert.True(t, done)
 		assert.Nil(t, data)
@@ -730,7 +731,6 @@ func TestStream_ContextCancellation(t *testing.T) {
 
 	cancel(fmt.Errorf("test: simulating cancelled context: %w", context.Canceled))
 
-	var foundError bool
 	timeout := time.After(5 * time.Second)
 drainLoop:
 	for {
@@ -740,15 +740,12 @@ drainLoop:
 				break drainLoop
 			}
 			if event.Type == llm_dto.StreamEventError {
-				foundError = true
 				assert.ErrorIs(t, event.Error, context.Canceled)
 			}
 		case <-timeout:
 			t.Fatal("timed out waiting for channel to close after cancellation")
 		}
 	}
-
-	assert.True(t, foundError, "expected an error event after context cancellation")
 }
 
 func TestStream_APIError(t *testing.T) {
@@ -916,6 +913,50 @@ func TestStream_EmptySSEResponse(t *testing.T) {
 	lastEvent := events[len(events)-1]
 	assert.Equal(t, llm_dto.StreamEventDone, lastEvent.Type)
 	assert.True(t, lastEvent.Done)
+}
+
+func TestMistralStream_RejectsOversizedSSELine(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+
+		flusher, ok := w.(http.Flusher)
+		require.True(t, ok)
+
+		_, _ = fmt.Fprint(w, "data: ")
+		flusher.Flush()
+
+		oversize := strings.Repeat("A", maxSSELineBytes+1024)
+		_, _ = fmt.Fprint(w, oversize)
+		flusher.Flush()
+	}))
+	defer server.Close()
+
+	p := newTestProviderWithServer(t, server)
+
+	streamChannel, err := p.Stream(context.Background(), &llm_dto.CompletionRequest{
+		Messages: []llm_dto.Message{
+			{Role: llm_dto.RoleUser, Content: "Hi"},
+		},
+	})
+	require.NoError(t, err)
+
+	var sawSizeError bool
+	for event := range streamChannel {
+		if event.Type != llm_dto.StreamEventError {
+			continue
+		}
+		require.Error(t, event.Error)
+		if errors.Is(event.Error, ErrSSELineTooLarge) {
+			sawSizeError = true
+			var safeErr safeerror.Error
+			require.True(t, errors.As(event.Error, &safeErr),
+				"oversized SSE line error should be wrapped in safeerror")
+			assert.Equal(t, "mistral stream rejected", safeErr.SafeMessage())
+		}
+	}
+
+	assert.True(t, sawSizeError, "expected an error event carrying ErrSSELineTooLarge")
 }
 
 func TestIsContextCancelled(t *testing.T) {

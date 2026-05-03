@@ -739,6 +739,80 @@ func TestWatchdog_ProfileSizeLimitEnforced(t *testing.T) {
 	assert.Equal(t, 0, heapFileCount, "no heap profiles should be stored when they exceed the size limit")
 }
 
+func TestWatchdog_IncludeGoroutineStacksWritesSidecarWhenEnabled(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	mockClock := clock.NewMockClock(startTime)
+
+	config := DefaultWatchdogConfig()
+	config.WarmUpDuration = 0
+	config.GoroutineThreshold = 1
+	config.GoroutineSafetyCeiling = 1_000_000
+	config.Cooldown = time.Second
+	config.IncludeGoroutineStacks = true
+
+	watchdog := newTestWatchdog(t, config, mockClock)
+	watchdog.SetProfilingController(&mockProfilingController{})
+	watchdog.startedAt = startTime
+
+	watchdog.goroutineBaseline.Store(1)
+
+	stats := SystemStats{NumGoroutines: 100}
+
+	watchdog.evaluate(context.Background(), &stats)
+	watchdog.captureWG.Wait()
+
+	entries, err := watchdog.profileStore.sandbox.ReadDir(".")
+	require.NoError(t, err)
+
+	var gotBinary, gotStacks bool
+	for _, entry := range entries {
+		name := entry.Name()
+		switch {
+		case strings.HasPrefix(name, "goroutine-") && strings.HasSuffix(name, profileFileExtension):
+			gotBinary = true
+		case strings.HasPrefix(name, "goroutine-") && strings.HasSuffix(name, profileStacksExtension):
+			gotStacks = true
+		}
+	}
+	assert.True(t, gotBinary, "binary goroutine profile must be written")
+	assert.True(t, gotStacks, "goroutine stacks sidecar must be written when IncludeGoroutineStacks is enabled")
+}
+
+func TestWatchdog_IncludeGoroutineStacksOffSkipsSidecar(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	mockClock := clock.NewMockClock(startTime)
+
+	config := DefaultWatchdogConfig()
+	config.WarmUpDuration = 0
+	config.GoroutineThreshold = 1
+	config.GoroutineSafetyCeiling = 1_000_000
+	config.Cooldown = time.Second
+
+	watchdog := newTestWatchdog(t, config, mockClock)
+	watchdog.SetProfilingController(&mockProfilingController{})
+	watchdog.startedAt = startTime
+
+	watchdog.goroutineBaseline.Store(1)
+
+	stats := SystemStats{NumGoroutines: 100}
+
+	watchdog.evaluate(context.Background(), &stats)
+	watchdog.captureWG.Wait()
+
+	entries, err := watchdog.profileStore.sandbox.ReadDir(".")
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		name := entry.Name()
+		assert.Falsef(t, strings.HasSuffix(name, profileStacksExtension),
+			"no .stacks.txt sidecar should be written when IncludeGoroutineStacks is false; found %s", name)
+	}
+}
+
 func TestWatchdog_WithWatchdogNotifierConfiguresNotifier(t *testing.T) {
 	t.Parallel()
 

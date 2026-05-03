@@ -22,7 +22,10 @@ package ast_domain
 // memory-efficient processing. Implements iterator patterns with pooled event
 // objects for element open/close, text nodes, and raw HTML content.
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 // astEventType represents the kind of event sent during AST streaming.
 type astEventType int
@@ -79,11 +82,24 @@ type astEvent struct {
 }
 
 // astEventPool reuses astEvent instances to reduce allocation pressure during
-// AST streaming.
-var astEventPool = sync.Pool{
-	New: func() any {
-		return new(astEvent)
-	},
+// AST streaming. Wrapped in atomic.Pointer so resetASTEventPool can swap the
+// underlying pool without racing concurrent Get/Put callers.
+var astEventPool atomic.Pointer[sync.Pool]
+
+func init() {
+	astEventPool.Store(newASTEventPool())
+}
+
+// newASTEventPool builds a fresh sync.Pool whose New func returns a
+// zero-valued astEvent. Used by init and resetASTEventPool.
+//
+// Returns *sync.Pool which is the freshly constructed pool.
+func newASTEventPool() *sync.Pool {
+	return &sync.Pool{
+		New: func() any {
+			return new(astEvent)
+		},
+	}
 }
 
 // getASTEvent gets an astEvent from the sync.Pool.
@@ -91,7 +107,7 @@ var astEventPool = sync.Pool{
 // Returns *astEvent which is a reused event from the pool, or a new one if the
 // pool is empty.
 func getASTEvent() *astEvent {
-	event, ok := astEventPool.Get().(*astEvent)
+	event, ok := astEventPool.Load().Get().(*astEvent)
 	if !ok {
 		event = new(astEvent)
 	}
@@ -112,15 +128,11 @@ func putASTEvent(event *astEvent) {
 	event.node = nil
 	event.isVoid = false
 
-	astEventPool.Put(event)
+	astEventPool.Load().Put(event)
 }
 
-// resetASTEventPool clears the AST event pool to ensure test isolation.
-// Call via t.Cleanup(resetASTEventPool) in tests.
+// resetASTEventPool atomically swaps in a fresh AST event pool for test
+// isolation. Safe to call concurrently with Get/Put.
 func resetASTEventPool() {
-	astEventPool = sync.Pool{
-		New: func() any {
-			return new(astEvent)
-		},
-	}
+	astEventPool.Store(newASTEventPool())
 }

@@ -19,10 +19,9 @@
 // Package orchestrator_dal defines data access layer abstractions for
 // the orchestrator hexagon.
 //
-// Storage backends implement the port interfaces in this package to
-// persist and query task and workflow state. The package also defines
-// sentinel errors for database-agnostic error handling and supports
-// atomic operations.
+// Storage backends implement the port interfaces here to persist and query task
+// and workflow state. Sentinel errors for database-agnostic error handling are also
+// defined, and atomic operations are supported.
 //
 // All implementations are safe for concurrent use.
 package orchestrator_dal

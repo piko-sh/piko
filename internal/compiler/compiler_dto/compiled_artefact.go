@@ -67,11 +67,12 @@ type JSDependency struct {
 	// (e.g. "@/lib/utils.js").
 	OriginalPath string `json:"originalPath"`
 
-	// ResolvedPath is the module-qualified path
-	// (e.g., "github.com/user/project/lib/utils.js").
+	// ResolvedPath is the module-qualified path (for example a GitHub-hosted
+	// module path with a "/lib/utils.js" suffix).
 	ResolvedPath string `json:"resolvedPath"`
 
-	// ServedPath is the URL path for serving
-	// (e.g., "/_piko/assets/github.com/user/project/lib/utils.js").
+	// ServedPath is the URL path for serving (for example a "/_piko/assets/"
+	// prefix followed by a GitHub-hosted module path and a "/lib/utils.js"
+	// suffix).
 	ServedPath string `json:"servedPath"`
 }

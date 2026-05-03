@@ -177,6 +177,20 @@ const (
 	// logFieldRoutePattern is the log field key for the URL route pattern.
 	logFieldRoutePattern = "routePattern"
 
+	// logFieldChiPattern is the log field key for the chi-translated route
+	// pattern (e.g. "/docs/*" derived from "/docs/{slug:.+}").
+	logFieldChiPattern = "chiPattern"
+
+	// logFieldLocale is the log field key for the request locale.
+	logFieldLocale = "locale"
+
+	// logFieldI18nStrategy is the log field key for the i18n routing strategy.
+	logFieldI18nStrategy = "i18nStrategy"
+
+	// logFieldIsE2EOnly is the log field key indicating whether a route is
+	// only registered when e2e mode is enabled.
+	logFieldIsE2EOnly = "isE2EOnly"
+
 	// logFieldActionCount is the log field key for the number of actions.
 	logFieldActionCount = "actionCount"
 

@@ -40,21 +40,21 @@ type FieldInfo struct {
 	// PropName is the name of the field as it appears in the source code.
 	PropName string
 
-	// ParentTypeName is the name of the struct type that contains this field.
+	// ParentTypeName is the name of the struct type that contains the field.
 	ParentTypeName string
 
-	// DefiningFilePath is the path to the file where this field is defined.
+	// DefiningFilePath is the path to the file where the field is defined.
 	DefiningFilePath string
 
 	// DefiningPackagePath is the import path of the package where
-	// this field is defined.
+	// the field is defined.
 	DefiningPackagePath string
 
 	// RawTag is the raw struct field tag string as written in the source code.
 	RawTag string
 
 	// InitialPackagePath is the package path where the generic type was instantiated.
-	// This is used to resolve substituted type arguments that reference packages
+	// Resolves substituted type arguments that reference packages
 	// not imported by the field-defining type.
 	InitialPackagePath string
 
@@ -68,6 +68,6 @@ type FieldInfo struct {
 	// DefinitionColumn is the column number where the field is defined.
 	DefinitionColumn int
 
-	// IsRequired indicates whether this field must be present.
+	// IsRequired indicates whether the field must be present.
 	IsRequired bool
 }

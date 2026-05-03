@@ -383,7 +383,8 @@ type LLMProviderPort interface {
 	Close(ctx context.Context) error
 
 	// DefaultModel returns the provider's default completion model name. The
-	// service calls this method when a request omits the model, before validation.
+	// service calls the function when a request omits the model, before
+	// validation.
 	//
 	// Returns string which is the default model identifier, or empty if the
 	// caller must specify a model explicitly.

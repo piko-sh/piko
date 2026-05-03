@@ -214,11 +214,11 @@ func NewAnnotatorService(ctx context.Context, serviceConfig *AnnotatorServiceCon
 
 // AnnotateProject is the primary entry point for a full project build.
 //
-// It performs a complete, multi-stage analysis of all components in the
-// dependency graph (both pages and partials) and returns a single,
-// full result. This method runs both Phase 1 (expensive type
-// introspection) and Phase 2 (annotation). For template-only changes, use
-// AnnotateProjectWithCachedIntrospection to skip Phase 1.
+// Performs a complete, multi-stage analysis of all components in the dependency
+// graph (both pages and partials) and returns a single, full result. Runs both
+// Phase 1 (expensive type introspection) and Phase 2 (annotation). For
+// template-only changes, use AnnotateProjectWithCachedIntrospection to skip
+// Phase 1.
 //
 // Actions are auto-discovered from the actions/ directory during Phase 1.
 //
@@ -289,13 +289,13 @@ func (s *AnnotatorService) AnnotateProject(
 // to Phase 2 (annotation) using cached introspection data from a previous
 // build.
 //
-// This method achieves 5-10x performance improvement when only <template>,
-// <style>, or <i18n> blocks have changed, as it avoids the expensive
-// packages.Load() call for Go type introspection.
+// Achieves 5-10x performance improvement when only <template>, <style>, or
+// <i18n> blocks have changed, as it avoids the expensive packages.Load() call
+// for Go type introspection.
 //
-// This method should be called by the coordinator when Tier 2 cache (full
-// annotation) misses, Tier 1 cache (introspection) hits, and the
-// introspection hash matches the cached entry.
+// Should be called by the coordinator when Tier 2 cache (full annotation) misses,
+// Tier 1 cache (introspection) hits, and the introspection hash matches the
+// cached entry.
 //
 // Actions are auto-discovered from the cached ActionManifest in VirtualModule.
 //
@@ -393,8 +393,8 @@ func (s *AnnotatorService) Annotate(ctx context.Context, mainSourcePath string, 
 // (for Tier 1 caching) and the final Phase 2 annotation results (for Tier 2
 // caching).
 //
-// This method is designed for the coordinator's slow path to enable populating
-// the introspection cache after a full build.
+// Designed for the coordinator's slow path to enable populating the
+// introspection cache after a full build.
 //
 // Actions are auto-discovered from the actions/ directory during Phase 1.
 //
@@ -1197,7 +1197,7 @@ func (s *AnnotatorService) collectOriginalGoFilesWithResolver(
 //
 // Returns error when reading or parsing component files fails.
 //
-// This function changes the cached ComponentGraph directly, updating:
+// Changes the cached ComponentGraph directly, updating:
 //   - Template (parsed TemplateAST)
 //   - StyleBlocks (raw style data)
 //   - LocalTranslations (i18n data)

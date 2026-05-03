@@ -56,6 +56,10 @@ var (
 	// ErrTSAEmptyToken indicates the TSA response did not contain a
 	// timestamp token.
 	ErrTSAEmptyToken = errors.New("TSA response contains no timestamp token")
+
+	// ErrTSAResponseTooLarge indicates the TSA response body exceeded
+	// tsaMaxResponseSize and was rejected rather than silently truncated.
+	ErrTSAResponseTooLarge = errors.New("TSA response exceeds maximum allowed size")
 )
 
 // RFC 3161 ASN.1 structures.
@@ -120,8 +124,31 @@ type pkiStatusInfo struct {
 // Returns []byte which is the DER-encoded TimeStampToken.
 // Returns error when the request fails or the TSA returns an error.
 func requestTimestamp(ctx context.Context, tsaURL string, signature []byte) ([]byte, error) {
-	digest := sha256.Sum256(signature)
+	reqDER, err := encodeTimestampRequest(signature)
+	if err != nil {
+		return nil, err
+	}
 
+	ctx, cancel := context.WithTimeoutCause(ctx, tsaTimeout, errors.New("TSA request timed out"))
+	defer cancel()
+
+	body, err := postTimestampRequest(ctx, tsaURL, reqDER)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseTimestampResponse(body)
+}
+
+// encodeTimestampRequest builds and DER-encodes a TimeStampReq for the supplied signature.
+//
+// Takes signature ([]byte) which is the signature value to be hashed and
+// included as the message imprint.
+//
+// Returns []byte which is the DER-encoded TimeStampReq ready for transmission.
+// Returns error when ASN.1 marshalling of the request structure fails.
+func encodeTimestampRequest(signature []byte) ([]byte, error) {
+	digest := sha256.Sum256(signature)
 	req := timeStampReq{
 		Version: 1,
 		MessageImprint: messageImprint{
@@ -130,15 +157,28 @@ func requestTimestamp(ctx context.Context, tsaURL string, signature []byte) ([]b
 		},
 		CertReq: true,
 	}
-
 	reqDER, err := asn1.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("encoding timestamp request: %w", err)
 	}
+	return reqDER, nil
+}
 
-	ctx, cancel := context.WithTimeoutCause(ctx, tsaTimeout, errors.New("TSA request timed out"))
-	defer cancel()
-
+// postTimestampRequest sends the encoded request to the TSA endpoint and
+// returns the response body.
+//
+// The response body is capped at tsaMaxResponseSize, drained, and closed
+// before returning.
+//
+// Takes ctx (context.Context) which carries cancellation and timeout for the
+// HTTP request.
+// Takes tsaURL (string) which is the TSA endpoint URL to POST to.
+// Takes reqDER ([]byte) which is the DER-encoded TimeStampReq body.
+//
+// Returns []byte which is the response body up to tsaMaxResponseSize.
+// Returns error when the HTTP request fails, the status is not 200, or the
+// response exceeds the size cap.
+func postTimestampRequest(ctx context.Context, tsaURL string, reqDER []byte) ([]byte, error) {
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, tsaURL, bytes.NewReader(reqDER))
 	if err != nil {
 		return nil, fmt.Errorf("creating HTTP request: %w", err)
@@ -151,17 +191,33 @@ func requestTimestamp(ctx context.Context, tsaURL string, signature []byte) ([]b
 	if err != nil {
 		return nil, fmt.Errorf("sending timestamp request to %s: %w", tsaURL, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("TSA returned HTTP %d: %w", resp.StatusCode, ErrTSAHTTPFailure)
 	}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, tsaMaxResponseSize))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, tsaMaxResponseSize+1))
 	if err != nil {
 		return nil, fmt.Errorf("reading TSA response: %w", err)
 	}
+	if int64(len(body)) > tsaMaxResponseSize {
+		return nil, fmt.Errorf("reading TSA response (limit %d bytes): %w", tsaMaxResponseSize, ErrTSAResponseTooLarge)
+	}
+	return body, nil
+}
 
+// parseTimestampResponse decodes the DER-encoded TimeStampResp bytes and extracts the token.
+//
+// Takes body ([]byte) which is the DER-encoded TimeStampResp from the TSA.
+//
+// Returns []byte which is the contained DER-encoded TimeStampToken.
+// Returns error when ASN.1 decoding fails, trailing bytes remain, the TSA
+// status indicates failure, or the token is empty.
+func parseTimestampResponse(body []byte) ([]byte, error) {
 	var tsResp timeStampResp
 	rest, err := asn1.Unmarshal(body, &tsResp)
 	if err != nil {
@@ -170,14 +226,11 @@ func requestTimestamp(ctx context.Context, tsaURL string, signature []byte) ([]b
 	if len(rest) > 0 {
 		return nil, errors.New("trailing bytes in timestamp response")
 	}
-
 	if tsResp.Status.Status > 1 {
 		return nil, fmt.Errorf("TSA returned error status %d: %w", tsResp.Status.Status, ErrTSAErrorStatus)
 	}
-
 	if len(tsResp.TimeStampToken.FullBytes) == 0 {
 		return nil, fmt.Errorf("TSA response contains no timestamp token: %w", ErrTSAEmptyToken)
 	}
-
 	return tsResp.TimeStampToken.FullBytes, nil
 }

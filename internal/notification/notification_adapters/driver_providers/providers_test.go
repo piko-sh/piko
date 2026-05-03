@@ -21,10 +21,13 @@ package driver_providers
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -32,6 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/notification/notification_dto"
+	"piko.sh/piko/internal/safeerror"
 )
 
 func testSendParams() *notification_dto.SendParams {
@@ -973,5 +977,287 @@ func TestNewWebhookProvider_NilClient(t *testing.T) {
 	provider := NewWebhookProvider("http://example.com", nil, nil)
 	if provider == nil {
 		t.Fatal("expected non-nil provider")
+	}
+}
+
+func TestTruncateRunes(t *testing.T) {
+	t.Parallel()
+
+	multiByte := strings.Repeat("é", 50)
+	hugeMultiByte := strings.Repeat("文", 200)
+
+	cases := []struct {
+		name     string
+		input    string
+		want     string
+		maxRunes int
+	}{
+		{name: "short ascii unchanged", input: "hello", maxRunes: 10, want: "hello"},
+		{name: "exact ascii unchanged", input: "abcdef", maxRunes: 6, want: "abcdef"},
+		{name: "ascii truncated with ellipsis", input: "abcdefghij", maxRunes: 7, want: "abcd..."},
+		{name: "tiny budget skips ellipsis", input: "abcdef", maxRunes: 2, want: "ab"},
+		{name: "zero budget", input: "anything", maxRunes: 0, want: ""},
+		{name: "negative budget", input: "anything", maxRunes: -3, want: ""},
+		{name: "multi-byte runes preserved", input: multiByte, maxRunes: 10, want: strings.Repeat("é", 7) + "..."},
+		{name: "long multi-byte truncates without splitting", input: hugeMultiByte, maxRunes: 50, want: strings.Repeat("文", 47) + "..."},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := truncateRunes(tc.input, tc.maxRunes)
+			if got != tc.want {
+				t.Fatalf("truncateRunes(%q, %d) = %q, want %q", tc.input, tc.maxRunes, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestPagerDutyProvider_BuildSummary_RuneSafe(t *testing.T) {
+	t.Parallel()
+
+	emoji := "🚨"
+	title := strings.Repeat(emoji, pagerDutySummaryMaxLength+10)
+
+	got := buildSummary(title, "")
+
+	require.LessOrEqual(t, len([]rune(got)), pagerDutySummaryMaxLength,
+		"expected truncated summary to fit within rune limit")
+	require.True(t, strings.HasSuffix(got, "..."), "expected ... suffix on truncated summary")
+	for _, r := range got[:len(got)-len("...")] {
+		require.NotEqual(t, '�', r, "expected no replacement runes from mid-rune cuts")
+	}
+}
+
+func TestDiscordEmbed_ColourJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	original := discordEmbed{
+		Title:       "Heading",
+		Description: "Body",
+		Timestamp:   "2026-01-15T12:00:00Z",
+		Colour:      discordColourError,
+	}
+
+	encoded, err := json.Marshal(original)
+	require.NoError(t, err)
+	require.Contains(t, string(encoded), `"color":15158332`, "JSON wire tag must remain `color` for Discord API compatibility")
+	require.NotContains(t, string(encoded), `"colour"`, "British spelling must not appear in JSON output")
+
+	var decoded discordEmbed
+	require.NoError(t, json.Unmarshal(encoded, &decoded))
+	require.Equal(t, discordColourError, decoded.Colour, "Colour field must round-trip via the lowercase `color` tag")
+}
+
+func TestDiscordProvider_Send_4xxReturnsSafeError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte("invalid webhook"))
+	}))
+	defer server.Close()
+
+	provider := NewDiscordProvider(server.URL, server.Client())
+	err := provider.Send(context.Background(), testSendParams())
+	require.Error(t, err)
+
+	var safeErr safeerror.Error
+	require.True(t, errors.As(err, &safeErr), "expected safeerror.Error in chain")
+	require.Equal(t, "notification delivery failed", safeErr.SafeMessage())
+}
+
+func TestSlackProvider_Send_4xxReturnsSafeError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	provider := NewSlackProvider(server.URL, server.Client())
+	err := provider.Send(context.Background(), testSendParams())
+	require.Error(t, err)
+
+	var safeErr safeerror.Error
+	require.True(t, errors.As(err, &safeErr), "expected safeerror.Error in chain")
+	require.Equal(t, "notification delivery failed", safeErr.SafeMessage())
+}
+
+func TestWebhookProvider_Send_4xxReturnsSafeError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer server.Close()
+
+	provider := NewWebhookProvider(server.URL, nil, server.Client())
+	err := provider.Send(context.Background(), testSendParams())
+	require.Error(t, err)
+
+	var safeErr safeerror.Error
+	require.True(t, errors.As(err, &safeErr), "expected safeerror.Error in chain")
+}
+
+func TestSlackProvider_Send_5xxNotWrappedAsSafeError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	provider := NewSlackProvider(server.URL, server.Client())
+	err := provider.Send(context.Background(), testSendParams())
+	require.Error(t, err)
+
+	var safeErr safeerror.Error
+	require.False(t, errors.As(err, &safeErr), "5xx errors should remain transient and not be sanitised")
+}
+
+func TestWebhookProvider_Send_DrainsBodyOnErrorAndReusesConnection(t *testing.T) {
+	t.Parallel()
+
+	var connectionsOpened atomic.Int64
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = io.Copy(w, strings.NewReader(strings.Repeat("x", 32*1024)))
+	}))
+	server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			connectionsOpened.Add(1)
+		}
+	}
+	server.Start()
+	defer server.Close()
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: 1,
+			IdleConnTimeout:     5 * time.Second,
+		},
+		Timeout: 5 * time.Second,
+	}
+	t.Cleanup(client.CloseIdleConnections)
+
+	provider := NewWebhookProvider(server.URL, nil, client)
+
+	const requestCount = 4
+	for range requestCount {
+		err := provider.Send(context.Background(), testSendParams())
+		require.Error(t, err, "500 must surface as an error")
+	}
+
+	require.LessOrEqual(t, connectionsOpened.Load(), int64(2),
+		"draining the body must let the keep-alive transport reuse connections, but %d connections were opened",
+		connectionsOpened.Load())
+}
+
+func TestTeamsProvider_Send_OversizedResponseTruncates(t *testing.T) {
+	t.Parallel()
+
+	payload := bytes.Repeat([]byte("y"), maxNotificationResponseBytes+1024)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+
+	provider := NewTeamsProvider(server.URL, server.Client())
+	err := provider.Send(context.Background(), testSendParams())
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrTeamsResponseTooLarge)
+}
+
+func TestDrainAndCloseResponse_StopsAtCap(t *testing.T) {
+	t.Parallel()
+
+	body := io.NopCloser(bytes.NewReader(bytes.Repeat([]byte("z"), 1024*1024)))
+	tracking := &drainCapTrackingBody{ReadCloser: body}
+	response := &http.Response{Body: tracking}
+
+	drainAndCloseResponse(response)
+
+	require.LessOrEqual(t, tracking.bytesRead, int64(maxNotificationResponseBytes),
+		"drainAndCloseResponse should not read more than the cap, read %d bytes",
+		tracking.bytesRead)
+	require.Greater(t, tracking.bytesRead, int64(0), "drain should consume at least some bytes")
+	require.True(t, tracking.closed, "drainAndCloseResponse should close the body")
+}
+
+type drainCapTrackingBody struct {
+	io.ReadCloser
+	bytesRead int64
+	closed    bool
+}
+
+func (b *drainCapTrackingBody) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	b.bytesRead += int64(n)
+	return n, err
+}
+
+func (b *drainCapTrackingBody) Close() error {
+	b.closed = true
+	return b.ReadCloser.Close()
+}
+
+func TestNotificationProviders_DrainCapped(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		send func(t *testing.T, serverURL string) error
+		name string
+	}{
+		{
+			name: "slack",
+			send: func(t *testing.T, serverURL string) error {
+				t.Helper()
+				return NewSlackProvider(serverURL, nil).Send(context.Background(), testSendParams())
+			},
+		},
+		{
+			name: "ntfy",
+			send: func(t *testing.T, serverURL string) error {
+				t.Helper()
+				return NewNtfyProvider(serverURL, "topic", nil).Send(context.Background(), testSendParams())
+			},
+		},
+		{
+			name: "webhook",
+			send: func(t *testing.T, serverURL string) error {
+				t.Helper()
+				return NewWebhookProvider(serverURL, nil, nil).Send(context.Background(), testSendParams())
+			},
+		},
+		{
+			name: "discord",
+			send: func(t *testing.T, serverURL string) error {
+				t.Helper()
+				return NewDiscordProvider(serverURL, nil).Send(context.Background(), testSendParams())
+			},
+		},
+		{
+			name: "googlechat",
+			send: func(t *testing.T, serverURL string) error {
+				t.Helper()
+				return NewGoogleChatProvider(serverURL, nil).Send(context.Background(), testSendParams())
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(bytes.Repeat([]byte("x"), 1024*1024))
+			}))
+			defer server.Close()
+
+			require.NoError(t, tc.send(t, server.URL))
+		})
 	}
 }

@@ -189,7 +189,7 @@ func TestResolveFaviconSrcPaths_EmptySlice(t *testing.T) {
 
 func TestWithWebsiteConfig_SetsOverride(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	websiteConfig := config.WebsiteConfig{
 		Name:        "Test Site",
@@ -209,7 +209,7 @@ func TestWithWebsiteConfig_SetsOverride(t *testing.T) {
 
 func TestWithWebsiteConfig_DefaultIsNil(t *testing.T) {
 	t.Parallel()
-	c := NewContainer(config.NewConfigProvider())
+	c := NewContainer()
 
 	assert.Nil(t, c.websiteConfigOverride)
 }

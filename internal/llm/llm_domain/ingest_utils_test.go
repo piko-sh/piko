@@ -21,8 +21,10 @@ package llm_domain
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"testing/fstest"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -358,4 +360,50 @@ func TestRecursiveFSLoader_Load_CancelledContext(t *testing.T) {
 	loader := NewRecursiveFSLoader(fsys, "*.md")
 	_, err := loader.Load(ctx)
 	assert.Error(t, err)
+}
+
+func TestComputeOverlap_ZeroOverlapReturnsEmpty(t *testing.T) {
+	s, err := NewRecursiveCharacterSplitter(100, 0)
+	require.NoError(t, err)
+	assert.Equal(t, "", s.computeOverlap("hello world"))
+}
+
+func TestComputeOverlap_TextShorterThanOverlapReturnsAll(t *testing.T) {
+	s, err := NewRecursiveCharacterSplitter(100, 50)
+	require.NoError(t, err)
+	assert.Equal(t, "short", s.computeOverlap("short"))
+}
+
+func TestComputeOverlap_AsciiTrailingWindow(t *testing.T) {
+	s, err := NewRecursiveCharacterSplitter(100, 5)
+	require.NoError(t, err)
+	assert.Equal(t, "world", s.computeOverlap("hello world"))
+}
+
+func TestComputeOverlap_MultiByteRunesProduceValidUtf8(t *testing.T) {
+	s, err := NewRecursiveCharacterSplitter(1024, 7)
+	require.NoError(t, err)
+	input := "hello " + strings.Repeat("世界", 20)
+	got := s.computeOverlap(input)
+	assert.True(t, utf8.ValidString(got), "computeOverlap returned invalid UTF-8: %q", got)
+	assert.LessOrEqual(t, len(got), 7, "overlap exceeds byte budget")
+}
+
+func TestComputeOverlap_BudgetSnapsForwardToRuneStart(t *testing.T) {
+	s, err := NewRecursiveCharacterSplitter(1024, 4)
+	require.NoError(t, err)
+	input := "ab" + "世" + "cd"
+	got := s.computeOverlap(input)
+	assert.True(t, utf8.ValidString(got), "computeOverlap returned invalid UTF-8: %q", got)
+	assert.LessOrEqual(t, len(got), 4, "overlap exceeds byte budget")
+	assert.Equal(t, "cd", got)
+}
+
+func TestComputeOverlap_EmojiOverlapValidUtf8(t *testing.T) {
+	s, err := NewRecursiveCharacterSplitter(1024, 9)
+	require.NoError(t, err)
+	input := "abc" + strings.Repeat("\U0001F600", 5)
+	got := s.computeOverlap(input)
+	assert.True(t, utf8.ValidString(got), "computeOverlap returned invalid UTF-8: %q", got)
+	assert.LessOrEqual(t, len(got), 9, "overlap exceeds byte budget")
 }

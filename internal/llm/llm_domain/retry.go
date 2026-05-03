@@ -24,6 +24,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"piko.sh/piko/internal/llm/llm_dto"
@@ -191,6 +192,9 @@ func (e *RetryExecutor) handleFailedAttempt(ctx context.Context, attempt int, er
 }
 
 // waitForRetry waits for the backoff duration before the next retry attempt.
+// When the previous error carries a Retry-After hint via ProviderError.RetryAfter
+// for status 429 or 503, that hint takes precedence over the calculated
+// exponential backoff (capped at llm_domain.MaxRetryAfterDuration).
 //
 // Takes attempt (int) which is the current retry attempt number.
 // Takes err (error) which is the error from the previous attempt.
@@ -200,6 +204,10 @@ func (e *RetryExecutor) waitForRetry(ctx context.Context, attempt int, err error
 	ctx, l := logger_domain.From(ctx, log)
 	retryAttemptCount.Add(ctx, 1)
 	backoff := e.calculateBackoff(attempt)
+
+	if hint := retryAfterHint(err); hint > 0 && hint > backoff {
+		backoff = hint
+	}
 
 	if e.policy.OnRetry != nil {
 		e.policy.OnRetry(attempt+1, err, backoff)
@@ -221,6 +229,31 @@ func (e *RetryExecutor) waitForRetry(ctx context.Context, attempt int, err error
 	case <-timer.C():
 		return nil
 	}
+}
+
+// retryAfterHint extracts the Retry-After hint from a ProviderError when the
+// status code is 429 or 503. Returns zero when no usable hint is present.
+//
+// Takes err (error) which is the error to inspect.
+//
+// Returns time.Duration which is the parsed Retry-After value, or zero when
+// not applicable.
+func retryAfterHint(err error) time.Duration {
+	var providerErr *ProviderError
+	if !errors.As(err, &providerErr) {
+		return 0
+	}
+	if providerErr.RetryAfter <= 0 {
+		return 0
+	}
+	if providerErr.StatusCode != http.StatusTooManyRequests &&
+		providerErr.StatusCode != http.StatusServiceUnavailable {
+		return 0
+	}
+	if providerErr.RetryAfter > MaxRetryAfterDuration {
+		return MaxRetryAfterDuration
+	}
+	return providerErr.RetryAfter
 }
 
 // calculateBackoff computes the backoff duration for the given attempt number.

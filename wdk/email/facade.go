@@ -114,7 +114,7 @@ func GetDefaultService() (Service, error) {
 //	if err != nil {
 //	    return err
 //	}
-//	err = builder.To("user@example.com").Subject("Hello").Body("<p>Hi!</p>").Do(ctx)
+//	err = builder.To("user@example.com").Subject("Hello").BodyHTML("<p>Hi!</p>").Do(ctx)
 func NewEmailBuilder(service Service) (*EmailBuilder, error) {
 	if service == nil {
 		return nil, errors.New("email: service must not be nil")
@@ -166,7 +166,11 @@ func NewTemplatedEmailBuilder[PropsT any](service Service) (*TemplatedEmailBuild
 	if service == nil {
 		return nil, errors.New("email: service must not be nil")
 	}
-	return email_domain.NewTemplatedEmail[PropsT](service), nil
+	builder, err := email_domain.NewTemplatedEmail[PropsT](service)
+	if err != nil {
+		return nil, fmt.Errorf("email: %w", err)
+	}
+	return builder, nil
 }
 
 // NewTemplatedEmailBuilderFromDefault creates a new templated email builder

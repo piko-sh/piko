@@ -112,8 +112,7 @@ func (b *devDaemonBuilder) build(ctx context.Context) (daemon_domain.DaemonServi
 	if b.c.IsDevWidgetEnabled() || b.c.IsDevHotreloadEnabled() {
 		b.devEventBroadcaster = daemon_adapters.NewDevEventBroadcaster()
 		shutdown.Register(b.c.GetAppContext(), "DevEventBroadcaster", func(_ context.Context) error {
-			b.devEventBroadcaster.Close()
-			return nil
+			return b.devEventBroadcaster.Close()
 		})
 	}
 
@@ -200,14 +199,14 @@ func (b *devDaemonBuilder) buildTemplater(ctx context.Context) error {
 	store, err := templater_adapters.NewManifestStore(
 		ctx,
 		manifestProvider,
-		templater_adapters.WithBaseDir(deref(b.c.config.ServerConfig.Paths.BaseDir, ".")),
+		templater_adapters.WithBaseDir(deref(b.c.serverConfig.Paths.BaseDir, ".")),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to load dev manifest (hint: run 'piko generate all' first): %w", err)
 	}
 	b.store = store
 
-	defaultLocale := deref(b.c.config.ServerConfig.I18nDefaultLocale, "en")
+	defaultLocale := deref(b.c.serverConfig.I18nDefaultLocale, "en")
 	b.compiledRunner = templater_adapters.NewCompiledManifestRunner(b.store, b.i18nService, defaultLocale)
 	b.templaterService = templater_domain.NewTemplaterService(b.compiledRunner, templater_adapters.NewDrivenRenderer(b.renderer), b.i18nService)
 	b.c.SetEmailTemplateService(templater_domain.NewEmailTemplateService(b.compiledRunner, templater_adapters.NewDrivenRenderer(b.renderer)))
@@ -309,7 +308,7 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 
 	runInitialTasksInBackground(appCtx, l, lifecycleService)
 
-	daemonConfig := NewDaemonConfig(&b.deps.ConfigProvider.ServerConfig)
+	daemonConfig := NewDaemonConfig(&b.c.serverConfig)
 	daemonConfig.DevelopmentMode = true
 	daemonConfig.NetworkAutoNextPort = true
 	daemonConfig.HealthAutoNextPort = true
@@ -326,7 +325,7 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 
 	return &daemon_domain.DaemonServiceDeps{
 		DaemonConfig:        daemonConfig,
-		WatchMode:           b.deps.ConfigProvider.ServerConfig.Build.WatchMode,
+		WatchMode:           b.c.serverConfig.Build.WatchMode,
 		Server:              serverAdapter,
 		OrchestratorService: b.orchestratorService,
 		FinalRouter:         b.finalRouter,
@@ -354,7 +353,7 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 // error if creation fails.
 func (b *devDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_domain.FileSystemWatcher) (lifecycle_domain.LifecycleService, error) {
 	config := &lifecycleServiceConfig{
-		PathsConfig:    NewLifecyclePathsConfig(&b.deps.ConfigProvider.ServerConfig),
+		PathsConfig:    NewLifecyclePathsConfig(&b.c.serverConfig),
 		WatcherAdapter: fsWatcher,
 	}
 	if b.devEventBroadcaster != nil {

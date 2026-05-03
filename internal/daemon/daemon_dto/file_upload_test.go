@@ -20,6 +20,7 @@ package daemon_dto
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"mime/multipart"
 	"net/textproto"
@@ -132,6 +133,66 @@ func TestFileUpload_Header_Nil(t *testing.T) {
 
 	fu := &FileUpload{}
 	assert.Nil(t, fu.Header())
+}
+
+func TestFileUpload_ReadAllWithLimit_RejectsOversize(t *testing.T) {
+	t.Parallel()
+
+	content := bytes.Repeat([]byte("A"), 1024)
+	header := createTestFileHeader(t, "big.bin", "application/octet-stream", content)
+	fu := NewFileUpload(header)
+
+	data, err := fu.ReadAllWithLimit(int64(len(content) - 1))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrFileUploadTooLarge)
+	assert.Contains(t, err.Error(), "big.bin")
+	assert.Nil(t, data)
+}
+
+func TestFileUpload_ReadAllWithLimit_AcceptsAtBoundary(t *testing.T) {
+	t.Parallel()
+
+	content := bytes.Repeat([]byte("B"), 256)
+	header := createTestFileHeader(t, "ok.bin", "application/octet-stream", content)
+	fu := NewFileUpload(header)
+
+	data, err := fu.ReadAllWithLimit(int64(len(content)))
+	require.NoError(t, err)
+	assert.Equal(t, content, data)
+}
+
+func TestFileUpload_ReadAll_HonoursDefaultCap(t *testing.T) {
+	original := CurrentMaxUploadFileBytes()
+	t.Cleanup(func() {
+		SetDefaultMaxUploadFileBytes(original)
+	})
+
+	content := bytes.Repeat([]byte("C"), 512)
+	header := createTestFileHeader(t, "cap.bin", "application/octet-stream", content)
+	fu := NewFileUpload(header)
+
+	SetDefaultMaxUploadFileBytes(int64(len(content) - 1))
+
+	data, err := fu.ReadAll()
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrFileUploadTooLarge))
+	assert.Nil(t, data)
+}
+
+func TestSetDefaultMaxUploadFileBytes_NonPositiveResets(t *testing.T) {
+	original := CurrentMaxUploadFileBytes()
+	t.Cleanup(func() {
+		SetDefaultMaxUploadFileBytes(original)
+	})
+
+	SetDefaultMaxUploadFileBytes(123)
+	assert.Equal(t, int64(123), CurrentMaxUploadFileBytes())
+
+	SetDefaultMaxUploadFileBytes(0)
+	assert.Equal(t, DefaultMaxUploadFileBytes, CurrentMaxUploadFileBytes())
+
+	SetDefaultMaxUploadFileBytes(-1)
+	assert.Equal(t, DefaultMaxUploadFileBytes, CurrentMaxUploadFileBytes())
 }
 
 func createTestFileHeader(t *testing.T, filename, contentType string, content []byte) *multipart.FileHeader {

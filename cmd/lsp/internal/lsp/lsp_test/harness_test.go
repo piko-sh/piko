@@ -41,6 +41,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/coordinator/coordinator_adapters"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	esbuildconfig "piko.sh/piko/internal/esbuild/config"
@@ -101,7 +102,7 @@ type TestHarness struct {
 	pathsConfig          *config.PathsConfig
 	tc                   testCase
 	spec                 TopLevelTestSpec
-	serverConfig         config.ServerConfig
+	serverConfig         bootstrap.ServerConfig
 }
 
 func runTestCase(t *testing.T, tc testCase) {
@@ -130,7 +131,7 @@ func (h *TestHarness) setupServices(absSrcDir string) {
 	err := h.resolver.DetectLocalModule(context.Background())
 	require.NoError(h.t, err)
 
-	h.serverConfig = config.ServerConfig{
+	h.serverConfig = bootstrap.ServerConfig{
 		Paths: config.PathsConfig{
 			BaseDir:             &absSrcDir,
 			ComponentsSourceDir: new("components"),
@@ -207,7 +208,8 @@ func (h *TestHarness) buildLSPServer() (*lsp_domain.Server, *lsp_domain.Document
 	docCache := lsp_domain.NewDocumentCache()
 
 	osReader := lsp_adapters.NewOsFSReader()
-	lspReader := lsp_adapters.NewLspFSReader(docCache, osReader)
+	lspReader, err := lsp_adapters.NewLspFSReader(docCache, osReader)
+	require.NoError(h.t, err, "constructing LSP file reader")
 	formatter := formatter_domain.NewFormatterService()
 
 	pikoServer := lsp_domain.NewServer(lsp_domain.ServerDeps{

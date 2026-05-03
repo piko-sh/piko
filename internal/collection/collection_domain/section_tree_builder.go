@@ -53,10 +53,9 @@ func WithMaxLevel(level int) SectionTreeOption {
 
 // BuildSectionTree converts a flat list of sections into a hierarchical tree.
 //
-// This function transforms flat section data from any content provider into a
-// nested tree structure suitable for rendering a table of contents. It is
-// provider-agnostic and returns collection_dto.SectionNode regardless of the
-// source.
+// Transforms flat section data from any content provider into a nested tree
+// structure suitable for rendering a table of contents. Provider-agnostic and
+// returns collection_dto.SectionNode regardless of the source.
 //
 // When sections is empty or no sections match the filter criteria, returns nil.
 //

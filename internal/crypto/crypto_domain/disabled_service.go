@@ -114,7 +114,7 @@ func (*DisabledCryptoService) DecryptAndReEncrypt(_ context.Context, _ string) (
 
 // HealthCheck returns nil since the disabled service is healthy in the sense
 // that it correctly reports its disabled state. The service is functioning as
-// intended; encryption simply is not configured.
+// intended; encryption is not configured.
 //
 // Returns error when the health check fails, which never occurs for a disabled
 // service.

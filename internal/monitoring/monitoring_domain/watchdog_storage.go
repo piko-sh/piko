@@ -21,7 +21,6 @@ package monitoring_domain
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -30,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -48,6 +48,10 @@ const (
 	// profileSidecarExtension is the file extension used for sidecar JSON
 	// metadata that pairs with each captured profile.
 	profileSidecarExtension = ".json"
+
+	// profileStacksExtension is the file extension used for the human-readable
+	// per-goroutine stacks sidecar (pprof debug=2 output).
+	profileStacksExtension = ".stacks.txt"
 
 	// errFormatListingProfileDirectory is the error format string used when
 	// reading the profile directory fails.
@@ -254,9 +258,9 @@ func (store *profileStore) readHistory() (startupHistoryFile, bool, error) {
 	return file, true, nil
 }
 
-// writeHistory persists the supplied history file atomically. Older entries
-// are NOT trimmed by this method -- callers are responsible for keeping the
-// ring within bounds before calling.
+// writeHistory persists the supplied history file atomically. Older entries are NOT
+// trimmed -- callers are responsible for keeping the ring within bounds before
+// calling.
 //
 // Takes file (startupHistoryFile) which provides the entries to persist.
 //
@@ -416,6 +420,34 @@ func (store *profileStore) writeMetadata(profileType, timestamp string, meta cap
 	fileName := fmt.Sprintf("%s-%s"+profileSidecarExtension, profileType, timestamp)
 	if err := store.sandbox.WriteFileAtomic(fileName, encoded, profileFilePermissions); err != nil {
 		return fmt.Errorf("writing %s sidecar metadata: %w", profileType, err)
+	}
+
+	return nil
+}
+
+// writeStacks persists the human-readable per-goroutine stacks sidecar that
+// pairs with a goroutine profile capture. The file shares the same base name
+// as the profile so consumers can pair them by stripping the .pb.gz /
+// .stacks.txt extensions.
+//
+// Takes profileType (string) which identifies the profile category (only
+// "goroutine" is meaningful today, but the helper is type-agnostic).
+// Takes timestamp (string) which is the timestamp portion of the filename
+// (use the value returned from write to pair correctly).
+// Takes stacks ([]byte) which is the raw stacks payload (typically pprof
+// debug=2 text output).
+//
+// Returns error when file writing fails. Errors are recoverable -- the
+// binary profile is already on disk.
+//
+// Safe for concurrent use; protected by the store's mutex.
+func (store *profileStore) writeStacks(profileType, timestamp string, stacks []byte) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	fileName := fmt.Sprintf("%s-%s"+profileStacksExtension, profileType, timestamp)
+	if err := store.sandbox.WriteFileAtomic(fileName, stacks, profileFilePermissions); err != nil {
+		return fmt.Errorf("writing %s stacks sidecar: %w", profileType, err)
 	}
 
 	return nil

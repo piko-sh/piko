@@ -27,15 +27,20 @@ import (
 	logger "piko.sh/piko/internal/logger/logger_domain"
 )
 
-// readFileViaOpen reads a file's entire contents using the provided
-// open function.
+// readFileViaOpen reads a file's entire contents using the provided open
+// function, up to DefaultReadFileMaxBytes.
+//
+// The cap protects callers from unbounded allocation when a file has grown
+// unexpectedly. Callers that need a tighter or looser cap should use
+// readFileLimitViaOpen.
 //
 // Takes opener (func(string) (FileHandle, error)) which opens the
 // file for reading.
 // Takes name (string) which specifies the path to the file to read.
 //
 // Returns []byte which contains the complete file contents.
-// Returns error when the file cannot be opened or read.
+// Returns error when the file cannot be opened or read, or wraps
+// ErrFileExceedsLimit when the file exceeds DefaultReadFileMaxBytes.
 func readFileViaOpen(opener func(string) (FileHandle, error), name string) ([]byte, error) {
 	f, err := opener(name)
 	if err != nil {
@@ -48,9 +53,12 @@ func readFileViaOpen(opener func(string) (FileHandle, error), name string) ([]by
 		}
 	}()
 
-	data, err := io.ReadAll(f)
+	data, err := io.ReadAll(io.LimitReader(f, DefaultReadFileMaxBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("reading file contents %q: %w", name, err)
+	}
+	if int64(len(data)) > DefaultReadFileMaxBytes {
+		return nil, fmt.Errorf("%w: %q exceeds default read cap of %d bytes", ErrFileExceedsLimit, name, DefaultReadFileMaxBytes)
 	}
 	return data, nil
 }

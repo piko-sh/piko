@@ -164,7 +164,7 @@ func (c *Container) selectCaptchaProvider(ctx context.Context) (providerName str
 func (c *Container) createCaptchaProviderFromConfig(ctx context.Context) (providerName string, provider captcha_domain.CaptchaProvider, err error) {
 	_, l := logger_domain.From(ctx, log)
 
-	providerType := deref(c.config.ServerConfig.Security.CaptchaProvider, "")
+	providerType := deref(c.serverConfig.Security.CaptchaProvider, "")
 	if providerType == "" {
 		return "disabled", nil, nil
 	}
@@ -197,7 +197,7 @@ func (c *Container) createCaptchaProviderFromConfig(ctx context.Context) (provid
 // Returns captcha_domain.CaptchaProvider which provides HMAC-based verification.
 // Returns error when the provider cannot be created.
 func (c *Container) createHMACChallengeProvider() (providerName string, provider captcha_domain.CaptchaProvider, err error) {
-	secret := resolveCaptchaSecret(deref(c.config.ServerConfig.Security.CaptchaSecretKey, ""))
+	secret := resolveCaptchaSecret(deref(c.serverConfig.Security.CaptchaSecretKey, ""))
 
 	provider, err = hmac_challenge.NewProvider(hmac_challenge.Config{
 		Secret: secret,
@@ -247,7 +247,7 @@ func (c *Container) buildCaptchaService(
 ) (captcha_domain.CaptchaServicePort, error) {
 	serviceConfig := captcha_dto.DefaultServiceConfig()
 
-	if threshold := deref(c.config.ServerConfig.Security.CaptchaScoreThreshold, 0); threshold > 0 {
+	if threshold := deref(c.serverConfig.Security.CaptchaScoreThreshold, 0); threshold > 0 {
 		serviceConfig.DefaultScoreThreshold = threshold
 	}
 
@@ -303,14 +303,16 @@ func (c *Container) SetCaptchaService(service captcha_domain.CaptchaServicePort)
 
 // IsAllowed checks whether the given key is within its rate limit.
 //
+// Takes ctx (context.Context) which propagates cancellation into the
+// underlying rate limit service.
 // Takes key (string) which identifies the resource being limited.
 // Takes limit (int) which is the maximum allowed requests.
 // Takes window (time.Duration) which is the time period for the limit.
 //
 // Returns bool which is true if the request is allowed.
 // Returns error when the underlying rate limit check fails.
-func (a rateLimitServiceAdapter) IsAllowed(_ context.Context, key string, limit int, window time.Duration) (bool, error) {
-	result, err := a.service.CheckLimit(key, limit, window)
+func (a rateLimitServiceAdapter) IsAllowed(ctx context.Context, key string, limit int, window time.Duration) (bool, error) {
+	result, err := a.service.CheckLimit(ctx, key, limit, window)
 	if err != nil {
 		return false, err
 	}

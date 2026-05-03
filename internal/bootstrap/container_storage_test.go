@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"piko.sh/piko/internal/config"
 	storage_mock "piko.sh/piko/internal/storage/storage_adapters/provider_mock"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
@@ -72,7 +71,7 @@ func TestSelectStorageBaseProvider(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c := NewContainer(config.NewConfigProvider())
+			c := NewContainer()
 
 			if len(tc.providers) > 0 {
 				c.storageProviders = make(map[string]storage_domain.StorageProviderPort, len(tc.providers))
@@ -137,7 +136,7 @@ func TestCreateStorageDispatcher(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c := NewContainer(config.NewConfigProvider())
+			c := NewContainer()
 			c.hasStorageDispatcher = tc.hasDispatcher
 			c.storageDispatcherConfig = tc.dispatcherConfig
 

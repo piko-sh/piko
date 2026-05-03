@@ -1,10 +1,13 @@
-<svg viewBox="0 0 520 298" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 520 298" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="actions-rpc-title actions-rpc-desc">
+  <title id="actions-rpc-title">Actions as RPC between template and Go</title>
+  <desc id="actions-rpc-desc">A PK template on the left calls action.customer.create with name and email arguments. A Go Call method on the right receives the same typed arguments. A dashed teal arrow represents the forward call and a dimmed grey arrow represents the response. No REST or serialisation layer sits between the two.</desc>
   <defs>
     <marker id="arrowA" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#6BD5CC" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     </marker>
     <marker id="arrowB" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse">
-      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#92A1AF" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#475569" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     </marker>
   </defs>
 
@@ -26,11 +29,11 @@
     <text x="38" y="88" fill="#C9F5F2" font-family="monospace" font-size="11">&lt;/button&gt;</text>
   </g>
 
-  <line x1="160" y1="109" x2="160" y2="170" stroke="#6BD5CC" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrowA)"/>
-  <text x="175" y="144" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">call</text>
+  <line x1="160" y1="109" x2="160" y2="170" stroke="#0F766E" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrowA)"/>
+  <text x="175" y="144" fill="#0F766E" font-family="system-ui, sans-serif" font-size="10" font-weight="600">call</text>
 
-  <line x1="380" y1="170" x2="380" y2="109" stroke="#92A1AF" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrowB)"/>
-  <text x="365" y="144" text-anchor="end" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">response</text>
+  <line x1="380" y1="170" x2="380" y2="109" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#arrowB)"/>
+  <text x="365" y="144" text-anchor="end" fill="#475569" font-family="system-ui, sans-serif" font-size="10">response</text>
 
   <g>
     <rect x="4" y="172" width="512" height="105" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
@@ -52,5 +55,5 @@
     <text x="38" y="272" fill="#C9F5F2" font-family="monospace" font-size="11">}</text>
   </g>
 
-  <text x="260" y="294" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10">same arguments · no REST · no fetch · automatic CSRF</text>
+  <text x="260" y="294" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="10">same arguments · no REST · no fetch · automatic CSRF</text>
 </svg>

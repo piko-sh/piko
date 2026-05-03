@@ -1,0 +1,98 @@
+<svg viewBox="0 0 620 420" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="ds-title ds-desc">
+  <title id="ds-title">Directive selector: decision tree for choosing the right directive</title>
+  <desc id="ds-desc">A decision tree that maps user intent to directive family. Need to render conditionally? Use p-if, p-else-if, p-else. Need to repeat an element? Use p-for with p-key. Need to bind an attribute value? Use p-bind or colon shorthand. Need two-way form binding? Use p-model. Need to react to an event? Use p-on colon event. Need conditional class or style? Use p-class or p-style. Need partial refresh? Use p-refresh. Need to insert trusted HTML? Use p-html.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0F766E" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  
+  <rect x="230" y="20" width="160" height="40" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <text x="310" y="37" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="10" font-weight="600">what do you need?</text>
+  <text x="310" y="52" text-anchor="middle" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">(per-element directive)</text>
+
+  
+  
+  <rect x="20" y="90" width="185" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,90 H195 A10,10 0 0 1 205,100 V112 H20 V100 A10,10 0 0 1 30,90 Z" fill="#1C544F"/>
+  <text x="112" y="105" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">show or hide?</text>
+  <text x="112" y="126" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">p-if</text>
+  <text x="112" y="142" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">p-else-if &#183; p-else</text>
+  <text x="112" y="155" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">removes from DOM when false</text>
+
+  
+  <rect x="217" y="90" width="185" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M227,90 H392 A10,10 0 0 1 402,100 V112 H217 V100 A10,10 0 0 1 227,90 Z" fill="#1C544F"/>
+  <text x="309" y="105" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">repeat an element?</text>
+  <text x="309" y="126" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">p-for</text>
+  <text x="309" y="142" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">always pair with p-key</text>
+  <text x="309" y="155" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">stable identity for reordering</text>
+
+  
+  <rect x="414" y="90" width="185" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M424,90 H589 A10,10 0 0 1 599,100 V112 H414 V100 A10,10 0 0 1 424,90 Z" fill="#1C544F"/>
+  <text x="506" y="105" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">set an attribute?</text>
+  <text x="506" y="126" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">p-bind:href</text>
+  <text x="506" y="142" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">or shorthand :href</text>
+  <text x="506" y="155" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">dynamic attribute value</text>
+
+  
+  
+  <rect x="20" y="190" width="185" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,190 H195 A10,10 0 0 1 205,200 V212 H20 V200 A10,10 0 0 1 30,190 Z" fill="#1C544F"/>
+  <text x="112" y="205" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">two-way form bind?</text>
+  <text x="112" y="226" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">p-model</text>
+  <text x="112" y="242" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">p-model.number &#183; .trim</text>
+  <text x="112" y="255" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">PKC only, state mutation</text>
+
+  
+  <rect x="217" y="190" width="185" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M227,190 H392 A10,10 0 0 1 402,200 V212 H217 V200 A10,10 0 0 1 227,190 Z" fill="#1C544F"/>
+  <text x="309" y="205" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">handle an event?</text>
+  <text x="309" y="226" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">p-on:click</text>
+  <text x="309" y="242" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">p-on:input &#183; .prevent</text>
+  <text x="309" y="255" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">PKC only</text>
+
+  
+  <rect x="414" y="190" width="185" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M424,190 H589 A10,10 0 0 1 599,200 V212 H414 V200 A10,10 0 0 1 424,190 Z" fill="#1C544F"/>
+  <text x="506" y="205" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">conditional styling?</text>
+  <text x="506" y="226" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">p-class</text>
+  <text x="506" y="242" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">p-style</text>
+  <text x="506" y="255" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">merges with static attributes</text>
+
+  
+  
+  <rect x="20" y="290" width="185" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,290 H195 A10,10 0 0 1 205,300 V312 H20 V300 A10,10 0 0 1 30,290 Z" fill="#1C544F"/>
+  <text x="112" y="305" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">partial refresh?</text>
+  <text x="112" y="326" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">p-refresh</text>
+  <text x="112" y="342" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">scoped replacement</text>
+  <text x="112" y="355" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">PK server-side only</text>
+
+  
+  <rect x="217" y="290" width="185" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M227,290 H392 A10,10 0 0 1 402,300 V312 H217 V300 A10,10 0 0 1 227,290 Z" fill="#1C544F"/>
+  <text x="309" y="305" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">inject trusted HTML?</text>
+  <text x="309" y="326" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">p-html</text>
+  <text x="309" y="342" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">bypasses escaping</text>
+  <text x="309" y="355" text-anchor="middle" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="9" font-weight="600">trust the source</text>
+
+  
+  <rect x="414" y="290" width="185" height="70" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M424,290 H589 A10,10 0 0 1 599,300 V312 H414 V300 A10,10 0 0 1 424,290 Z" fill="#1C544F"/>
+  <text x="506" y="305" text-anchor="middle" fill="#6BD5CC" font-family="system-ui, sans-serif" font-size="10" font-weight="600">generate routes?</text>
+  <text x="506" y="326" text-anchor="middle" fill="#C9F5F2" font-family="monospace" font-size="11">p-collection</text>
+  <text x="506" y="342" text-anchor="middle" fill="#A7F0E9" font-family="monospace" font-size="10">p-provider, p-filter</text>
+  <text x="506" y="355" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="9">on the template root</text>
+
+  
+  <line x1="280" y1="62" x2="170" y2="86" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="310" y1="62" x2="310" y2="86" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="340" y1="62" x2="460" y2="86" stroke="#0F766E" stroke-width="1.2" stroke-dasharray="3,2" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <text x="310" y="390" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">p-model and p-on work in PKC components. p-refresh is server-side only. The rest work in both PK and PKC.</text>
+  <text x="310" y="405" text-anchor="middle" fill="#475569" font-family="system-ui, sans-serif" font-size="9">The catalogue below covers every modifier and option.</text>
+</svg>

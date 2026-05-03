@@ -63,12 +63,9 @@ func TestThemeRegistryDefaultPanicsWhenMissing(t *testing.T) {
 
 func TestThemeRegistryNamesSorted(t *testing.T) {
 	registry := NewThemeRegistry()
-	dark := buildDarkTheme()
-	light := buildLightTheme()
-	classic := buildClassicTheme()
-	registry.Register(&dark)
-	registry.Register(&light)
-	registry.Register(&classic)
+	registry.Register(new(buildDarkTheme()))
+	registry.Register(new(buildLightTheme()))
+	registry.Register(new(buildClassicTheme()))
 
 	names := registry.Names()
 	expected := append([]string{}, names...)
@@ -84,10 +81,8 @@ func TestThemeRegistryNamesSorted(t *testing.T) {
 
 func TestThemeRegistrySetDefault(t *testing.T) {
 	registry := NewThemeRegistry()
-	dark := buildDarkTheme()
-	light := buildLightTheme()
-	registry.Register(&dark)
-	registry.Register(&light)
+	registry.Register(new(buildDarkTheme()))
+	registry.Register(new(buildLightTheme()))
 
 	registry.SetDefault(ThemeLight)
 	if got := registry.Default().Name; got != ThemeLight {

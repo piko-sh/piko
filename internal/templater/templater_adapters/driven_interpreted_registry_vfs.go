@@ -87,8 +87,8 @@ const (
 	virtualFilePermissions = 0644
 )
 
-// RegistryVFSAdapter provides a virtual file system for the Go compiler that
-// serves generated code from the registry instead of the real file system.
+// RegistryVFSAdapter provides a virtual filesystem for the Go compiler that
+// serves generated code from the registry instead of the real filesystem.
 type RegistryVFSAdapter struct {
 	// ctx carries logging context for trace and request ID
 	// propagation, retained on the struct because the
@@ -117,8 +117,8 @@ type RegistryVFSAdapter struct {
 	// goRoot is the path prefix for standard library packages.
 	goRoot string
 
-	// modulePath is the Go module path for the project
-	// (e.g. "github.com/example/project").
+	// modulePath is the Go module path for the project (for example a
+	// GitHub-hosted module path).
 	modulePath string
 
 	// projectRoot is the absolute path to the project root folder.
@@ -128,7 +128,7 @@ type RegistryVFSAdapter struct {
 	mu sync.RWMutex
 }
 
-// NewRegistryVFSAdapter creates a virtual file system adapter for serving
+// NewRegistryVFSAdapter creates a virtual filesystem adapter for serving
 // generated code. The modulePath and projectSandbox parameters enable the VFS
 // to redirect user package imports (imports that match the module path but are
 // not generated code) to the real filesystem via a sandboxed reader.
@@ -334,7 +334,7 @@ func (vfs *RegistryVFSAdapter) GetBuildContext() *build.Context {
 // Returns fs.File which provides access to the requested file or folder.
 // Returns error when the path cannot be found or opened.
 //
-// Safe for concurrent use; the method holds a read lock during path lookup.
+// Safe for concurrent use; takes a read lock during path lookup.
 func (vfs *RegistryVFSAdapter) Open(name string) (fs.File, error) {
 	_, l := logger_domain.From(vfs.ctx, log)
 	l.Trace("[VFS-FS] Open called",
@@ -378,8 +378,7 @@ func (vfs *RegistryVFSAdapter) Open(name string) (fs.File, error) {
 
 	l.Trace("[VFS-FS] Path not in VFS, trying real filesystem",
 		logger_domain.String(logFieldPath, packagePath))
-	//nolint:gosec // trusted build system path
-	return os.Open(name)
+	return openViaScopedSandbox(name)
 }
 
 // Stat implements the fs.StatFS interface.
@@ -646,8 +645,7 @@ func (vfs *RegistryVFSAdapter) buildContextOpenFile(path string) (io.ReadCloser,
 	}
 
 	l.Trace("[BUILD-CTX] VFS miss, trying real filesystem", logger_domain.String(logFieldPath, path))
-	//nolint:gosec // trusted module system path
-	realFile, realErr := os.Open(path)
+	realFile, realErr := openViaScopedSandbox(path)
 	if realErr == nil {
 		l.Trace("[BUILD-CTX] Real filesystem served file", logger_domain.String(logFieldPath, path))
 	} else {
@@ -1334,4 +1332,29 @@ func convertDirEntriesToFileInfos(entries []fs.DirEntry) []os.FileInfo {
 		}
 	}
 	return infos
+}
+
+// openViaScopedSandbox opens a file by constructing a one-shot read-only
+// sandbox at its parent directory. This routes module-system fallback reads
+// (GOPATH/GOROOT files outside the project sandbox) through path-traversal
+// protection scoped to the file's containing directory.
+//
+// Takes path (string) which is the absolute file path to open.
+//
+// Returns safedisk.FileHandle which provides access to the file content.
+// Returns error when the parent sandbox cannot be created or the file cannot
+// be opened.
+func openViaScopedSandbox(path string) (safedisk.FileHandle, error) {
+	directory := filepath.Dir(path)
+	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadOnly)
+	if err != nil {
+		return nil, fmt.Errorf("opening %q: %w", path, err)
+	}
+	handle, err := sandbox.Open(filepath.Base(path))
+	if err != nil {
+		_ = sandbox.Close()
+		return nil, err
+	}
+	_ = sandbox.Close()
+	return handle, nil
 }

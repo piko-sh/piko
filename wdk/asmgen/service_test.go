@@ -459,3 +459,36 @@ func TestGenerateAndValidate_DetectsDifference(t *testing.T) {
 	assert.Contains(t, mismatch.Expected, "TAMPERED LINE")
 	assert.Contains(t, mismatch.Actual, "noop does nothing.")
 }
+
+func TestAtomicWrite_NoHalfWrittenFile(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	target := filepath.Join(dir, "output.s")
+
+	original := []byte("ORIGINAL\n")
+	require.NoError(t, os.WriteFile(target, original, 0o600))
+
+	writer := NewDiskWriter()
+	updated := []byte("UPDATED\n")
+	require.NoError(t, writer.WriteFile(target, updated))
+
+	got, err := os.ReadFile(target)
+	require.NoError(t, err)
+	require.Equal(t, updated, got, "atomic write must produce the new content in full")
+
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	for _, entry := range entries {
+		require.False(t,
+			strings.Contains(entry.Name(), ".tmp."),
+			"atomic write must not leave a half-written .tmp.* file: %s", entry.Name())
+	}
+
+	require.NotPanics(t, func() {
+		_ = writer.WriteFile(target, []byte("FINAL\n"))
+	})
+	final, err := os.ReadFile(target)
+	require.NoError(t, err)
+	require.Equal(t, []byte("FINAL\n"), final)
+}

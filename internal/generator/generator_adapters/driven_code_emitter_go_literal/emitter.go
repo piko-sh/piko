@@ -653,6 +653,7 @@ func NewEmitterWithPrerenderer(_ context.Context, prerenderer generator_domain.S
 // entries to add.
 func addStdImports(importSet map[string]goast.Spec) {
 	stdImports := map[string]string{
+		"cmp":                       "",
 		"fmt":                       "",
 		"html":                      "",
 		"strconv":                   "",
@@ -1020,16 +1021,15 @@ func dedentLineDirectives(src []byte) []byte {
 	return result
 }
 
-// buildBoilerplateVarAcks creates blank identifier variable declarations that
-// stop unused import errors for helper packages.
+// buildBoilerplateVarAcks emits blank-identifier declarations for helper packages.
 //
 // Returns []goast.Decl which holds the blank identifier declarations.
 func buildBoilerplateVarAcks() []goast.Decl {
-	type pkgInfo struct {
+	type selectorAck struct {
 		name   string
 		symbol string
 	}
-	pkgsToAck := []pkgInfo{
+	selectorAcks := []selectorAck{
 		{"fmt", "Println"},
 		{"html", "EscapeString"},
 		{"strconv", "FormatInt"},
@@ -1037,22 +1037,37 @@ func buildBoilerplateVarAcks() []goast.Decl {
 		{runtimePackageName, "EvaluateTruthiness"},
 		{pkgSafeconv, "IntToInt32"},
 	}
-	acks := make([]goast.Decl, 0, len(pkgsToAck))
+	emptyString := &goast.BasicLit{Kind: token.STRING, Value: `""`}
+	expressionAcks := []goast.Expr{
+		&goast.CallExpr{
+			Fun:  &goast.SelectorExpr{X: cachedIdent("cmp"), Sel: cachedIdent("Compare")},
+			Args: []goast.Expr{emptyString, emptyString},
+		},
+		&goast.CompositeLit{
+			Type: &goast.SelectorExpr{X: cachedIdent(facadePackageName), Sel: cachedIdent("Metadata")},
+		},
+	}
 
-	for _, pkg := range pkgsToAck {
+	acks := make([]goast.Decl, 0, len(selectorAcks)+len(expressionAcks))
+
+	for _, ack := range selectorAcks {
 		acks = append(acks, &goast.GenDecl{
 			Tok: token.VAR,
 			Specs: []goast.Spec{&goast.ValueSpec{
 				Names:  []*goast.Ident{cachedIdent("_")},
-				Values: []goast.Expr{&goast.SelectorExpr{X: cachedIdent(pkg.name), Sel: cachedIdent(pkg.symbol)}},
+				Values: []goast.Expr{&goast.SelectorExpr{X: cachedIdent(ack.name), Sel: cachedIdent(ack.symbol)}},
 			}},
 		})
 	}
-
-	acks = append(acks, &goast.GenDecl{Tok: token.VAR, Specs: []goast.Spec{&goast.ValueSpec{
-		Names:  []*goast.Ident{cachedIdent("_")},
-		Values: []goast.Expr{&goast.CompositeLit{Type: &goast.SelectorExpr{X: cachedIdent(facadePackageName), Sel: cachedIdent("Metadata")}}},
-	}}})
+	for _, expression := range expressionAcks {
+		acks = append(acks, &goast.GenDecl{
+			Tok: token.VAR,
+			Specs: []goast.Spec{&goast.ValueSpec{
+				Names:  []*goast.Ident{cachedIdent("_")},
+				Values: []goast.Expr{expression},
+			}},
+		})
+	}
 
 	return acks
 }

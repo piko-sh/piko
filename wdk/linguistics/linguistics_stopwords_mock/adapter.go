@@ -124,7 +124,7 @@ func (m *MockStopWordsProvider) SetPassThrough(enabled bool) {
 }
 
 // SetGetStopWordsFunc sets a custom function to handle GetStopWords calls.
-// When set, this function is called instead of using the configured stop words.
+// When set, the override is called instead of using the configured stop words.
 //
 // Takes override (func(string) map[string]bool) which is the custom function.
 //

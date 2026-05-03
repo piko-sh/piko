@@ -13,7 +13,7 @@ type EchoOutput struct {
 }
 
 // EchoAction is a simple echo endpoint with rate limiting.
-// See https://piko.sh/docs/guide/advanced-actions#rate-limiting
+// See https://piko.sh/docs/how-to/actions/advanced-patterns#rate-limiting
 type EchoAction struct {
 	piko.ActionMetadata
 }

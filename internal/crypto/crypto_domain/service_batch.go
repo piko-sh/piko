@@ -469,8 +469,8 @@ func (s *cryptoService) decryptSingleBatchItem(ctx context.Context, ephemeralPro
 //
 // Safe for concurrent use. Uses a read lock when accessing the cache.
 //
-// This method is critical for performance in high-throughput scenarios where
-// many small operations share the same encrypted data key.
+// Critical for performance in high-throughput scenarios where many small
+// operations share the same encrypted data key.
 //
 // Security considerations:
 //   - Cache stores SecureBytes (locked memory, prevents swap)

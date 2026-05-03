@@ -136,8 +136,8 @@ func (*SESProvider) Close(context.Context) error {
 // SupportsBulkSending reports whether SES supports bulk sending.
 //
 // AWS SES does not have a native bulk sending API. While SES has templated
-// bulk sending, it uses a different workflow than what this interface's
-// SendBulk method implies (sending discrete, different emails).
+// bulk sending, it uses a different workflow than what the SendBulk method
+// implies (sending discrete, different emails).
 //
 // Returns bool which is always false for this provider.
 func (*SESProvider) SupportsBulkSending() bool {

@@ -262,7 +262,7 @@ func (service *migrationService) applyUpMigrations(
 	ctx context.Context,
 	targetVersion *int64,
 ) (int, error) {
-	ctx, logger := logger_domain.From(ctx, log)
+	ctx, _ = logger_domain.From(ctx, log)
 	ctx, span, _ := log.Span(ctx, "MigrationService.Up")
 	defer span.End()
 
@@ -292,12 +292,12 @@ func (service *migrationService) applyUpMigrations(
 		return 0, checksumError
 	}
 
-	service.warnSkippedMigrations(pending, applied, logger)
+	service.warnSkippedMigrations(ctx, pending, applied)
 
 	if lockError := service.acquireLock(ctx); lockError != nil {
 		return 0, &LockAcquisitionError{Cause: lockError}
 	}
-	defer service.releaseLock(context.WithoutCancel(ctx), logger)
+	defer service.releaseLock(context.WithoutCancel(ctx))
 
 	applied, appliedError = service.executor.AppliedVersions(ctx)
 	if appliedError != nil {
@@ -312,7 +312,7 @@ func (service *migrationService) applyUpMigrations(
 
 	downChecksumsByVersion := buildDownChecksumMap(allFiles)
 
-	return service.executePendingUp(ctx, pending, downChecksumsByVersion, logger)
+	return service.executePendingUp(ctx, pending, downChecksumsByVersion)
 }
 
 // rollbackMigrations reads migration files, acquires the advisory lock, and
@@ -331,7 +331,7 @@ func (service *migrationService) rollbackMigrations(
 	steps *int,
 	targetVersion *int64,
 ) (int, error) {
-	ctx, logger := logger_domain.From(ctx, log)
+	ctx, _ = logger_domain.From(ctx, log)
 	ctx, span, _ := log.Span(ctx, "MigrationService.Down")
 	defer span.End()
 
@@ -363,9 +363,9 @@ func (service *migrationService) rollbackMigrations(
 	if lockError := service.acquireLock(ctx); lockError != nil {
 		return 0, &LockAcquisitionError{Cause: lockError}
 	}
-	defer service.releaseLock(context.WithoutCancel(ctx), logger)
+	defer service.releaseLock(context.WithoutCancel(ctx))
 
-	return service.executeRollbacks(ctx, applied, rollbackCount, downFilesByVersion, logger)
+	return service.executeRollbacks(ctx, applied, rollbackCount, downFilesByVersion)
 }
 
 // warnSkippedMigrations logs a warning for each pending migration whose
@@ -375,15 +375,18 @@ func (service *migrationService) rollbackMigrations(
 // check.
 // Takes applied ([]querier_dto.AppliedMigration) which holds the already
 // applied migrations.
-// Takes logger (logger_domain.Logger) which receives the warning messages.
 func (*migrationService) warnSkippedMigrations(
+	ctx context.Context,
 	pending []querier_dto.MigrationFile,
 	applied []querier_dto.AppliedMigration,
-	logger logger_domain.Logger,
 ) {
 	skippedVersions := detectSkippedMigrations(pending, applied)
+	if len(skippedVersions) == 0 {
+		return
+	}
+	_, l := logger_domain.From(ctx, log)
 	for _, version := range skippedVersions {
-		logger.Warn("applying skipped migration",
+		l.Warn("applying skipped migration",
 			logger_domain.Int64(logFieldVersion, version),
 		)
 	}
@@ -398,7 +401,6 @@ func (*migrationService) warnSkippedMigrations(
 // apply.
 // Takes downChecksumsByVersion (map[int64]string) which maps versions to their
 // down-migration checksums.
-// Takes logger (logger_domain.Logger) which receives trace-level log messages.
 //
 // Returns int which is the number of migrations applied.
 // Returns error when any hook or migration execution fails, or a dirty
@@ -407,7 +409,6 @@ func (service *migrationService) executePendingUp(
 	ctx context.Context,
 	pending []querier_dto.MigrationFile,
 	downChecksumsByVersion map[int64]string,
-	logger logger_domain.Logger,
 ) (int, error) {
 	applied, appliedError := service.executor.AppliedVersions(ctx)
 	if appliedError != nil {
@@ -418,7 +419,7 @@ func (service *migrationService) executePendingUp(
 
 	if dirtyMigration != nil {
 		retryResult, retryError := service.handleDirtyMigration(
-			ctx, pending, downChecksumsByVersion, *dirtyMigration, skipUpTo, logger,
+			ctx, pending, downChecksumsByVersion, *dirtyMigration, skipUpTo,
 		)
 		if retryError != nil {
 			return retryResult, retryError
@@ -439,7 +440,7 @@ func (service *migrationService) executePendingUp(
 		count = 1
 	}
 
-	migrated, applyError := service.applyPendingUpMigrations(ctx, pending, downChecksumsByVersion, logger)
+	migrated, applyError := service.applyPendingUpMigrations(ctx, pending, downChecksumsByVersion)
 	return count + migrated, applyError
 }
 
@@ -450,8 +451,6 @@ func (service *migrationService) executePendingUp(
 // the migrations to apply.
 // Takes downChecksumsByVersion (map[int64]string) which maps
 // versions to their down-migration checksums.
-// Takes logger (logger_domain.Logger) which receives trace
-// log messages.
 //
 // Returns int which is the number of migrations successfully applied.
 // Returns error when a hook or migration execution fails.
@@ -459,8 +458,8 @@ func (service *migrationService) applyPendingUpMigrations(
 	ctx context.Context,
 	pending []querier_dto.MigrationFile,
 	downChecksumsByVersion map[int64]string,
-	logger logger_domain.Logger,
 ) (int, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	count := 0
 
 	for _, migration := range pending {
@@ -505,7 +504,7 @@ func (service *migrationService) applyPendingUpMigrations(
 			return count, hookError
 		}
 
-		logger.Trace("applied migration",
+		l.Trace("applied migration",
 			logger_domain.Int64(logFieldVersion, migration.Version),
 			logger_domain.String("name", migration.Name),
 		)
@@ -554,7 +553,6 @@ func findDirtyMigration(
 // Takes dirtyMigration (querier_dto.AppliedMigration) which is the dirty
 // migration record.
 // Takes skipUpTo (int) which is the last completed statement index.
-// Takes logger (logger_domain.Logger) which receives log messages.
 //
 // Returns int which is 1 if the retry succeeded, 0 otherwise.
 // Returns error when the dirty migration cannot be retried or execution fails.
@@ -564,8 +562,8 @@ func (service *migrationService) handleDirtyMigration(
 	downChecksumsByVersion map[int64]string,
 	dirtyMigration querier_dto.AppliedMigration,
 	skipUpTo int,
-	logger logger_domain.Logger,
 ) (int, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	if len(pending) == 0 {
 		lastStatement := -1
 		if dirtyMigration.LastStatement != nil {
@@ -589,7 +587,7 @@ func (service *migrationService) handleDirtyMigration(
 		}
 	}
 
-	logger.Trace("retrying dirty migration",
+	l.Trace("retrying dirty migration",
 		logger_domain.Int64(logFieldVersion, dirtyMigration.Version),
 		logger_domain.Int("skip_up_to", skipUpTo),
 	)
@@ -616,7 +614,7 @@ func (service *migrationService) handleDirtyMigration(
 		}
 	}
 
-	logger.Trace("retried dirty migration successfully",
+	l.Trace("retried dirty migration successfully",
 		logger_domain.Int64(logFieldVersion, dirtyMigration.Version),
 	)
 
@@ -652,7 +650,6 @@ func removePendingVersion(
 // end.
 // Takes downFilesByVersion (map[int64]querier_dto.MigrationFile) which maps
 // versions to their down-migration files.
-// Takes logger (logger_domain.Logger) which receives trace-level log messages.
 //
 // Returns int which is the number of migrations rolled
 // back.
@@ -662,7 +659,6 @@ func (service *migrationService) executeRollbacks(
 	applied []querier_dto.AppliedMigration,
 	steps int,
 	downFilesByVersion map[int64]querier_dto.MigrationFile,
-	logger logger_domain.Logger,
 ) (int, error) {
 	rollbackVersions := make([]int64, 0, steps)
 	for i := len(applied) - 1; i >= len(applied)-steps; i-- {
@@ -684,7 +680,7 @@ func (service *migrationService) executeRollbacks(
 			return count, &NoDownMigrationError{Version: applied[i].Version}
 		}
 
-		if rollbackError := service.executeSingleRollback(ctx, applied[i], downFile, logger); rollbackError != nil {
+		if rollbackError := service.executeSingleRollback(ctx, applied[i], downFile); rollbackError != nil {
 			return count, rollbackError
 		}
 		count++
@@ -704,7 +700,6 @@ func (service *migrationService) executeRollbacks(
 // applied migration record to roll back.
 // Takes downFile (querier_dto.MigrationFile) which holds the down migration
 // file content.
-// Takes logger (logger_domain.Logger) which receives trace-level log messages.
 //
 // Returns error when checksum validation, hook execution, or migration
 // execution fails.
@@ -712,8 +707,8 @@ func (service *migrationService) executeSingleRollback(
 	ctx context.Context,
 	appliedMigration querier_dto.AppliedMigration,
 	downFile querier_dto.MigrationFile,
-	logger logger_domain.Logger,
 ) error {
+	ctx, l := logger_domain.From(ctx, log)
 	hookContext := MigrationHookContext{
 		Version:   downFile.Version,
 		Name:      downFile.Name,
@@ -724,7 +719,7 @@ func (service *migrationService) executeSingleRollback(
 		return hookError
 	}
 
-	if checksumError := validateDownChecksum(appliedMigration, downFile, logger); checksumError != nil {
+	if checksumError := validateDownChecksum(ctx, appliedMigration, downFile); checksumError != nil {
 		return checksumError
 	}
 
@@ -753,7 +748,7 @@ func (service *migrationService) executeSingleRollback(
 		return hookError
 	}
 
-	logger.Trace("rolled back migration",
+	l.Trace("rolled back migration",
 		logger_domain.Int64(logFieldVersion, downFile.Version),
 		logger_domain.String("name", downFile.Name),
 	)
@@ -767,14 +762,12 @@ func (service *migrationService) executeSingleRollback(
 // recorded down checksum.
 // Takes downFile (querier_dto.MigrationFile) which holds the current file
 // checksum.
-// Takes logger (logger_domain.Logger) which receives a warning when no
-// recorded checksum exists.
 //
 // Returns error when the recorded checksum does not match the file checksum.
 func validateDownChecksum(
+	ctx context.Context,
 	appliedMigration querier_dto.AppliedMigration,
 	downFile querier_dto.MigrationFile,
-	logger logger_domain.Logger,
 ) error {
 	recordedDownChecksum := appliedMigration.DownChecksum
 	if recordedDownChecksum != "" && recordedDownChecksum != downFile.Checksum {
@@ -786,7 +779,8 @@ func validateDownChecksum(
 		}
 	}
 	if recordedDownChecksum == "" {
-		logger.Warn("no recorded down checksum for migration, skipping validation",
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("no recorded down checksum for migration, skipping validation",
 			logger_domain.Int64(logFieldVersion, downFile.Version),
 		)
 	}
@@ -977,12 +971,10 @@ func (service *migrationService) acquireLock(ctx context.Context) error {
 
 // releaseLock releases the migration advisory lock, logging an error if
 // release fails.
-//
-// Takes logger (logger_domain.Logger) which receives error-level log messages
-// if release fails.
-func (service *migrationService) releaseLock(ctx context.Context, logger logger_domain.Logger) {
+func (service *migrationService) releaseLock(ctx context.Context) {
 	if releaseError := service.executor.ReleaseLock(ctx); releaseError != nil {
-		logger.Error("failed to release migration lock",
+		_, l := logger_domain.From(ctx, log)
+		l.Error("failed to release migration lock",
 			logger_domain.Error(releaseError),
 		)
 	}

@@ -4,25 +4,20 @@ import (
 	"context"
 	"os"
 
-	"piko.sh/piko"
+	"{{ .ModuleName }}/internal"
 	"piko.sh/piko/wdk/logger"
-	automemlimit "piko.sh/piko/wdk/system/system_memlimit_automemlimit"
 )
 
 func main() {
 	logger.AddPrettyOutput() // Uses LOG_LEVEL env var, defaults to INFO
 
-	command := piko.GenerateModeManifest
+	mode := internal.GenerateModeManifest
 	if len(os.Args) > 1 {
-		command = os.Args[1]
+		mode = os.Args[1]
 	}
 
-	ssr := piko.New(
-		piko.WithCSSReset(piko.WithCSSResetComplete()),
-		piko.WithAutoMemoryLimit(automemlimit.Provider()),
-	)
-
-	if err := ssr.Generate(context.Background(), command); err != nil {
+	ssr := internal.NewGenerator()
+	if err := ssr.Generate(context.Background(), mode); err != nil {
 		panic(err)
 	}
 }

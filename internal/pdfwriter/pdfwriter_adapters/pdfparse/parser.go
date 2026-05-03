@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -32,9 +33,85 @@ import (
 // to scan when searching for the startxref marker.
 const xrefSearchWindow = 1024
 
+// defaultMaxDecompressedStreamBytes is the default cap on the size of a
+// single decompressed FlateDecode stream (64 MiB). The cap exists to
+// guard against zip-bomb PDFs that decompress to terabytes.
+const defaultMaxDecompressedStreamBytes int64 = 64 << 20
+
+// maxXRefDepth caps the number of /Prev cross-reference sections the
+// parser will follow before giving up. Traditional PDFs rarely chain
+// more than a handful of incremental updates; this cap stops malformed
+// chains from exhausting the stack even in the absence of cycles.
+const maxXRefDepth = 64
+
+// maxParseDepth caps the recursion depth of parseToken/parseDictionary/parseArray.
+//
+// Legitimate PDFs nest dictionaries and arrays for resources, fonts, and
+// form fields, but rarely beyond a few dozen levels. The cap rejects
+// malicious payloads engineered to blow the stack while leaving genuine
+// documents untouched. The value is deliberately set above downstream
+// transformer nesting caps (e.g. the 256-level encrypt cap) so those
+// layers can still produce their own targeted errors before the
+// parser-level backstop fires.
+const maxParseDepth = 512
+
 // ErrXRefStreamsUnsupported is returned when the parser encounters a
 // cross-reference stream instead of a traditional xref table.
 var ErrXRefStreamsUnsupported = errors.New("xref streams not yet supported; only traditional xref tables are handled")
+
+// ErrFlateStreamTooLarge is returned when a FlateDecode stream
+// decompresses to more bytes than the configured cap, indicating a
+// likely zip-bomb attack rather than a legitimate document.
+var ErrFlateStreamTooLarge = errors.New("FlateDecode stream exceeds maximum decompressed size")
+
+// ErrXRefCycle is returned when the parser detects a cycle in the
+// /Prev chain of cross-reference sections. Following a cycle would
+// recurse forever and exhaust the stack.
+var ErrXRefCycle = errors.New("xref /Prev chain contains a cycle")
+
+// ErrXRefDepthExceeded is returned when the /Prev chain is longer
+// than [maxXRefDepth] sections. The cap defends against pathological
+// chains that, while not strictly cyclic, are deep enough to threaten
+// the stack.
+var ErrXRefDepthExceeded = errors.New("xref /Prev chain exceeds maximum depth")
+
+// ErrParseDepthExceeded is returned when nested dictionaries or
+// arrays exceed [maxParseDepth] levels of recursion.
+var ErrParseDepthExceeded = errors.New("parser recursion depth exceeded")
+
+// ErrInvalidObjectOffset is returned when a cross-reference entry
+// points to a byte offset that lies outside the file content.
+var ErrInvalidObjectOffset = errors.New("xref offset outside file bounds")
+
+// ErrMalformedStreamLength is returned when a stream's /Length
+// exceeds the bytes remaining in the file, indicating a truncated or
+// hostile stream rather than a legitimate document.
+var ErrMalformedStreamLength = errors.New("stream /Length exceeds remaining file bytes")
+
+// maxDecompressedStreamBytes holds the active cap on FlateDecode
+// decompression output. It defaults to defaultMaxDecompressedStreamBytes
+// and may be overridden via [SetMaxDecompressedStreamBytes].
+var maxDecompressedStreamBytes = defaultMaxDecompressedStreamBytes
+
+// SetMaxDecompressedStreamBytes sets the cap on the size of a single
+// decompressed FlateDecode stream. Callers may raise this for trusted
+// inputs but should not lower it below the largest legitimate stream
+// they expect to encounter.
+//
+// Takes limit (int64) which is the new cap in bytes. Values <= 0 are
+// ignored to keep the existing limit safe.
+func SetMaxDecompressedStreamBytes(limit int64) {
+	if limit <= 0 {
+		return
+	}
+	maxDecompressedStreamBytes = limit
+}
+
+// MaxDecompressedStreamBytes returns the active cap on FlateDecode
+// decompression output.
+//
+// Returns int64 which is the active cap in bytes.
+func MaxDecompressedStreamBytes() int64 { return maxDecompressedStreamBytes }
 
 // xrefEntry represents one entry in the cross-reference table.
 type xrefEntry struct {
@@ -84,7 +161,8 @@ func Parse(data []byte) (*Document, error) {
 		return nil, fmt.Errorf("finding xref offset: %w", err)
 	}
 
-	if err := doc.parseXRef(xrefOffset); err != nil {
+	visited := make(map[int64]struct{})
+	if err := doc.parseXRef(xrefOffset, visited, 0); err != nil {
 		return nil, fmt.Errorf("parsing xref: %w", err)
 	}
 
@@ -101,7 +179,7 @@ func (d *Document) Trailer() Dict { return d.trailer }
 // Returns int which is the total object count including free entries.
 func (d *Document) ObjectCount() int { return len(d.xref) }
 
-// ObjectNumbers returns all in-use object numbers.
+// ObjectNumbers returns all in-use object numbers in ascending order.
 //
 // Returns []int which holds the object numbers marked as in-use.
 func (d *Document) ObjectNumbers() []int {
@@ -111,6 +189,7 @@ func (d *Document) ObjectNumbers() []int {
 			numbers = append(numbers, num)
 		}
 	}
+	slices.Sort(numbers)
 	return numbers
 }
 
@@ -131,7 +210,7 @@ func (d *Document) GetObject(number int) (Object, error) {
 		return Null(), fmt.Errorf("object %d not found in xref", number)
 	}
 
-	obj, err := d.parseObjectAt(int(entry.offset))
+	obj, err := d.parseObjectAt(entry.offset)
 	if err != nil {
 		return Null(), fmt.Errorf("parsing object %d at offset %d: %w", number, entry.offset, err)
 	}
@@ -235,17 +314,34 @@ func findXRefOffset(data []byte) (int64, error) {
 // parseXRef parses the cross-reference table and trailer starting at the
 // given byte offset.
 //
-// Takes offset (int64) which specifies the byte position of the xref section.
+// The visited map records every offset that has already been entered so
+// that a cyclic /Prev chain (e.g. one that points back to the section
+// that originally referenced it) is detected before it can blow the
+// stack. depth is incremented per recursion and capped by
+// [maxXRefDepth] as belt-and-braces against pathological non-cyclic
+// chains.
 //
-// Returns error when parsing fails.
-func (d *Document) parseXRef(offset int64) error {
-	pos := int(offset)
-	if pos >= len(d.raw) {
-		return fmt.Errorf("xref offset %d beyond file size %d", pos, len(d.raw))
+// Takes offset (int64) which specifies the byte position of the xref section.
+// Takes visited (map[int64]struct{}) which records xref offsets already entered.
+// Takes depth (int) which is the current /Prev recursion depth.
+//
+// Returns error when parsing fails or a cycle/depth limit is hit.
+func (d *Document) parseXRef(offset int64, visited map[int64]struct{}, depth int) error {
+	if depth >= maxXRefDepth {
+		return fmt.Errorf("%w: depth %d", ErrXRefDepthExceeded, depth)
 	}
+	if _, seen := visited[offset]; seen {
+		return fmt.Errorf("%w: offset %d already visited", ErrXRefCycle, offset)
+	}
+	visited[offset] = struct{}{}
+
+	if offset < 0 || offset >= int64(len(d.raw)) {
+		return fmt.Errorf("xref offset %d beyond file size %d", offset, len(d.raw))
+	}
+	pos := int(offset)
 
 	if bytes.HasPrefix(d.raw[pos:], []byte("xref")) {
-		return d.parseTraditionalXRef(pos)
+		return d.parseTraditionalXRef(pos, visited, depth)
 	}
 
 	return parseXRefStream()
@@ -254,9 +350,11 @@ func (d *Document) parseXRef(offset int64) error {
 // parseTraditionalXRef parses a traditional "xref ... trailer" section.
 //
 // Takes pos (int) which specifies the byte offset of the "xref" keyword.
+// Takes visited (map[int64]struct{}) which records xref offsets already entered.
+// Takes depth (int) which is the current /Prev chain depth.
 //
 // Returns error when the xref section is malformed.
-func (d *Document) parseTraditionalXRef(pos int) error {
+func (d *Document) parseTraditionalXRef(pos int, visited map[int64]struct{}, depth int) error {
 	sc := newScanner(d.raw, pos)
 
 	token := sc.next()
@@ -274,7 +372,7 @@ func (d *Document) parseTraditionalXRef(pos int) error {
 		}
 	}
 
-	return d.parseTrailerAndFollowPrev(sc)
+	return d.parseTrailerAndFollowPrev(sc, visited, depth)
 }
 
 // parseXRefSubsection parses one "startObj count" subsection of the xref
@@ -325,10 +423,12 @@ func (d *Document) parseXRefSubsection(sc *scanner) error {
 //
 // Takes sc (*scanner) which provides token-level reading positioned at
 // the trailer keyword.
+// Takes visited (map[int64]struct{}) which records xref offsets already entered.
+// Takes depth (int) which is the current /Prev chain depth.
 //
 // Returns error when the trailer dictionary is malformed or a /Prev link
 // cannot be followed.
-func (d *Document) parseTrailerAndFollowPrev(sc *scanner) error {
+func (d *Document) parseTrailerAndFollowPrev(sc *scanner, visited map[int64]struct{}, depth int) error {
 	sc.next()
 	trailerObj, err := d.parseObjectFromScanner(sc)
 	if err != nil {
@@ -350,7 +450,7 @@ func (d *Document) parseTrailerAndFollowPrev(sc *scanner) error {
 	prevObj := trailerDict.Get("Prev")
 	if prevObj.Type == ObjectInteger {
 		if prevVal, ok := prevObj.Value.(int64); ok {
-			return d.parseXRef(prevVal)
+			return d.parseXRef(prevVal, visited, depth+1)
 		}
 	}
 
@@ -367,11 +467,19 @@ func parseXRefStream() error {
 // parseObjectAt parses an indirect object definition at the given byte
 // offset.
 //
-// Takes pos (int) which specifies the byte offset of the object header.
+// The offset is bounds-checked against the document length so that a
+// malformed xref entry pointing past EOF cannot trigger out-of-range
+// reads or silent data corruption.
+//
+// Takes offset (int64) which specifies the byte offset of the object header.
 //
 // Returns Object which is the parsed object value.
 // Returns error when the object definition is malformed.
-func (d *Document) parseObjectAt(pos int) (Object, error) {
+func (d *Document) parseObjectAt(offset int64) (Object, error) {
+	if offset < 0 || offset >= int64(len(d.raw)) {
+		return Null(), fmt.Errorf("%w: offset %d, file size %d", ErrInvalidObjectOffset, offset, len(d.raw))
+	}
+	pos := int(offset)
 	sc := newScanner(d.raw, pos)
 
 	sc.next()
@@ -405,25 +513,34 @@ func (d *Document) parseObjectAt(pos int) (Object, error) {
 	return obj, nil
 }
 
-// parseObjectFromScanner parses a single PDF object value from the scanner.
+// parseObjectFromScanner parses a single PDF object value from the scanner
+// starting at depth zero.
 //
 // Takes sc (*scanner) which provides token-level reading of PDF content.
 //
 // Returns Object which is the parsed PDF object.
-// Returns error when the token sequence is invalid.
+// Returns error when the token sequence is invalid or the recursion
+// depth limit is exceeded.
 func (d *Document) parseObjectFromScanner(sc *scanner) (Object, error) {
 	token := sc.next()
-	return d.parseToken(token, sc)
+	return d.parseToken(token, sc, 0)
 }
 
-// parseToken interprets a token and produces a PDF Object.
+// parseToken interprets a token and produces a PDF Object. depth tracks
+// the current nesting level so that cyclic or pathologically nested
+// dictionaries and arrays cannot exhaust the stack.
 //
 // Takes token (string) which is the initial token to interpret.
 // Takes sc (*scanner) which provides additional tokens if needed.
+// Takes depth (int) which is the current recursion depth.
 //
 // Returns Object which is the parsed PDF object.
-// Returns error when the token cannot be interpreted.
-func (d *Document) parseToken(token string, sc *scanner) (Object, error) {
+// Returns error when the token cannot be interpreted or the recursion
+// depth limit is exceeded.
+func (d *Document) parseToken(token string, sc *scanner, depth int) (Object, error) {
+	if depth >= maxParseDepth {
+		return Null(), fmt.Errorf("%w: depth %d", ErrParseDepthExceeded, depth)
+	}
 	switch {
 	case token == "null":
 		return Null(), nil
@@ -432,9 +549,9 @@ func (d *Document) parseToken(token string, sc *scanner) (Object, error) {
 	case token == "false":
 		return Bool(false), nil
 	case token == "<<":
-		return d.parseDictionary(sc)
+		return d.parseDictionary(sc, depth+1)
 	case token == "[":
-		return d.parseArray(sc)
+		return d.parseArray(sc, depth+1)
 	case strings.HasPrefix(token, "/"):
 		return Name(token[1:]), nil
 	case strings.HasPrefix(token, "("):
@@ -450,10 +567,15 @@ func (d *Document) parseToken(token string, sc *scanner) (Object, error) {
 //
 // Takes sc (*scanner) which provides token-level reading positioned after
 // the opening << delimiter.
+// Takes depth (int) which is the current recursion depth.
 //
 // Returns Object which is the parsed dictionary object.
-// Returns error when the dictionary content is malformed.
-func (d *Document) parseDictionary(sc *scanner) (Object, error) {
+// Returns error when the dictionary content is malformed or the
+// recursion depth limit is exceeded.
+func (d *Document) parseDictionary(sc *scanner, depth int) (Object, error) {
+	if depth >= maxParseDepth {
+		return Null(), fmt.Errorf("%w: dictionary depth %d", ErrParseDepthExceeded, depth)
+	}
 	dict := Dict{}
 	for {
 		token := sc.next()
@@ -466,7 +588,7 @@ func (d *Document) parseDictionary(sc *scanner) (Object, error) {
 		key := token[1:]
 
 		valueToken := sc.next()
-		value, err := d.parseToken(valueToken, sc)
+		value, err := d.parseToken(valueToken, sc, depth)
 		if err != nil {
 			return Null(), fmt.Errorf("parsing dict value for key %q: %w", key, err)
 		}
@@ -479,17 +601,22 @@ func (d *Document) parseDictionary(sc *scanner) (Object, error) {
 //
 // Takes sc (*scanner) which provides token-level reading positioned after
 // the opening [ delimiter.
+// Takes depth (int) which is the current recursion depth.
 //
 // Returns Object which is the parsed array object.
-// Returns error when an array element cannot be parsed.
-func (d *Document) parseArray(sc *scanner) (Object, error) {
+// Returns error when an array element cannot be parsed or the recursion
+// depth limit is exceeded.
+func (d *Document) parseArray(sc *scanner, depth int) (Object, error) {
+	if depth >= maxParseDepth {
+		return Null(), fmt.Errorf("%w: array depth %d", ErrParseDepthExceeded, depth)
+	}
 	var items []Object
 	for {
 		token := sc.next()
 		if token == "]" || token == "" {
 			break
 		}
-		item, err := d.parseToken(token, sc)
+		item, err := d.parseToken(token, sc, depth)
 		if err != nil {
 			return Null(), fmt.Errorf("parsing array item: %w", err)
 		}
@@ -575,17 +702,27 @@ func (d *Document) readStreamData(sc *scanner, dict Dict) ([]byte, error) {
 		streamStart++
 	}
 
-	end := min(streamStart+int(length), len(d.raw))
+	if length < 0 {
+		return nil, fmt.Errorf("%w: negative /Length %d", ErrMalformedStreamLength, length)
+	}
+	remaining := int64(len(d.raw) - streamStart)
+	if length > remaining {
+		return nil, fmt.Errorf("%w: /Length %d, remaining %d", ErrMalformedStreamLength, length, remaining)
+	}
+
+	end := streamStart + int(length)
 	sc.pos = end
 	return d.raw[streamStart:end], nil
 }
 
-// deflateDecode decompresses zlib-compressed data.
+// deflateDecode decompresses zlib-compressed data, enforcing the
+// active FlateDecode size cap to guard against zip-bomb PDFs.
 //
 // Takes data ([]byte) which holds the compressed stream bytes.
 //
 // Returns []byte which is the decompressed content.
-// Returns error when decompression fails.
+// Returns error when decompression fails or the output exceeds the
+// configured cap.
 func deflateDecode(data []byte) ([]byte, error) {
 	reader, err := zlib.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -593,9 +730,13 @@ func deflateDecode(data []byte) ([]byte, error) {
 	}
 	defer reader.Close()
 
-	decoded, err := io.ReadAll(reader)
+	limit := maxDecompressedStreamBytes
+	decoded, err := io.ReadAll(io.LimitReader(reader, limit+1))
 	if err != nil {
 		return nil, fmt.Errorf("decompressing FlateDecode stream: %w", err)
+	}
+	if int64(len(decoded)) > limit {
+		return nil, fmt.Errorf("decompressing FlateDecode stream (limit %d bytes): %w", limit, ErrFlateStreamTooLarge)
 	}
 	return decoded, nil
 }

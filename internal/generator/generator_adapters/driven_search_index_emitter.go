@@ -123,8 +123,8 @@ func NewDrivenSearchIndexEmitter(
 //     b. Write binary to search_{mode}.bin
 //  3. Update generated.go to embed and register search indexes
 //
-// This method can be called multiple times for different modes, or once with
-// multiple modes to generate all indexes in a single call.
+// May be called multiple times for different modes, or once with multiple modes
+// to generate all indexes in a single call.
 func (e *DrivenSearchIndexEmitter) EmitSearchIndex(
 	ctx context.Context,
 	collectionName string,

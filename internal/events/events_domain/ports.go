@@ -32,10 +32,9 @@ const (
 
 // Provider represents a backend-agnostic message bus provider.
 //
-// Each provider implementation (GoChannel, NATS, PostgreSQL, SQLite)
-// implements this interface to supply the Watermill infrastructure
-// components. Provider implements the events.Provider and io.Closer
-// interfaces.
+// Each provider implementation (GoChannel, NATS, PostgreSQL, SQLite) implements
+// Provider to supply the Watermill infrastructure components. Provider implements
+// the events.Provider and io.Closer interfaces.
 //
 // Provider lifecycle:
 //  1. Create provider with NewXxxProvider(config)
@@ -64,7 +63,7 @@ type Provider interface {
 	// Returns message.Subscriber which handles message subscriptions.
 	Subscriber() message.Subscriber
 
-	// Running reports whether the router has been started and is still active.
+	// Reports whether the router has been started and is still active.
 	Running() bool
 
 	// Close shuts down the provider and all its parts in a safe way.

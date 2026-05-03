@@ -64,10 +64,24 @@ func (s *orchestratorService) batchInsertLoop() {
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes batch ([]*Task) which contains any pending tasks to include in flush.
+//
+// The write-lock acquisition waits for any in-flight Dispatch/Schedule callers
+// holding RLock to leave their critical section. Once the lock is held, the
+// closed flag is set so future senders short-circuit, then the channel is
+// closed and drained. This makes close-on-channel safe under concurrent sends.
+//
+// Concurrency: acquires taskInsertMutex.Lock to wait for all in-flight senders
+// before closing taskInsertChan; senders observe taskInsertClosed via the read
+// lock.
 func (s *orchestratorService) handleBatchShutdown(ctx context.Context, batch []*Task) {
-	ctx, l := logger_domain.From(ctx, log)
+	_, l := logger_domain.From(ctx, log)
 	l.Internal("Shutting down batch inserter, flushing remaining tasks...")
+
+	s.taskInsertMutex.Lock()
+	s.taskInsertClosed = true
 	close(s.taskInsertChan)
+	s.taskInsertMutex.Unlock()
+
 	for task := range s.taskInsertChan {
 		batch = append(batch, task)
 	}

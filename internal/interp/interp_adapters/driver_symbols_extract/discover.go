@@ -568,9 +568,8 @@ func sortedKeys(set map[string]struct{}) []string {
 }
 
 // defaultPkSourceDirs returns the set of project-relative directories
-// that conventionally hold .pk files. The conservative default
-// matches piko's config defaults so Discover works without an
-// explicit piko.yaml.
+// that conventionally hold .pk files. The conservative default matches
+// piko's path defaults so Discover works without explicit configuration.
 //
 // Returns []string which is the default directory list.
 func defaultPkSourceDirs() []string {

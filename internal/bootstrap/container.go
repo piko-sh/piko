@@ -447,6 +447,9 @@ type Container struct {
 	// provider.
 	eventsProviderErr error
 
+	// eventBusErr holds any error captured while initialising the event bus.
+	eventBusErr error
+
 	// monitoringService holds the monitoring service; nil when disabled.
 	monitoringService monitoring_domain.MonitoringService
 
@@ -475,10 +478,6 @@ type Container struct {
 	// Nil means no auth middleware is installed.
 	authProvider daemon_dto.AuthProvider
 
-	// analyticsCollectors holds user-registered backend analytics
-	// collectors. Empty means no analytics middleware is installed.
-	analyticsCollectors []analytics_domain.Collector
-
 	// sandboxFactoryInstance is the lazily-created, cached safedisk.Factory
 	// built from the server config. All production sandbox creation goes
 	// through this single factory so that path validation, the Enabled flag,
@@ -491,14 +490,13 @@ type Container struct {
 	// markdownParser holds the user-provided markdown parser implementation.
 	markdownParser markdown_domain.MarkdownParserPort
 
-	// dbProvider stores the otter persistence provider for the default
-	// in-memory backend. Only used when no SQL database is registered via
-	// AddDatabase.
-	dbProvider *persistence.Provider
+	// cspBuilder holds the Content-Security-Policy builder; nil means no CSP is
+	// set.
+	cspBuilder *security_domain.CSPBuilder
 
-	// profilingConfig holds pprof server settings; nil when profiling is
-	// disabled.
-	profilingConfig *profiler.Config
+	// onServerBound is an optional callback invoked after the main HTTP server
+	// binds to a port. Used to print the startup banner with the actual port.
+	onServerBound func(address string)
 
 	// querierDBService holds the querier database service for named SQL
 	// connections and migrations.
@@ -511,9 +509,10 @@ type Container struct {
 	// rateLimiter is the centralised rate limiter shared across all domains.
 	rateLimiter *ratelimiter_domain.Limiter
 
-	// cspBuilder holds the Content-Security-Policy builder; nil means no CSP is
-	// set.
-	cspBuilder *security_domain.CSPBuilder
+	// dbProvider stores the otter persistence provider for the default
+	// in-memory backend. Only used when no SQL database is registered via
+	// AddDatabase.
+	dbProvider *persistence.Provider
 
 	// dbRegistrations maps names to database registration configs. Populated
 	// by AddDatabase and consumed lazily by GetDatabaseService.
@@ -533,16 +532,10 @@ type Container struct {
 	// the default.
 	typeInspectorBuilderOverride *inspector_domain.TypeBuilder
 
-	// config provides access to server and website configuration loading.
-	config *config.Provider
-
-	// configServerDefaults holds the default values for server settings.
-	// These are the lowest-precedence values, overwritten by YAML/env/flags.
-	configServerDefaults *config.ServerConfig
-
-	// configServerOverrides holds programmatic overrides that always win over
-	// YAML, env vars, and flags. Set by WithXxx options that modify config values.
-	configServerOverrides *config.ServerConfig
+	// configServerOverrides holds programmatic config values supplied via
+	// individual With* options. These are the highest-precedence values
+	// merged into serverConfig during bootstrap.
+	configServerOverrides *ServerConfig
 
 	// artefactBridge links artefact processing to the orchestrator workflow.
 	artefactBridge *orchestrator_adapters.ArtefactWorkflowBridge
@@ -596,23 +589,16 @@ type Container struct {
 	// provided via WithWebsiteConfig; nil uses the file-based config.json.
 	websiteConfigOverride *config.WebsiteConfig
 
-	// crashOutputPath is the file path the Go runtime should mirror crash
-	// output to via runtime/debug.SetCrashOutput; empty disables the
-	// feature and the default behaviour stays in place.
-	crashOutputPath string
-
-	// crashTracebackLevel is the GOTRACEBACK level applied via
-	// runtime/debug.SetTraceback at startup; empty keeps the runtime
-	// default in place.
-	crashTracebackLevel string
-
-	// diagnosticDirectory is the unified root for runtime-diagnostic
-	// artefacts (crash mirror, watchdog profiles, sidecars, startup
-	// history).
-	diagnosticDirectory string
-
 	// videoTranscoders maps provider names to video transcoder instances.
 	videoTranscoders map[string]video_domain.TranscoderPort
+
+	// profilingConfig holds pprof server settings; nil when profiling is
+	// disabled.
+	profilingConfig *profiler.Config
+
+	// onHealthBound is an optional callback invoked after the health server
+	// binds to a port.
+	onHealthBound func(address string)
 
 	// csrfSecretKeyProvider returns the secret key used for CSRF token creation.
 	csrfSecretKeyProvider func() []byte
@@ -658,13 +644,19 @@ type Container struct {
 	// added to script and link tags. Nil means use the default (enabled).
 	sriEnabled *bool
 
-	// onServerBound is an optional callback invoked after the main HTTP server
-	// binds to a port. Used to print the startup banner with the actual port.
-	onServerBound func(address string)
+	// crossOriginResourcePolicy overrides the default CORP header value.
+	// Empty means use the config default ("same-origin").
+	crossOriginResourcePolicy string
 
-	// onHealthBound is an optional callback invoked after the health server
-	// binds to a port.
-	onHealthBound func(address string)
+	// crashTracebackLevel is the GOTRACEBACK level applied via
+	// runtime/debug.SetTraceback at startup; empty keeps the runtime
+	// default in place.
+	crashTracebackLevel string
+
+	// diagnosticDirectory is the unified root for runtime-diagnostic
+	// artefacts (crash mirror, watchdog profiles, sidecars, startup
+	// history).
+	diagnosticDirectory string
 
 	// cspPolicyString holds a raw CSP policy string for complex cases that the
 	// structured API cannot handle.
@@ -715,13 +707,22 @@ type Container struct {
 	// defaultVideoTranscoder is the name of the transcoder to use as the default.
 	defaultVideoTranscoder string
 
-	// crossOriginResourcePolicy overrides the default CORP header value.
-	// Empty means use the config default ("same-origin").
-	crossOriginResourcePolicy string
+	// crashOutputPath is the file path the Go runtime should mirror crash
+	// output to via runtime/debug.SetCrashOutput; empty disables the
+	// feature and the default behaviour stays in place.
+	crashOutputPath string
 
 	// cssResetCSS holds the resolved CSS reset content for PK files. When
 	// empty, no CSS reset is included in the generated theme CSS.
 	cssResetCSS string
+
+	// websiteConfig holds the user-facing website metadata supplied via
+	// WithWebsiteConfig. Empty when no override is set.
+	websiteConfig config.WebsiteConfig
+
+	// analyticsCollectors holds user-registered backend analytics
+	// collectors. Empty means no analytics middleware is installed.
+	analyticsCollectors []analytics_domain.Collector
 
 	// reportingEndpoints holds the configured reporting endpoints for the
 	// Reporting-Endpoints header.
@@ -744,15 +745,19 @@ type Container struct {
 	// cssTreeShakingSafelist lists CSS class names preserved during tree-shaking.
 	cssTreeShakingSafelist []string
 
+	// serverConfig holds the resolved server configuration. It is populated
+	// during bootstrap by merging configServerOverrides (set by With*
+	// options) with struct-tag defaults via config_domain.Load.
+	serverConfig ServerConfig
+
 	// csrfTokenMaxAge overrides the default CSRF token maximum age when positive.
 	csrfTokenMaxAge time.Duration
 
-	// sandboxFactoryOnce guards single initialisation of the cached sandbox
-	// factory.
-	sandboxFactoryOnce sync.Once
+	// renderRegOnce guards single initialisation of the render registry.
+	renderRegOnce sync.Once
 
-	// annotatorOnce guards single initialisation of the annotator service.
-	annotatorOnce sync.Once
+	// videoOnce guards single initialisation of the video service.
+	videoOnce sync.Once
 
 	// querierDBOnce guards single initialisation of the querier database
 	// service.
@@ -776,8 +781,9 @@ type Container struct {
 	// orchestratorOnce guards single initialisation of the orchestrator service.
 	orchestratorOnce sync.Once
 
-	// renderRegOnce guards single initialisation of the render registry.
-	renderRegOnce sync.Once
+	// sandboxFactoryOnce guards single initialisation of the cached sandbox
+	// factory.
+	sandboxFactoryOnce sync.Once
 
 	// csrfOnce guards single initialisation of the CSRF service.
 	csrfOnce sync.Once
@@ -818,8 +824,8 @@ type Container struct {
 	// imageOnce guards single initialisation of the image service.
 	imageOnce sync.Once
 
-	// videoOnce guards single initialisation of the video service.
-	videoOnce sync.Once
+	// annotatorOnce guards single initialisation of the annotator service.
+	annotatorOnce sync.Once
 
 	// storageOnce guards single initialisation of the storage service.
 	storageOnce sync.Once
@@ -905,20 +911,19 @@ type Container struct {
 
 // NewContainer creates a new dependency injection container.
 //
-// It sets sensible defaults and then applies any options provided.
+// It sets sensible defaults and then applies any options provided. The
+// returned container's serverConfig is empty until ConfigAndContainer
+// resolves the With* option overrides into it.
 //
-// Takes configProvider (*config.Provider) which provides access
-// to configuration values.
 // Takes opts (...Option) which are options to change behaviour.
 //
 // Returns *Container which is the configured dependency injection container.
-func NewContainer(configProvider *config.Provider, opts ...Option) *Container {
+func NewContainer(opts ...Option) *Container {
 	c := &Container{
-		config:                configProvider,
 		metadataCacheProvider: defaultMetadataCacheProvider,
-		csrfSecretKeyProvider: func() []byte {
-			return resolveCSRFSecret(deref(configProvider.ServerConfig.CSRFSecret, ""))
-		},
+	}
+	c.csrfSecretKeyProvider = func() []byte {
+		return resolveCSRFSecret(deref(c.serverConfig.CSRFSecret, ""))
 	}
 
 	for _, opt := range opts {
@@ -942,11 +947,22 @@ func (c *Container) GetAppContext() context.Context {
 	return c.appCtx
 }
 
-// GetConfigProvider returns the application configuration provider.
+// GetServerConfig returns a pointer to the resolved server configuration
+// held by the container.
 //
-// Returns *config.Provider which provides access to application settings.
-func (c *Container) GetConfigProvider() *config.Provider {
-	return c.config
+// Returns *ServerConfig which provides access to network, security,
+// paths, and other framework settings.
+func (c *Container) GetServerConfig() *ServerConfig {
+	return &c.serverConfig
+}
+
+// GetWebsiteConfig returns a pointer to the website configuration supplied
+// via WithWebsiteConfig.
+//
+// Returns *config.WebsiteConfig which provides theme, fonts, favicons, and
+// i18n metadata. Empty when WithWebsiteConfig was not called.
+func (c *Container) GetWebsiteConfig() *config.WebsiteConfig {
+	return &c.websiteConfig
 }
 
 // GetSandboxFactory returns the cached safedisk.Factory built from the server
@@ -959,7 +975,7 @@ func (c *Container) GetConfigProvider() *config.Provider {
 // Returns error when the factory cannot be created from the server config.
 func (c *Container) GetSandboxFactory() (safedisk.Factory, error) {
 	c.sandboxFactoryOnce.Do(func() {
-		serverConfig := c.config.ServerConfig
+		serverConfig := c.serverConfig
 		c.sandboxFactoryInstance, c.sandboxFactoryErr = safedisk.NewFactory(safedisk.FactoryConfig{
 			Enabled:      deref(serverConfig.Security.Sandbox.Enabled, true),
 			AllowedPaths: serverConfig.Security.Sandbox.AllowedPaths,
@@ -1478,10 +1494,10 @@ func (c *Container) applyAutoMemoryLimit(ctx context.Context) {
 // ensureOverrides lazily initialises the configServerOverrides struct so that
 // option functions can write individual fields without nil-checking.
 //
-// Returns *config.ServerConfig which provides the override settings to modify.
-func (c *Container) ensureOverrides() *config.ServerConfig {
+// Returns *ServerConfig which provides the override settings to modify.
+func (c *Container) ensureOverrides() *ServerConfig {
 	if c.configServerOverrides == nil {
-		c.configServerOverrides = &config.ServerConfig{}
+		c.configServerOverrides = &ServerConfig{}
 	}
 	return c.configServerOverrides
 }
@@ -1493,7 +1509,7 @@ func (c *Container) ensureOverrides() *config.ServerConfig {
 // example, "my-button.pkc" registers as tag name "my-button".
 func (c *Container) discoverLocalComponents() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
-	serverConfig := c.config.ServerConfig
+	serverConfig := c.serverConfig
 	componentsDir := deref(serverConfig.Paths.ComponentsSourceDir, "components")
 	if componentsDir == "" {
 		l.Internal("No components directory configured, skipping local component discovery")
@@ -1559,7 +1575,7 @@ func (c *Container) walkAndRegisterComponents(absDir, baseDir string) (int, []st
 
 // contextCloser defines a service that can be closed with a context for
 // timeout control. Services set via Set* or Add* methods are registered
-// for shutdown if they implement this interface.
+// for shutdown if they implement the contract.
 type contextCloser interface {
 	// Close releases resources held by the service.
 	//
@@ -1650,8 +1666,7 @@ func defaultMetadataCacheProvider() registry_domain.MetadataCache {
 //   - Stop(context.Context) error
 //   - io.Closer (Close() error)
 //
-// If the service does not use any shutdown interface, this function does
-// nothing.
+// Does nothing if the service does not use any shutdown interface.
 //
 // Takes name (string) which identifies the service in shutdown logs.
 // Takes service (any) which is the service to check for shutdown support.

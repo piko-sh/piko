@@ -5,6 +5,7 @@
 package pages_themes_7f68f11d
 
 import (
+	"cmp"
 	"fmt"
 	"html"
 	"sort"
@@ -21,6 +22,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 
 // line pages/themes.pk:26

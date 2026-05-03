@@ -1,0 +1,85 @@
+<svg viewBox="0 0 760 660" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="psm-title psm-desc">
+  <title id="psm-title">Project directory layout grouped by lifecycle phase</title>
+  <desc id="psm-desc">Four phase cards stacked top to bottom. Build-time lists the folders cmd/generator parses (pages, partials, components, actions, content, emails, pdfs, i18n, db, assets, styles); the output lands under .piko and dist. Bootstrap lists the entry points and shared configuration that wire Piko (internal/piko.go, cmd/main, cmd/generator). Standard Go layout covers internal and pkg. Generated covers .piko and dist, which piko produces at build and the binary reads at request time; both must not be edited or committed. There is no request-time card for user-edited folders because nothing the user edits is read at request time.</desc>
+
+  
+  <rect x="20" y="20" width="720" height="258" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,20 H730 A10,10 0 0 1 740,30 V48 H20 V30 A10,10 0 0 1 30,20 Z" fill="#1C544F"/>
+  <text x="40" y="39" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="1">BUILD-TIME</text>
+  <text x="40" y="66" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">cmd/generator parses these folders into typed Go and compiled assets</text>
+
+  <text x="40"  y="82"  fill="#C9F5F2" font-family="monospace" font-size="10">pages/</text>
+  <text x="210" y="82"  fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">parse PK files, emit route handlers</text>
+
+  <text x="40"  y="98"  fill="#C9F5F2" font-family="monospace" font-size="10">partials/</text>
+  <text x="210" y="98"  fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">parse and inline into callers</text>
+
+  <text x="40"  y="114" fill="#C9F5F2" font-family="monospace" font-size="10">components/</text>
+  <text x="210" y="114" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">compile PKC to Web Component JS</text>
+
+  <text x="40"  y="130" fill="#C9F5F2" font-family="monospace" font-size="10">actions/</text>
+  <text x="210" y="130" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">scan for ActionMetadata, wire RPC</text>
+
+  <text x="40"  y="146" fill="#C9F5F2" font-family="monospace" font-size="10">content/</text>
+  <text x="210" y="146" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">register items, generate routes</text>
+
+  <text x="40"  y="162" fill="#C9F5F2" font-family="monospace" font-size="10">emails/</text>
+  <text x="210" y="162" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">compile render-target templates</text>
+
+  <text x="40"  y="178" fill="#C9F5F2" font-family="monospace" font-size="10">pdfs/</text>
+  <text x="210" y="178" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">compile render-target templates</text>
+
+  <text x="40"  y="194" fill="#C9F5F2" font-family="monospace" font-size="10">i18n/</text>
+  <text x="210" y="194" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">emit typed translation functions</text>
+
+  <text x="40"  y="210" fill="#C9F5F2" font-family="monospace" font-size="10">db/</text>
+  <text x="210" y="210" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">read .sql, emit typed querier</text>
+
+  <text x="40"  y="226" fill="#C9F5F2" font-family="monospace" font-size="10">assets/</text>
+  <text x="210" y="226" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">processed and bundled, output to dist/</text>
+
+  <text x="40"  y="242" fill="#C9F5F2" font-family="monospace" font-size="10">styles/</text>
+  <text x="210" y="242" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">shared CSS compiled into templates</text>
+
+  <text x="40"  y="266" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">output: <tspan font-family="monospace">.piko/</tspan> and <tspan font-family="monospace">dist/</tspan></text>
+
+  
+  <rect x="20" y="294" width="720" height="122" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,294 H730 A10,10 0 0 1 740,304 V322 H20 V304 A10,10 0 0 1 30,294 Z" fill="#1C544F"/>
+  <text x="40" y="313" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="1">BOOTSTRAP</text>
+  <text x="40" y="340" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">how the pieces plug in</text>
+
+  <text x="40"  y="356" fill="#C9F5F2" font-family="monospace" font-size="10">internal/piko.go</text>
+  <text x="210" y="356" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">shared <tspan font-family="monospace">With*</tspan> options for every binary</text>
+
+  <text x="40"  y="372" fill="#C9F5F2" font-family="monospace" font-size="10">cmd/main/main.go</text>
+  <text x="210" y="372" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">calls <tspan font-family="monospace">internal.NewServer(mode)</tspan> + <tspan font-family="monospace">Run</tspan></text>
+
+  <text x="40"  y="388" fill="#C9F5F2" font-family="monospace" font-size="10">cmd/generator/main.go</text>
+  <text x="210" y="388" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">calls <tspan font-family="monospace">internal.NewGenerator()</tspan> + <tspan font-family="monospace">Generate</tspan></text>
+
+  
+  <rect x="20" y="432" width="720" height="74" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+  <path d="M30,432 H730 A10,10 0 0 1 740,442 V460 H20 V442 A10,10 0 0 1 30,432 Z" fill="#1C544F"/>
+  <text x="40" y="451" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="1">STANDARD GO LAYOUT</text>
+
+  <text x="40"  y="478" fill="#C9F5F2" font-family="monospace" font-size="10">internal/</text>
+  <text x="210" y="478" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">private packages for this project</text>
+
+  <text x="40"  y="494" fill="#C9F5F2" font-family="monospace" font-size="10">pkg/</text>
+  <text x="210" y="494" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">exported packages for reuse</text>
+
+  
+  <rect x="20" y="522" width="720" height="106" rx="10" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
+  <path d="M30,522 H730 A10,10 0 0 1 740,532 V550 H20 V532 A10,10 0 0 1 30,522 Z" fill="#364049"/>
+  <text x="40"  y="541" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="1">GENERATED</text>
+  <text x="720" y="541" text-anchor="end" fill="#ff5f57" font-family="system-ui, sans-serif" font-size="9" font-weight="600">do not edit &#183; do not commit</text>
+  <text x="40"  y="568" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10">produced by cmd/generator; read by the binary at request time</text>
+
+  <text x="40"  y="594" fill="#C9F5F2" font-family="monospace" font-size="10">.piko/</text>
+  <text x="210" y="594" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">generator output read by the binary</text>
+
+  <text x="40"  y="610" fill="#C9F5F2" font-family="monospace" font-size="10">dist/</text>
+  <text x="210" y="610" fill="#C9F5F2" font-family="system-ui, sans-serif" font-size="10">compiled assets and bundles served at runtime</text>
+</svg>

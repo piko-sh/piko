@@ -108,14 +108,13 @@ func NewArtefactWorkflowBridge(
 	}
 }
 
-// Listen starts listening for artefact events from the provided
-// EventBus, automatically detecting handler-based subscription
-// support for efficient Ack/Nack semantics.
+// Listen starts listening for artefact events from the provided EventBus,
+// automatically detecting handler-based subscription support for efficient Ack/Nack
+// semantics.
 //
-// Behaviour: This method blocks until the context is cancelled.
-// For proper initialisation ordering, use StartListening()
-// instead which sets up subscriptions synchronously and returns
-// immediately.
+// Behaviour: blocks until the context is cancelled. For proper initialisation
+// ordering, use StartListening() instead which sets up subscriptions synchronously
+// and returns immediately.
 //
 // When using handler-based subscription:
 //   - Messages are processed by Watermill's router
@@ -231,10 +230,9 @@ func (b *ArtefactWorkflowBridge) setupHandlerSubscriptions(ctx context.Context, 
 // listenWithHandler subscribes to artefact events using handler-based
 // semantics for proper Ack/Nack support.
 //
-// This is the preferred method when using a Watermill-backed event bus.
-// Unlike channel-based subscription, Watermill's GoChannel does not support
-// wildcard patterns. This method subscribes to each topic in
-// registry_domain.ArtefactTopics explicitly.
+// Preferred when using a Watermill-backed event bus. Unlike channel-based
+// subscription, Watermill's GoChannel does not support wildcard patterns. Subscribes
+// to each topic in registry_domain.ArtefactTopics explicitly.
 //
 // Takes bus (orchestrator_domain.EventBus) which provides the event
 // bus with handler-based subscription support.

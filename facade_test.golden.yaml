@@ -215,7 +215,7 @@ SSRServer: |- # Kind: Struct
       // Field
       PreBuildHook func()
 
-      // (+6 unexported fields)
+      // (+5 unexported fields)
 
       // Method
       Close()
@@ -260,5 +260,4 @@ WithJSONTypeInspectorCache: func() func(*bootstrap.Container) # Kind: Func
 WithMemoryRegistryCache: func() func(*bootstrap.Container) # Kind: Func
 WithOrchestratorService: func(orchestrator_domain.OrchestratorService) func(*bootstrap.Container) # Kind: Func
 WithRegistryService: func(registry_domain.RegistryService) func(*bootstrap.Container) # Kind: Func
-WithServerConfigDefaults: func(*config.ServerConfig) func(*bootstrap.Container) # Kind: Func
 WithSymbols: func(map[string]map[string]reflect.Value) # Kind: Func

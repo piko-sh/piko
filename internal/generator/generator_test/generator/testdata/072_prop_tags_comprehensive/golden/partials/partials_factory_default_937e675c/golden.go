@@ -5,6 +5,7 @@
 package partials_factory_default_937e675c
 
 import (
+	"cmp"
 	fmt "fmt"
 	"html"
 	"sort"
@@ -22,6 +23,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 
 // line partials/factory-default.pk:37

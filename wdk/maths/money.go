@@ -751,7 +751,7 @@ func (m Money) divisionRemainder(factor Decimal, roundFunction func(Decimal) Dec
 
 // currencyCode returns the currency code from a Money value that is known to
 // be error-free. All callers must have already checked m.err != nil before
-// calling this method.
+// invoking it.
 //
 // Returns string which is the ISO 4217 currency code.
 func (m Money) currencyCode() string {

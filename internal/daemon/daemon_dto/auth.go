@@ -23,13 +23,13 @@ import (
 	"net/http"
 )
 
-// AuthContext represents the resolved authentication state for a
-// request. Users implement this interface to expose their auth
-// system's data to Piko pages and actions.
+// AuthContext represents the resolved authentication state for a request. Users
+// implement the contract to expose their auth system's data to Piko pages and
+// actions.
 //
-// The Get method is the extension point for app-specific data such as
-// account objects, session details, TOTP state, or role lists. Piko
-// does not interpret the returned values.
+// The Get method is the extension point for app-specific data such as account
+// objects, session details, TOTP state, or role lists. Piko does not interpret
+// the returned values.
 type AuthContext interface {
 	// IsAuthenticated reports whether the request has a valid
 	// authentication session.

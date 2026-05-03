@@ -23,9 +23,9 @@ import "go/ast"
 // DynamicCollectionInfo contains instructions for the Generator to emit
 // dynamic collection fetcher code.
 //
-// This struct is created by the Collection Service during annotation and
-// consumed by the Generator during code emission. It bridges the gap between
-// collection provider blueprints and final Go code generation.
+// Created by the Collection Service during annotation and consumed by the
+// Generator during code emission. Bridges the gap between collection provider
+// blueprints and final Go code generation.
 //
 // Design Philosophy:
 //   - Created at build-time by CollectionService
@@ -33,7 +33,7 @@ import "go/ast"
 //   - Consumed by Generator's expression emitter
 //   - Contains everything needed to emit fetcher function + call
 //
-// For hybrid mode (ISR), this struct also contains:
+// For hybrid mode (ISR), it also contains:
 //   - HybridConfig with revalidation settings
 //   - SnapshotETag for staleness detection
 //   - RevalidatorCode for background refresh
@@ -45,8 +45,8 @@ type DynamicCollectionInfo struct {
 
 	// FetcherCode holds the runtime fetch code blueprint from the provider.
 	//
-	// This contains the AST for a function that fetches data at runtime.
-	// The generator clones this function, renames it, and adds it to the
+	// Contains the AST for a function that fetches data at runtime.
+	// The generator clones the function, renames it, and adds it to the
 	// component file.
 	//
 	// For pure dynamic providers: always set.
@@ -59,8 +59,8 @@ type DynamicCollectionInfo struct {
 
 	// RevalidatorCode is the AST for the revalidation function.
 	//
-	// This function checks the ETag and fetches new content if it has changed.
-	// The Generator clones this and adds it to the component file.
+	// Checks the ETag and fetches new content if it has changed.
+	// The Generator clones the function and adds it to the component file.
 	//
 	// Only set when HybridMode is true.
 	RevalidatorCode *RuntimeFetcherCode

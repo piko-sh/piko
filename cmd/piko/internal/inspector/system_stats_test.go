@@ -82,8 +82,8 @@ func TestFormatNanosAsDuration(t *testing.T) {
 		want string
 		in   int64
 	}{
-		{name: "negative returns em-dash", in: -1, want: EmDashGlyph},
-		{name: "zero returns em-dash", in: 0, want: EmDashGlyph},
+		{name: "negative returns em-dash", in: -1, want: hyphenGlyph},
+		{name: "zero returns em-dash", in: 0, want: hyphenGlyph},
 		{name: "one second", in: 1_000_000_000, want: "1s"},
 		{name: "two minutes", in: 120_000_000_000, want: "2m0s"},
 	}

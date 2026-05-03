@@ -340,8 +340,8 @@ func (p *provider) DecryptStream(_ context.Context, input io.Reader) (io.ReadClo
 // WriteStreamingHeader writes the v2 streaming envelope header to the output.
 // Format: [Version (1 byte)] [Header Length (4 bytes)] [JSON Header].
 //
-// This function is exported so that other providers (AWS KMS, GCP KMS) can
-// reuse the same envelope format for consistency.
+// Exported so that other providers (AWS KMS, GCP KMS) can reuse the same envelope
+// format for consistency.
 //
 // Takes output (io.Writer) which receives the encoded header bytes.
 // Takes header (*crypto_dto.StreamingHeader) which contains the envelope
@@ -374,8 +374,8 @@ func WriteStreamingHeader(output io.Writer, header *crypto_dto.StreamingHeader) 
 
 // ReadStreamingHeader reads and parses the v2 streaming envelope header.
 //
-// This function is exported so that other providers (AWS KMS, GCP KMS) can
-// reuse the same envelope format for consistency.
+// Exported so that other providers (AWS KMS, GCP KMS) can reuse the same envelope
+// format for consistency.
 //
 // Takes input (io.Reader) which provides the encrypted stream to read from.
 //

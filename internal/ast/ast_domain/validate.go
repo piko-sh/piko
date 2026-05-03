@@ -117,9 +117,9 @@ func validateNodeList(nodes []*TemplateNode, tree *TemplateAST) {
 
 // validateAdjacency checks that else-type directives follow valid nodes.
 //
-// Else-type directives (such as p-else and p-else-if) must come straight
-// after an element with p-if or p-else-if. This function adds a diagnostic
-// error to the tree when this rule is broken.
+// Else-type directives (such as p-else and p-else-if) must come straight after
+// an element with p-if or p-else-if. Adds a diagnostic error to the tree when
+// this rule is broken.
 //
 // Takes node (*TemplateNode) which is the node to check.
 // Takes previousSibling (*TemplateNode) which is the node before it.
@@ -230,9 +230,9 @@ func validateRedundantConditionals(node *TemplateNode, tree *TemplateAST) {
 // element.
 //
 // The p-for directive always runs before other directives, so it should appear
-// first in the source code. This function checks all other directives, dynamic
-// attributes, and event handlers. If any appear before p-for, it reports a
-// warning to help keep the code clear.
+// first in the source code. Checks all other directives, dynamic attributes,
+// and event handlers. If any appear before p-for, reports a warning to help keep
+// the code clear.
 //
 // Takes node (*TemplateNode) which is the element node to check.
 // Takes tree (*TemplateAST) which provides the AST for reporting warnings.

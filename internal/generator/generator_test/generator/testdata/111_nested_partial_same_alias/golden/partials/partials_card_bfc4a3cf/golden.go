@@ -5,6 +5,7 @@
 package partials_card_bfc4a3cf
 
 import (
+	"cmp"
 	"fmt"
 	"html"
 	"sort"
@@ -22,6 +23,7 @@ var _ = strconv.FormatInt
 var _ = sort.Strings
 var _ = pikoruntime.EvaluateTruthiness
 var _ = safeconv.IntToInt32
+var _ = cmp.Compare("", "")
 var _ = piko.Metadata{}
 var _ = partials_price_helper_75efb1b0.Render
 

@@ -52,7 +52,7 @@ const (
 // cannot be written, or the atomic rename fails.
 func AtomicWriteFile(ctx context.Context, sandbox safedisk.Sandbox, filename string, data []byte, perm fs.FileMode) error {
 	directory := filepath.Dir(filename)
-	if err := sandbox.MkdirAll(directory, DirPermission); err != nil {
+	if err := sandbox.MkdirAll(directory, DirectoryPermission); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", directory, err)
 	}
 

@@ -19,6 +19,8 @@
 package monitoring_domain
 
 import (
+	"maps"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -137,7 +139,10 @@ type StoreConfig struct {
 	// MaxSpans is the maximum number of spans to store; uses a ring buffer when full.
 	MaxSpans int
 
-	// MaxMetrics is the maximum number of metrics to store; 0 means no limit.
+	// MaxMetrics is the maximum number of metrics to store.
+	//
+	// New entries past the cap are dropped (fail-closed); existing
+	// entries are not evicted. A value of 0 disables the cap.
 	MaxMetrics int
 
 	// MaxMetricAge is the maximum age for metric data points; older points are
@@ -165,6 +170,11 @@ type TelemetryStore struct {
 
 	// spanIndex is the current position in the ring buffer for spans.
 	spanIndex int
+
+	// metricCapWarnOnce ensures the cap-hit warning is logged at most once
+	// per store lifetime, preventing log floods when a misbehaving caller
+	// drives high cardinality.
+	metricCapWarnOnce sync.Once
 
 	// metricsMutex sync.RWMutex // metricsMutex guards access to the metrics map.
 	metricsMutex sync.RWMutex
@@ -196,13 +206,14 @@ func NewTelemetryStore(opts ...StoreOption) *TelemetryStore {
 	}
 
 	return &TelemetryStore{
-		clock:        clk,
-		metrics:      make(map[string]*InternalMetricData),
-		spans:        make([]InternalSpanData, 0, config.MaxSpans),
-		config:       config,
-		spanIndex:    0,
-		metricsMutex: sync.RWMutex{},
-		spansMutex:   sync.RWMutex{},
+		clock:             clk,
+		metrics:           make(map[string]*InternalMetricData),
+		spans:             make([]InternalSpanData, 0, config.MaxSpans),
+		config:            config,
+		spanIndex:         0,
+		metricCapWarnOnce: sync.Once{},
+		metricsMutex:      sync.RWMutex{},
+		spansMutex:        sync.RWMutex{},
 	}
 }
 
@@ -216,6 +227,16 @@ func NewTelemetryStore(opts ...StoreOption) *TelemetryStore {
 // Takes attributes (map[string]string) which provides additional labels.
 //
 // Safe for concurrent use. Protected by a mutex.
+//
+// New entries are dropped (fail-closed) once the configured MaxMetrics
+// cap is reached; MaxMetrics of 0 disables the cap. Existing entries
+// continue to accumulate data points so cardinality cannot escape via
+// later calls. The cap-hit is logged once per store lifetime to avoid
+// log floods.
+//
+// TODO: the per-call DataPoints slice rebuild allocates fresh storage
+// every recording. If profiling flags this on a hot path, switch to
+// in-place compaction or a ring buffer.
 func (s *TelemetryStore) RecordMetric(name, description, unit, metricType string, value float64, attributes map[string]string) {
 	s.metricsMutex.Lock()
 	defer s.metricsMutex.Unlock()
@@ -227,6 +248,15 @@ func (s *TelemetryStore) RecordMetric(name, description, unit, metricType string
 
 	metric, exists := s.metrics[key]
 	if !exists {
+		if s.config.MaxMetrics > 0 && len(s.metrics) >= s.config.MaxMetrics {
+			s.metricCapWarnOnce.Do(func() {
+				log.Warn("Telemetry metric cap reached, dropping new entries",
+					Int("max_metrics", s.config.MaxMetrics),
+					String("dropped_metric", name),
+				)
+			})
+			return
+		}
 		metric = &InternalMetricData{
 			Name:        name,
 			Description: description,
@@ -450,6 +480,12 @@ func WithStoreClock(clk clock.Clock) StoreOption {
 
 // attributesToKey creates a unique key suffix from attributes.
 //
+// Iteration order of a Go map is randomised, so the suffix is built
+// from keys collected via slices.Sorted(maps.Keys(...)) to guarantee
+// the same attribute set always produces the same key. Without this,
+// callers re-passing identical attributes would mint fresh map entries
+// indefinitely (cardinality bomb).
+//
 // Takes attrs (map[string]string) which contains the key-value pairs to encode.
 //
 // Returns string which is the encoded key suffix, or empty if attrs is empty.
@@ -458,12 +494,14 @@ func attributesToKey(attrs map[string]string) string {
 		return ""
 	}
 
+	keys := slices.Sorted(maps.Keys(attrs))
+
 	var builder strings.Builder
-	for k, v := range attrs {
+	for _, k := range keys {
 		_ = builder.WriteByte('|')
 		builder.WriteString(k)
 		_ = builder.WriteByte('=')
-		builder.WriteString(v)
+		builder.WriteString(attrs[k])
 	}
 	return builder.String()
 }

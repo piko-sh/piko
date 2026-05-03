@@ -52,7 +52,7 @@ type Config struct {
 	MaxRetries int
 }
 
-// Validate checks whether the configuration is valid.
+// Validate reports whether the configuration is valid.
 //
 // Returns error when required fields are missing or MaxRetries is negative.
 func (c *Config) Validate() error {

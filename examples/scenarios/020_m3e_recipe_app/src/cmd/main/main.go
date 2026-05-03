@@ -56,11 +56,7 @@ func main() {
 		piko.WithComponents(components.M3E()...),
 		piko.WithLLMProvider("zoltai", zoltaiProvider),
 		piko.WithDefaultLLMProvider("zoltai"),
-		piko.WithServerConfigDefaults(&piko.ServerConfig{
-			Network: piko.NetworkConfig{
-				AutoNextPort: new(true),
-			},
-		}),
+		piko.WithAutoNextPort(true),
 		piko.WithDevWidget(),
 		piko.WithDevHotreload(),
 		piko.WithMonitoring(),

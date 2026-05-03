@@ -93,7 +93,7 @@ func (*ASTConverter) tryConvertPrimitiveLiteral(expression js_ast.Expr) parsejs.
 //
 // Returns parsejs.IExpr which is the converted expression, or
 // nil for elision.
-// Returns bool which shows whether this method handled the
+// Returns bool which shows whether the call handled the
 // expression type.
 // Returns error when conversion of a supported expression type
 // fails.

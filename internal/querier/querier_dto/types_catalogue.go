@@ -264,7 +264,7 @@ type FunctionSignature struct {
 	// Populated during body analysis; used for call graph construction.
 	CalledFunctions []string
 
-	// Origin records which migration introduced this function.
+	// Origin records which migration introduced the function.
 	Origin MigrationOrigin
 
 	// ReturnType is the function's return type.
@@ -276,13 +276,13 @@ type FunctionSignature struct {
 	// When zero, defaults to len(Arguments) (all required).
 	MinArguments int
 
-	// ReturnsSet indicates whether the function returns a set of rows.
+	// ReturnsSet indicates whether a set of rows is returned.
 	ReturnsSet bool
 
 	// IsAggregate indicates whether the function is an aggregate.
 	IsAggregate bool
 
-	// IsStrict indicates the function returns NULL on any NULL argument.
+	// IsStrict indicates that NULL is returned on any NULL argument.
 	// PostgreSQL: STRICT or RETURNS NULL ON NULL INPUT.
 	IsStrict bool
 
@@ -339,8 +339,8 @@ const (
 	// arguments are NULL. The result nullability depends on the function.
 	FunctionNullableCalledOnNull FunctionNullableBehaviour = iota
 
-	// FunctionNullableReturnsNullOnNull means the function returns NULL if
-	// any argument is NULL (SQL STRICT / RETURNS NULL ON NULL INPUT).
+	// FunctionNullableReturnsNullOnNull means NULL is returned when any
+	// argument is NULL (SQL STRICT / RETURNS NULL ON NULL INPUT).
 	FunctionNullableReturnsNullOnNull
 
 	// FunctionNullableNeverNull means the function never returns NULL
@@ -365,7 +365,7 @@ type FunctionResolution struct {
 	// IsAggregate indicates whether the function is an aggregate.
 	IsAggregate bool
 
-	// ReturnsSet indicates whether the function returns a set of rows.
+	// ReturnsSet indicates whether a set of rows is returned.
 	ReturnsSet bool
 }
 

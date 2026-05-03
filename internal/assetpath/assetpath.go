@@ -26,7 +26,7 @@ import (
 const (
 	// DefaultServePath is the default URL path prefix for serving compiled
 	// assets. Consumers with config access may use
-	// config.ServerConfig.Paths.ArtefactServePath instead.
+	// bootstrap.ServerConfig.Paths.ArtefactServePath instead.
 	DefaultServePath = "/_piko/assets"
 
 	// ModuleAliasPrefix is the @/ prefix used for module-relative asset paths.

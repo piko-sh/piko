@@ -413,7 +413,12 @@ async function performNavigation(
         }
 
         const [success, htmlString] = await fetchClient.get(addFragmentQuery(targetUrl), {
-            onProgress: (loaded, total) => loader.setProgress((loaded / total) * PROGRESS_MAX)
+            onHeadersReceived: () => loader.headersReceived(),
+            onProgress: (loaded, total) => {
+                if (total > 0) {
+                    loader.setProgress(PROGRESS_MAX / 2 + (loaded / total) * (PROGRESS_MAX / 2));
+                }
+            }
         });
 
         if (!success || !htmlString) {

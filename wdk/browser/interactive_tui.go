@@ -439,11 +439,7 @@ func (tuiModel) stepIcon(state StepState) string {
 // Returns string which is the formatted description with shortened details and
 // duration shown for finished steps.
 func (tuiModel) formatStepDescription(step Step) string {
-	detail := step.Detail
-
-	if len(detail) > stepDetailMaxDisplayLen {
-		detail = detail[:stepDetailMaxDisplayLen-truncationSuffixLen] + "..."
-	}
+	detail := truncateRunes(step.Detail, stepDetailMaxDisplayLen-truncationSuffixLen)
 
 	if step.State == StepPassed || step.State == StepFailed {
 		if step.Duration > 0 {

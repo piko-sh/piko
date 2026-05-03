@@ -29,6 +29,7 @@ import (
 	"math"
 	"math/bits"
 	"strings"
+	"sync/atomic"
 
 	"piko.sh/piko/internal/mem"
 	"piko.sh/piko/wdk/safeconv"
@@ -101,6 +102,11 @@ const (
 	errFmtNonBaseChar = "non-base character '%c' found in input"
 )
 
+// defaultMaxBaseXBytes is the default maximum input length (in bytes for
+// encode, characters for decode) accepted by the generic baseX path. baseX is
+// typically used for short identifiers, so 16 KiB is a generous practical cap.
+const defaultMaxBaseXBytes = 16 * 1024
+
 var (
 	// ErrAlphabetEmpty is returned when an empty alphabet string is provided to
 	// NewEncoding.
@@ -109,7 +115,40 @@ var (
 	// ErrAlphabetAmbiguous is returned when an alphabet contains duplicate
 	// characters.
 	ErrAlphabetAmbiguous = errors.New("ambiguous alphabet")
+
+	// ErrBaseXInputTooLarge is returned when the input to a generic baseX
+	// encode or decode exceeds the configured cap. The bigint multiply/divide
+	// loop is O(n^2) in input length, so a cap protects against pathological
+	// inputs that could pin a CPU.
+	ErrBaseXInputTooLarge = errors.New("baseX input exceeds maximum size")
 )
+
+// maxBaseXInputBytes holds the active cap for generic baseX operations. It is
+// stored atomically so SetMaxBaseXInputBytes can be called from any goroutine.
+var maxBaseXInputBytes atomic.Int64
+
+func init() {
+	maxBaseXInputBytes.Store(defaultMaxBaseXBytes)
+}
+
+// SetMaxBaseXInputBytes overrides the maximum input size for generic baseX
+// encode and decode operations. Pass a value <= 0 to restore the default.
+//
+// Takes limit (int) which is the new cap in bytes (or characters for decode).
+func SetMaxBaseXInputBytes(limit int) {
+	if limit <= 0 {
+		maxBaseXInputBytes.Store(defaultMaxBaseXBytes)
+		return
+	}
+	maxBaseXInputBytes.Store(int64(limit))
+}
+
+// MaxBaseXInputBytes returns the current cap for generic baseX inputs.
+//
+// Returns int which is the active limit in bytes (or characters for decode).
+func MaxBaseXInputBytes() int {
+	return int(maxBaseXInputBytes.Load())
+}
 
 // fastPathEncoder defines methods for fast encoding and decoding of bytes.
 // It allows base64 and hex encoders to be used in the same way.
@@ -230,6 +269,9 @@ func NewEncoding(alphabet string) (*Encoding, error) {
 // It will automatically use the optimised standard library if a
 // standard alphabet (Base64, Hex) was detected at creation time.
 //
+// For inputs that exceed the configured generic cap, this returns the empty
+// string. Use TryEncodeBytes for explicit error reporting.
+//
 // Takes data ([]byte) which is the raw bytes to encode.
 //
 // Returns string which is the encoded representation of the input bytes.
@@ -238,7 +280,31 @@ func (enc *Encoding) EncodeBytes(data []byte) string {
 		return enc.fastPath.EncodeToString(data)
 	}
 
+	if len(data) > MaxBaseXInputBytes() {
+		return ""
+	}
+
 	return enc.encodeBytesGeneric(data)
+}
+
+// TryEncodeBytes is the error-returning counterpart to EncodeBytes that
+// surfaces ErrBaseXInputTooLarge when the input exceeds the configured cap.
+//
+// Takes data ([]byte) which is the raw bytes to encode.
+//
+// Returns string which is the encoded representation of the input bytes.
+// Returns error which wraps ErrBaseXInputTooLarge when the input exceeds the
+// configured cap.
+func (enc *Encoding) TryEncodeBytes(data []byte) (string, error) {
+	if enc.fastPath != nil {
+		return enc.fastPath.EncodeToString(data), nil
+	}
+
+	if len(data) > MaxBaseXInputBytes() {
+		return "", fmt.Errorf("%w: got %d bytes, cap %d", ErrBaseXInputTooLarge, len(data), MaxBaseXInputBytes())
+	}
+
+	return enc.encodeBytesGeneric(data), nil
 }
 
 // DecodeBytes converts a string created by EncodeBytes back into a slice of
@@ -248,10 +314,15 @@ func (enc *Encoding) EncodeBytes(data []byte) string {
 // Takes input (string) which is the encoded string to decode.
 //
 // Returns []byte which is the decoded byte slice.
-// Returns error when the input string is not valid for this encoding.
+// Returns error when the input string is not valid for this encoding, or
+// wraps ErrBaseXInputTooLarge when the input exceeds the configured cap.
 func (enc *Encoding) DecodeBytes(input string) ([]byte, error) {
 	if enc.fastPath != nil {
 		return enc.fastPath.DecodeString(input)
+	}
+
+	if len(input) > MaxBaseXInputBytes() {
+		return nil, fmt.Errorf("%w: got %d chars, cap %d", ErrBaseXInputTooLarge, len(input), MaxBaseXInputBytes())
 	}
 
 	return enc.decodeBytesGeneric(input)
@@ -447,7 +518,7 @@ func (enc *Encoding) encodeBytesGeneric(data []byte) string {
 }
 
 // encodeBytesASCII encodes digits to a string using the byte-based alphabet.
-// This method avoids memory allocation where possible.
+// Avoids memory allocation where possible.
 //
 // Takes digits ([]int) which contains the numeric values to encode.
 // Takes leadingZeroCount (int) which specifies zeros to add at the start.

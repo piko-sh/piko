@@ -20,10 +20,14 @@ package browser_provider_chromedp
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,7 +49,16 @@ const (
 	// errFmtCreateDownloadDir is the error format for download directory
 	// creation failures.
 	errFmtCreateDownloadDir = "creating download directory: %w"
+
+	// safeFilenameHashLength bounds the prefix of the SHA-256 digest used when
+	// synthesising a replacement for an unsafe suggested filename.
+	safeFilenameHashLength = 16
 )
+
+// ErrUnsafeDownloadPath indicates the suggested filename was rejected because
+// it contained path separators, parent traversal segments, or escaped the
+// download directory.
+var ErrUnsafeDownloadPath = errors.New("download filename rejected as unsafe")
 
 // DownloadInfo holds details about a file download, including its progress
 // and state.
@@ -214,17 +227,166 @@ func (dt *DownloadTracker) Disable(ctx *ActionContext) error {
 // for a download to complete.
 //
 // Returns *DownloadInfo which contains details about the completed download.
-// Returns error when the timeout is reached before a download completes.
+// Returns error when the timeout is reached before a download completes, or
+// when the suggested filename escapes the download directory and a safe
+// replacement could not be derived.
 func (dt *DownloadTracker) WaitForDownload(timeout time.Duration) (*DownloadInfo, error) {
 	select {
 	case info := <-dt.downloadCh:
 		if dt.downloadDir != "" && info.SuggestedFilename != "" {
-			info.Path = filepath.Join(dt.downloadDir, info.SuggestedFilename)
+			path, err := safeDownloadPath(dt.downloadDir, info.SuggestedFilename)
+			if err != nil {
+				return nil, err
+			}
+			info.Path = path
 		}
 		return info, nil
 	case <-time.After(timeout):
 		return nil, errors.New("timeout waiting for download")
 	}
+}
+
+// sanitiseSuggestedFilename normalises a remote-supplied filename so it cannot
+// escape its containing directory. Returns the cleaned base name when the
+// input is safe, or a SHA-256 derived replacement when the input contains
+// separators, parent traversal segments, leading dots, or reduces to an empty
+// component.
+//
+// Takes suggested (string) which is the filename hint received from the
+// remote (typically Content-Disposition).
+//
+// Returns string which is always a single, safe path component with no
+// separators.
+func sanitiseSuggestedFilename(suggested string) string {
+	trimmed := strings.TrimSpace(suggested)
+	if trimmed == "" {
+		return synthesiseSafeFilename(suggested)
+	}
+
+	if strings.ContainsAny(trimmed, "/\\") || strings.Contains(trimmed, "..") {
+		return synthesiseSafeFilename(suggested)
+	}
+
+	if strings.HasPrefix(trimmed, ".") {
+		return synthesiseSafeFilename(suggested)
+	}
+
+	base := filepath.Base(trimmed)
+	if base == "" || base == "." || base == ".." || base != trimmed {
+		return synthesiseSafeFilename(suggested)
+	}
+
+	return base
+}
+
+// synthesiseSafeFilename produces a deterministic safe filename from the
+// rejected input by hashing it and preserving any safe-looking extension.
+//
+// Takes original (string) which is the rejected filename used to derive the
+// replacement so callers can correlate downloads with their attempts.
+//
+// Returns string which is a deterministic, separator-free filename.
+func synthesiseSafeFilename(original string) string {
+	digest := sha256.Sum256([]byte(original))
+	prefix := hex.EncodeToString(digest[:])
+	if len(prefix) > safeFilenameHashLength {
+		prefix = prefix[:safeFilenameHashLength]
+	}
+
+	ext := filepath.Ext(original)
+	cleanExt := safeExtension(ext)
+
+	return "download-" + prefix + cleanExt
+}
+
+// safeExtension returns the input extension when it consists solely of an
+// initial '.' followed by alphanumerics or hyphens. Anything else becomes an
+// empty string so a hostile suffix cannot leak through.
+//
+// Takes ext (string) which is the candidate extension including the leading
+// dot, or empty when the original had none.
+//
+// Returns string which is the extension when safe, or empty otherwise.
+func safeExtension(ext string) string {
+	if ext == "" || ext == "." {
+		return ""
+	}
+	if !strings.HasPrefix(ext, ".") {
+		return ""
+	}
+	for _, r := range ext[1:] {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r >= '0' && r <= '9':
+		case r == '-':
+		default:
+			return ""
+		}
+	}
+	return ext
+}
+
+// pathComparisonIsCaseInsensitive selects case-insensitive path prefix matching.
+//
+// NTFS and the default macOS filesystem (HFS+/APFS in case-insensitive
+// mode) treat `C:\Foo` and `c:\foo` as the same path, so a case-sensitive
+// prefix check would either falsely reject legitimate downloads or fail
+// to recognise an escape attempt that varies only by letter case. Tests
+// override this to exercise both branches on a single host.
+var pathComparisonIsCaseInsensitive = runtime.GOOS == "windows"
+
+// pathHasPrefix reports whether path begins with prefix.
+//
+// Uses platform-appropriate case sensitivity: on Windows the comparison
+// is case-insensitive to match NTFS semantics; on POSIX systems it is
+// byte-exact. Both inputs are expected to already be cleaned and to share
+// a trailing separator so substring boundaries match directory boundaries.
+//
+// Takes path (string) which is the candidate cleaned absolute path.
+// Takes prefix (string) which is the cleaned download directory plus separator.
+//
+// Returns bool which is true when path is rooted inside prefix.
+func pathHasPrefix(path, prefix string) bool {
+	if pathComparisonIsCaseInsensitive {
+		if len(path) < len(prefix) {
+			return false
+		}
+		return strings.EqualFold(path[:len(prefix)], prefix)
+	}
+	return strings.HasPrefix(path, prefix)
+}
+
+// safeDownloadPath joins a sanitised filename onto the download directory and
+// verifies the resulting absolute path remains inside the directory.
+//
+// Takes downloadDir (string) which is the directory configured for downloads.
+// Takes suggested (string) which is the remote-supplied filename hint.
+//
+// Returns string which is the validated absolute or directory-joined path.
+// Returns error which wraps ErrUnsafeDownloadPath when the resolved path
+// escapes downloadDir or the absolute path cannot be derived.
+func safeDownloadPath(downloadDir, suggested string) (string, error) {
+	safeName := sanitiseSuggestedFilename(suggested)
+	joined := filepath.Join(downloadDir, safeName)
+
+	absDir, err := filepath.Abs(downloadDir)
+	if err != nil {
+		return "", fmt.Errorf("resolving download directory: %w", err)
+	}
+	absJoined, err := filepath.Abs(joined)
+	if err != nil {
+		return "", fmt.Errorf("resolving download path: %w", err)
+	}
+
+	cleanDir := filepath.Clean(absDir) + string(filepath.Separator)
+	cleanPath := filepath.Clean(absJoined) + string(filepath.Separator)
+
+	if !pathHasPrefix(cleanPath, cleanDir) {
+		return "", fmt.Errorf("filename %q escapes download directory: %w", suggested, ErrUnsafeDownloadPath)
+	}
+
+	return joined, nil
 }
 
 // GetDownload returns information about a specific download by GUID.
@@ -279,9 +441,11 @@ func (dt *DownloadTracker) createDownloadDir() error {
 		}
 		return nil
 	}
-	if err := os.MkdirAll(dt.downloadDir, downloadDirPerm); err != nil {
+	sandbox, err := safedisk.NewSandbox(dt.downloadDir, safedisk.ModeReadWrite)
+	if err != nil {
 		return fmt.Errorf(errFmtCreateDownloadDir, err)
 	}
+	_ = sandbox.Close()
 	return nil
 }
 
@@ -609,11 +773,15 @@ func setDownloadBehaviorForDir(ctx *ActionContext, downloadDir string) error {
 func setupDownloadListener(ctx *ActionContext, downloadDir string, downloadCh chan *DownloadInfo) {
 	chromedp.ListenTarget(ctx.Ctx, func(ev any) {
 		if e, ok := ev.(*browser.EventDownloadWillBegin); ok {
+			path, err := safeDownloadPath(downloadDir, e.SuggestedFilename)
+			if err != nil {
+				return
+			}
 			info := &DownloadInfo{
 				GUID:              e.GUID,
 				URL:               e.URL,
 				SuggestedFilename: e.SuggestedFilename,
-				Path:              filepath.Join(downloadDir, e.SuggestedFilename),
+				Path:              path,
 				State:             "inProgress",
 				ReceivedBytes:     0,
 				TotalBytes:        0,

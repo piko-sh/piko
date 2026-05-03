@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/cssinliner"
@@ -3453,4 +3454,30 @@ func TestCSSProcessor_WithResolver(t *testing.T) {
 		require.NotNil(t, newProcessor)
 		assert.NotSame(t, original, newProcessor)
 	})
+}
+
+func TestCSSProcessor_RejectsDeeplyNestedSelectors(t *testing.T) {
+	t.Parallel()
+
+	current := []css_ast.Rule{}
+	for range maxCSSRuleDepth + 16 {
+		nested := []css_ast.Rule{
+			{Data: &css_ast.RAtLayer{Names: [][]string{{"piko"}}, Rules: current}},
+		}
+		current = nested
+	}
+
+	transformer := &cssScopeTransformer{scopeID: "scope"}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		transformer.transform(current)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("transform did not return promptly - depth cap missing or broken")
+	}
 }

@@ -30,7 +30,9 @@ import (
 	"bytes"
 	"compress/zlib"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"image"
 	"image/png"
 	"slices"
 	"strings"
@@ -41,6 +43,12 @@ import (
 const (
 	// maxAlpha holds the maximum alpha channel value for a fully opaque pixel.
 	maxAlpha = 255
+
+	// maxImagePixels caps the total pixel count (width * height) of a
+	// decoded image at one hundred million pixels (~10000 x 10000).
+	// Anything larger is treated as a denial-of-service attempt rather
+	// than a genuine document.
+	maxImagePixels = 100_000_000
 
 	// jpegMarkerPrefix holds the byte that precedes every JPEG marker.
 	jpegMarkerPrefix = 0xFF
@@ -86,6 +94,12 @@ const (
 	// rgbChannelCount holds the number of colour channels in an RGB image.
 	rgbChannelCount = 3
 )
+
+// ErrImageDimensionsTooLarge is returned when a decoded image exceeds
+// the configured pixel-area cap. The cap protects against malicious or
+// malformed images that would otherwise allocate gigabytes of pixel
+// buffer before any rendering work begins.
+var ErrImageDimensionsTooLarge = errors.New("image dimensions exceed maximum pixel area")
 
 // embeddedImageState holds the data for a single registered image.
 type embeddedImageState struct {
@@ -227,6 +241,12 @@ func (*ImageEmbedder) writeJPEGXObject(writer *PdfDocumentWriter, state *embedde
 // Returns error which is non-nil if zlib compression
 // fails.
 func (*ImageEmbedder) writePNGXObject(writer *PdfDocumentWriter, state *embeddedImageState) (int, error) {
+	if state.pixelWidth > 0 && state.pixelHeight > 0 {
+		if int64(state.pixelWidth)*int64(state.pixelHeight) > maxImagePixels {
+			return 0, fmt.Errorf("%w: declared %d x %d pixels exceeds cap of %d", ErrImageDimensionsTooLarge, state.pixelWidth, state.pixelHeight, maxImagePixels)
+		}
+	}
+
 	img, decodeError := png.Decode(bytes.NewReader(state.data))
 	if decodeError != nil {
 		objectNumber := writer.AllocateObject()
@@ -238,22 +258,14 @@ func (*ImageEmbedder) writePNGXObject(writer *PdfDocumentWriter, state *embedded
 	width := bounds.Dx()
 	height := bounds.Dy()
 
-	rgbPixels := make([]byte, 0, width*height*rgbChannelCount)
-	alphaPixels := make([]byte, 0, width*height)
-	hasAlpha := false
-
-	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
-		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			r, g, b, a := img.At(x, y).RGBA()
-
-			rgbPixels = append(rgbPixels, safeconv.Uint32ToByte(r>>8), safeconv.Uint32ToByte(g>>8), safeconv.Uint32ToByte(b>>8))
-			alphaByte := safeconv.Uint32ToByte(a >> 8)
-			alphaPixels = append(alphaPixels, alphaByte)
-			if alphaByte != maxAlpha {
-				hasAlpha = true
-			}
-		}
+	if width <= 0 || height <= 0 {
+		return 0, fmt.Errorf("%w: width %d, height %d", ErrImageDimensionsTooLarge, width, height)
 	}
+	if int64(width)*int64(height) > maxImagePixels {
+		return 0, fmt.Errorf("%w: %d x %d pixels exceeds cap of %d", ErrImageDimensionsTooLarge, width, height, maxImagePixels)
+	}
+
+	rgbPixels, alphaPixels, hasAlpha := extractPNGChannels(img, bounds, width, height)
 
 	var rgbCompressed bytes.Buffer
 	zlibWriter := zlib.NewWriter(&rgbCompressed)
@@ -261,20 +273,9 @@ func (*ImageEmbedder) writePNGXObject(writer *PdfDocumentWriter, state *embedded
 		return 0, fmt.Errorf("compressing RGB pixels: %w", rgbError)
 	}
 
-	var smaskRef string
-	if hasAlpha {
-		smaskNumber := writer.AllocateObject()
-		var alphaCompressed bytes.Buffer
-		alphaZlibWriter := zlib.NewWriter(&alphaCompressed)
-		if alphaError := writeAndCloseZlib(alphaZlibWriter, alphaPixels); alphaError != nil {
-			return 0, fmt.Errorf("compressing alpha channel: %w", alphaError)
-		}
-
-		smaskDict := fmt.Sprintf(
-			"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>",
-			width, height, alphaCompressed.Len())
-		writer.WriteRawStreamObject(smaskNumber, smaskDict, alphaCompressed.Bytes())
-		smaskRef = fmt.Sprintf(" /SMask %s", FormatReference(smaskNumber))
+	smaskRef, smaskError := writePNGSMaskObject(writer, alphaPixels, width, height, hasAlpha)
+	if smaskError != nil {
+		return 0, smaskError
 	}
 
 	objectNumber := writer.AllocateObject()
@@ -284,6 +285,71 @@ func (*ImageEmbedder) writePNGXObject(writer *PdfDocumentWriter, state *embedded
 	writer.WriteRawStreamObject(objectNumber, dictionary, rgbCompressed.Bytes())
 
 	return objectNumber, nil
+}
+
+// extractPNGChannels walks every pixel in the image and emits the packed RGB
+// stream plus the alpha-mask stream. The hasAlpha flag is set when any pixel
+// is not fully opaque so callers can skip writing an SMask object.
+//
+// Takes img (image.Image) which is the decoded PNG image.
+// Takes bounds (image.Rectangle) which is the image's pixel bounds.
+// Takes width (int) which is the bounds.Dx() value, supplied to size the
+// preallocations.
+// Takes height (int) which is the bounds.Dy() value, supplied to size the
+// preallocations.
+//
+// Returns rgbPixels ([]byte) which holds the packed RGB pixel stream.
+// Returns alphaPixels ([]byte) which holds the alpha-channel stream.
+// Returns hasAlpha (bool) which is true when any alpha byte is below maxAlpha.
+func extractPNGChannels(img image.Image, bounds image.Rectangle, width, height int) (rgbPixels, alphaPixels []byte, hasAlpha bool) {
+	rgbPixels = make([]byte, 0, width*height*rgbChannelCount)
+	alphaPixels = make([]byte, 0, width*height)
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			r, g, b, a := img.At(x, y).RGBA()
+			rgbPixels = append(rgbPixels, safeconv.Uint32ToByte(r>>8), safeconv.Uint32ToByte(g>>8), safeconv.Uint32ToByte(b>>8))
+			alphaByte := safeconv.Uint32ToByte(a >> 8)
+			alphaPixels = append(alphaPixels, alphaByte)
+			if alphaByte != maxAlpha {
+				hasAlpha = true
+			}
+		}
+	}
+
+	return rgbPixels, alphaPixels, hasAlpha
+}
+
+// writePNGSMaskObject emits a soft-mask XObject when the image has any
+// translucent pixels, returning the dictionary fragment that should be spliced
+// into the parent Image dictionary so it references the SMask. When hasAlpha
+// is false, the returned reference is empty and no object is allocated.
+//
+// Takes writer (*PdfDocumentWriter) which receives the SMask object.
+// Takes alphaPixels ([]byte) which holds the 8-bit alpha channel.
+// Takes width (int) which is the image width in pixels.
+// Takes height (int) which is the image height in pixels.
+// Takes hasAlpha (bool) which selects whether to emit an SMask at all.
+//
+// Returns string which is the " /SMask <ref>" fragment or an empty string.
+// Returns error which wraps the zlib failure when the alpha stream cannot be
+// compressed.
+func writePNGSMaskObject(writer *PdfDocumentWriter, alphaPixels []byte, width, height int, hasAlpha bool) (string, error) {
+	if !hasAlpha {
+		return "", nil
+	}
+	smaskNumber := writer.AllocateObject()
+	var alphaCompressed bytes.Buffer
+	alphaZlibWriter := zlib.NewWriter(&alphaCompressed)
+	if alphaError := writeAndCloseZlib(alphaZlibWriter, alphaPixels); alphaError != nil {
+		return "", fmt.Errorf("compressing alpha channel: %w", alphaError)
+	}
+
+	smaskDict := fmt.Sprintf(
+		"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>",
+		width, height, alphaCompressed.Len())
+	writer.WriteRawStreamObject(smaskNumber, smaskDict, alphaCompressed.Bytes())
+	return fmt.Sprintf(" /SMask %s", FormatReference(smaskNumber)), nil
 }
 
 // writeAndCloseZlib writes data to the zlib writer and closes it.

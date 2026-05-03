@@ -109,7 +109,6 @@ func packManifest(b *flatbuffers.Builder, manifest *generator_dto.Manifest) flat
 	emailsOffset := packMap(b, manifest.Emails, packEmailEntryMapItem)
 	pdfsOffset := packMap(b, manifest.Pdfs, packPdfEntryMapItem)
 	errorPagesOffset := packMap(b, manifest.ErrorPages, packErrorPageEntryMapItem)
-	fallbackRoutesOffset := packSlice(b, manifest.CollectionFallbackRoutes, packCollectionFallbackRoute)
 
 	gen_fb.ManifestFBStart(b)
 	gen_fb.ManifestFBAddPages(b, pagesOffset)
@@ -117,26 +116,7 @@ func packManifest(b *flatbuffers.Builder, manifest *generator_dto.Manifest) flat
 	gen_fb.ManifestFBAddEmails(b, emailsOffset)
 	gen_fb.ManifestFBAddPdfs(b, pdfsOffset)
 	gen_fb.ManifestFBAddErrorPages(b, errorPagesOffset)
-	gen_fb.ManifestFBAddCollectionFallbackRoutes(b, fallbackRoutesOffset)
 	return gen_fb.ManifestFBEnd(b)
-}
-
-// packCollectionFallbackRoute writes a collection fallback route to a
-// FlatBuffer table.
-//
-// Takes b (*flatbuffers.Builder) which is the builder to write to.
-// Takes route (generator_dto.CollectionFallbackRoute) which holds the route
-// data.
-//
-// Returns flatbuffers.UOffsetT which is the offset of the finished table.
-func packCollectionFallbackRoute(b *flatbuffers.Builder, route generator_dto.CollectionFallbackRoute) flatbuffers.UOffsetT {
-	routePatternsOff := packRoutePatterns(b, route.RoutePatterns)
-	i18nStrategyOff := b.CreateString(route.I18nStrategy)
-
-	gen_fb.CollectionFallbackRouteFBStart(b)
-	gen_fb.CollectionFallbackRouteFBAddRoutePatterns(b, routePatternsOff)
-	gen_fb.CollectionFallbackRouteFBAddI18nStrategy(b, i18nStrategyOff)
-	return gen_fb.CollectionFallbackRouteFBEnd(b)
 }
 
 // packPageEntryMapItem packs a key-value pair into a FlatBuffers map item.

@@ -45,6 +45,12 @@ var (
 	// orchestrator detects this sentinel in an error chain, it skips retry
 	// backoff and marks the task as failed immediately.
 	ErrFatal = errors.New("orchestrator: fatal error")
+
+	// ErrOrchestratorShuttingDown is returned by Dispatch and Schedule when the
+	// orchestrator service is shutting down and the task insertion channel has
+	// been closed. Callers should treat this as a terminal condition rather
+	// than a retryable backpressure signal.
+	ErrOrchestratorShuttingDown = errors.New("orchestrator: orchestrator is shutting down")
 )
 
 // NewFatalError wraps an error to mark it as a fatal orchestrator failure that

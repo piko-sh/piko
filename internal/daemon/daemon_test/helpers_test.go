@@ -34,6 +34,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -57,7 +58,7 @@ type TestHarness struct {
 	VariantGenerator *daemon_domain.MockOnDemandVariantGenerator
 	RegistryPort     *render_domain.MockRegistryPort
 	RateLimitService *security_domain.MockRateLimitService
-	ServerConfig     *config.ServerConfig
+	ServerConfig     *bootstrap.ServerConfig
 	SiteConfig       *config.WebsiteConfig
 	Validator        daemon_domain.StructValidator
 	CSPConfig        security_dto.CSPRuntimeConfig
@@ -138,8 +139,8 @@ func (h *TestHarness) GetHTTPHandlerDependencies() *daemon_domain.HTTPHandlerDep
 	}
 }
 
-func defaultServerConfig() *config.ServerConfig {
-	return &config.ServerConfig{
+func defaultServerConfig() *bootstrap.ServerConfig {
+	return &bootstrap.ServerConfig{
 		Paths: config.PathsConfig{
 			BaseDir:           new("/test"),
 			DistServePath:     new("/_piko/dist"),

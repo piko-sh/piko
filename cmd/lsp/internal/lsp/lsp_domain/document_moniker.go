@@ -105,8 +105,8 @@ func (*document) buildMonikerFromAnnotation(
 }
 
 // buildMonikerIdentifier constructs the moniker identifier string.
-// Format: "package_path#symbol_name" (e.g., "github.com/user/pkg#MyType")
-// or just "symbol_name" for local symbols without a package path.
+// Format: "package_path#symbol_name" (e.g., a GitHub-hosted module path followed
+// by "#MyType") or just "symbol_name" for local symbols without a package path.
 //
 // Takes packagePath (string) which is the canonical package path.
 // Takes symbolName (string) which is the symbol name.

@@ -324,9 +324,9 @@ func generateWrapper(gf GenericFuncInfo, alias string, config PackageConfig) (*a
 	}
 }
 
-// hasUndispatchableIterParam returns true if the function takes an
-// iterator param but has no collection param (slice/map) to dispatch
-// on, making it unsuitable for runtime type-switch dispatch.
+// hasUndispatchableIterParam returns true for a signature that has an iterator
+// param but no collection param (slice/map) to dispatch on, making it
+// unsuitable for runtime type-switch dispatch.
 //
 // Takes signature (*types.Signature) which provides the function signature
 // to inspect.

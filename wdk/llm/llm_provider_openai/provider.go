@@ -21,17 +21,30 @@ package llm_provider_openai
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 	"github.com/openai/openai-go/v3/shared"
 
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/wdk/logger"
+)
+
+const (
+	// httpClientTimeout is a top-level HTTP client timeout that bounds requests
+	// even when the caller does not supply a per-request deadline. It is
+	// generous enough to allow long-running completions but prevents stuck
+	// connections from leaking goroutines indefinitely.
+	httpClientTimeout = 30 * time.Minute
 )
 
 // openaiProvider implements llm_domain.LLMProviderPort and
@@ -39,6 +52,19 @@ import (
 type openaiProvider struct {
 	// config holds the provider configuration settings.
 	config Config
+
+	// closeContext is the provider-level context whose cancellation signals
+	// background stream goroutines to exit.
+	closeContext context.Context
+
+	// closeCancel cancels closeContext on Close to signal in-flight stream
+	// goroutines to wind down.
+	closeCancel context.CancelCauseFunc
+
+	// httpClient is the underlying *http.Client injected into the OpenAI SDK;
+	// retained so tests can verify the configured top-level timeout and idle
+	// connections can be released on Close.
+	httpClient *http.Client
 
 	// defaultModel is the model name to use when not specified in a request.
 	defaultModel string
@@ -49,6 +75,13 @@ type openaiProvider struct {
 
 	// client is the OpenAI API client for making requests.
 	client openai.Client
+
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for
+	// them to drain.
+	streamWaitGroup sync.WaitGroup
+
+	// closeOnce guards Close so it is idempotent.
+	closeOnce sync.Once
 
 	// embeddingDimensions is the default vector dimension for the configured
 	// embedding model.
@@ -67,6 +100,8 @@ var _ llm_domain.EmbeddingProviderPort = (*openaiProvider)(nil)
 // Returns *llm_dto.CompletionResponse which contains the generated completion.
 // Returns error when the API request fails.
 func (p *openaiProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.openaiProvider.Complete")
+
 	ctx, l := logger.From(ctx, log)
 	completeCount.Add(ctx, 1)
 	start := time.Now()
@@ -90,10 +125,26 @@ func (p *openaiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 	completion, err := p.client.Chat.Completions.New(ctx, params)
 	if err != nil {
 		completeErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("openai completion failed: %w", wrapError(err))
+		wrapped := fmt.Errorf("openai completion failed: %w", wrapError(err))
+		return nil, sanitiseProviderError(wrapped, "openai request rejected")
 	}
 
 	return p.convertResponse(completion), nil
+}
+
+// sanitiseProviderError wraps a 4xx provider error in a safeerror so that HTTP
+// edges can sanitise it before returning to the user. Non-4xx errors are
+// returned unchanged so retry classification continues to work.
+//
+// Takes err (error) which is the error to inspect.
+// Takes safeMessage (string) which is shown to end users for 4xx errors.
+//
+// Returns error which is wrapped when err carries a 4xx status code.
+func sanitiseProviderError(err error, safeMessage string) error {
+	if providerErr, ok := errors.AsType[*llm_domain.ProviderError](err); ok && providerErr.StatusCode >= http.StatusBadRequest && providerErr.StatusCode < http.StatusInternalServerError {
+		return safeerror.NewError(safeMessage, err)
+	}
+	return err
 }
 
 // SupportsStreaming reports whether the provider supports streaming.
@@ -169,11 +220,43 @@ func (p *openaiProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, e
 	return result, nil
 }
 
-// Close releases resources.
+// Close releases resources held by the provider, cancelling any in-flight
+// stream goroutines and waiting for them to drain within a bounded timeout.
 //
-// Returns error when resource cleanup fails.
-func (*openaiProvider) Close(_ context.Context) error {
-	return nil
+// Returns error when the close drain exceeds its bounded wait.
+//
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
+// signal active stream goroutines, then waits on streamWaitGroup before
+// returning.
+func (p *openaiProvider) Close(ctx context.Context) error {
+	var closeErr error
+	p.closeOnce.Do(func() {
+		if p.closeCancel != nil {
+			p.closeCancel(errors.New("openai provider closing"))
+		}
+
+		done := make(chan struct{})
+		go func() {
+			defer goroutine.RecoverPanic(ctx, "llm.openaiProvider.Close.wait")
+			p.streamWaitGroup.Wait()
+			close(done)
+		}()
+
+		waitContext, cancel := context.WithTimeoutCause(ctx, 30*time.Second,
+			errors.New("openai provider close drain exceeded 30s"))
+		defer cancel()
+
+		select {
+		case <-done:
+		case <-waitContext.Done():
+			closeErr = fmt.Errorf("openai provider close timed out: %w", context.Cause(waitContext))
+		}
+
+		if p.httpClient != nil {
+			p.httpClient.CloseIdleConnections()
+		}
+	})
+	return closeErr
 }
 
 // DefaultModel implements LLMProviderPort.DefaultModel.
@@ -194,6 +277,8 @@ func (p *openaiProvider) DefaultModel() string {
 // embeddings.
 // Returns error when the request fails.
 func (p *openaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.openaiProvider.Embed")
+
 	ctx, l := logger.From(ctx, log)
 	embedCount.Add(ctx, 1)
 	start := time.Now()
@@ -225,7 +310,8 @@ func (p *openaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 	response, err := p.client.Embeddings.New(ctx, params)
 	if err != nil {
 		embedErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("openai embedding failed: %w", wrapError(err))
+		wrapped := fmt.Errorf("openai embedding failed: %w", wrapError(err))
+		return nil, sanitiseProviderError(wrapped, "openai embedding rejected")
 	}
 
 	embeddings := make([]llm_dto.Embedding, len(response.Data))
@@ -679,8 +765,11 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 	}
 	config = config.WithDefaults()
 
+	httpClient := &http.Client{Timeout: httpClientTimeout}
+
 	opts := []option.RequestOption{
 		option.WithAPIKey(config.APIKey),
+		option.WithHTTPClient(httpClient),
 	}
 	if config.BaseURL != "" {
 		opts = append(opts, option.WithBaseURL(config.BaseURL))
@@ -691,8 +780,13 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 
 	client := openai.NewClient(opts...)
 
+	closeContext, closeCancel := context.WithCancelCause(context.Background())
+
 	return &openaiProvider{
 		client:                client,
+		httpClient:            httpClient,
+		closeContext:          closeContext,
+		closeCancel:           closeCancel,
 		config:                config,
 		defaultModel:          config.DefaultModel,
 		defaultEmbeddingModel: config.DefaultEmbeddingModel,

@@ -20,12 +20,12 @@ package lsp_domain
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/inspector/inspector_domain"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safeconv"
 )
@@ -215,7 +215,7 @@ func (d *document) GetSupertypes(ctx context.Context, item TypeHierarchyItem) ([
 //
 // Takes item (TypeHierarchyItem) which identifies the type to query.
 //
-// Returns []TypeHierarchyItem which contains the types that embed this type.
+// Returns []TypeHierarchyItem which contains the embedding types.
 // Returns error when the lookup fails.
 func (d *document) GetSubtypes(ctx context.Context, item TypeHierarchyItem) ([]TypeHierarchyItem, error) {
 	return d.getTypeHierarchyRelations(ctx, item, "GetSubtypes",

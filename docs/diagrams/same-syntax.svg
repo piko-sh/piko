@@ -1,60 +1,68 @@
-<svg viewBox="0 0 420 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 480 210" fill="none" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="same-syntax-title same-syntax-desc">
+  <title id="same-syntax-title">One PK file format, multiple output targets</title>
+  <desc id="same-syntax-desc">A single PK file at the top produces three outputs below it: a rendered web page, a transactional email, and a PDF document. The template syntax, Go script, and scoped CSS apply to all three output types.</desc>
   <defs>
     <marker id="arrow3" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
-      <path d="M0,0 L7,2.5 L0,5" fill="none" stroke="#6BD5CC" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M0,0 L7,2.5 L0,5" fill="none" stroke="#0F766E" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
     </marker>
   </defs>
 
+  
   <g>
-    <rect x="20" y="48" width="100" height="84" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
-    <rect x="30" y="40" width="50" height="16" rx="6" fill="#1C544F" stroke="#6BD5CC" stroke-width="1"/>
-    <text x="55" y="52" text-anchor="middle" fill="#6BD5CC" font-family="monospace" font-size="9" font-weight="600">.pk</text>
-    <text x="36" y="78" fill="#C9F5F2" font-family="monospace" font-size="8.5">&lt;template&gt;</text>
-    <text x="42" y="92" fill="#FFEE9C" font-family="monospace" font-size="8.5">{{ props... }}</text>
-    <text x="36" y="106" fill="#C9F5F2" font-family="monospace" font-size="8.5">&lt;style&gt;</text>
-    <text x="36" y="120" fill="#C9F5F2" font-family="monospace" font-size="8.5">&lt;script&gt;</text>
+    <rect x="20" y="60" width="120" height="100" rx="10" fill="#236962" stroke="#6BD5CC" stroke-width="1.5"/>
+    <rect x="34" y="50" width="56" height="18" rx="6" fill="#1C544F" stroke="#6BD5CC" stroke-width="1"/>
+    <text x="62" y="63" text-anchor="middle" fill="#6BD5CC" font-family="monospace" font-size="10" font-weight="600">.pk</text>
+    <text x="34" y="92" fill="#C9F5F2" font-family="monospace" font-size="10">&lt;template&gt;</text>
+    <text x="44" y="108" fill="#FFEE9C" font-family="monospace" font-size="10">{{ props... }}</text>
+    <text x="34" y="126" fill="#C9F5F2" font-family="monospace" font-size="10">&lt;style&gt;</text>
+    <text x="34" y="142" fill="#C9F5F2" font-family="monospace" font-size="10">&lt;script&gt;</text>
   </g>
 
-  <line x1="120" y1="65" x2="180" y2="32" stroke="#6BD5CC" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow3)"/>
-  <line x1="120" y1="90" x2="180" y2="90" stroke="#6BD5CC" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow3)"/>
-  <line x1="120" y1="115" x2="180" y2="148" stroke="#6BD5CC" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow3)"/>
+  
+  <line x1="142" y1="80" x2="200" y2="36" stroke="#0F766E" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow3)"/>
+  <line x1="142" y1="105" x2="200" y2="105" stroke="#0F766E" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow3)"/>
+  <line x1="142" y1="130" x2="200" y2="174" stroke="#0F766E" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow3)"/>
 
+  
   <g>
-    <rect x="185" y="8" width="220" height="48" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
-    <rect x="185" y="8" width="220" height="18" rx="8" fill="#364049"/>
-    <rect x="185" y="18" width="220" height="8" fill="#364049"/>
-    <circle cx="196" cy="17" r="3" fill="#ff5f57"/>
-    <circle cx="206" cy="17" r="3" fill="#febc2e"/>
-    <circle cx="216" cy="17" r="3" fill="#28c840"/>
-    <rect x="226" y="12" width="100" height="10" rx="3" fill="#2B333B"/>
-    <text x="276" y="20" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="6.5">localhost:8080</text>
-    <rect x="195" y="32" width="80" height="4" rx="2" fill="#A7F0E9" opacity="0.6"/>
-    <rect x="195" y="40" width="120" height="4" rx="2" fill="#A7F0E9" opacity="0.3"/>
-    <rect x="195" y="48" width="60" height="4" rx="2" fill="#A7F0E9" opacity="0.3"/>
-    <text x="414" y="36" text-anchor="end" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Web page</text>
+    <rect x="205" y="10" width="260" height="56" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+    <rect x="205" y="10" width="260" height="22" rx="8" fill="#364049"/>
+    <rect x="205" y="22" width="260" height="10" fill="#364049"/>
+    <circle cx="218" cy="21" r="4" fill="#ff5f57"/>
+    <circle cx="231" cy="21" r="4" fill="#febc2e"/>
+    <circle cx="244" cy="21" r="4" fill="#28c840"/>
+    <rect x="252" y="15" width="120" height="12" rx="3" fill="#2B333B"/>
+    <text x="312" y="24" text-anchor="middle" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="8">localhost:8080</text>
+    <rect x="215" y="40" width="80" height="4" rx="2" fill="#A7F0E9" opacity="0.6"/>
+    <rect x="215" y="48" width="140" height="4" rx="2" fill="#A7F0E9" opacity="0.3"/>
+    <rect x="215" y="56" width="60" height="4" rx="2" fill="#A7F0E9" opacity="0.3"/>
+    <text x="455" y="48" text-anchor="end" fill="#A7F0E9" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Web page</text>
   </g>
 
+  
   <g>
-    <rect x="185" y="66" width="220" height="48" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
-    <rect x="185" y="66" width="220" height="18" rx="8" fill="#364049"/>
-    <rect x="185" y="76" width="220" height="8" fill="#364049"/>
-    <text x="196" y="78" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="7">To: user@example.com</text>
-    <text x="320" y="78" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="7">Subject: Welcome!</text>
-    <rect x="195" y="90" width="100" height="4" rx="2" fill="#FFEE9C" opacity="0.5"/>
-    <rect x="195" y="98" width="140" height="4" rx="2" fill="#FFEE9C" opacity="0.3"/>
-    <rect x="195" y="106" width="70" height="4" rx="2" fill="#FFEE9C" opacity="0.3"/>
-    <text x="414" y="94" text-anchor="end" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">Email</text>
+    <rect x="205" y="78" width="260" height="56" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+    <rect x="205" y="78" width="260" height="22" rx="8" fill="#364049"/>
+    <rect x="205" y="90" width="260" height="10" fill="#364049"/>
+    <text x="216" y="93" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="8">To: user@example.com</text>
+    <text x="350" y="93" fill="#92A1AF" font-family="system-ui, sans-serif" font-size="8">Subject: Welcome!</text>
+    <rect x="215" y="108" width="100" height="4" rx="2" fill="#FFEE9C" opacity="0.5"/>
+    <rect x="215" y="116" width="160" height="4" rx="2" fill="#FFEE9C" opacity="0.3"/>
+    <rect x="215" y="124" width="70" height="4" rx="2" fill="#FFEE9C" opacity="0.3"/>
+    <text x="455" y="116" text-anchor="end" fill="#FFEE9C" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Email</text>
   </g>
 
+  
   <g>
-    <rect x="185" y="124" width="220" height="48" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.2"/>
-    <path d="M387,124 L405,124 L405,140 Z" fill="#364049" stroke="#485461" stroke-width="1"/>
-    <rect x="195" y="131" width="30" height="14" rx="3" fill="#F78C6C" opacity="0.8"/>
-    <text x="210" y="141" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="8" font-weight="700">PDF</text>
-    <rect x="235" y="133" width="90" height="4" rx="2" fill="#F78C6C" opacity="0.4"/>
-    <rect x="235" y="141" width="60" height="4" rx="2" fill="#F78C6C" opacity="0.25"/>
-    <rect x="195" y="153" width="140" height="4" rx="2" fill="#F78C6C" opacity="0.2"/>
-    <rect x="195" y="161" width="100" height="4" rx="2" fill="#F78C6C" opacity="0.15"/>
-    <text x="414" y="152" text-anchor="end" fill="#F78C6C" font-family="system-ui, sans-serif" font-size="10" font-weight="600">PDF</text>
+    <rect x="205" y="146" width="260" height="56" rx="8" fill="#2B333B" stroke="#485461" stroke-width="1.5"/>
+    <path d="M447,146 L465,146 L465,164 Z" fill="#364049" stroke="#485461" stroke-width="1"/>
+    <rect x="215" y="155" width="34" height="16" rx="3" fill="#F78C6C" opacity="0.8"/>
+    <text x="232" y="166" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="9" font-weight="700">PDF</text>
+    <rect x="259" y="157" width="100" height="4" rx="2" fill="#F78C6C" opacity="0.4"/>
+    <rect x="259" y="166" width="60" height="4" rx="2" fill="#F78C6C" opacity="0.25"/>
+    <rect x="215" y="180" width="160" height="4" rx="2" fill="#F78C6C" opacity="0.2"/>
+    <rect x="215" y="188" width="120" height="4" rx="2" fill="#F78C6C" opacity="0.15"/>
+    <text x="455" y="184" text-anchor="end" fill="#F78C6C" font-family="system-ui, sans-serif" font-size="11" font-weight="600">PDF</text>
   </g>
 </svg>

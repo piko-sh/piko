@@ -41,12 +41,10 @@ const parallelWalkThresholdBytes = 32 * 1024
 
 var (
 	// expressionParserPool reuses ExpressionParser instances to reduce allocation
-	// pressure during template parsing.
-	expressionParserPool = sync.Pool{
-		New: func() any {
-			return NewExpressionParser(context.Background(), "", "")
-		},
-	}
+	// pressure during template parsing. Wrapped in atomic.Pointer so
+	// ResetExpressionParserPool can swap the underlying pool without racing
+	// concurrent Get/Put callers.
+	expressionParserPool atomic.Pointer[sync.Pool]
 
 	// forceSequentialProcessing overrides parallel processing when set, forcing
 	// all AST transformations to run sequentially.
@@ -219,14 +217,27 @@ func (*keyAssigner) getContextKey(parts []TemplateLiteralPart) string {
 	return "dctx"
 }
 
-// ResetExpressionParserPool clears the expression parser pool for test
-// isolation. Call via t.Cleanup(ResetExpressionParserPool) in tests.
+// ResetExpressionParserPool atomically swaps in a fresh expression parser
+// pool for test isolation. Safe to call concurrently with Get/Put.
 func ResetExpressionParserPool() {
-	expressionParserPool = sync.Pool{
+	expressionParserPool.Store(newExpressionParserPool())
+}
+
+// newExpressionParserPool builds a fresh sync.Pool whose New func returns
+// a freshly constructed ExpressionParser. Used by init and
+// ResetExpressionParserPool.
+//
+// Returns *sync.Pool which is the freshly constructed pool.
+func newExpressionParserPool() *sync.Pool {
+	return &sync.Pool{
 		New: func() any {
 			return NewExpressionParser(context.Background(), "", "")
 		},
 	}
+}
+
+func init() {
+	expressionParserPool.Store(newExpressionParserPool())
 }
 
 // TidyAST runs a second phase of changes on the AST that makes the tree
@@ -391,13 +402,13 @@ func parseAndSetExpression(ctx context.Context, rawExpr string, location Locatio
 		return nil
 	}
 
-	parser, ok := expressionParserPool.Get().(*ExpressionParser)
+	parser, ok := expressionParserPool.Load().Get().(*ExpressionParser)
 	if !ok {
 		_, l := logger_domain.From(ctx, log)
 		l.Error("expressionParserPool returned unexpected type, allocating new instance")
 		parser = &ExpressionParser{}
 	}
-	defer expressionParserPool.Put(parser)
+	defer expressionParserPool.Load().Put(parser)
 
 	expressionToParse := gohtml.UnescapeString(rawExpr)
 	parser.Reset(ctx, expressionToParse, sourcePath)

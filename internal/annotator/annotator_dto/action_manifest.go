@@ -189,7 +189,7 @@ type ActionTypeInfo struct {
 	// Empty for output types.
 	ParamName string
 
-	// PackagePath is the fully qualified Go package path where this type is
+	// PackagePath is the fully qualified Go package path where the type is
 	// defined.
 	PackagePath string
 
@@ -235,7 +235,7 @@ type ActionFieldInfo struct {
 	// Description is the godoc comment for the field.
 	Description string
 
-	// Optional indicates if this field is optional (pointer or omitempty).
+	// Optional indicates if the field is optional (pointer or omitempty).
 	Optional bool
 }
 

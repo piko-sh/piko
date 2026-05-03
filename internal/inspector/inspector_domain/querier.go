@@ -258,8 +258,7 @@ type aliasResolver struct {
 
 // ResolveToUnderlyingAST recursively resolves a type expression through local
 // and cross-package type aliases until it reaches a non-alias type definition.
-// This method is the public entry point, creating and running a new
-// aliasResolver.
+// Acts as the public entry point, creating and running a new aliasResolver.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to resolve.
 // Takes currentFilePath (string) which is the file path for resolving imports.

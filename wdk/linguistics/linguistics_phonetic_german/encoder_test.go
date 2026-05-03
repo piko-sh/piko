@@ -20,6 +20,7 @@ package linguistics_phonetic_german
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -344,4 +345,16 @@ func TestContextDependentHandlers(t *testing.T) {
 		t.Parallel()
 		assert.Equal(t, byte(CologneDT), handleT("TA", 0))
 	})
+}
+
+func TestEncode_TruncationStaysValidUTF8(t *testing.T) {
+	t.Parallel()
+
+	enc, err := NewWithMaxLength(3)
+	require.NoError(t, err)
+
+	result := enc.Encode("MUELLERSCHMIDT")
+
+	assert.True(t, utf8.ValidString(result), "result should be valid UTF-8")
+	assert.LessOrEqual(t, utf8.RuneCountInString(result), 3, "rune count must respect maxLength")
 }

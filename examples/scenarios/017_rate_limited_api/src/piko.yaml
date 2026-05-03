@@ -1,7 +1,0 @@
-security:
-  rateLimit:
-    enabled: true
-    headersEnabled: true
-    actions:
-      requestsPerMinute: 1000
-      burstSize: 100

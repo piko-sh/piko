@@ -1,23 +1,12 @@
 {
   "pages": {
-    "pages/blog/second-post.pk": {
+    "pages/blog/{slug}.pk": {
       "routePatterns": {
-        "en": "/blog/second-post"
+        "en": "/blog/{slug:.+}"
       },
       "i18nStrategy": "disabled",
       "packagePath": "testcase_139_collection_typed_props/dist/pages/pages_blog_slug_989a4cf3",
-      "originalSourcePath": "pages/blog/second-post.pk",
-      "hasCachePolicy": false,
-      "hasMiddleware": false,
-      "hasSupportedLocales": false
-    },
-    "pages/blog/test-post.pk": {
-      "routePatterns": {
-        "en": "/blog/test-post"
-      },
-      "i18nStrategy": "disabled",
-      "packagePath": "testcase_139_collection_typed_props/dist/pages/pages_blog_slug_989a4cf3",
-      "originalSourcePath": "pages/blog/test-post.pk",
+      "originalSourcePath": "pages/blog/{slug}.pk",
       "hasCachePolicy": false,
       "hasMiddleware": false,
       "hasSupportedLocales": false
@@ -25,13 +14,5 @@
   },
   "partials": {},
   "emails": {},
-  "pdfs": {},
-  "collectionFallbackRoutes": [
-    {
-      "routePatterns": {
-        "en": "/blog/{slug}"
-      },
-      "i18nStrategy": "disabled"
-    }
-  ]
+  "pdfs": {}
 }

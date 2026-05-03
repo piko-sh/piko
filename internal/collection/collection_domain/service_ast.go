@@ -333,7 +333,7 @@ func createBoolIdent(v bool) *ast.Ident {
 }
 
 // capitalise converts the first letter of a string to uppercase.
-// This is used to convert metadata keys to Go exported field names.
+// Converts metadata keys to Go exported field names.
 //
 // Takes str (string) which is the text to capitalise.
 //

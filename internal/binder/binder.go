@@ -47,6 +47,12 @@ const (
 	// defaultMaxValueLength is the upper limit in bytes for field values.
 	defaultMaxValueLength = 65_536
 
+	// DefaultMaxBindJSONBytes caps the raw JSON payload size that BindJSON
+	// will decode. The cap protects callers from passing arbitrarily large
+	// attacker-controlled inputs straight into json.Unmarshal where memory
+	// and CPU costs scale with payload size.
+	DefaultMaxBindJSONBytes int64 = 4 << 20
+
 	// errFieldNotFound is the error message used when a struct field cannot be found.
 	errFieldNotFound = "field not found"
 
@@ -54,6 +60,11 @@ const (
 	// Small since most binds succeed; grows if needed.
 	initialMultiErrorCapacity = 4
 )
+
+// ErrBindJSONTooLarge is returned by BindJSON when the supplied byte slice
+// exceeds the configured maximum. Callers can use errors.Is to detect this
+// condition without parsing the message.
+var ErrBindJSONTooLarge = errors.New("BindJSON input exceeds configured size limit")
 
 // log is the package-level logger for the binder package.
 var log = logger_domain.GetLogger("piko/internal/binder")
@@ -115,6 +126,11 @@ type ASTBinder struct {
 	// characters. A value of 0 means no limit is applied.
 	maxValueLength atomic.Int64
 
+	// maxBindJSONBytes caps the raw JSON payload accepted by BindJSON. A
+	// value of 0 disables the cap; the constructor seeds it with
+	// DefaultMaxBindJSONBytes so callers always start with a safe ceiling.
+	maxBindJSONBytes atomic.Int64
+
 	// hasConverters tracks whether any custom converters are registered.
 	// Used as a fast path to skip the map lookup when none exist.
 	hasConverters atomic.Bool
@@ -143,6 +159,7 @@ func NewASTBinder() *ASTBinder {
 		maxPathLength:     atomic.Int64{},
 		maxFieldCount:     atomic.Int64{},
 		maxValueLength:    atomic.Int64{},
+		maxBindJSONBytes:  atomic.Int64{},
 	}
 	b.hasConverters.Store(false)
 	b.ignoreUnknownKeys.Store(false)
@@ -151,7 +168,28 @@ func NewASTBinder() *ASTBinder {
 	b.maxPathLength.Store(defaultMaxPathLength)
 	b.maxFieldCount.Store(defaultMaxFieldCount)
 	b.maxValueLength.Store(defaultMaxValueLength)
+	b.maxBindJSONBytes.Store(DefaultMaxBindJSONBytes)
 	return b
+}
+
+// SetMaxBindJSONBytes overrides the maximum byte size accepted by BindJSON.
+// A value of zero or below disables the cap (not recommended for
+// attacker-influenced input).
+//
+// Takes maxBytes (int64) which is the new cap in bytes.
+func (b *ASTBinder) SetMaxBindJSONBytes(maxBytes int64) {
+	if maxBytes < 0 {
+		maxBytes = 0
+	}
+	b.maxBindJSONBytes.Store(maxBytes)
+}
+
+// MaxBindJSONBytes returns the active byte-size cap enforced by BindJSON.
+//
+// Returns int64 which is the current cap; a value of zero indicates no cap
+// is enforced.
+func (b *ASTBinder) MaxBindJSONBytes() int64 {
+	return b.maxBindJSONBytes.Load()
 }
 
 // Bind populates the fields of the destination struct using data from the
@@ -214,12 +252,22 @@ func (b *ASTBinder) BindMap(ctx context.Context, destination any, source map[str
 // BindJSON populates the fields of the destination struct from raw JSON bytes.
 // It decodes the JSON into a map[string]any, then delegates to BindMap.
 //
+// Inputs larger than the configured maximum (see SetMaxBindJSONBytes) are
+// rejected before decoding. The existing maxPathDepth limit covers the
+// resolved structure; this size cap protects the initial Unmarshal step
+// against attacker-controlled payloads.
+//
 // Takes destination (any) which is the destination struct pointer to populate.
 // Takes source ([]byte) which contains the raw JSON bytes to decode.
 // Takes opts (...Option) which override global settings for this call.
 //
-// Returns error when JSON decoding fails or binding errors occur.
+// Returns error when JSON decoding fails or binding errors occur, or when
+// the source exceeds the configured size cap (in which case the error wraps
+// ErrBindJSONTooLarge).
 func (b *ASTBinder) BindJSON(ctx context.Context, destination any, source []byte, opts ...Option) error {
+	if maxBytes := b.maxBindJSONBytes.Load(); maxBytes > 0 && int64(len(source)) > maxBytes {
+		return fmt.Errorf("BindJSON input %d bytes exceeds limit %d: %w", len(source), maxBytes, ErrBindJSONTooLarge)
+	}
 	var m map[string]any
 	if err := json.Unmarshal(source, &m); err != nil {
 		return fmt.Errorf("decoding JSON for binding: %w", err)
@@ -243,9 +291,8 @@ func (b *ASTBinder) RegisterConverter(typ reflect.Type, converter ConverterFunc)
 
 // SetMaxSliceSize sets the maximum allowed slice index for form binding.
 //
-// This prevents memory exhaustion attacks from malicious inputs like
-// "items[9999999]". A value of 0 means no limit is enforced. This method
-// is safe for concurrent use.
+// Prevents memory exhaustion attacks from malicious inputs like "items[9999999]".
+// A value of 0 means no limit is enforced. Safe for concurrent use.
 //
 // Takes size (int) which specifies the maximum slice index allowed.
 func (b *ASTBinder) SetMaxSliceSize(size int) {
@@ -297,9 +344,8 @@ func (b *ASTBinder) SetMaxFieldCount(count int) {
 //
 // Takes length (int) which specifies the maximum allowed length.
 //
-// This prevents CPU/memory exhaustion from malicious TextUnmarshaler
-// implementations. A value of 0 means no limit is enforced. This method
-// is safe for concurrent use.
+// Prevents CPU/memory exhaustion from malicious TextUnmarshaler implementations.
+// A value of 0 means no limit is enforced. Safe for concurrent use.
 func (b *ASTBinder) SetMaxValueLength(length int) {
 	if length < 0 {
 		length = 0
@@ -308,7 +354,7 @@ func (b *ASTBinder) SetMaxValueLength(length int) {
 }
 
 // SetIgnoreUnknownKeys sets the global default for ignoring unknown form fields.
-// This method is safe for concurrent use.
+// Safe for concurrent use.
 //
 // Takes ignore (bool) which controls whether unknown fields are silently
 // ignored (true) or cause an error for each unknown key (false, the default).

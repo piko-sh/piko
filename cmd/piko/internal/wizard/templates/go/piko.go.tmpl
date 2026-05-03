@@ -1,0 +1,125 @@
+// Package internal centralises this project's Piko framework
+// configuration so every binary (cmd/main, cmd/generator, and any custom
+// CLIs) shares the same option set. Edit this file to add framework
+// options; the binaries stay tiny.
+package internal
+
+import (
+{{- if .EnableSonicJSON }}
+	sonicjson "piko.sh/piko/wdk/json/json_provider_sonic"
+{{- end }}
+	"piko.sh/piko"
+	imaging "piko.sh/piko/wdk/media/image_provider_imaging"
+	automemlimit "piko.sh/piko/wdk/system/system_memlimit_automemlimit"
+{{- if .EnableValidator }}
+	playground "piko.sh/piko/wdk/validation/validation_provider_playground"
+{{- end }}
+)
+
+// Run modes re-exported so binaries don't need to import the framework
+// directly.
+const (
+	RunModeDev            = piko.RunModeDev
+	RunModeDevInterpreted = piko.RunModeDevInterpreted
+	RunModeProd           = piko.RunModeProd
+)
+
+// Generate modes re-exported for the generator binary.
+const (
+	GenerateModeAll      = piko.GenerateModeAll
+	GenerateModeManifest = piko.GenerateModeManifest
+	GenerateModeAssets   = piko.GenerateModeAssets
+	GenerateModeSQL      = piko.GenerateModeSQL
+)
+
+// Server is the framework's runtime SSR server, re-exported so callers do
+// not need to alias the framework themselves.
+type Server = piko.SSRServer
+
+// Option is the framework's bootstrap option type, re-exported so callers
+// can pass binary- or mode-specific extras into NewServer.
+type Option = piko.Option
+
+// baseOptions returns the run-mode-agnostic options shared by every binary
+// that constructs a Piko SSR server. NewServer and NewGenerator both wrap
+// this so the shared configuration lives in one place.
+func baseOptions() []Option {
+	return []Option{
+{{- if .EnableSonicJSON }}
+		piko.WithJSONProvider(sonicjson.New()),
+{{- end }}
+		piko.WithCSSReset(piko.WithCSSResetComplete()),
+		piko.WithAutoMemoryLimit(automemlimit.Provider()),
+		// imaging is the pure-Go image transformer suitable for
+		// development. For production consider image_provider_vips
+		// which provides 10-20x lower memory usage and lossy WebP.
+		piko.WithImageProvider("imaging", imaging.NewProvider(imaging.Config{})),
+		// AutoNextPort automatically picks the next available port if
+		// :8080 is busy.
+		piko.WithAutoNextPort(true),
+{{- if .EnableValidator }}
+		piko.WithValidator(playground.NewValidator()),
+{{- end }}
+		piko.WithWebsiteConfig(piko.WebsiteConfig{
+			Fonts: []piko.FontDefinition{
+				{
+					Type: "google",
+					URL:  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+				},
+			},
+			Theme: map[string]string{
+				"font-family":     `"Inter", sans-serif`,
+				"colour-primary":  "#6F47EB",
+				"colour-grey-900": "#2B333B",
+				"colour-grey-800": "#364049",
+				"colour-grey-700": "#485461",
+				"colour-grey-600": "#5B6B7B",
+				"colour-grey-500": "#788A9B",
+				"colour-grey-400": "#92A1AF",
+				"colour-grey-300": "#ADB8C2",
+				"colour-grey-200": "#CAD1D8",
+				"colour-grey-100": "#E8EBEE",
+				"colour-grey-50":  "#F6F7F8",
+				"colour-grey-25":  "#fafbfc",
+			},
+		}),
+
+		// Uncomment to enable TUI integration. This starts a gRPC
+		// monitoring server on :9091 that the TUI connects to. Run
+		// the TUI with: piko watch
+		// piko.WithMonitoring(
+		//     piko.WithMonitoringTransport(monitoring_transport_grpc.Transport()),
+		// ),
+	}
+}
+
+// NewServer returns a Piko SSR server pre-configured for this project's
+// runtime use case (cmd/main). The mode argument is the user-supplied run
+// mode (RunModeDev, RunModeDevInterpreted, or RunModeProd) and is used
+// here only to enable runtime-only options such as the dev tools widget
+// and hot-reload.
+//
+// Pass extras to add binary-specific options. Extras are appended last so
+// they override anything set in the shared base.
+func NewServer(mode string, extras ...Option) *Server {
+	opts := baseOptions()
+	if mode == RunModeDev || mode == RunModeDevInterpreted {
+		opts = append(opts,
+			piko.WithDevWidget(),
+			piko.WithDevHotreload(),
+		)
+	}
+	opts = append(opts, extras...)
+	return piko.New(opts...)
+}
+
+// NewGenerator returns a Piko SSR server configured for build-time tools
+// (cmd/generator). It applies the shared base configuration but skips
+// runtime-only options such as the dev widget. Use NewServer for the
+// runtime HTTP server.
+//
+// Pass extras to add generator-specific options.
+func NewGenerator(extras ...Option) *Server {
+	opts := append(baseOptions(), extras...)
+	return piko.New(opts...)
+}

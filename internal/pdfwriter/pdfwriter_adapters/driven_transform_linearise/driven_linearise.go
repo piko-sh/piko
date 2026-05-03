@@ -36,6 +36,12 @@ const (
 	// linearisedVersion is the linearisation parameter dictionary version
 	// value, as defined by PDF spec Annex F.
 	linearisedVersion = 1.0
+
+	// maxPageTreeDepth caps the recursion depth of the page-tree walk.
+	// Genuine documents rarely nest the /Pages tree more than a handful
+	// of levels; this cap defends against malformed trees that would
+	// otherwise exhaust the stack.
+	maxPageTreeDepth = 256
 )
 
 // LineariseTransformer reorganises a PDF so that the first page's objects
@@ -183,18 +189,34 @@ func collectPageRefs(doc *pdfparse.Document) ([]int, error) {
 		return nil, errors.New("no /Pages in catalog")
 	}
 
-	return walkPageTree(doc, pagesRef.Number)
+	visited := make(map[int]struct{})
+	return walkPageTree(doc, pagesRef.Number, visited, 0)
 }
 
 // walkPageTree recursively collects leaf Page object numbers from a Pages
 // tree node.
 //
+// The visited set records every node already entered so that cyclic
+// /Kids references skip the already-seen branch instead of recursing
+// forever. Skipped branches return no pages and no error so the rest
+// of the tree continues to be walked.
+//
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the current tree node's object number.
+// Takes visited (map[int]struct{}) which records nodes already entered.
+// Takes depth (int) which is the current recursion depth.
 //
 // Returns []int which holds the collected page object numbers.
-// Returns error when any node cannot be read.
-func walkPageTree(doc *pdfparse.Document, objNum int) ([]int, error) {
+// Returns error when any node cannot be read or the depth cap is hit.
+func walkPageTree(doc *pdfparse.Document, objNum int, visited map[int]struct{}, depth int) ([]int, error) {
+	if depth >= maxPageTreeDepth {
+		return nil, fmt.Errorf("page tree depth exceeded at object %d (depth %d)", objNum, depth)
+	}
+	if _, seen := visited[objNum]; seen {
+		return nil, nil
+	}
+	visited[objNum] = struct{}{}
+
 	obj, err := doc.GetObject(objNum)
 	if err != nil {
 		return nil, err
@@ -217,7 +239,7 @@ func walkPageTree(doc *pdfparse.Document, objNum int) ([]int, error) {
 		if !ok {
 			continue
 		}
-		childPages, err := walkPageTree(doc, ref.Number)
+		childPages, err := walkPageTree(doc, ref.Number, visited, depth+1)
 		if err != nil {
 			return nil, err
 		}
@@ -255,17 +277,26 @@ func buildPagesTreeSet(doc *pdfparse.Document) map[int]bool {
 		return set
 	}
 
-	collectPagesTreeNodes(doc, pagesRef.Number, set)
+	collectPagesTreeNodes(doc, pagesRef.Number, set, 0)
 	return set
 }
 
 // collectPagesTreeNodes recursively adds intermediate Pages tree node
-// object numbers to the set.
+// object numbers to the set. The set itself doubles as a visited
+// guard: a node already present is skipped, so cyclic /Kids references
+// cannot trigger unbounded recursion.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the current node's object number.
 // Takes set (map[int]bool) which accumulates the Pages tree node numbers.
-func collectPagesTreeNodes(doc *pdfparse.Document, objNum int, set map[int]bool) {
+// Takes depth (int) which is the current recursion depth.
+func collectPagesTreeNodes(doc *pdfparse.Document, objNum int, set map[int]bool, depth int) {
+	if depth >= maxPageTreeDepth {
+		return
+	}
+	if set[objNum] {
+		return
+	}
 	obj, err := doc.GetObject(objNum)
 	if err != nil {
 		return
@@ -285,7 +316,7 @@ func collectPagesTreeNodes(doc *pdfparse.Document, objNum int, set map[int]bool)
 			if !ok {
 				continue
 			}
-			collectPagesTreeNodes(doc, ref.Number, set)
+			collectPagesTreeNodes(doc, ref.Number, set, depth+1)
 		}
 	}
 }

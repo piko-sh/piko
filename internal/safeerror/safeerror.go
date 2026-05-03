@@ -27,7 +27,7 @@ import (
 // In production, only SafeMessage reaches the user; in development, the full
 // Error string (including wrapped causes) is shown instead.
 //
-// Any error type can implement this interface by adding a single method.
+// Any error type can implement Error by adding a single method.
 // The standard error chain (errors.Is, errors.As, Unwrap) is unaffected.
 type Error interface {
 	error

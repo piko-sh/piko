@@ -21,7 +21,17 @@ package notification_domain
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 	"strings"
+	"time"
+)
+
+const (
+	// MaxRetryAfterDuration caps the Retry-After hint honoured by the
+	// notification dispatcher so a hostile or misbehaving server cannot push
+	// the dispatcher into an excessively long sleep.
+	MaxRetryAfterDuration = 5 * time.Minute
 )
 
 var (
@@ -135,6 +145,17 @@ type ProviderError struct {
 
 	// Provider is the name of the provider that caused the error.
 	Provider string
+
+	// StatusCode carries the upstream HTTP status code; zero when the failure
+	// was not status-driven (e.g. transport error).
+	StatusCode int
+
+	// RetryAfter carries the parsed Retry-After hint from the upstream
+	// response.
+	//
+	// Zero when no hint was provided. Honoured by the dispatcher for 429
+	// and 503 responses.
+	RetryAfter time.Duration
 }
 
 // Error returns a string representation of the provider error.
@@ -149,4 +170,54 @@ func (e *ProviderError) Error() string {
 // Returns error which is the wrapped error, or nil if none exists.
 func (e *ProviderError) Unwrap() error {
 	return e.Err
+}
+
+// ParseRetryAfter converts a Retry-After header value into a duration.
+//
+// The header may carry either an integer number of seconds or an HTTP-date
+// timestamp. Returns the parsed duration capped at MaxRetryAfterDuration,
+// or zero when the header is absent or unparseable.
+//
+// Takes header (string) which is the raw Retry-After header value.
+// Takes now (time.Time) which is the reference time used to convert HTTP-date
+// values into a relative duration.
+//
+// Returns time.Duration which is the parsed value, capped at the maximum, or
+// zero when the header carries no usable hint.
+func ParseRetryAfter(header string, now time.Time) time.Duration {
+	header = strings.TrimSpace(header)
+	if header == "" {
+		return 0
+	}
+
+	if seconds, err := strconv.Atoi(header); err == nil {
+		if seconds <= 0 {
+			return 0
+		}
+		duration := time.Duration(seconds) * time.Second
+		return capRetryAfter(duration)
+	}
+
+	if when, err := http.ParseTime(header); err == nil {
+		duration := when.Sub(now)
+		if duration <= 0 {
+			return 0
+		}
+		return capRetryAfter(duration)
+	}
+
+	return 0
+}
+
+// capRetryAfter clamps duration to MaxRetryAfterDuration so a server hint
+// cannot push the retry into an unreasonably long sleep.
+//
+// Takes duration (time.Duration) which is the parsed Retry-After value.
+//
+// Returns time.Duration which is the value clamped at the cap.
+func capRetryAfter(duration time.Duration) time.Duration {
+	if duration > MaxRetryAfterDuration {
+		return MaxRetryAfterDuration
+	}
+	return duration
 }

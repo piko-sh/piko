@@ -369,14 +369,27 @@ async function runBatch() {
 
 ```go
 func TestContactSubmit(t *testing.T) {
-    tester := piko.NewActionTester(t, dist.ContactSubmitActionEntry)
+    ctx := context.Background()
+    entry := piko.ActionHandlerEntry{
+        Name:   "ContactSubmit",
+        Method: http.MethodPost,
+        Create: func() any { return &actions.ContactSubmitAction{} },
+        Invoke: func(ctx context.Context, action any, arguments map[string]any) (any, error) {
+            return action.(*actions.ContactSubmitAction).Call(
+                arguments["name"].(string),
+                arguments["email"].(string),
+                arguments["message"].(string),
+            )
+        },
+    }
+    tester := piko.NewActionTester(t, entry)
 
-    resp := tester.Invoke(map[string]any{
+    result := tester.Invoke(ctx, map[string]any{
         "name":    "Alice",
         "email":   "alice@example.com",
         "message": "Hello",
     })
-    resp.AssertSuccess()
+    result.AssertSuccess()
 }
 ```
 

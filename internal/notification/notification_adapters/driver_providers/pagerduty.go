@@ -31,6 +31,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/notification/notification_dto"
+	"piko.sh/piko/internal/safeerror"
 )
 
 var _ notification_domain.NotificationProviderPort = (*PagerDutyProvider)(nil)
@@ -45,9 +46,6 @@ const (
 
 	// pagerDutyDedupKeyMaxLength is the maximum length for a PagerDuty dedup key.
 	pagerDutyDedupKeyMaxLength = 255
-
-	// pagerDutyTruncationSuffix is the number of characters reserved for "...".
-	pagerDutyTruncationSuffix = 3
 
 	// httpStatusSuccessMin is the minimum HTTP status code for success responses.
 	httpStatusSuccessMin = 200
@@ -134,10 +132,14 @@ func (p *PagerDutyProvider) Send(ctx context.Context, params *notification_dto.S
 	if err != nil {
 		return fmt.Errorf("sending to pagerduty: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndCloseResponse(response)
 
 	if response.StatusCode < httpStatusSuccessMin || response.StatusCode >= httpStatusSuccessMax {
-		return fmt.Errorf("pagerduty returned status %d: %s", response.StatusCode, response.Status)
+		statusErr := buildProviderStatusError("pagerduty", response)
+		if isClientError(response.StatusCode) {
+			return safeerror.NewError(safeNotificationDeliveryFailed, statusErr)
+		}
+		return statusErr
 	}
 
 	return nil
@@ -231,22 +233,20 @@ func NewPagerDutyProvider(routingKey string, client *http.Client) notification_d
 	}
 }
 
-// buildSummary returns a truncated summary from title or message.
+// buildSummary returns a rune-truncated summary from title or message.
 //
 // Takes title (string) which is the preferred summary text if not empty.
 // Takes message (string) which is used as the summary when title is empty.
 //
-// Returns string which is the summary, truncated if it exceeds the maximum
-// length.
+// Returns string which is the summary, truncated to at most
+// pagerDutySummaryMaxLength runes. Truncation is rune-aware so multi-byte
+// UTF-8 sequences are never split.
 func buildSummary(title, message string) string {
 	summary := message
 	if title != "" {
 		summary = title
 	}
-	if len(summary) > pagerDutySummaryMaxLength {
-		summary = summary[:pagerDutySummaryMaxLength-pagerDutyTruncationSuffix] + "..."
-	}
-	return summary
+	return truncateRunes(summary, pagerDutySummaryMaxLength)
 }
 
 // getSource returns the source hostname or a fallback.

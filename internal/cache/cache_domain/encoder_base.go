@@ -113,10 +113,9 @@ func (s *baseEncoder[V]) HandlesType() reflect.Type {
 //
 // Returns EncoderPort[V] which is the configured encoder ready for use.
 func NewEncoder[V any](marshal marshalFunc[V], unmarshal unmarshalFunc[V]) EncoderPort[V] {
-	var v V
 	return &baseEncoder[V]{
 		marshalFunction:   marshal,
 		unmarshalFunction: unmarshal,
-		handlesType:       reflect.TypeOf(v),
+		handlesType:       reflect.TypeFor[V](),
 	}
 }

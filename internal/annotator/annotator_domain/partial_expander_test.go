@@ -1014,3 +1014,22 @@ func TestPartialExpanderCreateEmptyExpansionResult(t *testing.T) {
 		assert.Nil(t, result.PotentialInvocations)
 	})
 }
+
+func TestAnnotatorTransform_RejectsDeeplyNested(t *testing.T) {
+	t.Parallel()
+
+	root := &ast_domain.TemplateNode{TagName: "root", NodeType: ast_domain.NodeElement}
+	current := root
+	for range maxAnnotatorDepth + 32 {
+		child := &ast_domain.TemplateNode{TagName: "div", NodeType: ast_domain.NodeElement}
+		current.Children = []*ast_domain.TemplateNode{child}
+		current = child
+	}
+
+	count := countNodesWithoutAnnotation([]*ast_domain.TemplateNode{root})
+	require.LessOrEqual(t, count, maxAnnotatorDepth, "depth-capped count must not exceed cap")
+
+	stampNodesWithPackage([]*ast_domain.TemplateNode{root}, "alias", "src.pk")
+
+	require.False(t, nodeHasCaptcha(root), "depth-capped traversal must not panic")
+}

@@ -27,9 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/captcha/captcha_provider_hcaptcha/scripts"
 )
 
@@ -150,10 +150,8 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 		return nil, err
 	}
 
-	score := normaliseScore(hcaptchaResult.Success, hcaptchaResult.Score)
-
 	return &captcha_dto.VerifyResponse{
-		Score:      &score,
+		Score:      new(normaliseScore(hcaptchaResult.Success, hcaptchaResult.Score)),
 		Success:    hcaptchaResult.Success,
 		ErrorCodes: hcaptchaResult.ErrorCodes,
 		Hostname:   hcaptchaResult.Hostname,

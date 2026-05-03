@@ -1,6 +1,6 @@
 {
   "title": "CSS Policy Update",
   "description": "Privacy policy update notification styled entirely with CSS classes",
-  "metadata": {"title": "Updated Privacy Policy — Effective 15 April 2026"},
+  "metadata": {"title": "Updated Privacy Policy - Effective 15 April 2026"},
   "premailerOptions": {"expandShorthands": true, "makeLeftoverImportant": true}
 }

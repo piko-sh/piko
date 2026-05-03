@@ -36,9 +36,10 @@ const (
 	// defaultPriority is the execution order for the object stream transformer.
 	defaultPriority = 300
 
-	// maxDecompressedStreamSize is the upper bound for decompressed stream
-	// data to guard against zip-bomb or corrupt streams (256 MiB).
-	maxDecompressedStreamSize = 256 << 20
+	// defaultMaxDecompressedStreamSize is the default upper bound for
+	// decompressed stream data, guarding against zip-bomb or corrupt
+	// streams (256 MiB).
+	defaultMaxDecompressedStreamSize int64 = 256 << 20
 
 	// transformerName is the identifier for this transformer.
 	transformerName = "objstm-compress"
@@ -57,6 +58,11 @@ const (
 	lzwLitWidth = 8
 )
 
+// ErrDecompressedStreamTooLarge is returned when an LZW-decoded stream
+// exceeds maxDecompressedStreamSize, indicating a likely zip-bomb or
+// corrupt stream rather than silently truncating the data.
+var ErrDecompressedStreamTooLarge = errors.New("decompressed stream exceeds maximum allowed size")
+
 // ObjStmTransformer re-encodes PDF stream objects to ensure efficient
 // FlateDecode compression.
 //
@@ -70,19 +76,51 @@ type ObjStmTransformer struct {
 
 	// priority is the execution order.
 	priority int
+
+	// maxDecompressedStreamSize caps the size of any single LZW-decoded
+	// stream so a zip-bomb cannot exhaust memory.
+	maxDecompressedStreamSize int64
+}
+
+// Option configures an [ObjStmTransformer] at construction time.
+type Option func(*ObjStmTransformer)
+
+// WithMaxDecompressedStreamSize overrides the cap on the size of a
+// single LZW-decoded stream. Values less than or equal to zero are
+// ignored, leaving the default in place.
+//
+// Takes limit (int64) which is the new cap in bytes.
+//
+// Returns Option which applies the override.
+func WithMaxDecompressedStreamSize(limit int64) Option {
+	return func(t *ObjStmTransformer) {
+		if limit > 0 {
+			t.maxDecompressedStreamSize = limit
+		}
+	}
 }
 
 var _ pdfwriter_domain.PdfTransformerPort = (*ObjStmTransformer)(nil)
 
 // New creates a new object stream compression transformer with default
-// name and priority.
+// name, priority and decompression cap. Optional functional options
+// override the cap on decompressed stream size.
+//
+// Takes opts (...Option) which override the defaults.
 //
 // Returns *ObjStmTransformer which is ready for use.
-func New() *ObjStmTransformer {
-	return &ObjStmTransformer{
-		name:     transformerName,
-		priority: defaultPriority,
+func New(opts ...Option) *ObjStmTransformer {
+	t := &ObjStmTransformer{
+		name:                      transformerName,
+		priority:                  defaultPriority,
+		maxDecompressedStreamSize: defaultMaxDecompressedStreamSize,
 	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(t)
+		}
+	}
+	return t
 }
 
 // Name returns the transformer's name.
@@ -116,7 +154,7 @@ func (t *ObjStmTransformer) Priority() int { return t.priority }
 //
 // Returns []byte which is the re-compressed PDF.
 // Returns error when the PDF cannot be parsed or re-compression fails.
-func (*ObjStmTransformer) Transform(ctx context.Context, pdf []byte, options any) ([]byte, error) {
+func (t *ObjStmTransformer) Transform(ctx context.Context, pdf []byte, options any) ([]byte, error) {
 	if _, err := castOptions(options); err != nil {
 		return nil, err
 	}
@@ -131,30 +169,16 @@ func (*ObjStmTransformer) Transform(ctx context.Context, pdf []byte, options any
 		return nil, fmt.Errorf("objstm-compress: creating writer: %w", err)
 	}
 
+	limit := t.maxDecompressedStreamSize
+	if limit <= 0 {
+		limit = defaultMaxDecompressedStreamSize
+	}
+
 	for _, objNum := range doc.ObjectNumbers() {
 		if ctx.Err() != nil {
 			return nil, fmt.Errorf("objstm-compress: %w", ctx.Err())
 		}
-
-		obj, err := doc.GetObject(objNum)
-		if err != nil {
-			slog.Warn("objstm-compress: skipping object that could not be retrieved",
-				slog.Int("object", objNum), slog.String("error", err.Error()))
-			continue
-		}
-		if obj.Type != pdfparse.ObjectStream {
-			continue
-		}
-
-		rewritten, changed, err := reencodeStream(obj)
-		if err != nil {
-			slog.Warn("objstm-compress: skipping stream that could not be re-encoded",
-				slog.Int("object", objNum), slog.String("error", err.Error()))
-			continue
-		}
-		if changed {
-			writer.SetObject(objNum, rewritten)
-		}
+		t.recompressObject(doc, writer, objNum, limit)
 	}
 
 	output, err := writer.Write()
@@ -162,6 +186,42 @@ func (*ObjStmTransformer) Transform(ctx context.Context, pdf []byte, options any
 		return nil, fmt.Errorf("objstm-compress: writing PDF: %w", err)
 	}
 	return output, nil
+}
+
+// recompressObject attempts to re-encode a single object's content stream
+// within the supplied size limit.
+//
+// Failures and non-stream objects are silently skipped (with a warning logged
+// for failures); the writer is left untouched in those cases.
+//
+// Takes doc (*pdfparse.Document) which is the parsed PDF document the object
+// is read from.
+// Takes writer (*pdfparse.Writer) which receives the re-encoded object when a
+// rewrite occurs.
+// Takes objNum (int) which is the object number to inspect and potentially
+// re-encode.
+// Takes limit (int64) which caps the decompressed payload size during LZW
+// decoding.
+func (*ObjStmTransformer) recompressObject(doc *pdfparse.Document, writer *pdfparse.Writer, objNum int, limit int64) {
+	obj, err := doc.GetObject(objNum)
+	if err != nil {
+		slog.Warn("objstm-compress: skipping object that could not be retrieved",
+			slog.Int("object", objNum), slog.String("error", err.Error()))
+		return
+	}
+	if obj.Type != pdfparse.ObjectStream {
+		return
+	}
+
+	rewritten, changed, err := reencodeStream(obj, limit)
+	if err != nil {
+		slog.Warn("objstm-compress: skipping stream that could not be re-encoded",
+			slog.Int("object", objNum), slog.String("error", err.Error()))
+		return
+	}
+	if changed {
+		writer.SetObject(objNum, rewritten)
+	}
 }
 
 // castOptions extracts ObjStmOptions from the generic options.
@@ -189,11 +249,12 @@ func castOptions(options any) (pdfwriter_dto.ObjStmOptions, error) {
 // re-compress with FlateDecode.
 //
 // Takes obj (pdfparse.Object) which is the stream object to inspect.
+// Takes limit (int64) which is the cap on the decompressed payload size.
 //
 // Returns pdfparse.Object which is the (possibly modified) stream object.
 // Returns bool which indicates whether the object was changed.
-// Returns error when LZW decoding fails.
-func reencodeStream(obj pdfparse.Object) (pdfparse.Object, bool, error) {
+// Returns error when LZW decoding fails or the cap is exceeded.
+func reencodeStream(obj pdfparse.Object, limit int64) (pdfparse.Object, bool, error) {
 	dict, ok := obj.Value.(pdfparse.Dict)
 	if !ok {
 		return obj, false, nil
@@ -204,7 +265,7 @@ func reencodeStream(obj pdfparse.Object) (pdfparse.Object, bool, error) {
 		return obj, false, nil
 	}
 
-	decoded, err := decodeLZW(obj.StreamData)
+	decoded, err := decodeLZW(obj.StreamData, limit)
 	if err != nil {
 		return obj, false, fmt.Errorf("decoding LZW stream: %w", err)
 	}
@@ -219,16 +280,20 @@ func reencodeStream(obj pdfparse.Object) (pdfparse.Object, bool, error) {
 // standard. PDF uses MSB (most significant bit first) byte ordering.
 //
 // Takes data ([]byte) which is the LZW-compressed stream bytes.
+// Takes limit (int64) which is the cap on the output size.
 //
 // Returns []byte which is the decompressed data.
-// Returns error when decompression fails.
-func decodeLZW(data []byte) ([]byte, error) {
+// Returns error when decompression fails or the output exceeds the cap.
+func decodeLZW(data []byte, limit int64) ([]byte, error) {
 	reader := lzw.NewReader(bytes.NewReader(data), lzw.MSB, lzwLitWidth)
 	defer reader.Close()
 
-	decoded, err := io.ReadAll(io.LimitReader(reader, maxDecompressedStreamSize))
+	decoded, err := io.ReadAll(io.LimitReader(reader, limit+1))
 	if err != nil {
 		return nil, fmt.Errorf("decompressing LZW stream: %w", err)
+	}
+	if int64(len(decoded)) > limit {
+		return nil, fmt.Errorf("decompressing LZW stream (limit %d bytes): %w", limit, ErrDecompressedStreamTooLarge)
 	}
 	return decoded, nil
 }

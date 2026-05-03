@@ -314,8 +314,8 @@ func (p *parser) extractArbitraryContent(parentTagName string) string {
 // the input starting at the given offset.
 //
 // Raw text elements have special parsing rules where the lexer stops at the
-// first closing tag, even within strings. This method finds the correct closing
-// tag and advances the lexer past the block.
+// first closing tag, even within strings. Finds the correct closing tag and
+// advances the lexer past the block.
 //
 // Takes tagName (string) which specifies the tag type (e.g. "script", "style").
 // Takes startOffset (int) which indicates where to begin searching in the input.

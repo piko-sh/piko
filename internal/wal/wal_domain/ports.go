@@ -167,7 +167,7 @@ type Codec[K comparable, V any] interface {
 	// Decode deserialises bytes to an entry.
 	//
 	// The input does NOT include length prefix or CRC32 - those are stripped
-	// by the WAL implementation before calling this method.
+	// by the WAL implementation before invocation.
 	//
 	// Takes data ([]byte) which is the encoded entry.
 	//
@@ -210,7 +210,7 @@ type FastKeyCodec[K comparable] interface {
 	KeyCodec[K]
 
 	// KeySize returns the encoded size of a key without actually encoding it.
-	// This is used to pre-calculate buffer sizes.
+	// Used to pre-calculate buffer sizes.
 	KeySize(key K) int
 
 	// EncodeKeyTo encodes a key directly into the provided buffer.
@@ -242,7 +242,7 @@ type FastValueCodec[V any] interface {
 	ValueCodec[V]
 
 	// ValueSize returns the encoded size of a value without actually encoding it.
-	// This is used to pre-calculate buffer sizes.
+	// Used to pre-calculate buffer sizes.
 	ValueSize(value V) int
 
 	// EncodeValueTo encodes a value directly into the provided buffer.

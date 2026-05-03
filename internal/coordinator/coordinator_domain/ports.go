@@ -43,9 +43,9 @@ type CoordinatorService interface {
 
 	// GetResult returns the last successful build result synchronously.
 	//
-	// On first run when no build has completed, this method blocks and triggers
+	// On first run when no build has completed, blocks and triggers
 	// the initial build. Subsequent calls return the latest result from memory
-	// without triggering a new build. This simplifies downstream consumers by
+	// without triggering a new build. Simplifies downstream consumers by
 	// guaranteeing a valid result without forcing them to handle the initial
 	// cold start case.
 	//
@@ -66,12 +66,12 @@ type CoordinatorService interface {
 
 	// GetOrBuildProject retrieves a cached build result or triggers a new build.
 	//
-	// This is the primary synchronous, blocking method for consumers that need a
+	// The primary synchronous, blocking method for consumers that need a
 	// build result to proceed with their work (e.g., a web server rendering a
-	// page). It guarantees returning a valid build result for the current state
-	// of the project's source files. It will first attempt to find a valid result
+	// page). Guarantees returning a valid build result for the current state
+	// of the project's source files. First attempts to find a valid result
 	// in the cache. If a cache miss occurs (due to changed files or an empty
-	// cache), it will trigger a new build and block until that build completes.
+	// cache), triggers a new build and blocks until that build completes.
 	//
 	// Actions are auto-discovered from the actions/ directory during annotation.
 	//
@@ -83,7 +83,7 @@ type CoordinatorService interface {
 	// output.
 	// Returns error when the build fails or is cancelled.
 	//
-	// This method is protected against concurrent builds for the same inputs
+	// Protected against concurrent builds for the same inputs
 	// (cache stampedes) using an internal singleflight mechanism.
 	GetOrBuildProject(
 		ctx context.Context,
@@ -93,9 +93,9 @@ type CoordinatorService interface {
 
 	// RequestRebuild schedules a build to run after a short debounce period.
 	//
-	// This method returns straight away and does not block. When called many times
-	// in quick succession, the debounce timer resets, so only one build runs for
-	// a burst of events. The build runs in the background.
+	// Non-blocking: completes straight away. When called many times in quick
+	// succession, the debounce timer resets, so only one build runs for a burst
+	// of events. The build runs in the background.
 	//
 	// Actions are auto-discovered from the actions/ directory during annotation.
 	//
@@ -122,8 +122,8 @@ type CoordinatorService interface {
 
 	// Invalidate clears the build cache.
 	//
-	// This forces the next call to GetOrBuildProject to do a full build without
-	// using the cache. It does not start a build on its own. Use this method to
+	// Forces the next call to GetOrBuildProject to do a full build without
+	// using the cache. Does not start a build on its own. Use to
 	// force a refresh, typically in tests or admin tools. For most cases
 	// where a trigger starts a rebuild, use RequestRebuild instead.
 	//

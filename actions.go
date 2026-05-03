@@ -64,8 +64,8 @@ type HTTPMethod = daemon_domain.HTTPMethod
 type CookieOption = daemon_dto.CookieOption
 
 // AuthContext represents the resolved authentication state for a request.
-// Users implement this interface to expose their auth system's data to
-// Piko pages and actions.
+// Users implement AuthContext to expose their auth system's data to Piko pages
+// and actions.
 type AuthContext = daemon_dto.AuthContext
 
 // AuthProvider resolves authentication state from an HTTP request.
@@ -380,7 +380,7 @@ var (
 type ActionHandlerEntry = daemon_adapters.ActionHandlerEntry
 
 // FileUpload represents an uploaded file from a multipart form request.
-// Use this type in action Call parameters to receive file uploads.
+// Use FileUpload in action Call parameters to receive file uploads.
 //
 // Example:
 //
@@ -417,9 +417,8 @@ type FileUpload = daemon_dto.FileUpload
 type RawBody = daemon_dto.RawBody
 
 // ActionError is the base interface for action errors with HTTP semantics.
-// Errors implementing this interface are automatically discriminated by the
-// action handler to return appropriate HTTP status codes and structured
-// responses.
+// Errors implementing ActionError are automatically discriminated by the action
+// handler to return appropriate HTTP status codes and structured responses.
 type ActionError = daemon_dto.ActionError
 
 // ValidationError represents validation failures (HTTP 422).

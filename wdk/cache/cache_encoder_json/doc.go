@@ -16,15 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_encoder_json provides JSON-based encoding for cache
-// values.
+// Package cache_encoder_json provides JSON-based encoding for cache values.
 //
-// JSON is the default encoder: human-readable, cross-language
-// compatible, and works with any type that has exported fields or
-// implements json.Marshaler. It is slower and larger on the wire than
-// binary formats, but the interoperability trade-off is usually worth
-// it.
+// JSON is the default encoder: human-readable, cross-language compatible, and
+// works with any type that has exported fields or implements json.Marshaler. It
+// is slower and larger on the wire than binary formats, but the
+// interoperability trade-off is usually worth it.
 //
-// This package implements [cache.EncoderPort] and works with any cache
-// provider that supports encoding registries.
+// Implements [cache.EncoderPort] and works with any cache provider that
+// supports encoding registries.
 package cache_encoder_json

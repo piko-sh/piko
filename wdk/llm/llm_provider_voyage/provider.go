@@ -21,14 +21,18 @@ package llm_provider_voyage
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
+	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/wdk/logger"
 )
 
@@ -38,7 +42,60 @@ const (
 
 	// providerName is the provider identifier used in model listings.
 	providerName = "voyage"
+
+	// maxLLMResponseBytes bounds the size of a third-party HTTP response body
+	// to prevent unbounded memory consumption from a hostile or malfunctioning
+	// peer.
+	maxLLMResponseBytes = 16 * 1024 * 1024
 )
+
+// errResponseTruncated indicates a provider response exceeded the configured
+// size cap and was truncated.
+var errResponseTruncated = errors.New("voyage response exceeded maximum size")
+
+// readBoundedBody reads up to maxLLMResponseBytes+1 bytes from body and reports
+// truncation when the cap is exceeded.
+//
+// Takes body (io.Reader) which is the response body to read.
+//
+// Returns []byte which contains the read bytes (capped at maxLLMResponseBytes).
+// Returns error which wraps a read failure or signals truncation.
+func readBoundedBody(body io.Reader) ([]byte, error) {
+	limited := io.LimitReader(body, maxLLMResponseBytes+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return data, err
+	}
+	if int64(len(data)) > maxLLMResponseBytes {
+		return data[:maxLLMResponseBytes], errResponseTruncated
+	}
+	return data, nil
+}
+
+// decodeBoundedJSON decodes JSON from body with a size cap to prevent
+// unbounded memory consumption.
+//
+// Takes body (io.Reader) which is the response body to decode.
+// Takes target (any) which receives the decoded value.
+//
+// Returns error when the read fails, the body is truncated, or decoding fails.
+func decodeBoundedJSON(body io.Reader, target any) error {
+	data, err := readBoundedBody(body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, target)
+}
+
+// drainAndClose drains any remaining bytes from response.Body before closing
+// so that the underlying TCP connection can be reused by the HTTP client.
+//
+// Takes response (*http.Response) which is the response whose body should be
+// drained and closed.
+func drainAndClose(response *http.Response) {
+	_, _ = io.Copy(io.Discard, response.Body)
+	_ = response.Body.Close()
+}
 
 // voyageProvider implements llm_domain.EmbeddingProviderPort for the Voyage AI
 // embedding service.
@@ -56,6 +113,9 @@ type voyageProvider struct {
 	// embeddingDimensions is the default vector dimension for the configured
 	// embedding model.
 	embeddingDimensions int
+
+	// closeOnce guards Close so it is idempotent.
+	closeOnce sync.Once
 }
 
 var _ llm_domain.EmbeddingProviderPort = (*voyageProvider)(nil)
@@ -118,6 +178,8 @@ type voyageUsage struct {
 // embeddings.
 // Returns error when the request fails.
 func (p *voyageProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
+	defer goroutine.RecoverPanic(ctx, "llm.voyageProvider.Embed")
+
 	ctx, l := logger.From(ctx, log)
 	embedCount.Add(ctx, 1)
 	start := time.Now()
@@ -178,8 +240,15 @@ func (p *voyageProvider) EmbeddingDimensions() int {
 
 // Close releases resources held by the Voyage provider.
 //
-// Returns error when resources cannot be released.
-func (*voyageProvider) Close(_ context.Context) error {
+// The Voyage provider performs only synchronous request/response calls driven
+// by the caller and does not spawn background goroutines, so Close has no
+// goroutines to drain.
+//
+// Returns error which is always nil.
+func (p *voyageProvider) Close(_ context.Context) error {
+	p.closeOnce.Do(func() {
+		p.client.CloseIdleConnections()
+	})
 	return nil
 }
 
@@ -209,15 +278,29 @@ func (p *voyageProvider) executeEmbedRequest(ctx context.Context, apiReq *voyage
 	if err != nil {
 		return nil, fmt.Errorf("voyage embedding request failed: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer drainAndClose(response)
 
 	if response.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(response.Body)
-		return nil, fmt.Errorf("voyage embedding API error (status %d): %s", response.StatusCode, string(respBody))
+		respBody, readErr := readBoundedBody(response.Body)
+		detail := http.StatusText(response.StatusCode)
+		if len(respBody) > 0 {
+			detail = string(respBody)
+		}
+		if readErr != nil && !errors.Is(readErr, errResponseTruncated) {
+			detail = fmt.Sprintf("%s (read error: %v)", detail, readErr)
+		}
+		baseErr := fmt.Errorf("voyage embedding API error (status %d): %s", response.StatusCode, detail)
+		if response.StatusCode >= http.StatusBadRequest && response.StatusCode < http.StatusInternalServerError {
+			return nil, safeerror.NewError("voyage request rejected", baseErr)
+		}
+		return nil, baseErr
 	}
 
 	var apiResp voyageEmbedResponse
-	if err := json.NewDecoder(response.Body).Decode(&apiResp); err != nil {
+	if err := decodeBoundedJSON(response.Body, &apiResp); err != nil {
+		if errors.Is(err, errResponseTruncated) {
+			return nil, fmt.Errorf("voyage embedding response exceeded %d bytes: %w", maxLLMResponseBytes, err)
+		}
 		return nil, fmt.Errorf("failed to decode embedding response: %w", err)
 	}
 

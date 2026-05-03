@@ -193,10 +193,9 @@ func TestWatchdog_GetStartupHistoryReturnsEntries(t *testing.T) {
 	sandbox, err := safedisk.NewNoOpSandbox(tempDir, safedisk.ModeReadWrite)
 	require.NoError(t, err)
 
-	stopped := startTime.Add(-time.Hour)
 	pre := startupHistoryFile{
 		Entries: []startupHistoryEntry{
-			{StartedAt: startTime.Add(-2 * time.Hour), StoppedAt: &stopped, PID: 100, Reason: "clean", Hostname: "alpha", Version: "v1"},
+			{StartedAt: startTime.Add(-2 * time.Hour), StoppedAt: new(startTime.Add(-time.Hour)), PID: 100, Reason: "clean", Hostname: "alpha", Version: "v1"},
 			{StartedAt: startTime.Add(-30 * time.Minute), PID: 200, Hostname: "alpha", Version: "v2"},
 		},
 	}
@@ -301,5 +300,40 @@ func TestSubscribeEventsContextCancellationClosesChannel(t *testing.T) {
 		assert.False(t, open, "channel should be closed after ctx cancel")
 	case <-time.After(time.Second):
 		t.Fatal("channel did not close after ctx cancel")
+	}
+}
+
+func TestEventSubscribers_RespectsMaxCap(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.Date(2026, 4, 25, 16, 0, 0, 0, time.UTC)
+	mockClock := clock.NewMockClock(startTime)
+
+	config := DefaultWatchdogConfig()
+	config.WarmUpDuration = 0
+
+	watchdog := newTestWatchdog(t, config, mockClock)
+	watchdog.startedAt = startTime
+
+	cancellers := make([]func(), 0, maxEventSubscribers)
+	t.Cleanup(func() {
+		for _, c := range cancellers {
+			c()
+		}
+	})
+
+	for range maxEventSubscribers {
+		_, cancel := watchdog.SubscribeEvents(t.Context(), time.Time{})
+		cancellers = append(cancellers, cancel)
+	}
+
+	ch, cancel := watchdog.SubscribeEvents(t.Context(), time.Time{})
+	cancel()
+
+	select {
+	case _, open := <-ch:
+		assert.False(t, open, "refused subscription returns a pre-closed channel so range exits cleanly")
+	case <-time.After(time.Second):
+		t.Fatal("refused subscription did not return a closed channel")
 	}
 }

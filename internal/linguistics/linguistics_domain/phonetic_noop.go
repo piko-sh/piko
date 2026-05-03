@@ -47,9 +47,8 @@ func NewNoOpPhoneticEncoder(language string) *NoOpPhoneticEncoder {
 	}
 }
 
-// Encode returns an empty string.
-// This method satisfies the PhoneticEncoderPort interface without performing
-// any actual phonetic encoding.
+// Encode returns an empty string. Satisfies the PhoneticEncoderPort interface
+// without performing any actual phonetic encoding.
 //
 // Returns string which is always empty.
 func (*NoOpPhoneticEncoder) Encode(_ string) string {
