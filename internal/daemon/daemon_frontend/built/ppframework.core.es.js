@@ -6356,13 +6356,6 @@ function loadWidgetScripts(doc2) {
     document.dispatchEvent(new Event("piko:widgetinit"));
   }
 }
-function navigationNodeKey(node) {
-  if (node.nodeType !== Node.ELEMENT_NODE) {
-    return null;
-  }
-  const el = node;
-  return el.dataset.stableId ?? el.getAttribute("p-key") ?? (el.id || null);
-}
 function scrollToAnchor(hash) {
   if (!hash || hash === "#") {
     return;
@@ -6390,7 +6383,7 @@ function performDOMUpdate(deps, parsedDocument, oldAppRoot, newAppRoot, scrollOp
   } else {
     fragmentMorpher(oldAppRoot, newAppRoot, {
       childrenOnly: true,
-      getNodeKey: navigationNodeKey
+      getNodeKey
     });
   }
   handleScrollPosition(scrollOptions);
