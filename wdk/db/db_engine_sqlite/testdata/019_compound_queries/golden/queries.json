@@ -8,7 +8,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "department",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -32,23 +32,23 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p2",
+        "Name": "agency",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "",
+          "EngineName": "text",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 4
         },
         "Number": 2,
-        "Nullable": false,
+        "Nullable": true,
         "IsSlice": false,
         "IsOptional": false,
         "Kind": 0

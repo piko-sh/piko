@@ -224,7 +224,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "id",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -248,7 +248,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p2",
+        "Name": "id_2",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -272,7 +272,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p3",
+        "Name": "id_3",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,

@@ -927,6 +927,90 @@ func TestAnalyseQuery_ParameterContexts(t *testing.T) {
 				assert.Equal(t, querier_dto.ParameterContextOffset, analysis.ParameterReferences[0].Context)
 			},
 		},
+		{
+			name: "LIKE pattern with direct column LHS",
+			sql:  "SELECT id FROM users WHERE name LIKE ?;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, analysis.ParameterReferences[0].Context)
+				require.NotNil(t, analysis.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", analysis.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE pattern wrapped in concat picks LHS column",
+			sql:  "SELECT id FROM users WHERE name LIKE CONCAT('%', ?, '%');",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, analysis.ParameterReferences[0].Context)
+				require.NotNil(t, analysis.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", analysis.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "NOT LIKE binds to LHS column",
+			sql:  "SELECT id FROM users WHERE name NOT LIKE ?;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, analysis.ParameterReferences[0].Context)
+				require.NotNil(t, analysis.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", analysis.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "MySQL RLIKE classifies as Like context",
+			sql:  "SELECT id FROM users WHERE email RLIKE ?;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, analysis.ParameterReferences[0].Context)
+				require.NotNil(t, analysis.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "email", analysis.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "MySQL REGEXP classifies as Like context",
+			sql:  "SELECT id FROM users WHERE email REGEXP ?;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, analysis.ParameterReferences[0].Context)
+				require.NotNil(t, analysis.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "email", analysis.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE with function-wrapped column picks the column",
+			sql:  "SELECT id FROM users WHERE LOWER(name) LIKE ?;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, analysis.ParameterReferences[0].Context)
+				require.NotNil(t, analysis.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", analysis.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE with table-qualified LHS preserves the alias",
+			sql:  "SELECT id FROM users u WHERE u.email LIKE ?;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, analysis.ParameterReferences[0].Context)
+				require.NotNil(t, analysis.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "u", analysis.ParameterReferences[0].ColumnReference.TableAlias)
+				assert.Equal(t, "email", analysis.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "two LIKE patterns on different columns each bind to their own LHS",
+			sql:  "SELECT id FROM users WHERE name LIKE ? OR email LIKE ?;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 2)
+				assert.Equal(t, querier_dto.ParameterContextLike, analysis.ParameterReferences[0].Context)
+				require.NotNil(t, analysis.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", analysis.ParameterReferences[0].ColumnReference.ColumnName)
+				assert.Equal(t, querier_dto.ParameterContextLike, analysis.ParameterReferences[1].Context)
+				require.NotNil(t, analysis.ParameterReferences[1].ColumnReference)
+				assert.Equal(t, "email", analysis.ParameterReferences[1].ColumnReference.ColumnName)
+			},
+		},
 	}
 
 	for _, testCase := range tests {

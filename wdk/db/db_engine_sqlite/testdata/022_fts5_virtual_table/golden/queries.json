@@ -8,7 +8,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "articles_fts_like",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -21,7 +21,7 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 4
         },
         "Number": 1,
         "Nullable": false,

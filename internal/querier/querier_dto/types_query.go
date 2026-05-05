@@ -243,6 +243,13 @@ const (
 	// ParameterContextOffset indicates a parameter in an OFFSET clause.
 	ParameterContextOffset
 
+	// ParameterContextLike indicates a parameter inside a LIKE / ILIKE /
+	// GLOB / REGEXP pattern expression. The associated ColumnReference
+	// (when set) names the column on the left of the pattern operator;
+	// the parameter itself always carries a string pattern, so the
+	// analyser types it as text regardless of the column's type.
+	ParameterContextLike
+
 	// ParameterContextUnknown indicates a parameter in an unrecognised context.
 	ParameterContextUnknown
 )

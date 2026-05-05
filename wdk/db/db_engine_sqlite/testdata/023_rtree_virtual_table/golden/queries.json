@@ -8,7 +8,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "min_x",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -32,7 +32,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p2",
+        "Name": "max_x",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -56,7 +56,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p3",
+        "Name": "min_y",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -80,7 +80,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p4",
+        "Name": "max_y",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,

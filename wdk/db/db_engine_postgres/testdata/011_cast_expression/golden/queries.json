@@ -8,7 +8,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "event_date",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -32,7 +32,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p2",
+        "Name": "event_date_2",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,

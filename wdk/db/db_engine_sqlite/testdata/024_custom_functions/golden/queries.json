@@ -32,7 +32,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p2",
+        "Name": "limit",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,

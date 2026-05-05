@@ -1,0 +1,89 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "text": { "category": "text", "engineName": "text" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE profiles ( id int4 PRIMARY KEY, name text NOT NULL, role text NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "profiles",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false },
+          { "name": "role", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "CREATE TABLE user_profiles ( user_id int4 NOT NULL, profile_id int4 NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "user_profiles",
+        "columns": [
+          { "name": "user_id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false },
+          { "name": "profile_id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, name, role FROM profiles WHERE id IN (SELECT profile_id FROM user_profiles WHERE user_id = $1) ORDER BY name",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "id", "tableAlias": "profiles", "columnName": "id" },
+          { "name": "name", "tableAlias": "profiles", "columnName": "name" },
+          { "name": "role", "tableAlias": "profiles", "columnName": "role" }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "", "columnName": "user_id" } }
+        ],
+        "fromTables": [
+          { "name": "profiles" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    },
+    {
+      "sql": "SELECT id FROM profiles WHERE EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1 AND profile_id = profiles.id)",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "id", "tableAlias": "profiles", "columnName": "id" }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "", "columnName": "user_id" } }
+        ],
+        "fromTables": [
+          { "name": "profiles" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    },
+    {
+      "sql": "SELECT (SELECT profile_id FROM user_profiles WHERE user_id = $1 LIMIT 1) AS pid FROM profiles LIMIT 1",
+      "rawAnalysis": {
+        "outputColumns": [
+          {
+            "name": "pid",
+            "expression": {
+              "kind": "scalar_subquery"
+            }
+          }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "", "columnName": "user_id" } }
+        ],
+        "fromTables": [
+          { "name": "profiles" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "description": "Real CockroachDB parser (PostgreSQL dialect): subquery parameters resolve via the analyser's catalogue fallback.",
+  "expectedDiagnosticCount": 0
+}

@@ -50,6 +50,15 @@ import (
 )
 
 const (
+	// WatchdogPriorityNormal is informational; safe to ignore in alerting.
+	WatchdogPriorityNormal = monitoring_domain.WatchdogPriorityNormal
+
+	// WatchdogPriorityHigh warrants prompt investigation.
+	WatchdogPriorityHigh = monitoring_domain.WatchdogPriorityHigh
+
+	// WatchdogPriorityCritical indicates imminent system instability.
+	WatchdogPriorityCritical = monitoring_domain.WatchdogPriorityCritical
+
 	// ModuleAnalytics provides Google Analytics (GA4) support through hooks.
 	// It tracks page views, navigation, server actions, modal opens, and errors.
 	ModuleAnalytics = daemon_frontend.ModuleAnalytics
@@ -84,15 +93,6 @@ const (
 	// Use this for headless CMS scenarios where resources are served to
 	// frontends on different origins.
 	CORPCrossOrigin = "cross-origin"
-
-	// WatchdogPriorityNormal is informational; safe to ignore in alerting.
-	WatchdogPriorityNormal = monitoring_domain.WatchdogPriorityNormal
-
-	// WatchdogPriorityHigh warrants prompt investigation.
-	WatchdogPriorityHigh = monitoring_domain.WatchdogPriorityHigh
-
-	// WatchdogPriorityCritical indicates imminent system instability.
-	WatchdogPriorityCritical = monitoring_domain.WatchdogPriorityCritical
 )
 
 // CSSResetOption is a functional option for configuring the CSS reset feature.

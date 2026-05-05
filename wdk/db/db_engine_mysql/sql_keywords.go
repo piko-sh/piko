@@ -145,6 +145,10 @@ const (
 
 	keywordSECURITY = "SECURITY"
 
+	keywordIN = "IN"
+
+	keywordCAST = "CAST"
+
 	keywordSELECT = "SELECT"
 
 	keywordSEPARATOR = "SEPARATOR"

@@ -1723,6 +1723,140 @@ func TestAnalyseQuery_ParameterContextDetection(t *testing.T) {
 				assert.Equal(t, "id", a.ParameterReferences[0].ColumnReference.ColumnName)
 			},
 		},
+		{
+			name: "LIKE pattern with direct column LHS",
+			sql:  "SELECT id FROM users WHERE name LIKE ?",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE pattern wrapped in concat picks LHS column",
+			sql:  "SELECT id FROM users WHERE name LIKE ('%' || ? || '%')",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "NOT LIKE pattern still binds to LHS column",
+			sql:  "SELECT id FROM users WHERE name NOT LIKE ?",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "GLOB and REGEXP and MATCH all classify as Like context",
+			sql:  "SELECT id FROM files WHERE name GLOB ? AND path REGEXP ? AND content MATCH ?",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 3)
+				expected := []string{"name", "path", "content"}
+				for i, ref := range a.ParameterReferences {
+					assert.Equal(t, querier_dto.ParameterContextLike, ref.Context, "param %d context", i+1)
+					require.NotNil(t, ref.ColumnReference, "param %d column ref", i+1)
+					assert.Equal(t, expected[i], ref.ColumnReference.ColumnName, "param %d column name", i+1)
+				}
+			},
+		},
+		{
+			name: "LIKE with concat-expression LHS picks first column",
+			sql:  "SELECT id FROM users WHERE (name || ' ' || role) LIKE ?",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE with CAST/COALESCE LHS picks the inner column",
+			sql:  "SELECT id FROM customers WHERE CAST(COALESCE(json_extract(company_contacts, '$[0].name'), '') AS TEXT) LIKE ('%' || ? || '%')",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "company_contacts", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE with function-wrapped column picks the column",
+			sql:  "SELECT id FROM users WHERE LOWER(name) LIKE ?",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE with table-qualified LHS preserves the alias",
+			sql:  "SELECT id FROM users u WHERE u.email LIKE ?",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 1)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "u", a.ParameterReferences[0].ColumnReference.TableAlias)
+				assert.Equal(t, "email", a.ParameterReferences[0].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "two LIKE patterns on different columns each bind to their own LHS",
+			sql:  "SELECT id FROM users WHERE name LIKE ? OR email LIKE ?",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 2)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[1].Context)
+				require.NotNil(t, a.ParameterReferences[1].ColumnReference)
+				assert.Equal(t, "email", a.ParameterReferences[1].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "comparison and LIKE in same predicate stay distinct",
+			sql:  "SELECT id FROM users WHERE id = ? AND name LIKE ?",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 2)
+				assert.Equal(t, querier_dto.ParameterContextComparison, a.ParameterReferences[0].Context)
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "id", a.ParameterReferences[0].ColumnReference.ColumnName)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[1].Context)
+				require.NotNil(t, a.ParameterReferences[1].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[1].ColumnReference.ColumnName)
+			},
+		},
+		{
+			name: "LIKE pattern with ESCAPE clause: pattern is Like, escape char is not",
+			sql:  "SELECT id FROM users WHERE name LIKE ? ESCAPE ?",
+			assertions: func(t *testing.T, a *querier_dto.RawQueryAnalysis) {
+				require.NotNil(t, a)
+				require.Len(t, a.ParameterReferences, 2)
+				assert.Equal(t, querier_dto.ParameterContextLike, a.ParameterReferences[0].Context,
+					"first param (the pattern) should be Like")
+				require.NotNil(t, a.ParameterReferences[0].ColumnReference)
+				assert.Equal(t, "name", a.ParameterReferences[0].ColumnReference.ColumnName)
+				assert.NotEqual(t, querier_dto.ParameterContextLike, a.ParameterReferences[1].Context,
+					"second param (the escape character) must not be classified as Like")
+			},
+		},
 	}
 
 	for _, testCase := range tests {

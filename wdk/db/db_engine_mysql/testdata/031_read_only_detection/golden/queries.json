@@ -8,7 +8,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "id",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -59,7 +59,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "id",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -177,7 +177,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "id",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -295,7 +295,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "name",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -319,7 +319,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p2",
+        "Name": "balance",
         "SortableColumns": null,
         "SQLType": {
           "Precision": 12,
@@ -373,7 +373,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "id",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,
@@ -491,7 +491,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p1",
+        "Name": "balance",
         "SortableColumns": null,
         "SQLType": {
           "Precision": 12,
@@ -515,7 +515,7 @@
       {
         "DefaultLimit": null,
         "MaxLimit": null,
-        "Name": "p2",
+        "Name": "id",
         "SortableColumns": null,
         "SQLType": {
           "Precision": null,

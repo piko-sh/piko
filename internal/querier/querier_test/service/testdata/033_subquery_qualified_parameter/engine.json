@@ -1,0 +1,50 @@
+{
+  "builtinFunctions": {},
+  "builtinTypes": {
+    "int4": { "category": "integer", "engineName": "int4" },
+    "text": { "category": "text", "engineName": "text" }
+  },
+  "statements": [
+    {
+      "sql": "CREATE TABLE profiles ( id int4 PRIMARY KEY, name text NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "profiles",
+        "columns": [
+          { "name": "id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false, "hasDefault": false },
+          { "name": "name", "sqlType": { "category": "text", "engineName": "text" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "CREATE TABLE user_profiles ( user_id int4 NOT NULL, profile_id int4 NOT NULL )",
+      "mutation": {
+        "kind": "createTable",
+        "schemaName": "",
+        "tableName": "user_profiles",
+        "columns": [
+          { "name": "user_id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false },
+          { "name": "profile_id", "sqlType": { "category": "integer", "engineName": "int4" }, "nullable": false }
+        ]
+      }
+    },
+    {
+      "sql": "SELECT id, name FROM profiles WHERE id IN (SELECT profile_id FROM user_profiles WHERE user_profiles.user_id = $1)",
+      "rawAnalysis": {
+        "outputColumns": [
+          { "name": "id", "tableAlias": "profiles", "columnName": "id" },
+          { "name": "name", "tableAlias": "profiles", "columnName": "name" }
+        ],
+        "parameterReferences": [
+          { "number": 1, "context": "comparison", "columnReference": { "tableAlias": "user_profiles", "columnName": "user_id" } }
+        ],
+        "fromTables": [
+          { "name": "profiles" }
+        ],
+        "joinClauses": [],
+        "cteDefinitions": []
+      }
+    }
+  ]
+}

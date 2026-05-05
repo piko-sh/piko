@@ -1,0 +1,4 @@
+{
+  "description": "Real MySQL parser: IN-subquery, EXISTS, and scalar subquery parameters whose column references the subquery's table resolve via the analyser's catalogue fallback.",
+  "expectedDiagnosticCount": 0
+}

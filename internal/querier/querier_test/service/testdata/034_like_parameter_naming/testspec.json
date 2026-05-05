@@ -1,0 +1,4 @@
+{
+  "description": "LIKE parameters get column-derived names with _like suffix; collisions on the same column are disambiguated with _2/_3 suffixes; complex LHS expressions resolve to the inner column.",
+  "expectedDiagnosticCount": 0
+}

@@ -49,6 +49,16 @@ type typeResolver struct {
 	engine EngineTypeSystemPort
 }
 
+// catalogueColumnMatch holds the type information for a
+// column found by a catalogue-wide lookup.
+type catalogueColumnMatch struct {
+	// sqlType is the resolved SQL type of the matched column.
+	sqlType querier_dto.SQLType
+
+	// nullable indicates whether the matched column accepts NULL values.
+	nullable bool
+}
+
 // newTypeResolver creates a type resolver with the
 // given catalogue, function resolver, and engine
 // adapter.
@@ -155,7 +165,9 @@ func (r *typeResolver) ResolveParameters(
 
 	r.applyParameterDirectives(parameterTypes, parameterDirectives)
 
-	return collectParameters(parameterTypes), diagnostics
+	parameters := collectParameters(parameterTypes)
+	disambiguateParameterNames(parameters)
+	return parameters, diagnostics
 }
 
 // resolveSingleOutputColumn resolves a single raw
@@ -327,7 +339,7 @@ func (r *typeResolver) mergeRawParameters(
 			diagnostics = append(diagnostics, querier_dto.SourceError{
 				Message:  resolveError.Error(),
 				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeExpressionTypeError,
+				Code:     extractErrorCode(resolveError),
 			})
 		}
 
@@ -371,23 +383,21 @@ func (r *typeResolver) mergeExistingParameterType(
 	}
 }
 
-// resolveParameterName determines the display name for
-// a parameter from its raw reference and directive
-// maps. Named parameters use their directive name if
-// available; unnamed parameters fall back to the
-// directive name or a generated "pN" name.
+// resolveParameterName determines the display name for a parameter,
+// trying in order: the parameter's own name (`:email`); a directive
+// override; the associated column (with `_like` suffix for LIKE patterns);
+// "limit"/"offset" for LIMIT/OFFSET; or a generated "pN" fallback.
+// Disambiguating duplicates is the caller's job (see
+// disambiguateParameterNames).
 //
-// Takes raw (querier_dto.RawParameterReference) which
-// specifies the raw parameter reference.
-// Takes directiveNumberMap
-// (map[int]*querier_dto.ParameterDirective) which
+// Takes raw (querier_dto.RawParameterReference) which specifies the raw
+// parameter reference.
+// Takes directiveNumberMap (map[int]*querier_dto.ParameterDirective) which
 // specifies directives keyed by number.
-// Takes directiveNameMap
-// (map[string]*querier_dto.ParameterDirective) which
-// specifies directives keyed by name.
+// Takes directiveNameMap (map[string]*querier_dto.ParameterDirective)
+// which specifies directives keyed by name.
 //
-// Returns string which holds the resolved parameter
-// name.
+// Returns string which holds the resolved parameter name.
 func resolveParameterName(
 	raw querier_dto.RawParameterReference,
 	directiveNumberMap map[int]*querier_dto.ParameterDirective,
@@ -402,7 +412,54 @@ func resolveParameterName(
 	if directive, exists := directiveNumberMap[raw.Number]; exists {
 		return directive.Name
 	}
+	if raw.ColumnReference != nil && raw.ColumnReference.ColumnName != "" {
+		if raw.Context == querier_dto.ParameterContextLike {
+			return raw.ColumnReference.ColumnName + "_like"
+		}
+		return raw.ColumnReference.ColumnName
+	}
+	switch raw.Context {
+	case querier_dto.ParameterContextLimit:
+		return "limit"
+	case querier_dto.ParameterContextOffset:
+		return "offset"
+	}
 	return fmt.Sprintf("p%d", raw.Number)
+}
+
+// disambiguateParameterNames suffixes duplicate parameter names with a
+// 1-based ordinal so each name is unique within the query.
+//
+// The first occurrence keeps its bare name; subsequent collisions get
+// suffixes (`_2`, `_3`, ...) in declaration order, so suffixes are stable
+// across runs. Directive- and SQL-derived names participate equally to
+// prevent accidental collisions.
+//
+// Takes parameters ([]querier_dto.QueryParameter) which holds the
+// parameters to disambiguate in place; the caller must pass them in
+// ordinal (Number-ascending) order.
+func disambiguateParameterNames(parameters []querier_dto.QueryParameter) {
+	if len(parameters) < 2 {
+		return
+	}
+
+	counts := make(map[string]int, len(parameters))
+	for index := range parameters {
+		counts[parameters[index].Name]++
+	}
+
+	seen := make(map[string]int, len(parameters))
+	for index := range parameters {
+		name := parameters[index].Name
+		if counts[name] < 2 {
+			continue
+		}
+		seen[name]++
+		if seen[name] == 1 {
+			continue
+		}
+		parameters[index].Name = fmt.Sprintf("%s_%d", name, seen[name])
+	}
 }
 
 // applyParameterDirectives applies directive overrides
@@ -569,51 +626,242 @@ func (*typeResolver) expandStar(
 	return outputColumns, nil
 }
 
-// resolveParameterType infers the SQL type and
-// nullability of a single raw parameter reference from
-// its cast type, column reference, or usage context.
+// resolveParameterType infers a parameter's SQL type and nullability.
 //
-// Takes raw (querier_dto.RawParameterReference) which
-// specifies the raw parameter to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for column reference lookups.
+// The type comes from the cast type, the referenced column, or the usage
+// context, in that order. When the column reference cannot be resolved
+// against the scope chain the resolver falls back to a catalogue-wide
+// lookup so subquery parameters (whose inner scope the engine adapter
+// does not preserve) still get a type; ambiguous fallbacks let the
+// original Q001/Q002 diagnostic stand.
 //
-// Returns querier_dto.SQLType which holds the inferred
-// SQL type.
-// Returns bool which indicates whether the parameter is
-// nullable.
-// Returns error which indicates a scope resolution
-// failure.
+// Takes raw (querier_dto.RawParameterReference) which specifies the raw
+// parameter to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for column
+// reference lookups.
+//
+// Returns querier_dto.SQLType which holds the inferred SQL type.
+// Returns bool which indicates whether the parameter is nullable.
+// Returns error which indicates a scope resolution failure that the
+// catalogue fallback could not disambiguate.
 func (r *typeResolver) resolveParameterType(
 	raw querier_dto.RawParameterReference,
 	scope *scopeChain,
 ) (querier_dto.SQLType, bool, error) {
 	if raw.CastType != nil {
-		resolved := r.resolveCustomType(*raw.CastType)
-		return resolved, false, nil
+		return r.resolveCustomType(*raw.CastType), false, nil
 	}
-
+	if raw.Context == querier_dto.ParameterContextLike {
+		return r.resolveLikeParameterType(raw, scope)
+	}
 	if raw.ColumnReference != nil {
-		column, _, err := scope.ResolveColumn(
-			raw.ColumnReference.TableAlias,
-			raw.ColumnReference.ColumnName,
-		)
-		if err != nil {
-			return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, false, err
-		}
-		if column == nil {
-			return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, false, nil
-		}
-		return column.SQLType, column.Nullable, nil
+		return r.resolveColumnReferencedParameterType(raw.ColumnReference, scope)
 	}
+	return resolveContextOnlyParameterType(raw.Context), false, nil
+}
 
-	switch raw.Context {
+// resolveLikeParameterType returns the type for a LIKE-pattern parameter,
+// always text, while still surfacing a Q001-style error when the LHS
+// column reference resolves neither in scope nor via catalogue fallback.
+//
+// Takes raw (querier_dto.RawParameterReference) which specifies the raw
+// parameter under resolution.
+// Takes scope (*scopeChain) which specifies the active scope chain.
+//
+// Returns querier_dto.SQLType which is always text for LIKE parameters.
+// Returns bool which is always false (LIKE parameters are not nullable
+// based on the column).
+// Returns error which surfaces unresolved column references so the
+// diagnostic pass can emit Q001.
+func (r *typeResolver) resolveLikeParameterType(
+	raw querier_dto.RawParameterReference,
+	scope *scopeChain,
+) (querier_dto.SQLType, bool, error) {
+	likeType := querier_dto.SQLType{Category: querier_dto.TypeCategoryText}
+	if raw.ColumnReference == nil || raw.ColumnReference.ColumnName == "" {
+		return likeType, false, nil
+	}
+	_, _, err := scope.ResolveColumn(raw.ColumnReference.TableAlias, raw.ColumnReference.ColumnName)
+	if err == nil {
+		return likeType, false, nil
+	}
+	if _, ok := r.findColumnInCatalogue(raw.ColumnReference); ok {
+		return likeType, false, nil
+	}
+	return likeType, false, err
+}
+
+// resolveColumnReferencedParameterType resolves a parameter whose
+// ColumnReference identifies a target column, falling back to a
+// catalogue-wide lookup when the active scope chain cannot find the
+// column (which happens for parameters carried up from subqueries the
+// engine adapter flat-scanned).
+//
+// Takes reference (*querier_dto.ColumnReference) which specifies the
+// column the parameter is compared against or assigned to.
+// Takes scope (*scopeChain) which specifies the active scope chain.
+//
+// Returns querier_dto.SQLType which holds the resolved column type or
+// Unknown when neither the scope nor the catalogue could match.
+// Returns bool which indicates whether the column is nullable.
+// Returns error which surfaces unresolved column references so the
+// diagnostic pass can emit Q001.
+func (r *typeResolver) resolveColumnReferencedParameterType(
+	reference *querier_dto.ColumnReference,
+	scope *scopeChain,
+) (querier_dto.SQLType, bool, error) {
+	column, _, err := scope.ResolveColumn(reference.TableAlias, reference.ColumnName)
+	if err != nil {
+		if fallback, ok := r.findColumnInCatalogue(reference); ok {
+			return fallback.sqlType, fallback.nullable, nil
+		}
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, false, err
+	}
+	if column == nil {
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, false, nil
+	}
+	return column.SQLType, column.Nullable, nil
+}
+
+// resolveContextOnlyParameterType returns the type that a parameter takes
+// from its surrounding context alone, used when no cast or column
+// reference is available.
+//
+// Takes parameterContext (querier_dto.ParameterContext) which specifies
+// the SQL context the parameter appears in.
+//
+// Returns querier_dto.SQLType which is integer for LIMIT/OFFSET and
+// Unknown otherwise.
+func resolveContextOnlyParameterType(parameterContext querier_dto.ParameterContext) querier_dto.SQLType {
+	switch parameterContext {
 	case querier_dto.ParameterContextLimit, querier_dto.ParameterContextOffset:
 		return querier_dto.SQLType{
 			Category:   querier_dto.TypeCategoryInteger,
 			EngineName: querier_dto.CanonicalInt4,
-		}, false, nil
+		}
+	}
+	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+}
+
+// findColumnInCatalogue resolves a column via a catalogue-wide lookup.
+//
+// It searches every schema and returns the column's type only when exactly
+// one table holds it. A non-empty TableAlias narrows the search to tables
+// with that name (per the SQL convention of using bare table names as
+// default aliases); an empty TableAlias scans all tables and refuses
+// ambiguous results so the genuine Q001/Q002 diagnostic can fire.
+// Comparison is case-insensitive. Views are skipped: their column types
+// come from a SELECT body that this fallback does not re-resolve.
+//
+// Takes reference (*querier_dto.ColumnReference) which specifies the
+// column to look up.
+//
+// Returns catalogueColumnMatch which holds the matched column's type and
+// nullability when ok is true.
+// Returns bool which is true when exactly one column matched.
+func (r *typeResolver) findColumnInCatalogue(
+	reference *querier_dto.ColumnReference,
+) (catalogueColumnMatch, bool) {
+	if r.catalogue == nil || reference == nil || reference.ColumnName == "" {
+		return catalogueColumnMatch{}, false
 	}
 
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, false, nil
+	var found catalogueColumnMatch
+	matchCount := 0
+	for _, schema := range r.catalogue.Schemas {
+		if schema == nil {
+			continue
+		}
+		match, hits, ambiguous := matchColumnInSchema(schema, reference)
+		if ambiguous {
+			return catalogueColumnMatch{}, false
+		}
+		matchCount += hits
+		if matchCount > 1 {
+			return catalogueColumnMatch{}, false
+		}
+		if hits == 1 {
+			found = match
+		}
+	}
+
+	if matchCount != 1 {
+		return catalogueColumnMatch{}, false
+	}
+	return found, true
+}
+
+// matchColumnInSchema scans a single schema for tables holding the
+// reference's column, applying the optional TableAlias filter. It returns
+// early when more than one match is seen so the caller can short-circuit
+// before walking later schemas.
+//
+// Takes schema (*querier_dto.Schema) which specifies the schema to scan.
+// Takes reference (*querier_dto.ColumnReference) which specifies the
+// column to look up.
+//
+// Returns catalogueColumnMatch which holds the column type when a single
+// match was found.
+// Returns int which is the number of matches encountered (capped at 2 so
+// callers can recognise ambiguity).
+// Returns bool which is true when the schema alone contains two or more
+// matches, allowing the caller to abort.
+func matchColumnInSchema(
+	schema *querier_dto.Schema,
+	reference *querier_dto.ColumnReference,
+) (catalogueColumnMatch, int, bool) {
+	var found catalogueColumnMatch
+	matches := 0
+	for _, table := range schema.Tables {
+		if table == nil {
+			continue
+		}
+		if reference.TableAlias != "" && !tableMatchesAlias(table, reference.TableAlias) {
+			continue
+		}
+		match, ok := findColumnInTable(table, reference.ColumnName)
+		if !ok {
+			continue
+		}
+		matches++
+		if matches > 1 {
+			return catalogueColumnMatch{}, matches, true
+		}
+		found = match
+	}
+	return found, matches, false
+}
+
+// findColumnInTable returns the type information for a column on a
+// specific table. Comparison is case-insensitive.
+//
+// Takes table (*querier_dto.Table) which specifies the table to search.
+// Takes columnName (string) which specifies the column to find.
+//
+// Returns catalogueColumnMatch which holds the matched column's type.
+// Returns bool which is true when the column was found.
+func findColumnInTable(table *querier_dto.Table, columnName string) (catalogueColumnMatch, bool) {
+	for i := range table.Columns {
+		if strings.EqualFold(table.Columns[i].Name, columnName) {
+			return catalogueColumnMatch{
+				sqlType:  table.Columns[i].SQLType,
+				nullable: table.Columns[i].Nullable,
+			}, true
+		}
+	}
+	return catalogueColumnMatch{}, false
+}
+
+// tableMatchesAlias reports whether the catalogue table can be referenced
+// by the supplied alias, treating the table's bare name as a default
+// alias. Query-local aliases (FROM users AS u) are not in the catalogue,
+// so this only catches the unqualified-or-bare-name case.
+//
+// Takes table (*querier_dto.Table) which specifies the catalogue table.
+// Takes alias (string) which specifies the qualifier from the parameter's
+// column reference.
+//
+// Returns bool which is true when the alias matches the table's name.
+func tableMatchesAlias(table *querier_dto.Table, alias string) bool {
+	return strings.EqualFold(table.Name, alias)
 }
