@@ -19,6 +19,8 @@
 package image_provider_imaging
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -53,6 +55,17 @@ const (
 	// prevent memory exhaustion from the pure Go WebP encoder's
 	// large temporary buffers.
 	maxConcurrentTransforms = 2
+
+	// dimensionHeaderPeekBytes caps the bytes read by GetDimensions
+	// when peeking image headers; sufficient for the standard
+	// formats supported by image.DecodeConfig.
+	dimensionHeaderPeekBytes = 64 << 10
+
+	// logKeyWidth is the structured-log key for image width.
+	logKeyWidth = "width"
+
+	// logKeyHeight is the structured-log key for image height.
+	logKeyHeight = "height"
 )
 
 var (
@@ -131,17 +144,9 @@ func (p *Provider) Transform(
 ) (string, error) {
 	ctx, l := logger.From(ctx, log)
 
-	validatedSpec, err := image_domain.ValidateTransformationSpec(spec, nil)
+	spec, err := p.validateSpec(ctx, spec, l)
 	if err != nil {
-		return "", fmt.Errorf("invalid transformation spec: %w", err)
-	}
-	spec = validatedSpec
-
-	if err := image_domain.ValidateImageFormat(ctx, spec.Format, p.config); err != nil {
-		l.Warn("Rejected transformation due to disallowed format",
-			logger.String("format", spec.Format),
-			logger.Error(err))
-		return "", fmt.Errorf("format validation failed: %w", err)
+		return "", err
 	}
 
 	select {
@@ -151,7 +156,12 @@ func (p *Provider) Transform(
 		return "", ctx.Err()
 	}
 
-	srcImage, err := p.decodeImage(ctx, input)
+	buffered, err := p.bufferAndPeek(ctx, input, l)
+	if err != nil {
+		return "", err
+	}
+
+	srcImage, err := p.decodeImage(ctx, bytes.NewReader(buffered))
 	if err != nil {
 		return "", err
 	}
@@ -194,23 +204,99 @@ func (*Provider) GetSupportedModifiers() []string {
 	}
 }
 
-// GetDimensions extracts width and height from image data using lightweight
-// header decoding. Uses Go's standard library image.DecodeConfig() for
-// minimal overhead.
+// GetDimensions extracts width and height from image data using
+// lightweight header decoding via image.DecodeConfig. The reader is
+// capped at [dimensionHeaderPeekBytes] so malformed input cannot pull
+// unbounded bytes.
 //
 // Takes input (io.Reader) which provides the source image data.
 //
 // Returns width (int) in pixels.
 // Returns height (int) in pixels.
-// Returns error when the image cannot be decoded or format is
+// Returns error when the image cannot be decoded or the format is
 // unsupported.
 func (*Provider) GetDimensions(_ context.Context, input io.Reader) (width int, height int, err error) {
-	config, _, err := image.DecodeConfig(input)
+	limited := bufio.NewReader(io.LimitReader(input, dimensionHeaderPeekBytes))
+	config, _, err := image.DecodeConfig(limited)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to decode image header: %w", err)
 	}
 
 	return config.Width, config.Height, nil
+}
+
+// validateSpec runs the upfront spec and format checks.
+//
+// Takes ctx (context.Context) which carries cancellation.
+// Takes spec (media.TransformationSpec) which is the incoming spec
+// to validate.
+// Takes l (logger.Logger) which is the request-scoped logger used to
+// surface rejections.
+//
+// Returns media.TransformationSpec which is the validated spec with
+// defaults applied.
+// Returns error which wraps the validation or format-rejection
+// failure.
+func (p *Provider) validateSpec(ctx context.Context, spec media.TransformationSpec, l logger.Logger) (media.TransformationSpec, error) {
+	validatedSpec, err := image_domain.ValidateTransformationSpec(spec, nil)
+	if err != nil {
+		return spec, fmt.Errorf("invalid transformation spec: %w", err)
+	}
+
+	if err := image_domain.ValidateImageFormat(ctx, validatedSpec.Format, p.config); err != nil {
+		l.Warn("Rejected transformation due to disallowed format",
+			logger.String("format", validatedSpec.Format),
+			logger.Error(err))
+		return spec, fmt.Errorf("format validation failed: %w", err)
+	}
+
+	return validatedSpec, nil
+}
+
+// bufferAndPeek reads input up to MaxFileSizeBytes and rejects the
+// payload when the header-declared dimensions or pixel count exceed
+// configured limits, defending against decompression bombs before
+// imaging.Decode allocates RGBA pixels.
+//
+// Takes ctx (context.Context) which carries cancellation.
+// Takes input (io.Reader) which supplies the encoded image bytes.
+// Takes l (logger.Logger) which is the request-scoped logger used to
+// surface rejections.
+//
+// Returns []byte which is the buffered payload.
+// Returns error which wraps the underlying read or validation
+// failure.
+func (p *Provider) bufferAndPeek(ctx context.Context, input io.Reader, l logger.Logger) ([]byte, error) {
+	buffered, err := io.ReadAll(image_domain.NewLimitedReader(input, p.config.MaxFileSizeBytes))
+	if err != nil {
+		if errors.Is(err, image_domain.ErrSizeLimitExceeded) {
+			l.Warn("Rejected transformation due to file size limit",
+				logger.Int64("max_bytes", p.config.MaxFileSizeBytes),
+				logger.Error(err))
+		}
+		return nil, fmt.Errorf("failed to buffer input image: %w", err)
+	}
+
+	config, _, headerErr := image.DecodeConfig(bytes.NewReader(buffered))
+	if headerErr != nil {
+		return buffered, nil
+	}
+
+	if err := image_domain.ValidateImageDimensions(ctx, config.Width, config.Height, p.config); err != nil {
+		l.Warn("Rejected transformation due to header dimension peek",
+			logger.Int(logKeyWidth, config.Width),
+			logger.Int(logKeyHeight, config.Height),
+			logger.Error(err))
+		return nil, fmt.Errorf("dimension peek failed: %w", err)
+	}
+	if err := image_domain.ValidateImagePixelCount(ctx, config.Width, config.Height, p.config); err != nil {
+		l.Warn("Rejected transformation due to header pixel-count peek",
+			logger.Int(logKeyWidth, config.Width),
+			logger.Int(logKeyHeight, config.Height),
+			logger.Error(err))
+		return nil, fmt.Errorf("pixel-count peek failed: %w", err)
+	}
+	return buffered, nil
 }
 
 // decodeImage decodes the input stream into an image.Image, applying size

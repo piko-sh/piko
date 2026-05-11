@@ -31,6 +31,10 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
+// llmStreamEventBufferSize bounds the producer/consumer queue for
+// stream events so a slow consumer cannot lockstep the upstream.
+const llmStreamEventBufferSize = 16
+
 // streamState holds the accumulated state during stream processing.
 type streamState struct {
 	// finalUsage holds the accumulated token usage after the stream completes.
@@ -82,7 +86,7 @@ func (p *geminiProvider) Stream(ctx context.Context, request *llm_dto.Completion
 	streamContext := p.streamContext(ctx)
 	stream := p.client.Models.GenerateContentStream(streamContext, modelName, contents, config)
 
-	events := make(chan llm_dto.StreamEvent)
+	events := make(chan llm_dto.StreamEvent, llmStreamEventBufferSize)
 
 	p.streamWaitGroup.Add(1)
 	go p.processStream(streamContext, stream, events, modelName)

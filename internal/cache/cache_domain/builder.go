@@ -757,6 +757,8 @@ func (b *CacheBuilder[K, V]) Build(ctx context.Context) (Cache[K, V], error) {
 		return nil, fmt.Errorf("validating search schema: %w", err)
 	}
 
+	b.warnIfUnbounded(ctx)
+
 	if b.factoryBlueprint != "" {
 		return b.buildFromBlueprint(ctx)
 	}
@@ -1182,6 +1184,24 @@ func (b *CacheBuilder[K, V]) createMultiLevelAdapter(
 		logger_domain.Duration("l2_open_timeout", b.l2OpenTimeout))
 
 	return multilevelAdapter, nil
+}
+
+// warnIfUnbounded logs a WARN at Build time when the cache has neither
+// a MaximumSize nor a MaximumWeight set. Unbounded caches are the most
+// common cache-related memory hazard, so we surface them at startup so
+// operators can audit which namespaces have opted out of bounding.
+//
+// Multi-level (L1+L2) caches use buildL1Options/buildL2Options paths;
+// the L2 layer is intentionally exempt because remote caches enforce
+// their own eviction policy server-side.
+func (b *CacheBuilder[K, V]) warnIfUnbounded(ctx context.Context) {
+	if b.maximumSize > 0 || b.maximumWeight > 0 {
+		return
+	}
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("Cache has no declared memory bound (MaximumSize/MaximumWeight); growth is unbounded",
+		logger_domain.String("namespace", b.namespace),
+		logger_domain.String("provider", b.providerName))
 }
 
 // warnAboutTransformerLimitations logs warnings when features are set up

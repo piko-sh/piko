@@ -425,7 +425,7 @@ func (p *parser) findLikeExpressionStart(likePosition int) int {
 // findColumnInExpressionRange scans [start, end] forward for the first
 // identifier that looks like a column, skipping function names, SQL
 // types, aliases, and reserved keywords so complex LHS expressions like
-// `(name || ' ' || role)` or `CAST(COALESCE(col, '') AS TEXT)` still
+// `(name || ' ' || role)` or `CAST(COALESCE(...) AS TEXT)` still
 // resolve to a meaningful column.
 //
 // Takes start (int) which is the inclusive start of the range.

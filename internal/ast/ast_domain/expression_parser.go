@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"unicode"
 	"unicode/utf8"
 
@@ -66,6 +67,10 @@ const (
 	// function lookup table. It must be larger than the highest token
 	// type value (currently 21).
 	prefixParseFunctionTableSize = 32
+
+	// expressionCacheMaxEntries caps the number of cached parsed
+	// expressions; on overflow the cache is wiped wholesale.
+	expressionCacheMaxEntries = 10000
 )
 
 // prefixParseFunction defines a function type for parsing prefix expressions.
@@ -93,10 +98,14 @@ var (
 		},
 	}
 
-	// expressionCache caches parsed expressions to avoid re-parsing identical
-	// strings. This improves performance for repeated parsing of the same
-	// expressions.
+	// expressionCache caches parsed expressions to avoid re-parsing
+	// identical strings. Bounded by [expressionCacheMaxEntries].
 	expressionCache sync.Map
+
+	// expressionCacheCount approximates the size of expressionCache for
+	// the bounding check. sync.Map has no Len(); the counter may
+	// temporarily lag the map under concurrent Store + Delete.
+	expressionCacheCount atomic.Int64
 
 	// identStartTable maps ASCII bytes to whether they can start an identifier,
 	// using a lookup table for O(1) character class checking. Includes '$' as valid
@@ -1187,9 +1196,10 @@ func ParseExpressionCached(ctx context.Context, expression, sourcePath string) (
 }
 
 // ClearExpressionCache resets the expression cache to an empty state.
-// Intended for testing.
+// Intended for testing and for the bounded-cache wipe path.
 func ClearExpressionCache() {
 	expressionCache = sync.Map{}
+	expressionCacheCount.Store(0)
 }
 
 // parseAndCacheExpression parses an expression and stores the result in a
@@ -1206,7 +1216,11 @@ func parseAndCacheExpression(ctx context.Context, expression, sourcePath string)
 	parsed, diagnostics := parser.ParseExpression(ctx)
 	parser.Release()
 
+	if expressionCacheCount.Load() >= expressionCacheMaxEntries {
+		ClearExpressionCache()
+	}
 	expressionCache.Store(expression, cachedExpression{expression: parsed, diagnostics: diagnostics})
+	expressionCacheCount.Add(1)
 
 	return parsed, diagnostics
 }

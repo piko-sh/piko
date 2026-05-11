@@ -753,6 +753,18 @@ type Container struct {
 	// csrfTokenMaxAge overrides the default CSRF token maximum age when positive.
 	csrfTokenMaxAge time.Duration
 
+	// hybridCacheWriteExpirationOverride is the operator-supplied write
+	// expiration on the hybrid-collections cache.
+	hybridCacheWriteExpirationOverride time.Duration
+
+	// hybridCacheMaxBytesOverride is the operator-supplied byte cap on
+	// the hybrid-collections cache.
+	hybridCacheMaxBytesOverride uint64
+
+	// actionResponseCacheMaxBytesOverride is the operator-supplied byte
+	// cap on the action-response cache.
+	actionResponseCacheMaxBytesOverride uint64
+
 	// renderRegOnce guards single initialisation of the render registry.
 	renderRegOnce sync.Once
 
@@ -1720,4 +1732,15 @@ func registerCloseableForShutdown(ctx context.Context, name string, service any)
 
 	l.Trace("Service does not implement shutdown interface",
 		logger_domain.String("service", name))
+}
+
+// resolveActionResponseCacheMaxBytes returns the operator-supplied
+// byte cap on the action-response cache when set.
+//
+// Returns uint64 which is the resolved byte cap.
+func (c *Container) resolveActionResponseCacheMaxBytes() uint64 {
+	if c.actionResponseCacheMaxBytesOverride > 0 {
+		return c.actionResponseCacheMaxBytesOverride
+	}
+	return defaultActionResponseCacheMaxBytes
 }

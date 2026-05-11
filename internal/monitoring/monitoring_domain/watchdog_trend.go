@@ -43,6 +43,11 @@ const (
 	// minimumTrendSamples is the minimum number of samples required before a
 	// slope computation is meaningful.
 	minimumTrendSamples = 10
+
+	// trendForensicsCaptureKey is the cooldown key used for heap-trend
+	// forensic captures; distinct from the per-profile-type keys so the
+	// trend path has its own cooldown bucket.
+	trendForensicsCaptureKey = "heap_trend_forensics"
 )
 
 // heapTrendBuffer is a fixed-capacity ring buffer of uint64 heap allocation
@@ -248,4 +253,55 @@ func (w *Watchdog) emitHeapTrendWarning(
 			"projected_time_to_breach":     secondsToBreach.String(),
 		},
 	})
+
+	w.captureTrendForensics(ctx, currentHeap, effectiveLimit, secondsToBreach)
+}
+
+// captureTrendForensics triggers heap + goroutine pprof captures on a
+// heap-trend warning so operators have forensic data before OOM. Uses
+// the threshold-capture cooldown so back-to-back warnings do not spam
+// the disk.
+//
+// Takes ctx (context.Context) which carries cancellation and the
+// request-scoped logger.
+// Takes currentHeap (uint64) which is recorded in the sidecar.
+// Takes effectiveLimit (uint64) which is recorded in the sidecar.
+// Takes secondsToBreach (time.Duration) which is recorded in the
+// sidecar.
+func (w *Watchdog) captureTrendForensics(
+	ctx context.Context,
+	currentHeap, effectiveLimit uint64,
+	secondsToBreach time.Duration,
+) {
+	_, l := logger_domain.From(ctx, log)
+
+	w.mu.Lock()
+	controller := w.profilingController
+	w.mu.Unlock()
+	if controller == nil {
+		l.Warn("Skipping trend forensics capture: profiling controller is not installed; " +
+			"pass piko.WithMonitoringProfiling() at bootstrap")
+		return
+	}
+
+	now := w.clock.Now()
+	if !w.tryAdmitCapture(now, trendForensicsCaptureKey) {
+		watchdogCooldownSkipCount.Add(ctx, 1)
+		return
+	}
+
+	l.Notice("Heap-trend forensic capture triggered",
+		logger_domain.Uint64("current_heap_bytes", currentHeap),
+		logger_domain.Uint64("effective_limit_bytes", effectiveLimit),
+		String("projected_time_to_breach", secondsToBreach.String()),
+	)
+
+	capCtx := captureContext{
+		Rule:      "heap_trend",
+		Observed:  currentHeap,
+		Threshold: effectiveLimit,
+	}
+
+	w.triggerCapture(ctx, profileTypeHeap, capCtx)
+	w.triggerCapture(ctx, profileTypeGoroutine, capCtx)
 }

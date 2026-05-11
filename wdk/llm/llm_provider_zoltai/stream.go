@@ -27,6 +27,10 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
+// llmStreamEventBufferSize bounds the producer/consumer queue for
+// stream events so a slow consumer cannot lockstep the upstream.
+const llmStreamEventBufferSize = 16
+
 // Stream sends a streaming completion that delivers a fortune word by word.
 //
 // Takes ctx (context.Context) which controls cancellation.
@@ -50,7 +54,7 @@ func (p *zoltaiProvider) Stream(ctx context.Context, request *llm_dto.Completion
 	fortune := p.config.Fortunes[p.randomSource.IntN(len(p.config.Fortunes))]
 	full := p.config.FormatFortune(fortune)
 
-	events := make(chan llm_dto.StreamEvent)
+	events := make(chan llm_dto.StreamEvent, llmStreamEventBufferSize)
 	streamContext := p.streamContext(ctx)
 
 	p.streamWaitGroup.Add(1)

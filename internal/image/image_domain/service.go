@@ -28,6 +28,7 @@ import (
 	"io"
 	"mime"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -175,7 +176,7 @@ func (s *service) GenerateResponsiveVariants(ctx context.Context, input io.Reade
 		fmt.Errorf("responsive variant generation exceeded %s timeout", s.config.TransformTimeout))
 	defer cancel()
 
-	originalData, err := io.ReadAll(contextaware.NewReader(ctx, input))
+	originalData, err := io.ReadAll(io.LimitReader(contextaware.NewReader(ctx, input), s.config.MaxFileSizeBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read input image: %w", err)
 	}
@@ -405,9 +406,14 @@ func (s *service) generateVariantsConcurrently(
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(widths)*len(densities))
 
+	semCap := max(runtime.NumCPU(), 1)
+	sem := make(chan struct{}, semCap)
+
 	for _, width := range widths {
 		for _, density := range densities {
 			wg.Go(func() {
+				sem <- struct{}{}
+				defer func() { <-sem }()
 				variant, err := s.generateSingleVariant(ctx, data, baseSpec, width, density)
 				if err != nil {
 					errChan <- err

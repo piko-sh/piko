@@ -503,6 +503,39 @@ func WithCacheService(service cache_domain.Service) Option {
 	}
 }
 
+// WithHybridCacheMaxBytes overrides the framework default weight cap on
+// the hybrid-collections cache.
+//
+// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the
+// framework default in place.
+//
+// Returns Option which configures the cap on the container.
+func WithHybridCacheMaxBytes(maxBytes uint64) Option {
+	return bootstrap.WithHybridCacheMaxBytes(maxBytes)
+}
+
+// WithHybridCacheWriteExpiration overrides the framework default
+// write-expiration on the hybrid-collections cache.
+//
+// Takes expiration (time.Duration) which is the write-expiration;
+// zero or negative leaves the framework default in place.
+//
+// Returns Option which configures the expiration on the container.
+func WithHybridCacheWriteExpiration(expiration time.Duration) Option {
+	return bootstrap.WithHybridCacheWriteExpiration(expiration)
+}
+
+// WithActionResponseCacheMaxBytes overrides the framework default
+// weight cap on the action-response cache.
+//
+// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the
+// framework default in place.
+//
+// Returns Option which configures the cap on the container.
+func WithActionResponseCacheMaxBytes(maxBytes uint64) Option {
+	return bootstrap.WithActionResponseCacheMaxBytes(maxBytes)
+}
+
 // WithCSSTreeShaking enables CSS tree-shaking during scaffold generation.
 //
 // When enabled, unused CSS rules (based on static HTML analysis) are removed

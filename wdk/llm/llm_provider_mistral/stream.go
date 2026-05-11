@@ -35,6 +35,10 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
+// llmStreamEventBufferSize bounds the producer/consumer queue for
+// stream events so a slow consumer cannot lockstep the upstream.
+const llmStreamEventBufferSize = 16
+
 const (
 	// maxSSELineBytes bounds a single SSE line so a malicious or malfunctioning
 	// peer cannot cause unbounded memory growth by streaming a single oversized
@@ -125,7 +129,7 @@ func (p *mistralProvider) Stream(ctx context.Context, request *llm_dto.Completio
 		return nil, classifyStreamErrorResponse(response)
 	}
 
-	events := make(chan llm_dto.StreamEvent)
+	events := make(chan llm_dto.StreamEvent, llmStreamEventBufferSize)
 
 	p.streamWaitGroup.Add(1)
 	go p.processStream(streamContext, response, events)

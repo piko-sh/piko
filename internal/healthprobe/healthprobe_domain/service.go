@@ -33,6 +33,10 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
+// maxConcurrentProbes caps the parallel execution of probes per
+// liveness/readiness/startup check.
+const maxConcurrentProbes = 4
+
 // ServiceOption is a function that configures a healthprobe service.
 type ServiceOption func(*service)
 
@@ -132,6 +136,7 @@ func (s *service) checkAll(ctx context.Context, checkType healthprobe_dto.CheckT
 func (s *service) executeProbesConcurrently(ctx context.Context, probes []Probe, checkType healthprobe_dto.CheckType) chan healthprobe_dto.Status {
 	statuses := make(chan healthprobe_dto.Status, len(probes))
 	g, gCtx := errgroup.WithContext(ctx)
+	g.SetLimit(maxConcurrentProbes)
 
 	for _, p := range probes {
 		probe := p

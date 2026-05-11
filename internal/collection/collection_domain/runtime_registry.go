@@ -184,12 +184,10 @@ func FetchCollection(
 	if err != nil {
 		return fmt.Errorf("fetching collection '%s': %w", collectionName, err)
 	}
-
 	if err := provider.Fetch(ctx, collectionName, options, target); err != nil {
 		return fmt.Errorf("provider '%s' failed to fetch collection '%s': %w",
 			providerName, collectionName, err)
 	}
-
 	return nil
 }
 

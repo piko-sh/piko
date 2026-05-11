@@ -29,6 +29,20 @@ import (
 	"piko.sh/piko/internal/render/render_dto"
 )
 
+const (
+	// byteBufferMaxRetainedCapacity caps the pool-retained capacity of
+	// frozen byte buffers; oversize buffers are dropped on release.
+	byteBufferMaxRetainedCapacity = 64 * 1024
+
+	// csrfBufMaxRetainedCapacity caps the pool-retained capacity of
+	// CSRF buffers; oversize buffers are dropped on release.
+	csrfBufMaxRetainedCapacity = 4 * 1024
+
+	// renderContextDiagSliceCap caps the pool-retained length of the
+	// renderContext diagnostic and link-header slices.
+	renderContextDiagSliceCap = 256
+)
+
 // populateLocaleFromRequest extracts the locale from the request context.
 //
 // Takes request (*http.Request) which provides the request context containing the
@@ -128,6 +142,9 @@ func (*RenderOrchestrator) putRenderContext(rctx *renderContext) {
 	}
 
 	for _, buffer := range rctx.frozenBuffers {
+		if cap(*buffer) > byteBufferMaxRetainedCapacity {
+			continue
+		}
 		*buffer = (*buffer)[:0]
 		byteBufferPool.Put(buffer)
 	}
@@ -135,10 +152,17 @@ func (*RenderOrchestrator) putRenderContext(rctx *renderContext) {
 
 	if rctx.csrfBuf != nil {
 		rctx.csrfBuf.Reset()
-		csrfBufPool.Put(rctx.csrfBuf)
+		if rctx.csrfBuf.Cap() <= csrfBufMaxRetainedCapacity {
+			csrfBufPool.Put(rctx.csrfBuf)
+		}
 		rctx.csrfBuf = nil
 	}
 
+	if cap(rctx.diagnostics.Warnings) > renderContextDiagSliceCap ||
+		cap(rctx.diagnostics.Errors) > renderContextDiagSliceCap ||
+		cap(rctx.collectedLinkHeaders) > renderContextDiagSliceCap {
+		return
+	}
 	renderContextPool.Put(rctx)
 }
 

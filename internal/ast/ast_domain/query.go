@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -51,11 +52,18 @@ const (
 	indexCapacityElements = 200
 )
 
+// selectorCacheMaxEntries caps the number of cached parsed selectors.
+const selectorCacheMaxEntries = 20000
+
 var (
 	// selectorCache caches parsed selectors to avoid re-parsing identical
 	// selector strings. This improves performance for repeated queries with the
 	// same selectors.
 	selectorCache sync.Map
+
+	// selectorCacheCount approximates the size of selectorCache for
+	// bounding. May temporarily lag the map under concurrent ops.
+	selectorCacheCount atomic.Int64
 
 	// combinatorHandlers maps CSS combinator symbols to their query handler functions.
 	combinatorHandlers = map[string]combinatorHandler{
@@ -236,6 +244,7 @@ type pseudoClassHandler func(node *TemplateNode, pseudo PseudoClassSelector, qc 
 // This is intended for test isolation between iterations.
 func ClearSelectorCache() {
 	selectorCache = sync.Map{}
+	selectorCacheCount.Store(0)
 }
 
 // QueryAll searches the entire TemplateAST for all nodes matching the given
@@ -367,7 +376,11 @@ func parseSelectorUncached(selector, sourcePath string) (SelectorSet, []*Diagnos
 	parser.Release()
 	queryLexer.Release()
 
+	if selectorCacheCount.Load() >= selectorCacheMaxEntries {
+		ClearSelectorCache()
+	}
 	selectorCache.Store(selector, cachedSelector{set: selectorSet, diagnostics: diagnostics})
+	selectorCacheCount.Add(1)
 
 	if diagnostics != nil {
 		return nil, diagnostics

@@ -42,6 +42,30 @@ const (
 
 	// defaultPayloadMapCapacity is the initial capacity for event payload maps.
 	defaultPayloadMapCapacity = 8
+
+	// maxRetainedMapEntries is the retention cap on pooled ordering
+	// and dedupe maps.
+	maxRetainedMapEntries = 1024
+
+	// maxRetainedSliceCapacity is the equivalent retention cap for
+	// pooled string slices.
+	maxRetainedSliceCapacity = 2048
+
+	// maxRetainedQueryArgsCap is the retention cap on the backing
+	// array of pooled query-arg slices.
+	maxRetainedQueryArgsCap = 4096
+
+	// maxRetainedBuilderCap is the retention cap on a pooled
+	// strings.Builder's underlying buffer.
+	maxRetainedBuilderCap = 4 * 1024
+
+	// maxRetainedTagMapEntries is the retention cap on pooled tag
+	// maps.
+	maxRetainedTagMapEntries = 128
+
+	// maxRetainedPayloadEntries is the retention cap on pooled event
+	// payload maps.
+	maxRetainedPayloadEntries = 256
 )
 
 var (
@@ -111,10 +135,15 @@ func getOrderingMap() map[string]any {
 	return make(map[string]any, defaultMapCapacity)
 }
 
-// putOrderingMap returns a map to the pool after clearing it.
+// putOrderingMap returns a map to the pool after clearing it. Drops
+// the map when its entry count exceeds [maxRetainedMapEntries] since
+// Go maps do not shrink their bucket array on delete/clear.
 //
 // Takes m (map[string]any) which is the map to clear and return to the pool.
 func putOrderingMap(m map[string]any) {
+	if len(m) > maxRetainedMapEntries {
+		return
+	}
 	clear(m)
 	orderingMapPool.Put(m)
 }
@@ -130,10 +159,14 @@ func getDedupeMap() map[string]struct{} {
 	return make(map[string]struct{}, defaultMapCapacity)
 }
 
-// putDedupeMap returns a map to the pool after clearing it.
+// putDedupeMap returns a map to the pool after clearing it. Drops
+// the map when its entry count exceeds [maxRetainedMapEntries].
 //
 // Takes m (map[string]struct{}) which is the map to return.
 func putDedupeMap(m map[string]struct{}) {
+	if len(m) > maxRetainedMapEntries {
+		return
+	}
 	clear(m)
 	dedupeMapPool.Put(m)
 }
@@ -148,10 +181,14 @@ func getQueryArgs() *[]any {
 	return new(make([]any, 0, defaultQueryArgsCapacity))
 }
 
-// putQueryArgs returns a slice to the pool after resetting it.
+// putQueryArgs returns a slice to the pool after resetting it. Drops
+// the slice if its backing array exceeds [maxRetainedQueryArgsCap].
 //
 // Takes s (*[]any) which is the slice to reset and return to the pool.
 func putQueryArgs(s *[]any) {
+	if cap(*s) > maxRetainedQueryArgsCap {
+		return
+	}
 	*s = (*s)[:0]
 	queryArgsPool.Put(s)
 }
@@ -169,10 +206,14 @@ func getStringBuilder() *strings.Builder {
 }
 
 // putStringBuilder returns a string builder to the pool after resetting it.
+// Drops the builder if it grew past maxRetainedBuilderCap.
 //
 // Takes b (*strings.Builder) which is the builder to reset and return to the
 // pool.
 func putStringBuilder(b *strings.Builder) {
+	if b.Cap() > maxRetainedBuilderCap {
+		return
+	}
 	b.Reset()
 	stringBuilderPool.Put(b)
 }
@@ -188,10 +229,14 @@ func getTagMap() map[string]string {
 	return make(map[string]string, defaultTagMapCapacity)
 }
 
-// putTagMap returns a map to the pool after clearing it.
+// putTagMap returns a map to the pool after clearing it. Drops the
+// map if it grew past maxRetainedTagMapEntries.
 //
 // Takes m (map[string]string) which is the tag map to clear and return.
 func putTagMap(m map[string]string) {
+	if len(m) > maxRetainedTagMapEntries {
+		return
+	}
 	clear(m)
 	tagMapPool.Put(m)
 }
@@ -207,10 +252,14 @@ func getEventPayload() map[string]any {
 	return make(map[string]any, defaultPayloadMapCapacity)
 }
 
-// putEventPayload returns a map to the pool after clearing it.
+// putEventPayload returns a map to the pool after clearing it. Drops
+// the map if it grew past maxRetainedPayloadEntries.
 //
 // Takes m (map[string]any) which is the map to clear and return to the pool.
 func putEventPayload(m map[string]any) {
+	if len(m) > maxRetainedPayloadEntries {
+		return
+	}
 	clear(m)
 	eventPayloadPool.Put(m)
 }
@@ -226,9 +275,13 @@ func getStringSlice() *[]string {
 }
 
 // putStringSlice returns a string slice to the pool after resetting it.
+// Drops the slice if its backing array grew past maxRetainedSliceCapacity.
 //
 // Takes s (*[]string) which is the slice to reset and return to the pool.
 func putStringSlice(s *[]string) {
+	if cap(*s) > maxRetainedSliceCapacity {
+		return
+	}
 	*s = (*s)[:0]
 	stringSlicePool.Put(s)
 }

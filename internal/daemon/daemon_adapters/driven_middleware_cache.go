@@ -81,6 +81,14 @@ const (
 	// pipeResponseWriterHeaderSize is the default number of headers to set aside
 	// space for in a pipe response writer.
 	pipeResponseWriterHeaderSize = 8
+
+	// htmlBufferMaxRetainedCapacity caps the pooled HTML buffer
+	// capacity; buffers larger than this are dropped on release.
+	htmlBufferMaxRetainedCapacity = 1 << 20
+
+	// pipeResponseWriterMaxRetainedHeaders caps the number of header
+	// keys a pooled pipeResponseWriter may retain.
+	pipeResponseWriterMaxRetainedHeaders = 64
 )
 
 var (
@@ -619,10 +627,7 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 // The buffer is returned to the pool after use. Uses a write limiter to
 // control disk writes.
 func (m *CacheMiddleware) persistArtefactInBackground(parentCtx context.Context, artefactID, sourcePath string, rawHTML *bytes.Buffer) {
-	defer func() {
-		rawHTML.Reset()
-		htmlBufferPool.Put(rawHTML)
-	}()
+	defer releaseHTMLBuffer(rawHTML)
 	defer goroutine.RecoverPanic(context.WithoutCancel(parentCtx), "daemon.persistArtefactInBackground")
 
 	m.writeLimiter <- struct{}{}
@@ -867,10 +872,14 @@ func getHTMLBuffer() *bytes.Buffer {
 	return buffer
 }
 
-// releaseHTMLBuffer returns a buffer to the HTML buffer pool.
+// releaseHTMLBuffer returns a buffer to the HTML buffer pool, dropping
+// buffers whose capacity exceeds [htmlBufferMaxRetainedCapacity].
 //
 // Takes buffer (*bytes.Buffer) which is the buffer to reset and return.
 func releaseHTMLBuffer(buffer *bytes.Buffer) {
+	if buffer.Cap() > htmlBufferMaxRetainedCapacity {
+		return
+	}
 	buffer.Reset()
 	htmlBufferPool.Put(buffer)
 }
@@ -1233,10 +1242,18 @@ func newPipeResponseWriter(pw *io.PipeWriter) *pipeResponseWriter {
 	}
 }
 
-// releasePipeResponseWriter returns a pipeResponseWriter to the pool.
+// releasePipeResponseWriter returns a pipeResponseWriter to the pool,
+// clearing the header map in place. Drops the writer when the header
+// map exceeds [pipeResponseWriterMaxRetainedHeaders].
 //
 // Takes prw (*pipeResponseWriter) which is the writer to release.
 func releasePipeResponseWriter(prw *pipeResponseWriter) {
 	prw.Writer = nil
+	if len(prw.header) > pipeResponseWriterMaxRetainedHeaders {
+		return
+	}
+	for k := range prw.header {
+		delete(prw.header, k)
+	}
 	pipeResponseWriterPool.Put(prw)
 }

@@ -60,19 +60,42 @@ func (w *Watchdog) continuousProfilingLoop(ctx context.Context) {
 // triggers a routine capture for each. Captures are dispatched to the same
 // captureWG used by threshold-triggered captures so Stop() drains them
 // cleanly.
+//
+// Concurrency: reads w.profilingController under w.mu; dispatches each
+// capture as a goroutine via w.goSafely so the loop itself does not
+// block on pprof.
 func (w *Watchdog) captureRoutineProfiles(ctx context.Context) {
+	_, l := logger_domain.From(ctx, log)
+
 	stats := w.systemCollector.GetStats()
 	if int(stats.NumGoroutines) >= w.config.GoroutineSafetyCeiling {
-		_, l := logger_domain.From(ctx, log)
-		l.Internal("Skipping routine profile capture: goroutine count exceeds safety ceiling",
+		l.Warn("Skipping routine profile capture: goroutine count exceeds safety ceiling",
 			logger_domain.Int("goroutine_count", int(stats.NumGoroutines)),
 			logger_domain.Int("safety_ceiling", w.config.GoroutineSafetyCeiling),
 		)
 		return
 	}
 
+	if len(w.config.ContinuousProfilingTypes) == 0 {
+		l.Warn("Routine profiling enabled but ContinuousProfilingTypes is empty; no captures will run")
+		return
+	}
+
+	w.mu.Lock()
+	controllerReady := w.profilingController != nil
+	w.mu.Unlock()
+
+	if !controllerReady {
+		l.Warn("Skipping routine profile capture: profiling controller is not installed; " +
+			"pass piko.WithMonitoringProfiling() at bootstrap")
+		return
+	}
+
 	for _, profileType := range w.config.ContinuousProfilingTypes {
 		if w.heapProfilingDisabled && requiresMemProfileRate(profileType) {
+			l.Warn("Skipping routine profile capture: runtime.MemProfileRate is 0",
+				String(logFieldProfileType, profileType),
+			)
 			continue
 		}
 		w.goSafely(&w.captureWG, func() {
@@ -125,7 +148,7 @@ func (w *Watchdog) captureAndStoreRoutineProfile(ctx context.Context, profileTyp
 
 	var buffer bytes.Buffer
 	if _, err := controller.CaptureProfile(ctx, profileType, 0, &buffer); err != nil {
-		l.Internal("Routine profile capture failed",
+		l.Warn("Routine profile capture failed",
 			String(logFieldProfileType, profileType),
 			logger_domain.Error(err),
 		)
@@ -135,6 +158,11 @@ func (w *Watchdog) captureAndStoreRoutineProfile(ctx context.Context, profileTyp
 
 	profileData := buffer.Bytes()
 	if int64(len(profileData)) > w.config.MaxProfileSizeBytes {
+		l.Warn("Routine profile capture exceeded MaxProfileSizeBytes; dropping",
+			String(logFieldProfileType, profileType),
+			logger_domain.Int("captured_bytes", len(profileData)),
+			logger_domain.Int64("max_profile_size_bytes", w.config.MaxProfileSizeBytes),
+		)
 		watchdogCaptureErrorCount.Add(ctx, 1)
 		return
 	}
@@ -142,7 +170,7 @@ func (w *Watchdog) captureAndStoreRoutineProfile(ctx context.Context, profileTyp
 	prefixed := routineProfilePrefix + profileType
 	timestamp, err := w.profileStore.writeWithRetention(prefixed, profileData, w.config.ContinuousProfilingRetention)
 	if err != nil {
-		l.Internal("Routine profile store write failed",
+		l.Warn("Routine profile store write failed",
 			String(logFieldProfileType, profileType),
 			logger_domain.Error(err),
 		)

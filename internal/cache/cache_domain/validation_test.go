@@ -88,6 +88,41 @@ func TestValidateOptions_ValidConfigurations(t *testing.T) {
 	}
 }
 
+func TestIsUnbounded(t *testing.T) {
+	tests := []struct {
+		name    string
+		options cache_dto.Options[string, string]
+		want    bool
+	}{
+		{
+			name:    "no bounds is unbounded",
+			options: cache_dto.Options[string, string]{},
+			want:    true,
+		},
+		{
+			name:    "maximum size set",
+			options: cache_dto.Options[string, string]{MaximumSize: 100},
+			want:    false,
+		},
+		{
+			name: "maximum weight set",
+			options: cache_dto.Options[string, string]{
+				MaximumWeight: 1000,
+				Weigher:       mockWeigher[string, string],
+			},
+			want: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := IsUnbounded(tc.options); got != tc.want {
+				t.Errorf("IsUnbounded() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestValidateOptions_MaximumSizeAndWeight(t *testing.T) {
 	options := cache_dto.Options[string, string]{
 		MaximumSize:   100,
@@ -260,7 +295,7 @@ func TestValidateOptions_EdgeCases(t *testing.T) {
 			wantError: false,
 		},
 		{
-			name: "maximum size exactly 0 (should be valid - means unlimited)",
+			name: "maximum size exactly 0 (means unlimited)",
 			options: cache_dto.Options[string, string]{
 				MaximumSize: 0,
 			},
