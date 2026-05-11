@@ -61,6 +61,11 @@ const (
 
 	// defaultChannelSize is the buffer size for the pending write channel.
 	defaultChannelSize = 4096
+
+	// alignedBufMaxRetainedCapacity caps the alignedBuf backing array
+	// between flushes. Buffers larger than this are reallocated so
+	// memory tracks recent traffic rather than all-time peaks.
+	alignedBufMaxRetainedCapacity = 16 << 20
 )
 
 // resultChanPool is a pool for result channels to reduce allocations.
@@ -399,7 +404,11 @@ func (w *DiskWAL[K, V]) flushAlignedLocked(batch []pendingWrite, totalBytes int6
 //
 // Returns error when the WriteAt operation fails.
 func (w *DiskWAL[K, V]) flushUnalignedLocked(batch []pendingWrite, totalBytes int64) error {
-	w.alignedBuf = w.alignedBuf[:0]
+	if cap(w.alignedBuf) > alignedBufMaxRetainedCapacity {
+		w.alignedBuf = make([]byte, 0, totalBytes)
+	} else {
+		w.alignedBuf = w.alignedBuf[:0]
+	}
 	for _, pw := range batch {
 		w.alignedBuf = append(w.alignedBuf, pw.data...)
 	}

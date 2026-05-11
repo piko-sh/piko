@@ -22,6 +22,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"time"
 
 	"piko.sh/piko/internal/cache/cache_domain"
 	_ "piko.sh/piko/internal/collection/collection_adapters/cache_factory" // registers hybrid-collections cache blueprint
@@ -32,6 +33,16 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/wdk/safedisk"
+)
+
+const (
+	// hybridCacheMaxBytes caps the weight-based bound on the
+	// hybrid-collections cache.
+	defaultHybridCacheMaxBytes uint64 = 1 << 30
+
+	// hybridCacheWriteExpiration is the safety-net write expiration on
+	// the hybrid-collections cache.
+	defaultHybridCacheWriteExpiration = 1 * time.Hour
 )
 
 // createCollectionService creates and sets up the collection service with
@@ -128,7 +139,9 @@ func initHybridCache(c *Container) {
 	hybridCache, err := cache_domain.NewCacheBuilder[string, collection_domain.HybridCacheValue](cacheService).
 		FactoryBlueprint("hybrid-collections").
 		Namespace("hybrid-collections").
-		MaximumSize(10_000).
+		MaximumWeight(c.resolveHybridCacheMaxBytes()).
+		Weigher(hybridCacheValueWeigher).
+		WriteExpiration(c.resolveHybridCacheWriteExpiration()).
 		Build(c.GetAppContext())
 	if err != nil {
 		l.Warn("Failed to create service-managed hybrid cache, continuing with startup instance",
@@ -138,4 +151,44 @@ func initHybridCache(c *Container) {
 
 	collection_domain.InitHybridCache(hybridCache)
 	l.Internal("Hybrid collection cache migrated to cache service")
+}
+
+// hybridCacheValueWeigher returns the byte cost of a hybrid cache
+// entry as the sum of key, blob, and ETag lengths.
+//
+// Takes key (string) which is the cache key.
+// Takes value (collection_domain.HybridCacheValue) which holds the
+// blobs and ETag metadata for a hybrid collection.
+//
+// Returns uint32 which is the entry weight in bytes, clamped to the
+// maximum uint32 value when the total would overflow.
+func hybridCacheValueWeigher(key string, value collection_domain.HybridCacheValue) uint32 {
+	total := len(key) + len(value.CurrentBlob) + len(value.SnapshotBlob) +
+		len(value.CurrentETag) + len(value.SnapshotETag)
+	if total > int(^uint32(0)) {
+		return ^uint32(0)
+	}
+	return uint32(total)
+}
+
+// resolveHybridCacheMaxBytes returns the operator-supplied byte cap
+// on the hybrid-collections cache.
+//
+// Returns uint64 which is the resolved byte cap.
+func (c *Container) resolveHybridCacheMaxBytes() uint64 {
+	if c.hybridCacheMaxBytesOverride > 0 {
+		return c.hybridCacheMaxBytesOverride
+	}
+	return defaultHybridCacheMaxBytes
+}
+
+// resolveHybridCacheWriteExpiration returns the operator-supplied
+// write expiration on the hybrid-collections cache.
+//
+// Returns time.Duration which is the resolved expiration.
+func (c *Container) resolveHybridCacheWriteExpiration() time.Duration {
+	if c.hybridCacheWriteExpirationOverride > 0 {
+		return c.hybridCacheWriteExpirationOverride
+	}
+	return defaultHybridCacheWriteExpiration
 }

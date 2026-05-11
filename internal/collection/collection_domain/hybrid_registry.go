@@ -24,6 +24,8 @@ import (
 	"slices"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
@@ -44,6 +46,13 @@ const (
 	// far fewer hybrid collections.
 	defaultHybridCacheMaxEntries = 10_000
 )
+
+// hybridRevalidationGroup deduplicates concurrent revalidation triggers
+// for the same hybrid collection key. Without it, every render that
+// observes a stale-while-revalidate state would spawn its own
+// goroutine + channel pair via cache.Refresh, multiplying allocations
+// linearly with concurrency at every TTL boundary.
+var hybridRevalidationGroup singleflight.Group
 
 // HybridCacheValue holds the runtime state for a single hybrid collection.
 // Exported so the bootstrap layer can reference the cache type parameter.
@@ -233,18 +242,21 @@ func (h *defaultHybridRegistry) TriggerRevalidation(ctx context.Context, provide
 		return
 	}
 
-	encoder := h.encoder
-	if encoder == nil {
-		encoder = staticCollectionRegistry.encoder
-	}
+	_, _, _ = hybridRevalidationGroup.Do(key, func() (any, error) {
+		encoder := h.encoder
+		if encoder == nil {
+			encoder = staticCollectionRegistry.encoder
+		}
 
-	loader := &hybridLoader{
-		runtimeRegistry: h.runtimeRegistry,
-		encoder:         encoder,
-		clock:           h.clock,
-	}
+		loader := &hybridLoader{
+			runtimeRegistry: h.runtimeRegistry,
+			encoder:         encoder,
+			clock:           h.clock,
+		}
 
-	_ = hybridCache.Refresh(ctx, key, loader)
+		_ = hybridCache.Refresh(ctx, key, loader)
+		return nil, nil
+	})
 }
 
 // hybridCapableProvider defines the interface for providers that support

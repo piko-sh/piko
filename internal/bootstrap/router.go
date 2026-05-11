@@ -66,9 +66,9 @@ const (
 	// being generous for long-running streams.
 	defaultMaxSSEDurationSeconds = 1800
 
-	// defaultActionResponseCacheMaxEntries is the maximum number of entries in
-	// the action response cache. This bounds memory from cached action responses.
-	defaultActionResponseCacheMaxEntries = 10_000
+	// defaultActionResponseCacheMaxBytes is the default byte cap on the
+	// action-response cache.
+	defaultActionResponseCacheMaxBytes = uint64(256 << 20)
 
 	// defaultActionResponseCacheMaxTTL is the upper-bound write expiration for
 	// the action response cache. Individual actions override this with their
@@ -84,6 +84,22 @@ const (
 	// cached before expiring (5 minutes).
 	defaultArtefactMetadataCacheTTL = 5 * time.Minute
 )
+
+// actionResponseWeigher returns the byte cost of an action response
+// cache entry as the sum of key and value lengths.
+//
+// Takes key (string) which is the cache key.
+// Takes value ([]byte) which is the cached response payload.
+//
+// Returns uint32 which is the entry weight in bytes, clamped to the
+// maximum uint32 value when the total would overflow.
+func actionResponseWeigher(key string, value []byte) uint32 {
+	total := len(key) + len(value)
+	if total > int(^uint32(0)) {
+		return ^uint32(0)
+	}
+	return uint32(total)
+}
 
 var (
 	// errUnknownManifestFormat is a specific error for invalid configuration.
@@ -317,7 +333,8 @@ func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMidd
 	if cacheService, err := op.container.GetCacheService(); err == nil {
 		actionResponseCache, err = cache_domain.NewCacheBuilder[string, []byte](cacheService).
 			Namespace("action_responses").
-			MaximumSize(defaultActionResponseCacheMaxEntries).
+			MaximumWeight(op.container.resolveActionResponseCacheMaxBytes()).
+			Weigher(actionResponseWeigher).
 			WriteExpiration(defaultActionResponseCacheMaxTTL).
 			Build(ctx)
 		if err != nil {

@@ -68,6 +68,10 @@ const (
 
 	// defaultNewTaskMaxRetries is the most times a new task will retry if it fails.
 	defaultNewTaskMaxRetries = 3
+
+	// taskMapMaxRetainedEntries caps the Payload/Result map size on
+	// Reset; oversized maps are replaced with fresh small ones.
+	taskMapMaxRetainedEntries = 64
 )
 
 // TaskConfig holds the settings for running a task.
@@ -212,9 +216,8 @@ func NewTask(executor string, payload map[string]any) *Task {
 }
 
 // Reset clears all fields so the Task can be reused from sync.Pool.
-//
-// This stops data from a previous use leaking into the next use. Maps and
-// slices are cleared rather than set to nil so their memory can be reused.
+// Payload and Result maps that exceed [taskMapMaxRetainedEntries] are
+// replaced with fresh small maps rather than cleared in place.
 func (t *Task) Reset() {
 	t.ID = ""
 	t.WorkflowID = ""
@@ -230,10 +233,18 @@ func (t *Task) Reset() {
 	t.UpdatedAt = time.Time{}
 	t.Config = TaskConfig{}
 
-	for k := range t.Payload {
-		delete(t.Payload, k)
+	if len(t.Payload) > taskMapMaxRetainedEntries {
+		t.Payload = make(map[string]any)
+	} else {
+		for k := range t.Payload {
+			delete(t.Payload, k)
+		}
 	}
-	for k := range t.Result {
-		delete(t.Result, k)
+	if len(t.Result) > taskMapMaxRetainedEntries {
+		t.Result = make(map[string]any)
+	} else {
+		for k := range t.Result {
+			delete(t.Result, k)
+		}
 	}
 }

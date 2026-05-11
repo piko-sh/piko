@@ -27,9 +27,11 @@ import (
 	"sync"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"github.com/cespare/xxhash/v2"
+
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
@@ -59,8 +61,17 @@ type CachingManifestRunner struct {
 	cache ast_domain.ASTCacheService
 }
 
+// backgroundCacheWriteConcurrency caps in-flight backgroundCacheWrite
+// goroutines so a cache-miss storm does not spawn one goroutine plus
+// one AST clone per request.
+const backgroundCacheWriteConcurrency = 8
+
 var (
 	_ templater_domain.ManifestRunnerPort = (*CachingManifestRunner)(nil)
+
+	// backgroundCacheWriteSem bounds in-flight backgroundCacheWrite
+	// goroutines to [backgroundCacheWriteConcurrency].
+	backgroundCacheWriteSem = make(chan struct{}, backgroundCacheWriteConcurrency)
 
 	// cacheKeyHasherPool provides reusable xxhash Digest instances for cache key
 	// generation, avoiding per-request allocations.
@@ -310,8 +321,19 @@ func (c *CachingManifestRunner) handleCacheMiss(
 		return freshAST, metadata, styling, nil
 	}
 
-	clonedForCache := freshAST.DeepClone()
-	go c.backgroundCacheWrite(ctx, request, cacheKey, pageEntry, clonedForCache, metadataBytes)
+	select {
+	case backgroundCacheWriteSem <- struct{}{}:
+		clonedForCache := freshAST.DeepClone()
+		bgCtx := context.WithoutCancel(ctx)
+		go func() {
+			defer func() { <-backgroundCacheWriteSem }()
+			defer goroutine.RecoverPanic(bgCtx, "templater.backgroundCacheWrite")
+			c.backgroundCacheWrite(bgCtx, request, cacheKey, pageEntry, clonedForCache, metadataBytes)
+		}()
+	default:
+		l.Trace("backgroundCacheWrite shedding due to saturated semaphore",
+			logger_domain.String(logFieldCacheKey, cacheKey))
+	}
 
 	return freshAST, metadata, styling, nil
 }

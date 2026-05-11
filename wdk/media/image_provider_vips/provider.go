@@ -80,6 +80,14 @@ const (
 	// avifEncodingSpeed controls AVIF encoding speed (0-10, higher is faster
 	// but produces larger files).
 	avifEncodingSpeed = 8
+
+	// dimensionHeaderPeekBytes caps the bytes read when peeking image
+	// dimensions; sufficient for JPEG/PNG/GIF/WebP/BMP/TIFF headers.
+	dimensionHeaderPeekBytes = 64 << 10
+
+	// dimensionFullReadBytes is the absolute cap when the header-peek
+	// path fails and a full vips decode is required.
+	dimensionFullReadBytes = 32 << 20
 )
 
 // Config holds configuration options for the vips provider.
@@ -242,19 +250,26 @@ func (*Provider) GetSupportedModifiers() []string {
 // Returns height (int) in pixels.
 // Returns error when the image cannot be decoded.
 func (*Provider) GetDimensions(_ context.Context, input io.Reader) (width int, height int, err error) {
-	data, err := io.ReadAll(input)
-	if err != nil {
-		return 0, 0, fmt.Errorf("failed to read image data: %w", err)
+	peeked, peekErr := io.ReadAll(io.LimitReader(input, dimensionHeaderPeekBytes))
+	if peekErr != nil {
+		return 0, 0, fmt.Errorf("failed to peek image header: %w", peekErr)
 	}
 
-	config, _, decodeErr := image.DecodeConfig(bytes.NewReader(data))
-	if decodeErr == nil {
+	if config, _, decodeErr := image.DecodeConfig(bytes.NewReader(peeked)); decodeErr == nil {
 		return config.Width, config.Height, nil
 	}
 
+	rest, restErr := io.ReadAll(io.LimitReader(input, dimensionFullReadBytes-int64(len(peeked))))
+	if restErr != nil {
+		return 0, 0, fmt.Errorf("failed to read image data: %w", restErr)
+	}
+
+	data := make([]byte, 0, len(peeked)+len(rest))
+	data = append(data, peeked...)
+	data = append(data, rest...)
 	img, err := vips.NewImageFromBuffer(data)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to decode image header: %w", decodeErr)
+		return 0, 0, fmt.Errorf("failed to decode image header: %w", err)
 	}
 	defer img.Close()
 

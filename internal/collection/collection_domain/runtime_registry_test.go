@@ -442,10 +442,11 @@ func TestFetchCollection_Concurrent(t *testing.T) {
 	wg.Wait()
 
 	mu.Lock()
-	if fetchCount != numGoroutines {
-		t.Errorf("Expected %d fetch calls, got %d", numGoroutines, fetchCount)
-	}
+	got := fetchCount
 	mu.Unlock()
+	if got != numGoroutines {
+		t.Errorf("Expected %d fetch calls, got %d", numGoroutines, got)
+	}
 }
 
 func TestResetRuntimeProviderRegistry(t *testing.T) {

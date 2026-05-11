@@ -32,6 +32,10 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
+// llmStreamEventBufferSize bounds the producer/consumer queue for
+// stream events so a slow consumer cannot lockstep the upstream.
+const llmStreamEventBufferSize = 16
+
 // streamState holds the data gathered while processing a stream.
 type streamState struct {
 	// finalUsage stores the accumulated token usage after the stream completes.
@@ -92,7 +96,7 @@ func (p *anthropicProvider) Stream(ctx context.Context, request *llm_dto.Complet
 	streamContext := p.streamContext(ctx)
 	stream := p.client.Messages.NewStreaming(streamContext, params)
 
-	events := make(chan llm_dto.StreamEvent)
+	events := make(chan llm_dto.StreamEvent, llmStreamEventBufferSize)
 
 	p.streamWaitGroup.Add(1)
 	go p.processStream(streamContext, stream, events, model)

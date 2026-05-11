@@ -30,6 +30,10 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
+// llmStreamEventBufferSize bounds the producer/consumer queue for
+// stream events so a slow consumer cannot lockstep the upstream.
+const llmStreamEventBufferSize = 16
+
 // Stream sends a streaming completion request to Ollama.
 //
 // Takes request (*llm_dto.CompletionRequest) which specifies the completion
@@ -62,7 +66,7 @@ func (p *ollamaProvider) Stream(ctx context.Context, request *llm_dto.Completion
 	chatRequest := p.buildChatRequest(ctx, request, model)
 	streamContext := p.streamContext(ctx)
 
-	events := make(chan llm_dto.StreamEvent)
+	events := make(chan llm_dto.StreamEvent, llmStreamEventBufferSize)
 
 	p.streamWaitGroup.Go(func() {
 		p.processStream(streamContext, chatRequest, model, events)

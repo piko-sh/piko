@@ -54,3 +54,14 @@ func ValidateOptions[K comparable, V any](options cache_dto.Options[K, V]) error
 
 	return nil
 }
+
+// IsUnbounded reports whether the options describe a cache with no
+// declared memory bound (neither MaximumSize nor MaximumWeight set).
+//
+// Takes options (cache_dto.Options[K, V]) which specifies the cache
+// settings to inspect.
+//
+// Returns bool which is true when the cache has no declared bound.
+func IsUnbounded[K comparable, V any](options cache_dto.Options[K, V]) bool {
+	return options.MaximumSize == 0 && options.MaximumWeight == 0
+}

@@ -1599,6 +1599,48 @@ func WithWebsiteConfig(websiteConfig config.WebsiteConfig) Option {
 	}
 }
 
+// WithHybridCacheMaxBytes overrides the framework default weight cap on
+// the hybrid-collections cache.
+//
+// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the
+// framework default in place.
+//
+// Returns Option which configures the container with the override.
+func WithHybridCacheMaxBytes(maxBytes uint64) Option {
+	return func(c *Container) {
+		c.hybridCacheMaxBytesOverride = maxBytes
+	}
+}
+
+// WithHybridCacheWriteExpiration overrides the framework default
+// write-expiration on the hybrid-collections cache.
+//
+// Takes expiration (time.Duration) which is the write-expiration;
+// zero or negative leaves the framework default in place.
+//
+// Returns Option which configures the container with the override.
+func WithHybridCacheWriteExpiration(expiration time.Duration) Option {
+	return func(c *Container) {
+		if expiration <= 0 {
+			return
+		}
+		c.hybridCacheWriteExpirationOverride = expiration
+	}
+}
+
+// WithActionResponseCacheMaxBytes overrides the framework default
+// weight cap on the action-response cache.
+//
+// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the
+// framework default in place.
+//
+// Returns Option which configures the container with the override.
+func WithActionResponseCacheMaxBytes(maxBytes uint64) Option {
+	return func(c *Container) {
+		c.actionResponseCacheMaxBytesOverride = maxBytes
+	}
+}
+
 // WithDevWidget enables the dev tools overlay widget in dev mode, providing
 // at-a-glance system stats, build pipeline status, and provider information
 // with no effect in production mode.
