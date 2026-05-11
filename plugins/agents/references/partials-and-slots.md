@@ -215,16 +215,43 @@ Partials can be nested arbitrarily deep:
 
 ## Partial refresh
 
-Partials support graduated refresh control:
+Partials are reloaded with `piko.partials.reload(name, options?)`. Reconciliation is configured per call, not via attributes on the partial root.
+
+```ts
+piko.partials.reload('cart');                                     // default: 'merge' mode
+piko.partials.reload('cart', { mode: 'replace' });                // server fully authoritative
+piko.partials.reload('cart', { mode: 'children-only' });          // skip root attrs
+piko.partials.reload('cart', { mode: 'attrs-only' });             // skip children
+piko.partials.reload('cart', { ownedAttrs: ['class'] });          // only sync listed root attrs
+piko.partials.reload('cart', { preserveAttrs: ['data-init'] });   // never overwrite listed root attrs
+```
+
+The four `mode` values:
+
+| Mode | Root attrs the server emitted | Root attrs only on live | Children |
+|---|---|---|---|
+| `merge` (default) | overwritten | preserved | morphed |
+| `replace` | overwritten | removed | morphed |
+| `children-only` | untouched | untouched | morphed |
+| `attrs-only` | follow merge rule | preserved | untouched |
+
+Per-element decorators stay valid below the partial root:
 
 | Attribute | Behaviour |
 |-----------|-----------|
-| `pk-refresh-root` | Only the root partial element refreshes |
-| `pk-own-attrs` | Only the partial's own attributes refresh |
-| `pk-no-refresh-attrs` | Attributes never refresh |
-| `pk-no-refresh` | Element never refreshes (on any element) |
-| `pk-refresh` | Force refresh (overrides no-refresh ancestor) |
+| `pk-no-refresh` (any element) | Element and its subtree never refresh |
+| `pk-refresh` (any element) | Force refresh inside a `pk-no-refresh` subtree |
+| `pk-no-refresh-attrs="a,b"` (any element) | Preserve listed attributes on that element during morph |
 | `pk-loading` | CSS class applied during partial reload |
+
+The earlier partial-root decorators (`pk-refresh-root`, `pk-own-attrs`, partial-root `pk-no-refresh-attrs`) are no longer honoured. Use the `reload(name, options)` arguments above. The framework logs a one-time warning if it sees those decorators in a server response or on a `pk-sync` container. Migration sketch:
+
+```ts
+// pk-refresh-root           → reload(name, { mode: 'replace' })
+// pk-own-attrs="a,b"        → reload(name, { mode: 'replace', ownedAttrs: ['a','b'] })
+// pk-no-refresh-attrs        → reload(name, { mode: 'replace' })
+// pk-no-refresh-attrs="a,b"  → reload(name, { mode: 'replace', preserveAttrs: ['a','b'] })
+```
 
 ## Request overrides
 

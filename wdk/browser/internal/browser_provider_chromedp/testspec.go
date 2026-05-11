@@ -156,8 +156,17 @@ type BrowserStep struct {
 	// Timeout is the wait time in milliseconds; 0 means no timeout.
 	Timeout int `json:"timeout,omitempty"`
 
-	// RefreshLevel sets how much to reload: 0, 1, 2, or 3.
-	RefreshLevel int `json:"refreshLevel,omitempty"`
+	// ReloadMode selects the partial reload reconciliation strategy: "merge"
+	// (default), "replace", "children-only", or "attrs-only".
+	ReloadMode string `json:"reloadMode,omitempty"`
+
+	// ReloadOwnedAttrs restricts which root attributes the server may set on
+	// the partial root.
+	ReloadOwnedAttrs []string `json:"reloadOwnedAttrs,omitempty"`
+
+	// ReloadPreserveAttrs lists root attributes that must never be touched
+	// during the reload.
+	ReloadPreserveAttrs []string `json:"reloadPreserveAttrs,omitempty"`
 
 	// Offset is the character position for the setCursor action.
 	Offset int `json:"offset,omitempty"`

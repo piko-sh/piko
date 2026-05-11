@@ -1,7 +1,19 @@
 (async () => {
     const { partial } = await import('/_piko/dist/ppframework.core.es.js');
-    await partial({{jsStr .PartialName}}).reloadWithOptions({
-        data: {{jsRaw .DataJSON}},
-        level: {{.Level}}
-    });
+    const opts = {
+        data: {{jsRaw .DataJSON}}
+    };
+    const mode = {{jsRaw .ModeJSON}};
+    if (mode) {
+        opts.mode = mode;
+    }
+    const ownedAttrs = {{jsRaw .OwnedAttrsJSON}};
+    if (ownedAttrs && ownedAttrs.length > 0) {
+        opts.ownedAttrs = ownedAttrs;
+    }
+    const preserveAttrs = {{jsRaw .PreserveAttrsJSON}};
+    if (preserveAttrs && preserveAttrs.length > 0) {
+        opts.preserveAttrs = preserveAttrs;
+    }
+    await partial({{jsStr .PartialName}}).reloadWithOptions(opts);
 })()

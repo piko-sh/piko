@@ -17,7 +17,8 @@
 // strip others of their rights and dignity.
 
 import {describe, it, expect, beforeEach, afterEach, vi} from 'vitest';
-import {createRemoteRenderer, getNodeKey, type RemoteRenderer} from './RemoteRenderer';
+import {createRemoteRenderer, type RemoteRenderer} from './RemoteRenderer';
+import {getNodeKey} from '@/pk/getNodeKey';
 import type {ModuleLoader} from '@/services/ModuleLoader';
 import type {SpriteSheetManager} from '@/services/SpriteSheetManager';
 import type {LinkHeaderParser} from '@/services/LinkHeaderParser';

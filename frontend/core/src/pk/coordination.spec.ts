@@ -414,7 +414,7 @@ describe('coordination', () => {
                 };
             });
 
-            await reloadGroup(names, {mode: 'sequential'});
+            await reloadGroup(names, {concurrency: 'sequential'});
 
             expect(order).toEqual(['first', 'second', 'third']);
         });

@@ -19,76 +19,47 @@
 import fragmentMorpher from '@/core/fragmentMorpher';
 import {notifyDOMUpdated} from '@/pk/domUpdater';
 import {applyLoadingIndicator, removeLoadingIndicator} from '@/pk/loadingState';
+import {getNodeKey} from '@/pk/getNodeKey';
 
 /**
- * Refresh level for graduated partial refresh.
+ * How a partial reload reconciles the live partial root with the server response.
  *
- * - 0: children-only morph (default).
- * - 1: full morph preserving partial scopes (pk-refresh-root).
- * - 2: full morph with owned attributes only (pk-own-attrs).
- * - 3: full morph skipping attribute refresh (pk-no-refresh-attrs).
+ * - `merge` (default): server-emitted attributes overwrite their live counterparts;
+ *   live-only attributes are preserved. The `partial` scope chain is merged
+ *   rather than overwritten. Children are morphed.
+ * - `replace`: server is fully authoritative for root attributes; live-only
+ *   attributes are removed. Children are morphed.
+ * - `children-only`: root attributes are not touched; only children are morphed.
+ * - `attrs-only`: root attributes follow the merge rule; children are not
+ *   touched.
  */
-type RefreshLevel = 0 | 1 | 2 | 3;
+export type ReloadMode = 'merge' | 'replace' | 'children-only' | 'attrs-only';
 
-/** Refresh level for pk-no-refresh-attrs (skips attribute refresh). */
-const REFRESH_LEVEL_NO_REFRESH_ATTRS = 3;
-
-/** Refresh level for pk-own-attrs (only updates owned attributes). */
-const REFRESH_LEVEL_OWN_ATTRS = 2;
+/** Attribute names framework infrastructure owns; never copied across a morph. */
+const NEVER_SYNC_ATTRS = new Set(['pk-ev-bound', 'pk-sync-bound']);
 
 /**
- * Detects the refresh level from element attributes.
- *
- * @param el - Element to inspect.
- * @returns The detected refresh level.
+ * The `partial` attribute is space-separated and stacks self-scope on top of
+ * inherited parent scopes. It must be merged rather than overwritten on every
+ * mode that touches root attributes, otherwise a child partial's parent CSS
+ * scopes are lost on each reload.
  */
-function detectRefreshLevel(el: HTMLElement): RefreshLevel {
-    if (el.hasAttribute('pk-no-refresh-attrs')) {
-        return REFRESH_LEVEL_NO_REFRESH_ATTRS;
-    }
-    if (el.hasAttribute('pk-own-attrs')) {
-        return REFRESH_LEVEL_OWN_ATTRS;
-    }
-    if (el.hasAttribute('pk-refresh-root')) {
-        return 1;
-    }
-    return 0;
-}
-
-/**
- * Returns owned attributes from the pk-own-attrs attribute.
- *
- * @param el - Element to read from.
- * @returns Array of owned attribute names, or undefined if not set.
- */
-export function getOwnedAttributes(el: HTMLElement): string[] | undefined {
-    const attr = el.getAttribute('pk-own-attrs');
-    if (!attr) {
-        return undefined;
-    }
-    return attr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-}
-
-/**
- * Parses an HTML string into an element for morphing.
- *
- * @param html - Raw HTML string.
- * @returns The first child element, or null if parsing fails.
- */
-function parseHTML(html: string): HTMLElement | null {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    return doc.body.firstElementChild as HTMLElement | null;
-}
+const SCOPE_ATTR = 'partial';
 
 /** Options for partial reload with fine-grained control. */
 export interface PartialReloadOptions {
     /** Query parameters to pass to the server. */
     data?: Record<string, string | number | boolean>;
-    /** Overrides the detected refresh level. */
-    level?: RefreshLevel;
-    /** Overrides owned attributes for Level 2 (comma-separated). */
+    /** Reconciliation mode for the partial root. Defaults to `'merge'`. */
+    mode?: ReloadMode;
+    /**
+     * Attributes the server is authoritative for on the partial root.
+     * When set, only listed attribute names are copied from the server response.
+     * All other live attributes are preserved.
+     */
     ownedAttrs?: string[];
+    /** Attribute names that must never be modified on the live partial root. */
+    preserveAttrs?: string[];
 }
 
 /** Handle for interacting with a server-side partial. */
@@ -97,7 +68,7 @@ export interface PartialHandle {
     element: HTMLElement | null;
 
     /**
-     * Reloads the partial from the server.
+     * Reloads the partial from the server using the default merge mode.
      *
      * @param data - Optional query parameters to pass.
      */
@@ -112,41 +83,209 @@ export interface PartialHandle {
 }
 
 /**
- * Applies the appropriate morph based on refresh level.
+ * Parses a server fragment response and returns the partial root element.
  *
- * @param el - Current element in the DOM.
- * @param newContent - New element to morph into.
- * @param level - Refresh level to apply.
- * @param ownedAttrs - Optional list of owned attributes for Level 2.
+ * Fragment responses are wrapped in `<head>...</head><body><div id="app">...partial root...</div>...</body>`.
+ * Drilling into `#app` matches the parser hand-off RemoteRenderer.render does,
+ * so both reload paths see the same partial root rather than the page wrapper.
+ * Falls back to `doc.body` for unwrapped fragments (test harnesses, alternative
+ * servers) so the function still produces a usable element.
+ *
+ * @param html - Raw HTML string.
+ * @returns The partial root element, or null when no root can be found.
  */
-function applyRefresh(el: HTMLElement, newContent: HTMLElement, level: RefreshLevel, ownedAttrs?: string[]): void {
-    switch (level) {
-        case 0:
-            fragmentMorpher(el, newContent, {childrenOnly: true});
-            break;
+function parseFragment(html: string): HTMLElement | null {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const container = doc.querySelector('#app') ?? doc.body;
+    return (container.firstElementChild ?? null) as HTMLElement | null;
+}
 
-        case 1:
-            fragmentMorpher(el, newContent, {
-                childrenOnly: false,
-                preservePartialScopes: true
-            });
-            break;
+/**
+ * Resolves the {@link ReloadMode} for a reload call. Explicit `mode` wins;
+ * otherwise the default `'merge'` is used.
+ *
+ * @param options - Reload options.
+ * @returns The resolved mode.
+ */
+function resolveMode(options: PartialReloadOptions): ReloadMode {
+    return options.mode ?? 'merge';
+}
 
-        case REFRESH_LEVEL_OWN_ATTRS:
-            fragmentMorpher(el, newContent, {
-                childrenOnly: false,
-                preservePartialScopes: true,
-                ownedAttributes: ownedAttrs
-            });
-            break;
-
-        case REFRESH_LEVEL_NO_REFRESH_ATTRS:
-            fragmentMorpher(el, newContent, {
-                childrenOnly: false,
-                preservePartialScopes: true
-            });
-            break;
+/**
+ * Merges the live element's parent-scope tail onto the server-emitted self
+ * scope for the `partial` attribute. Mirrors `handlePartialScopePreservation`
+ * inside fragmentMorpher so that modes which skip root-morphing still keep
+ * the CSS scope chain attached to nested partials.
+ *
+ * @param el - Live partial root.
+ * @param sourceEl - Newly rendered partial root.
+ */
+function mergeRootScope(el: HTMLElement, sourceEl: HTMLElement): void {
+    const existing = el.getAttribute(SCOPE_ATTR);
+    const incoming = sourceEl.getAttribute(SCOPE_ATTR);
+    if (!existing || !incoming) {
+        return;
     }
+    const parentScopes = existing.trim().split(/\s+/).slice(1);
+    const selfScope = incoming.trim().split(/\s+/)[0];
+    const merged = parentScopes.length === 0
+        ? selfScope
+        : [selfScope, ...parentScopes].join(' ');
+    if (el.getAttribute(SCOPE_ATTR) !== merged) {
+        el.setAttribute(SCOPE_ATTR, merged);
+    }
+}
+
+/**
+ * Copies attributes from a server-side source element onto the live element
+ * using merge semantics: only attributes named in `owned` (defaulting to every
+ * attribute the source actually has) are touched, anything else on the live
+ * element is preserved. `preserve` attributes are skipped, framework-only
+ * attributes are skipped, and the `partial` scope attribute is merged rather
+ * than overwritten so nested partials keep their parent scope chain.
+ *
+ * @param el - Live partial root.
+ * @param sourceEl - Newly rendered partial root.
+ * @param owned - Optional explicit list of attribute names the server owns.
+ * @param preserve - Optional list of attribute names that must not be touched.
+ */
+function syncRootAttrsFromSource(
+    el: HTMLElement,
+    sourceEl: HTMLElement,
+    owned?: string[],
+    preserve?: string[]
+): void {
+    const preserveSet = new Set(preserve ?? []);
+    const candidateNames = owned ?? Array.from(sourceEl.attributes).map(a => a.name);
+    let scopeHandled = false;
+
+    for (const name of candidateNames) {
+        if (preserveSet.has(name) || NEVER_SYNC_ATTRS.has(name)) {
+            continue;
+        }
+        if (name === SCOPE_ATTR) {
+            mergeRootScope(el, sourceEl);
+            scopeHandled = true;
+            continue;
+        }
+        const newValue = sourceEl.getAttribute(name);
+        if (newValue === null) {
+            if (el.hasAttribute(name)) {
+                el.removeAttribute(name);
+            }
+            continue;
+        }
+        if (el.getAttribute(name) !== newValue) {
+            el.setAttribute(name, newValue);
+        }
+    }
+
+    if (!scopeHandled && !preserveSet.has(SCOPE_ATTR) && sourceEl.hasAttribute(SCOPE_ATTR)) {
+        mergeRootScope(el, sourceEl);
+    }
+}
+
+/**
+ * Captures the current values of `preserve` attributes on the live element so
+ * they can be restored after a full-replace morph clobbers them.
+ *
+ * @param el - Live partial root.
+ * @param preserve - Attribute names to capture.
+ * @returns Map of name to value, or null where the attribute was absent.
+ */
+function captureAttrs(el: HTMLElement, preserve?: string[]): Map<string, string | null> | null {
+    if (!preserve || preserve.length === 0) {
+        return null;
+    }
+    const snapshot = new Map<string, string | null>();
+    for (const name of preserve) {
+        snapshot.set(name, el.getAttribute(name));
+    }
+    return snapshot;
+}
+
+/**
+ * Re-applies a captured attribute snapshot to the live element. Used to honour
+ * `preserveAttrs` in `replace` mode, where the morph has just overwritten or
+ * removed those attributes.
+ *
+ * @param el - Live partial root.
+ * @param snapshot - Captured attribute snapshot from {@link captureAttrs}.
+ */
+function restoreAttrs(el: HTMLElement, snapshot: Map<string, string | null> | null): void {
+    if (!snapshot) {
+        return;
+    }
+    for (const [name, value] of snapshot) {
+        if (value === null) {
+            if (el.hasAttribute(name)) {
+                el.removeAttribute(name);
+            }
+        } else if (el.getAttribute(name) !== value) {
+            el.setAttribute(name, value);
+        }
+    }
+}
+
+/**
+ * Applies the configured mode to merge the server response into the live DOM.
+ * The live partial root element identity is preserved across every mode; only
+ * its attributes and/or children change.
+ *
+ * @param el - Live partial root.
+ * @param sourceEl - Newly rendered partial root.
+ * @param mode - Reconciliation mode.
+ * @param ownedAttrs - Optional explicit list of attributes the server owns on the root.
+ * @param preserveAttrs - Optional list of attributes to leave untouched on the root.
+ */
+function applyMorph(
+    el: HTMLElement,
+    sourceEl: HTMLElement,
+    mode: ReloadMode,
+    ownedAttrs?: string[],
+    preserveAttrs?: string[]
+): void {
+    const morphOptions = {
+        getNodeKey,
+        preservePartialScopes: true
+    };
+
+    switch (mode) {
+        case 'merge':
+            syncRootAttrsFromSource(el, sourceEl, ownedAttrs, preserveAttrs);
+            fragmentMorpher(el, sourceEl, {...morphOptions, childrenOnly: true});
+            return;
+
+        case 'replace': {
+            const snapshot = captureAttrs(el, preserveAttrs);
+            fragmentMorpher(el, sourceEl, morphOptions);
+            restoreAttrs(el, snapshot);
+            return;
+        }
+
+        case 'children-only':
+            fragmentMorpher(el, sourceEl, {...morphOptions, childrenOnly: true});
+            return;
+
+        case 'attrs-only':
+            syncRootAttrsFromSource(el, sourceEl, ownedAttrs, preserveAttrs);
+            return;
+
+        default:
+            assertExhaustive(mode);
+    }
+}
+
+/**
+ * Compile-time exhaustiveness guard. If a new {@link ReloadMode} value is
+ * added without a matching case in {@link applyMorph}, TypeScript fails to
+ * narrow the parameter to `never` and the call site stops type-checking.
+ *
+ * @param _ - The unreachable value that proves all cases are covered.
+ */
+function assertExhaustive(_: never): never {
+    throw new Error(`Unhandled ReloadMode: ${String(_)}`);
 }
 
 /**
@@ -173,7 +312,7 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
     params.set('_f', 'true');
     const url = `${baseSrc}?${params.toString()}`;
 
-    const level = options.level ?? detectRefreshLevel(el);
+    const mode = resolveMode(options);
 
     applyLoadingIndicator(el);
 
@@ -184,16 +323,14 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
         }
 
         const html = await response.text();
-        const newContent = parseHTML(html);
+        const sourceEl = parseFragment(html);
 
-        if (!newContent) {
+        if (!sourceEl) {
             console.warn(`[pk] partial "${name}" received empty or invalid response`);
             return;
         }
 
-        const ownedAttrs = options.ownedAttrs ?? getOwnedAttributes(el);
-
-        applyRefresh(el, newContent, level, ownedAttrs);
+        applyMorph(el, sourceEl, mode, options.ownedAttrs, options.preserveAttrs);
 
         if (effectiveData) {
             el.setAttribute('partial_props',
@@ -206,7 +343,7 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
         console.error(`[pk] Failed to reload partial "${name}":`, {
             url,
             args: options.data,
-            level,
+            mode,
             error
         });
         throw error;

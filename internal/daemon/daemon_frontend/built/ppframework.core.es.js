@@ -488,57 +488,138 @@ function removeLoadingIndicator(el) {
   el.classList.remove(LOADING_CLASS);
   el.removeAttribute(ARIA_BUSY_ATTR);
 }
-const REFRESH_LEVEL_NO_REFRESH_ATTRS$1 = 3;
-const REFRESH_LEVEL_OWN_ATTRS = 2;
-function detectRefreshLevel$1(el) {
-  if (el.hasAttribute("pk-no-refresh-attrs")) {
-    return REFRESH_LEVEL_NO_REFRESH_ATTRS$1;
+function getNodeKey(node) {
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return null;
   }
-  if (el.hasAttribute("pk-own-attrs")) {
-    return REFRESH_LEVEL_OWN_ATTRS;
+  const el = node;
+  const baseKey = el.dataset.stableId ?? el.getAttribute("p-key") ?? (el.id || null);
+  if (baseKey === null) {
+    return null;
   }
-  if (el.hasAttribute("pk-refresh-root")) {
-    return 1;
-  }
-  return 0;
+  const partialName = el.getAttribute("partial_name");
+  return partialName ? `${partialName}@${baseKey}` : baseKey;
 }
-function getOwnedAttributes(el) {
-  const attr = el.getAttribute("pk-own-attrs");
-  if (!attr) {
-    return void 0;
+const DEPRECATED_ROOT_DECORATORS = [
+  "pk-refresh-root",
+  "pk-own-attrs",
+  "pk-no-refresh-attrs"
+];
+const warnedDecorators = /* @__PURE__ */ new Set();
+function warnDeprecatedDecorators(el, context) {
+  for (const name of DEPRECATED_ROOT_DECORATORS) {
+    if (el.hasAttribute(name) && !warnedDecorators.has(name)) {
+      warnedDecorators.add(name);
+      console.warn(
+        `[pk] The "${name}" attribute on a ${context} is no longer honoured. Pass {mode, ownedAttrs, preserveAttrs} to piko.partials.reload(...) instead. See docs/how-to/templates/partial-refresh.md for the migration guide.`
+      );
+    }
   }
-  return attr.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
 }
-function parseHTML(html) {
+const NEVER_SYNC_ATTRS = /* @__PURE__ */ new Set(["pk-ev-bound", "pk-sync-bound"]);
+const SCOPE_ATTR = "partial";
+function parseFragment(html) {
   const parser = new DOMParser();
   const doc2 = parser.parseFromString(html, "text/html");
-  return doc2.body.firstElementChild;
+  const container = doc2.querySelector("#app") ?? doc2.body;
+  return container.firstElementChild ?? null;
 }
-function applyRefresh(el, newContent, level, ownedAttrs) {
-  switch (level) {
-    case 0:
-      fragmentMorpher(el, newContent, { childrenOnly: true });
-      break;
-    case 1:
-      fragmentMorpher(el, newContent, {
-        childrenOnly: false,
-        preservePartialScopes: true
-      });
-      break;
-    case REFRESH_LEVEL_OWN_ATTRS:
-      fragmentMorpher(el, newContent, {
-        childrenOnly: false,
-        preservePartialScopes: true,
-        ownedAttributes: ownedAttrs
-      });
-      break;
-    case REFRESH_LEVEL_NO_REFRESH_ATTRS$1:
-      fragmentMorpher(el, newContent, {
-        childrenOnly: false,
-        preservePartialScopes: true
-      });
-      break;
+function resolveMode(options) {
+  return options.mode ?? "merge";
+}
+function mergeRootScope(el, sourceEl) {
+  const existing = el.getAttribute(SCOPE_ATTR);
+  const incoming = sourceEl.getAttribute(SCOPE_ATTR);
+  if (!existing || !incoming) {
+    return;
   }
+  const parentScopes = existing.trim().split(/\s+/).slice(1);
+  const selfScope = incoming.trim().split(/\s+/)[0];
+  const merged = parentScopes.length === 0 ? selfScope : [selfScope, ...parentScopes].join(" ");
+  if (el.getAttribute(SCOPE_ATTR) !== merged) {
+    el.setAttribute(SCOPE_ATTR, merged);
+  }
+}
+function syncRootAttrsFromSource(el, sourceEl, owned, preserve) {
+  const preserveSet = new Set(preserve ?? []);
+  const candidateNames = owned ?? Array.from(sourceEl.attributes).map((a) => a.name);
+  let scopeHandled = false;
+  for (const name of candidateNames) {
+    if (preserveSet.has(name) || NEVER_SYNC_ATTRS.has(name)) {
+      continue;
+    }
+    if (name === SCOPE_ATTR) {
+      mergeRootScope(el, sourceEl);
+      scopeHandled = true;
+      continue;
+    }
+    const newValue = sourceEl.getAttribute(name);
+    if (newValue === null) {
+      if (el.hasAttribute(name)) {
+        el.removeAttribute(name);
+      }
+      continue;
+    }
+    if (el.getAttribute(name) !== newValue) {
+      el.setAttribute(name, newValue);
+    }
+  }
+  if (!scopeHandled && !preserveSet.has(SCOPE_ATTR) && sourceEl.hasAttribute(SCOPE_ATTR)) {
+    mergeRootScope(el, sourceEl);
+  }
+}
+function captureAttrs(el, preserve) {
+  if (!preserve || preserve.length === 0) {
+    return null;
+  }
+  const snapshot = /* @__PURE__ */ new Map();
+  for (const name of preserve) {
+    snapshot.set(name, el.getAttribute(name));
+  }
+  return snapshot;
+}
+function restoreAttrs(el, snapshot) {
+  if (!snapshot) {
+    return;
+  }
+  for (const [name, value] of snapshot) {
+    if (value === null) {
+      if (el.hasAttribute(name)) {
+        el.removeAttribute(name);
+      }
+    } else if (el.getAttribute(name) !== value) {
+      el.setAttribute(name, value);
+    }
+  }
+}
+function applyMorph(el, sourceEl, mode, ownedAttrs, preserveAttrs) {
+  const morphOptions = {
+    getNodeKey,
+    preservePartialScopes: true
+  };
+  switch (mode) {
+    case "merge":
+      syncRootAttrsFromSource(el, sourceEl, ownedAttrs, preserveAttrs);
+      fragmentMorpher(el, sourceEl, { ...morphOptions, childrenOnly: true });
+      return;
+    case "replace": {
+      const snapshot = captureAttrs(el, preserveAttrs);
+      fragmentMorpher(el, sourceEl, morphOptions);
+      restoreAttrs(el, snapshot);
+      return;
+    }
+    case "children-only":
+      fragmentMorpher(el, sourceEl, { ...morphOptions, childrenOnly: true });
+      return;
+    case "attrs-only":
+      syncRootAttrsFromSource(el, sourceEl, ownedAttrs, preserveAttrs);
+      return;
+    default:
+      assertExhaustive(mode);
+  }
+}
+function assertExhaustive(_) {
+  throw new Error(`Unhandled ReloadMode: ${String(_)}`);
 }
 async function performReload(el, name, options) {
   const baseSrc = el.getAttribute("partial_src");
@@ -555,7 +636,7 @@ async function performReload(el, name, options) {
   const params = new URLSearchParams(effectiveData);
   params.set("_f", "true");
   const url = `${baseSrc}?${params.toString()}`;
-  const level = options.level ?? detectRefreshLevel$1(el);
+  const mode = resolveMode(options);
   applyLoadingIndicator(el);
   try {
     const response = await fetch(url);
@@ -563,13 +644,13 @@ async function performReload(el, name, options) {
       throw new Error(`Failed to reload partial: ${response.status}`);
     }
     const html = await response.text();
-    const newContent = parseHTML(html);
-    if (!newContent) {
+    const sourceEl = parseFragment(html);
+    if (!sourceEl) {
       console.warn(`[pk] partial "${name}" received empty or invalid response`);
       return;
     }
-    const ownedAttrs = options.ownedAttrs ?? getOwnedAttributes(el);
-    applyRefresh(el, newContent, level, ownedAttrs);
+    warnDeprecatedDecorators(sourceEl, "partial root");
+    applyMorph(el, sourceEl, mode, options.ownedAttrs, options.preserveAttrs);
     if (effectiveData) {
       el.setAttribute(
         "partial_props",
@@ -581,7 +662,7 @@ async function performReload(el, name, options) {
     console.error(`[pk] Failed to reload partial "${name}":`, {
       url,
       args: options.data,
-      level,
+      mode,
       error
     });
     throw error;
@@ -1393,8 +1474,17 @@ function applyOptimisticUpdate(element, optimistic) {
     }
   }
 }
+async function dispatchReload(handle, options) {
+  const { args, mode, ownedAttrs, preserveAttrs } = options;
+  const data = toStringRecord(args);
+  if (mode !== void 0 || ownedAttrs !== void 0 || preserveAttrs !== void 0) {
+    await handle.reloadWithOptions({ data, mode, ownedAttrs, preserveAttrs });
+    return;
+  }
+  await handle.reload(data);
+}
 async function executeReload(handle, options, retriesLeft, maxRetries) {
-  const { args, loading: loading2 = true, optimistic, onSuccess, onError } = options;
+  const { loading: loading2 = true, optimistic, onSuccess, onError } = options;
   try {
     if (optimistic !== void 0 && handle.element) {
       applyOptimisticUpdate(handle.element, optimistic);
@@ -1402,7 +1492,7 @@ async function executeReload(handle, options, retriesLeft, maxRetries) {
     if (loading2 && handle.element) {
       applyLoadingIndicator(handle.element);
     }
-    await handle.reload(toStringRecord(args));
+    await dispatchReload(handle, options);
     onSuccess?.(handle.element?.innerHTML ?? "");
   } catch (error) {
     if (retriesLeft > 0) {
@@ -1444,23 +1534,25 @@ async function reloadPartial(nameOrElement, options = {}) {
   return executeReload(handle, reloadOpts, retry, retry);
 }
 async function reloadGroup(names, options = {}) {
-  const { mode = "parallel", args, loading: loading2, onProgress } = options;
-  if (mode === "parallel") {
+  const { concurrency = "parallel", args, loading: loading2, onProgress, mode, ownedAttrs, preserveAttrs } = options;
+  const forwarded = { args, loading: loading2, mode, ownedAttrs, preserveAttrs };
+  if (concurrency === "parallel") {
     const promises = names.map(
-      (name, index) => reloadPartial(name, { args, loading: loading2 }).then(() => {
+      (name, index) => reloadPartial(name, forwarded).then(() => {
         onProgress?.(index + 1, names.length);
       })
     );
     await Promise.all(promises);
-  } else {
-    for (let i = 0; i < names.length; i++) {
-      await reloadPartial(names[i], { args, loading: loading2 });
-      onProgress?.(i + 1, names.length);
-    }
+    return;
+  }
+  for (let i = 0; i < names.length; i++) {
+    await reloadPartial(names[i], forwarded);
+    onProgress?.(i + 1, names.length);
   }
 }
 function autoRefresh(name, options) {
-  const { interval, when, onError = "retry", maxRetries = 3 } = options;
+  const { interval, when, onError = "retry", maxRetries = 3, mode, ownedAttrs, preserveAttrs } = options;
+  const forwarded = { mode, ownedAttrs, preserveAttrs };
   let intervalId = null;
   let retryCount = 0;
   let stopped = false;
@@ -1472,7 +1564,7 @@ function autoRefresh(name, options) {
       return;
     }
     try {
-      await reloadPartial(name);
+      await reloadPartial(name, forwarded);
       retryCount = 0;
     } catch (error) {
       retryCount++;
@@ -1497,8 +1589,8 @@ function autoRefresh(name, options) {
   };
 }
 async function reloadCascade(tree, options = {}) {
-  const { args, onNodeComplete } = options;
-  await reloadPartial(tree.name, { args });
+  const { args, onNodeComplete, mode, ownedAttrs, preserveAttrs } = options;
+  await reloadPartial(tree.name, { args, mode, ownedAttrs, preserveAttrs });
   onNodeComplete?.(tree.name);
   if (tree.children && tree.children.length > 0) {
     await Promise.all(
@@ -4957,35 +5049,19 @@ function isElementVisible(el) {
   const rect = el.getBoundingClientRect();
   return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
 }
-const REFRESH_LEVEL_NO_REFRESH_ATTRS = 3;
-function detectRefreshLevel(el) {
-  if (el.hasAttribute("pk-no-refresh-attrs")) {
-    return REFRESH_LEVEL_NO_REFRESH_ATTRS;
-  }
-  if (el.hasAttribute("pk-own-attrs")) {
-    return 2;
-  }
-  if (el.hasAttribute("pk-refresh-root")) {
-    return 1;
-  }
-  return 0;
-}
 function createUpdateServer(binding) {
   const { containerEl, partialSrc, callbacks } = binding;
   return async (formData2 = null) => {
+    warnDeprecatedDecorators(containerEl, "sync container");
     const form = containerEl.closest("form");
     const gatheredData = formData2 ?? gatherFormData(form);
-    const level = detectRefreshLevel(containerEl);
-    const childrenOnly = level === 0;
-    const preservePartialScopes = level >= 1;
-    const ownedAttributes = level === 2 ? getOwnedAttributes(containerEl) : void 0;
     await callbacks.onRemoteRender({
       src: partialSrc,
       formData: gatheredData,
       patchMethod: "morph",
-      childrenOnly,
-      preservePartialScopes,
-      ownedAttributes,
+      childrenOnly: true,
+      preservePartialScopes: false,
+      ownedAttributes: void 0,
       querySelector: `[partial_src="${partialSrc}"]`,
       patchLocation: containerEl
     });
@@ -5996,18 +6072,6 @@ function processStyleBlocks(parsedDoc, domOps) {
     newStyleEl.textContent = cssText;
     domOps.getHead().appendChild(newStyleEl);
   });
-}
-function getNodeKey(node) {
-  if (node.nodeType !== 1) {
-    return null;
-  }
-  const el = node;
-  const baseKey = el.dataset.stableId ?? el.getAttribute("p-key") ?? (el.id || null);
-  if (baseKey === null) {
-    return null;
-  }
-  const partialName = el.getAttribute("partial_name");
-  return partialName ? `${partialName}@${baseKey}` : baseKey;
 }
 function transformRelativeKeys(sourceEl, targetEl) {
   const targetKey = targetEl.getAttribute("p-key");
