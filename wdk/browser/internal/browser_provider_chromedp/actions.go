@@ -674,16 +674,29 @@ func DispatchEvent(ctx *ActionContext, selector, eventName string, detail map[st
 	return nil
 }
 
+// PartialReloadOptions mirrors the frontend's `ReloadOptions` for tests that
+// need to assert specific reconciliation behaviour. Leave it nil for the
+// default merge mode.
+type PartialReloadOptions struct {
+	// Mode is the reconciliation strategy: "merge" (default), "replace",
+	// "children-only", or "attrs-only".
+	Mode string
+	// OwnedAttrs restricts which root attributes the server is allowed to set.
+	OwnedAttrs []string
+	// PreserveAttrs lists root attributes that must never be touched.
+	PreserveAttrs []string
+}
+
 // TriggerPartialReload triggers a Piko partial reload in the browser.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes partialName (string) which identifies the partial to reload.
 // Takes data (map[string]any) which contains data to pass to the partial.
-// Takes refreshLevel (int) which controls the reload behaviour; zero uses
-// default settings.
+// Takes opts (*PartialReloadOptions) which selects a reconciliation mode and
+// attribute controls; pass nil for the default merge mode.
 //
 // Returns error when marshalling data fails or browser execution fails.
-func TriggerPartialReload(ctx *ActionContext, partialName string, data map[string]any, refreshLevel int) error {
+func TriggerPartialReload(ctx *ActionContext, partialName string, data map[string]any, opts *PartialReloadOptions) error {
 	dataJSON := "{}"
 	if data != nil {
 		bytes, err := json.Marshal(data)
@@ -694,11 +707,25 @@ func TriggerPartialReload(ctx *ActionContext, partialName string, data map[strin
 	}
 
 	var jsCall string
-	if refreshLevel != 0 {
+	if opts != nil && (opts.Mode != "" || len(opts.OwnedAttrs) > 0 || len(opts.PreserveAttrs) > 0) {
+		modeJSON, err := json.Marshal(opts.Mode)
+		if err != nil {
+			return fmt.Errorf("marshalling mode: %w", err)
+		}
+		ownedJSON, err := json.Marshal(opts.OwnedAttrs)
+		if err != nil {
+			return fmt.Errorf("marshalling ownedAttrs: %w", err)
+		}
+		preserveJSON, err := json.Marshal(opts.PreserveAttrs)
+		if err != nil {
+			return fmt.Errorf("marshalling preserveAttrs: %w", err)
+		}
 		jsCall = scripts.MustExecute("partial_reload_with_options.js.tmpl", map[string]any{
-			"PartialName": partialName,
-			"DataJSON":    dataJSON,
-			"Level":       refreshLevel,
+			"PartialName":      partialName,
+			"DataJSON":         dataJSON,
+			"ModeJSON":         string(modeJSON),
+			"OwnedAttrsJSON":   string(ownedJSON),
+			"PreserveAttrsJSON": string(preserveJSON),
 		})
 	} else {
 		jsCall = scripts.MustExecute("partial_reload.js.tmpl", map[string]any{

@@ -387,12 +387,20 @@ func handleDispatchEvent(ctx *ActionContext, step *BrowserStep) error {
 // handleTriggerPartialReload triggers a partial reload in the browser.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
-// Takes step (*BrowserStep) which contains the partial name, data, and refresh
-// level.
+// Takes step (*BrowserStep) which carries the partial name, data, and optional
+// reconciliation mode plus attribute controls.
 //
 // Returns error when the partial reload fails.
 func handleTriggerPartialReload(ctx *ActionContext, step *BrowserStep) error {
-	return TriggerPartialReload(ctx, step.PartialName, step.Data, step.RefreshLevel)
+	var opts *PartialReloadOptions
+	if step.ReloadMode != "" || len(step.ReloadOwnedAttrs) > 0 || len(step.ReloadPreserveAttrs) > 0 {
+		opts = &PartialReloadOptions{
+			Mode:          step.ReloadMode,
+			OwnedAttrs:    step.ReloadOwnedAttrs,
+			PreserveAttrs: step.ReloadPreserveAttrs,
+		}
+	}
+	return TriggerPartialReload(ctx, step.PartialName, step.Data, opts)
 }
 
 // handleTriggerBusEvent triggers a bus event with the name and detail from the

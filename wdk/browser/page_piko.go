@@ -34,7 +34,7 @@ import (
 func (p *Page) TriggerPartialReload(name string, data map[string]any) *Page {
 	p.beforeAction("TriggerPartialReload", name)
 	start := time.Now()
-	err := browser_provider_chromedp.TriggerPartialReload(p.actionCtx(), name, data, 0)
+	err := browser_provider_chromedp.TriggerPartialReload(p.actionCtx(), name, data, nil)
 	p.afterAction("TriggerPartialReload", name, err != nil, time.Since(start))
 	if err != nil {
 		p.t.Fatalf("TriggerPartialReload(%q) failed: %v", name, err)
@@ -141,24 +141,39 @@ func (p *Page) PikoPartialReload(partialName string, data map[string]any) *Page 
 	return p
 }
 
-// PikoPartialReloadWithLevel triggers a Piko partial reload with a specific
-// refresh level.
+// PikoPartialReloadWithOptions triggers a Piko partial reload with explicit
+// reconciliation options.
 //
 // Takes partialName (string) which identifies the partial to reload.
 // Takes data (map[string]any) which provides the data to pass to the partial.
-// Takes refreshLevel (int) which specifies the refresh level for the reload.
+// Takes opts (*browser_provider_chromedp.PartialReloadOptions) which selects
+// mode / owned / preserve attribute behaviour; pass nil for the default merge
+// mode.
 //
 // Returns *Page which enables method chaining for further actions.
-func (p *Page) PikoPartialReloadWithLevel(partialName string, data map[string]any, refreshLevel int) *Page {
-	detail := fmt.Sprintf("%s (level %d)", partialName, refreshLevel)
-	p.beforeAction("PikoPartialReloadWithLevel", detail)
+func (p *Page) PikoPartialReloadWithOptions(partialName string, data map[string]any, opts *browser_provider_chromedp.PartialReloadOptions) *Page {
+	detail := fmt.Sprintf("%s (mode %q)", partialName, optsModeOrDefault(opts))
+	p.beforeAction("PikoPartialReloadWithOptions", detail)
 	start := time.Now()
-	err := browser_provider_chromedp.PikoPartialReloadWithLevel(p.actionCtx(), partialName, data, refreshLevel)
-	p.afterAction("PikoPartialReloadWithLevel", detail, err != nil, time.Since(start))
+	err := browser_provider_chromedp.PikoPartialReloadWithOptions(p.actionCtx(), partialName, data, opts)
+	p.afterAction("PikoPartialReloadWithOptions", detail, err != nil, time.Since(start))
 	if err != nil {
-		p.t.Fatalf("PikoPartialReloadWithLevel(%q, %d) failed: %v", partialName, refreshLevel, err)
+		p.t.Fatalf("PikoPartialReloadWithOptions(%q) failed: %v", partialName, err)
 	}
 	return p
+}
+
+// optsModeOrDefault returns the mode string used in trace output, defaulting
+// to "merge" when no options are supplied or the mode is unset.
+//
+// Takes opts (*browser_provider_chromedp.PartialReloadOptions) which may be nil.
+//
+// Returns string which is the mode label.
+func optsModeOrDefault(opts *browser_provider_chromedp.PartialReloadOptions) string {
+	if opts == nil || opts.Mode == "" {
+		return "merge"
+	}
+	return opts.Mode
 }
 
 // PikoWaitForPartialReload waits for a Piko partial to finish reloading.

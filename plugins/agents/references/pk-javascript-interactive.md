@@ -461,17 +461,58 @@ Pattern: `action.<namespace>.<Method>({args}).<chainable>().call()`.
 
 Chainable methods: `.withDebounce(ms)`, `.withLoading(selector|element)`, `.withOnProgress(cb)`, `.suppressHelpers()`.
 
-## Partial refresh attributes
+## Partial refresh
 
-Control how partials behave during server-side refresh:
+Reload reconciliation is configured per call, not via attributes on the partial root.
+
+```typescript
+// Defaults to mode: 'merge' — server-emitted root attrs overwrite their live
+// counterparts; live-only attrs survive; children are morphed.
+await piko.partials.reload('cart');
+
+// Stricter: server is fully authoritative for the root, including removing
+// stale live-only attrs.
+await piko.partials.reload('cart', { mode: 'replace' });
+
+// Skip root attr work entirely.
+await piko.partials.reload('cart', { mode: 'children-only' });
+
+// Refresh root attrs and leave children alone.
+await piko.partials.reload('cart', { mode: 'attrs-only' });
+
+// Restrict which root attrs the server owns.
+await piko.partials.reload('cart', { ownedAttrs: ['class', 'data-count'] });
+
+// Preserve specific root attrs regardless of what the server sends.
+await piko.partials.reload('cart', { preserveAttrs: ['data-initialised'] });
+```
+
+Mode summary:
+
+| Mode | Root attrs the server emitted | Root attrs only on live | Children |
+|---|---|---|---|
+| `merge` (default) | overwritten | preserved | morphed |
+| `replace` | overwritten | removed | morphed |
+| `children-only` | untouched | untouched | morphed |
+| `attrs-only` | follow merge rule | preserved | untouched |
+
+Per-element decorators still work for fine-grained control inside the morph:
 
 | Attribute | Purpose |
 |-----------|---------|
-| `pk-no-refresh` | Skip this element during partial refresh |
-| `pk-refresh-root` | Mark this element as the refresh boundary |
-| `pk-own-attrs` | Comma-separated list of server-owned attributes that ARE updated during refresh; all unlisted attributes are preserved |
-| `pk-no-refresh-attrs` | Skip attribute refresh entirely on this element |
+| `pk-no-refresh` (any element) | Skip this element and its subtree during partial refresh |
+| `pk-refresh` (any element) | Force refresh inside a `pk-no-refresh` subtree |
+| `pk-no-refresh-attrs="a,b"` (any element) | Preserve listed attributes on that element during morph |
 | `pk-loading` | CSS class automatically toggled during partial reload |
+
+The earlier partial-root decorators (`pk-refresh-root`, `pk-own-attrs`, partial-root `pk-no-refresh-attrs`) are no longer honoured. The framework logs a one-time console warning when it sees one of them in a server response or on a `pk-sync` container. Migration map:
+
+```ts
+// pk-refresh-root           → reload(name, { mode: 'replace' })
+// pk-own-attrs="a,b"        → reload(name, { mode: 'replace', ownedAttrs: ['a','b'] })
+// pk-no-refresh-attrs        → reload(name, { mode: 'replace' })
+// pk-no-refresh-attrs="a,b"  → reload(name, { mode: 'replace', preserveAttrs: ['a','b'] })
+```
 
 ## LLM mistake checklist
 

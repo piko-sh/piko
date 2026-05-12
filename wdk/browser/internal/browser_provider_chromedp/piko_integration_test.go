@@ -380,7 +380,7 @@ func TestPikoPartialReload(t *testing.T) {
 	})
 }
 
-func TestPikoPartialReloadWithLevel(t *testing.T) {
+func TestPikoPartialReloadWithOptions(t *testing.T) {
 	t.Parallel()
 	server, err := newPikoTestServer(testHTMLPikoPartial)
 	if err != nil {
@@ -393,9 +393,9 @@ func TestPikoPartialReloadWithLevel(t *testing.T) {
 
 		time.Sleep(200 * time.Millisecond)
 
-		t.Run("partial reload with level does not error", func(t *testing.T) {
+		t.Run("partial reload with options does not error", func(t *testing.T) {
 
-			err := PikoPartialReloadWithLevel(ctx, "test-partial", nil, 1)
+			err := PikoPartialReloadWithOptions(ctx, "test-partial", nil, &PartialReloadOptions{Mode: "replace"})
 			_ = err
 		})
 	})

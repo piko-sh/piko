@@ -2250,9 +2250,9 @@ func TestExecuteStep_TriggerPartialReloadHandler(t *testing.T) {
 
 		t.Run("pikoPartialReload handler alias", func(t *testing.T) {
 			err := ExecuteStep(actx, &BrowserStep{
-				Action:       "pikoPartialReload",
-				PartialName:  "test-partial",
-				RefreshLevel: 1,
+				Action:      "pikoPartialReload",
+				PartialName: "test-partial",
+				ReloadMode:  "replace",
 			})
 
 			_ = err

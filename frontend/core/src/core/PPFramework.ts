@@ -49,7 +49,8 @@ import {createRouter, type NavigateOptions, type PageLoadScrollOptions, type Rou
 import fragmentMorpher from '@/core/fragmentMorpher';
 import {handleAction} from '@/core/ActionExecutor';
 import {getActionFunction} from '@/pk/action';
-import {createRemoteRenderer, getNodeKey, type PatchTarget, type RemoteRenderer, type RemoteRenderOptions} from '@/core/RemoteRenderer';
+import {createRemoteRenderer, type PatchTarget, type RemoteRenderer, type RemoteRenderOptions} from '@/core/RemoteRenderer';
+import {getNodeKey} from '@/pk/getNodeKey';
 import {createModalManager, type ModalManager, type ModalRequestOptions} from '@/core/ModalManager';
 import {addFragmentQuery, buildRemoteUrl, isSameDomain} from '@/core/URLUtils';
 

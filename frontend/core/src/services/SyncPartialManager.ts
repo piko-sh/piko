@@ -16,8 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-import {getOwnedAttributes} from '@/pk/partial';
-
 /** Callbacks invoked by the SyncPartialManager for remote rendering operations. */
 export interface SyncPartialCallbacks {
     /**
@@ -114,32 +112,6 @@ function isElementVisible(el: HTMLElement): boolean {
     );
 }
 
-/** Refresh level type for partial updates. */
-type RefreshLevel = 0 | 1 | 2 | 3;
-
-/** Refresh level constant for pk-no-refresh-attrs mode. */
-const REFRESH_LEVEL_NO_REFRESH_ATTRS = 3;
-
-/**
- * Detects the refresh level from element attributes.
- * Level 0 is the default (children only), level 1 is root refresh with scope preservation,
- * level 2 updates only listed attributes, and level 3 updates all attributes except listed ones.
- * @param el - The element to inspect.
- * @returns The detected refresh level.
- */
-function detectRefreshLevel(el: HTMLElement): RefreshLevel {
-    if (el.hasAttribute('pk-no-refresh-attrs')) {
-        return REFRESH_LEVEL_NO_REFRESH_ATTRS;
-    }
-    if (el.hasAttribute('pk-own-attrs')) {
-        return 2;
-    }
-    if (el.hasAttribute('pk-refresh-root')) {
-        return 1;
-    }
-    return 0;
-}
-
 /** Tracks the internal state for a bound sync container. */
 interface ContainerBinding {
     /** The container element being managed. */
@@ -162,19 +134,14 @@ function createUpdateServer(binding: ContainerBinding) {
     return async (formData: Record<string, unknown> | null = null) => {
         const form = containerEl.closest('form');
         const gatheredData = formData ?? gatherFormData(form);
-        const level = detectRefreshLevel(containerEl);
-
-        const childrenOnly = level === 0;
-        const preservePartialScopes = level >= 1;
-        const ownedAttributes = level === 2 ? getOwnedAttributes(containerEl) : undefined;
 
         await callbacks.onRemoteRender({
             src: partialSrc,
             formData: gatheredData as Record<string, string[]> | undefined,
             patchMethod: 'morph',
-            childrenOnly,
-            preservePartialScopes,
-            ownedAttributes,
+            childrenOnly: true,
+            preservePartialScopes: false,
+            ownedAttributes: undefined,
             querySelector: `[partial_src="${partialSrc}"]`,
             patchLocation: containerEl
         });

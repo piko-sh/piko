@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import fragmentMorpher from '@/core/fragmentMorpher';
+import {getNodeKey} from '@/pk/getNodeKey';
 import type {ModuleLoader} from '@/services/ModuleLoader';
 import type {SpriteSheetManager} from '@/services/SpriteSheetManager';
 import type {LinkHeaderParser} from '@/services/LinkHeaderParser';
@@ -140,30 +141,6 @@ function processStyleBlocks(parsedDoc: Document, domOps: DOMOperations): void {
         newStyleEl.textContent = cssText;
         domOps.getHead().appendChild(newStyleEl);
     });
-}
-
-/**
- * Returns a stable key for a DOM node using data-stable-id, p-key, or element id.
- * Keys are namespaced by `partial_name` when present, so an element keyed by p-key
- * does not collide with a different-partial element occupying the same tree
- * position across SPA navigations.
- *
- * Exported for testing.
- *
- * @param node - The node to extract a key from.
- * @returns The key string, or null if no key is available.
- */
-export function getNodeKey(node: Node): string | null {
-    if (node.nodeType !== 1) {
-        return null;
-    }
-    const el = node as HTMLElement;
-    const baseKey = el.dataset.stableId ?? el.getAttribute('p-key') ?? (el.id || null);
-    if (baseKey === null) {
-        return null;
-    }
-    const partialName = el.getAttribute('partial_name');
-    return partialName ? `${partialName}@${baseKey}` : baseKey;
 }
 
 /**

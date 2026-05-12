@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-import {partial, type PartialHandle} from './partial';
+import {partial, type PartialHandle, type ReloadMode} from './partial';
 import {debounce} from './utils';
 import {applyLoadingIndicator, removeLoadingIndicator} from './loadingState';
 
@@ -39,20 +39,43 @@ export interface ReloadOptions {
     retry?: number;
     /** Debounce in milliseconds. */
     debounce?: number;
+    /**
+     * How the live partial root reconciles with the server response.
+     * Defaults to `'merge'` (server attrs overwrite their live counterparts;
+     * live-only attrs are preserved). See `ReloadMode` for the alternatives.
+     */
+    mode?: ReloadMode;
+    /**
+     * Attributes the server is authoritative for on the partial root.
+     * When set, only these attribute names are copied from the server response;
+     * everything else on the live root is preserved.
+     */
+    ownedAttrs?: string[];
+    /** Attribute names that must never be modified on the live partial root. */
+    preserveAttrs?: string[];
 }
 
 /** Configuration options for reloadGroup(). */
 export interface ReloadGroupOptions {
     /** Arguments to pass to all partials. */
     args?: Record<string, unknown>;
-    /** Reload mode: parallel (default) or sequential. */
-    mode?: 'sequential' | 'parallel';
+    /** Execution order across the group. Defaults to `'parallel'`. */
+    concurrency?: 'sequential' | 'parallel';
     /** Shares the same args across all partials. */
     shareArgs?: boolean;
     /** Auto-toggle pk-loading class. */
     loading?: boolean;
     /** Progress callback. */
     onProgress?: (completed: number, total: number) => void;
+    /**
+     * Reconciliation mode forwarded to every reload in the group.
+     * See {@link ReloadOptions.mode}.
+     */
+    mode?: ReloadMode;
+    /** Forwarded to every reload in the group. See {@link ReloadOptions.ownedAttrs}. */
+    ownedAttrs?: string[];
+    /** Forwarded to every reload in the group. See {@link ReloadOptions.preserveAttrs}. */
+    preserveAttrs?: string[];
 }
 
 /** Configuration options for autoRefresh(). */
@@ -65,6 +88,12 @@ export interface AutoRefreshOptions {
     onError?: 'retry' | 'stop';
     /** Maximum retry attempts before stopping (default: 3). */
     maxRetries?: number;
+    /** Reconciliation mode forwarded to each refresh. See {@link ReloadOptions.mode}. */
+    mode?: ReloadMode;
+    /** Forwarded to each refresh. See {@link ReloadOptions.ownedAttrs}. */
+    ownedAttrs?: string[];
+    /** Forwarded to each refresh. See {@link ReloadOptions.preserveAttrs}. */
+    preserveAttrs?: string[];
 }
 
 /** Node in a cascade reload tree. */
@@ -81,6 +110,12 @@ export interface CascadeOptions {
     args?: Record<string, unknown>;
     /** Called when a node completes. */
     onNodeComplete?: (name: string) => void;
+    /** Reconciliation mode forwarded to every reload in the cascade. */
+    mode?: ReloadMode;
+    /** Forwarded to every reload in the cascade. */
+    ownedAttrs?: string[];
+    /** Forwarded to every reload in the cascade. */
+    preserveAttrs?: string[];
 }
 
 /** Registry of debounced reload functions, keyed by partial name. */
@@ -173,6 +208,27 @@ function applyOptimisticUpdate(element: HTMLElement, optimistic: unknown): void 
 }
 
 /**
+ * Issues the reload request via the partial handle. Routes through
+ * `reloadWithOptions` only when the caller passed mode-related options so the
+ * simple `reload(data)` path stays the default for existing callers.
+ *
+ * @param handle - The partial handle.
+ * @param options - The reload options shared with {@link executeReload}.
+ */
+async function dispatchReload(
+    handle: PartialHandle,
+    options: Omit<ReloadOptions, 'retry' | 'debounce'>
+): Promise<void> {
+    const {args, mode, ownedAttrs, preserveAttrs} = options;
+    const data = toStringRecord(args);
+    if (mode !== undefined || ownedAttrs !== undefined || preserveAttrs !== undefined) {
+        await handle.reloadWithOptions({data, mode, ownedAttrs, preserveAttrs});
+        return;
+    }
+    await handle.reload(data);
+}
+
+/**
  * Executes a partial reload with retry logic and exponential backoff.
  *
  * Manages loading states, optimistic updates, and success/error callbacks.
@@ -188,7 +244,7 @@ async function executeReload(
     retriesLeft: number,
     maxRetries: number
 ): Promise<void> {
-    const {args, loading = true, optimistic, onSuccess, onError} = options;
+    const {loading = true, optimistic, onSuccess, onError} = options;
 
     try {
         if (optimistic !== undefined && handle.element) {
@@ -199,7 +255,7 @@ async function executeReload(
             applyLoadingIndicator(handle.element);
         }
 
-        await handle.reload(toStringRecord(args));
+        await dispatchReload(handle, options);
 
         onSuccess?.(handle.element?.innerHTML ?? '');
     } catch (error) {
@@ -263,21 +319,23 @@ export async function reloadPartial(nameOrElement: string | Element, options: Re
  * @param options - Group reload options.
  */
 export async function reloadGroup(names: string[], options: ReloadGroupOptions = {}): Promise<void> {
-    const {mode = 'parallel', args, loading, onProgress} = options;
+    const {concurrency = 'parallel', args, loading, onProgress, mode, ownedAttrs, preserveAttrs} = options;
+    const forwarded: ReloadOptions = {args, loading, mode, ownedAttrs, preserveAttrs};
 
-    if (mode === 'parallel') {
+    if (concurrency === 'parallel') {
         const promises = names.map((name, index) =>
-            reloadPartial(name, {args, loading})
+            reloadPartial(name, forwarded)
                 .then(() => {
                     onProgress?.(index + 1, names.length);
                 })
         );
         await Promise.all(promises);
-    } else {
-        for (let i = 0; i < names.length; i++) {
-            await reloadPartial(names[i], {args, loading});
-            onProgress?.(i + 1, names.length);
-        }
+        return;
+    }
+
+    for (let i = 0; i < names.length; i++) {
+        await reloadPartial(names[i], forwarded);
+        onProgress?.(i + 1, names.length);
     }
 }
 
@@ -289,7 +347,8 @@ export async function reloadGroup(names: string[], options: ReloadGroupOptions =
  * @returns Cleanup function to stop the auto-refresh.
  */
 export function autoRefresh(name: string, options: AutoRefreshOptions): () => void {
-    const {interval, when, onError = 'retry', maxRetries = 3} = options;
+    const {interval, when, onError = 'retry', maxRetries = 3, mode, ownedAttrs, preserveAttrs} = options;
+    const forwarded: ReloadOptions = {mode, ownedAttrs, preserveAttrs};
 
     let intervalId: ReturnType<typeof setInterval> | null = null;
     let retryCount = 0;
@@ -305,7 +364,7 @@ export function autoRefresh(name: string, options: AutoRefreshOptions): () => vo
         }
 
         try {
-            await reloadPartial(name);
+            await reloadPartial(name, forwarded);
             retryCount = 0;
         } catch (error) {
             retryCount++;
@@ -340,9 +399,9 @@ export function autoRefresh(name: string, options: AutoRefreshOptions): () => vo
  * @param options - Cascade reload options.
  */
 export async function reloadCascade(tree: CascadeNode, options: CascadeOptions = {}): Promise<void> {
-    const {args, onNodeComplete} = options;
+    const {args, onNodeComplete, mode, ownedAttrs, preserveAttrs} = options;
 
-    await reloadPartial(tree.name, {args});
+    await reloadPartial(tree.name, {args, mode, ownedAttrs, preserveAttrs});
     onNodeComplete?.(tree.name);
 
     if (tree.children && tree.children.length > 0) {

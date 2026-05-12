@@ -102,25 +102,21 @@ func PikoBusWaitForEvent(ctx *ActionContext, eventName string, timeout time.Dura
 //
 // Returns error when the partial cannot be reloaded.
 func PikoPartialReload(ctx *ActionContext, partialName string, data map[string]any) error {
-	return TriggerPartialReload(ctx, partialName, data, 0)
+	return TriggerPartialReload(ctx, partialName, data, nil)
 }
 
-// PikoPartialReloadWithLevel reloads a Piko partial with a given refresh level.
-//
-// The refresh level controls how the reload is performed:
-//   - 0: Default reload
-//   - 1: Soft reload (morph)
-//   - 2: Replace reload
-//   - 3: Hard reload (full page)
+// PikoPartialReloadWithOptions reloads a Piko partial with explicit
+// reconciliation options.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes partialName (string) which identifies the partial to reload.
 // Takes data (map[string]any) which provides optional reload data.
-// Takes refreshLevel (int) which specifies the reload behaviour.
+// Takes opts (*PartialReloadOptions) which selects mode / owned / preserve
+// attribute behaviour; pass nil for the default merge mode.
 //
 // Returns error when the partial cannot be reloaded.
-func PikoPartialReloadWithLevel(ctx *ActionContext, partialName string, data map[string]any, refreshLevel int) error {
-	return TriggerPartialReload(ctx, partialName, data, refreshLevel)
+func PikoPartialReloadWithOptions(ctx *ActionContext, partialName string, data map[string]any, opts *PartialReloadOptions) error {
+	return TriggerPartialReload(ctx, partialName, data, opts)
 }
 
 // PikoWaitForPartialReload waits for a Piko partial to finish reloading.

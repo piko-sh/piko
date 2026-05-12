@@ -17,7 +17,10 @@
 // strip others of their rights and dignity.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { partial, getOwnedAttributes } from '@/pk/partial';
+import { partial } from '@/pk/partial';
+
+const wrap = (inner: string): string =>
+    `<head></head><body><div id="app" data-pageid="test">${inner}</div></body>`;
 
 describe('partial (PK Server Partials)', () => {
     let testContainer: HTMLDivElement;
@@ -74,7 +77,7 @@ describe('partial (PK Server Partials)', () => {
         it('should fetch from partial_src URL', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<p>Loaded content</p>')
+                text: () => Promise.resolve(wrap('<div><p>Loaded content</p></div>'))
             });
 
             const partialEl = document.createElement('div');
@@ -102,7 +105,7 @@ describe('partial (PK Server Partials)', () => {
         it('should append query params when data provided', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<p>Content</p>')
+                text: () => Promise.resolve(wrap('<div><p>Content</p></div>'))
             });
 
             const partialEl = document.createElement('div');
@@ -124,10 +127,10 @@ describe('partial (PK Server Partials)', () => {
             expect(calledUrl).toContain('_f=true');
         });
 
-        it('should update element children on success (morph mode)', async () => {
+        it('should update element children on success (merge mode)', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div><span>New content</span></div>')
+                text: () => Promise.resolve(wrap('<div><span>New content</span></div>'))
             });
 
             const partialEl = document.createElement('div');
@@ -163,7 +166,7 @@ describe('partial (PK Server Partials)', () => {
             expect(partialEl.classList.contains('pk-loading')).toBe(true);
             expect(partialEl.getAttribute('aria-busy')).toBe('true');
 
-            resolvePromise!('<p>Done</p>');
+            resolvePromise!(wrap('<div><p>Done</p></div>'));
             await reloadPromise;
 
             expect(partialEl.classList.contains('pk-loading')).toBe(false);
@@ -256,11 +259,11 @@ describe('partial (PK Server Partials)', () => {
             mockFetch
                 .mockResolvedValueOnce({
                     ok: true,
-                    text: () => Promise.resolve('<div><p>First</p></div>')
+                    text: () => Promise.resolve(wrap('<div><p>First</p></div>'))
                 })
                 .mockResolvedValueOnce({
                     ok: true,
-                    text: () => Promise.resolve('<div><p>Second</p></div>')
+                    text: () => Promise.resolve(wrap('<div><p>Second</p></div>'))
                 });
 
             const partialEl = document.createElement('div');
@@ -284,7 +287,7 @@ describe('partial (PK Server Partials)', () => {
                 const count = callCount;
                 return Promise.resolve({
                     ok: true,
-                    text: () => Promise.resolve(`<div><p>Call ${count}</p></div>`)
+                    text: () => Promise.resolve(wrap(`<div><p>Call ${count}</p></div>`))
                 });
             });
 
@@ -306,151 +309,382 @@ describe('partial (PK Server Partials)', () => {
         });
     });
 
-    describe('getOwnedAttributes()', () => {
-        it('should return undefined when pk-own-attrs is not set', () => {
-            const el = document.createElement('div');
-            testContainer.appendChild(el);
+    describe('#app drilling (regression for the nesting bug)', () => {
+        it('should drill into the #app wrapper and morph the partial root, not the wrapper', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<pp-paginate partial_name="root-is-wc" partial_src="/p" total_pages="1"><pp-table>fresh</pp-table></pp-paginate>'
+                ))
+            });
 
-            expect(getOwnedAttributes(el)).toBeUndefined();
+            const partialEl = document.createElement('pp-paginate');
+            partialEl.setAttribute('partial_name', 'root-is-wc');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('total_pages', '3');
+            partialEl.innerHTML = '<pp-table>stale</pp-table>';
+            testContainer.appendChild(partialEl);
+
+            await partial('root-is-wc').reload();
+
+            expect(document.querySelectorAll('[partial_name="root-is-wc"]')).toHaveLength(1);
+            expect(document.querySelector('[partial_name="root-is-wc"]')).toBe(partialEl);
+            expect(partialEl.querySelector('pp-paginate')).toBeNull();
+            expect(partialEl.querySelector('pp-table')?.textContent).toBe('fresh');
+            expect(partialEl.getAttribute('total_pages')).toBe('1');
         });
 
-        it('should return undefined when pk-own-attrs is empty string', () => {
-            const el = document.createElement('div');
-            el.setAttribute('pk-own-attrs', '');
-            testContainer.appendChild(el);
+        it('should fall back to doc.body when response is not wrapped (test-shaped responses)', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve('<div><span>Unwrapped</span></div>')
+            });
 
-            expect(getOwnedAttributes(el)).toBeUndefined();
-        });
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'unwrapped');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.innerHTML = '<p>Old</p>';
+            testContainer.appendChild(partialEl);
 
-        it('should parse a single attribute name', () => {
-            const el = document.createElement('div');
-            el.setAttribute('pk-own-attrs', 'class');
-            testContainer.appendChild(el);
+            await partial('unwrapped').reload();
 
-            expect(getOwnedAttributes(el)).toEqual(['class']);
-        });
-
-        it('should parse comma-separated attribute names', () => {
-            const el = document.createElement('div');
-            el.setAttribute('pk-own-attrs', 'class,style,data-active');
-            testContainer.appendChild(el);
-
-            expect(getOwnedAttributes(el)).toEqual(['class', 'style', 'data-active']);
-        });
-
-        it('should trim whitespace around attribute names', () => {
-            const el = document.createElement('div');
-            el.setAttribute('pk-own-attrs', ' class , style , data-active ');
-            testContainer.appendChild(el);
-
-            expect(getOwnedAttributes(el)).toEqual(['class', 'style', 'data-active']);
-        });
-
-        it('should filter out empty entries from trailing commas', () => {
-            const el = document.createElement('div');
-            el.setAttribute('pk-own-attrs', 'class,,style,');
-            testContainer.appendChild(el);
-
-            expect(getOwnedAttributes(el)).toEqual(['class', 'style']);
+            expect(partialEl.querySelector('span')?.textContent).toBe('Unwrapped');
         });
     });
 
-    describe('detectRefreshLevel (via reload behaviour)', () => {
-        it('should use level 0 (children-only morph) by default', async () => {
+    describe('partial scope chain', () => {
+        it('should merge server selfScope onto live parentScopes in merge mode', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div><span>Level 0</span></div>')
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="scoped-merge" partial_src="/p" partial="child_new"><span>x</span></div>'
+                ))
             });
 
             const partialEl = document.createElement('div');
-            partialEl.setAttribute('partial_name', 'level-0');
-            partialEl.setAttribute('partial_src', '/_piko/partials/level-0');
-            partialEl.innerHTML = '<p>Old</p>';
+            partialEl.setAttribute('partial_name', 'scoped-merge');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('partial', 'child_old parent_abc');
             testContainer.appendChild(partialEl);
 
-            await partial('level-0').reload();
+            await partial('scoped-merge').reload();
 
-            expect(partialEl.querySelector('span')?.textContent).toBe('Level 0');
+            expect(partialEl.getAttribute('partial')).toBe('child_new parent_abc');
+        });
+
+        it('should merge scope in attrs-only mode too', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="scoped-attrs" partial_src="/p" partial="child_new"><span>x</span></div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'scoped-attrs');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('partial', 'child_old parent_abc');
+            testContainer.appendChild(partialEl);
+
+            await partial('scoped-attrs').reloadWithOptions({ mode: 'attrs-only' });
+
+            expect(partialEl.getAttribute('partial')).toBe('child_new parent_abc');
+        });
+
+        it('should keep parent scope intact when partial is in preserveAttrs', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="scoped-preserve" partial_src="/p" partial="child_new"><span>x</span></div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'scoped-preserve');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('partial', 'child_old parent_abc');
+            testContainer.appendChild(partialEl);
+
+            await partial('scoped-preserve').reloadWithOptions({
+                preserveAttrs: ['partial']
+            });
+
+            expect(partialEl.getAttribute('partial')).toBe('child_old parent_abc');
+        });
+    });
+
+    describe('mode: "merge" (default)', () => {
+        it('should overwrite server-emitted root attrs and preserve live-only ones', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="merge-test" partial_src="/p" class="from-server" data-server="x"><span>new</span></div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'merge-test');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('class', 'from-live');
+            partialEl.setAttribute('data-client', 'kept');
+            partialEl.innerHTML = '<p>old</p>';
+            testContainer.appendChild(partialEl);
+
+            await partial('merge-test').reload();
+
+            expect(partialEl.getAttribute('class')).toBe('from-server');
+            expect(partialEl.getAttribute('data-server')).toBe('x');
+            expect(partialEl.getAttribute('data-client')).toBe('kept');
+            expect(partialEl.querySelector('span')?.textContent).toBe('new');
             expect(partialEl.querySelector('p')).toBeNull();
         });
 
-        it('should detect level 1 when pk-refresh-root is present', async () => {
+        it('should set a root attr to empty when the server explicitly emits it as empty', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div class="updated"><span>Level 1</span></div>')
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="merge-empty" partial_src="/p" class=""><span>x</span></div>'
+                ))
             });
 
             const partialEl = document.createElement('div');
-            partialEl.setAttribute('partial_name', 'level-1');
-            partialEl.setAttribute('partial_src', '/_piko/partials/level-1');
-            partialEl.setAttribute('pk-refresh-root', '');
-            partialEl.innerHTML = '<p>Old</p>';
+            partialEl.setAttribute('partial_name', 'merge-empty');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('class', 'old-value');
             testContainer.appendChild(partialEl);
 
-            await partial('level-1').reload();
+            await partial('merge-empty').reload();
 
-            expect(partialEl.querySelector('span')?.textContent).toBe('Level 1');
+            expect(partialEl.getAttribute('class')).toBe('');
+        });
+    });
+
+    describe('mode: "replace"', () => {
+        it('should remove live-only root attrs', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="replace-test" partial_src="/p" class="from-server"><span>x</span></div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'replace-test');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('class', 'from-live');
+            partialEl.setAttribute('data-client', 'will-be-removed');
+            testContainer.appendChild(partialEl);
+
+            await partial('replace-test').reloadWithOptions({ mode: 'replace' });
+
+            expect(partialEl.getAttribute('class')).toBe('from-server');
+            expect(partialEl.hasAttribute('data-client')).toBe(false);
         });
 
-        it('should detect level 2 when pk-own-attrs is present', async () => {
+        it('should still honour preserveAttrs even in replace mode', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div class="new-class" data-x="ignored"><span>Level 2</span></div>')
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="replace-preserve" partial_src="/p" class="from-server"><span>x</span></div>'
+                ))
             });
 
             const partialEl = document.createElement('div');
-            partialEl.setAttribute('partial_name', 'level-2');
-            partialEl.setAttribute('partial_src', '/_piko/partials/level-2');
-            partialEl.setAttribute('pk-own-attrs', 'class');
-            partialEl.setAttribute('class', 'old-class');
-            partialEl.setAttribute('data-x', 'kept');
-            partialEl.innerHTML = '<p>Old</p>';
+            partialEl.setAttribute('partial_name', 'replace-preserve');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('class', 'from-live');
+            partialEl.setAttribute('data-client', 'kept');
             testContainer.appendChild(partialEl);
 
-            await partial('level-2').reload();
+            await partial('replace-preserve').reloadWithOptions({
+                mode: 'replace',
+                preserveAttrs: ['class', 'data-client']
+            });
 
-            expect(partialEl.querySelector('span')?.textContent).toBe('Level 2');
-            expect(partialEl.getAttribute('class')).toBe('new-class');
-            expect(partialEl.getAttribute('data-x')).toBe('kept');
+            expect(partialEl.getAttribute('class')).toBe('from-live');
+            expect(partialEl.getAttribute('data-client')).toBe('kept');
+        });
+    });
+
+    describe('mode: "children-only"', () => {
+        it('should leave root attrs untouched and morph children', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="children-only-test" partial_src="/p" class="from-server"><span>new</span></div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'children-only-test');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('class', 'from-live');
+            partialEl.innerHTML = '<p>old</p>';
+            testContainer.appendChild(partialEl);
+
+            await partial('children-only-test').reloadWithOptions({ mode: 'children-only' });
+
+            expect(partialEl.getAttribute('class')).toBe('from-live');
+            expect(partialEl.querySelector('span')?.textContent).toBe('new');
+            expect(partialEl.querySelector('p')).toBeNull();
+        });
+    });
+
+    describe('mode: "attrs-only"', () => {
+        it('should refresh root attrs and leave children alone', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="attrs-only-test" partial_src="/p" class="from-server"><span>ignored</span></div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'attrs-only-test');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('class', 'from-live');
+            partialEl.innerHTML = '<p>kept</p>';
+            testContainer.appendChild(partialEl);
+
+            await partial('attrs-only-test').reloadWithOptions({ mode: 'attrs-only' });
+
+            expect(partialEl.getAttribute('class')).toBe('from-server');
+            expect(partialEl.querySelector('p')?.textContent).toBe('kept');
+            expect(partialEl.querySelector('span')).toBeNull();
+        });
+    });
+
+    describe('preserveAttrs', () => {
+        it('should never modify named root attrs in merge mode', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="preserve-test" partial_src="/p" class="from-server" data-x="server"><span>x</span></div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'preserve-test');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('class', 'from-live');
+            partialEl.setAttribute('data-x', 'live');
+            testContainer.appendChild(partialEl);
+
+            await partial('preserve-test').reloadWithOptions({
+                preserveAttrs: ['class']
+            });
+
+            expect(partialEl.getAttribute('class')).toBe('from-live');
+            expect(partialEl.getAttribute('data-x')).toBe('server');
+        });
+    });
+
+    describe('ownedAttrs', () => {
+        it('should only sync named root attrs and leave all others alone', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="owned-test" partial_src="/p" data-a="from-server" data-b="also-server"><span>x</span></div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'owned-test');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.setAttribute('data-a', 'live-a');
+            partialEl.setAttribute('data-b', 'live-b');
+            partialEl.setAttribute('data-c', 'live-c-only');
+            testContainer.appendChild(partialEl);
+
+            await partial('owned-test').reloadWithOptions({
+                ownedAttrs: ['data-a']
+            });
+
+            expect(partialEl.getAttribute('data-a')).toBe('from-server');
+            expect(partialEl.getAttribute('data-b')).toBe('live-b');
+            expect(partialEl.getAttribute('data-c')).toBe('live-c-only');
+        });
+    });
+
+    describe('NEVER_SYNC_ATTRS', () => {
+        it('should never copy pk-ev-bound or pk-sync-bound from source to live', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="never-sync" partial_src="/p" pk-ev-bound="x" pk-sync-bound="y"><span>x</span></div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'never-sync');
+            partialEl.setAttribute('partial_src', '/p');
+            testContainer.appendChild(partialEl);
+
+            await partial('never-sync').reload();
+
+            expect(partialEl.hasAttribute('pk-ev-bound')).toBe(false);
+            expect(partialEl.hasAttribute('pk-sync-bound')).toBe(false);
+        });
+    });
+
+    describe('getNodeKey adoption (shared with RemoteRenderer)', () => {
+        it('should reorder keyed children rather than destroy and recreate them', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="keyed-test" partial_src="/p">' +
+                    '<li p-key="b">B</li>' +
+                    '<li p-key="a">A</li>' +
+                    '</div>'
+                ))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'keyed-test');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.innerHTML =
+                '<li p-key="a">A</li>' +
+                '<li p-key="b">B</li>';
+            testContainer.appendChild(partialEl);
+
+            const liA = partialEl.querySelector('[p-key="a"]') as HTMLElement & { __id?: number };
+            const liB = partialEl.querySelector('[p-key="b"]') as HTMLElement & { __id?: number };
+            liA.__id = 1;
+            liB.__id = 2;
+
+            await partial('keyed-test').reload();
+
+            const newLis = partialEl.querySelectorAll('li');
+            expect(newLis).toHaveLength(2);
+            expect((newLis[0] as HTMLElement & { __id?: number }).__id).toBe(2);
+            expect((newLis[1] as HTMLElement & { __id?: number }).__id).toBe(1);
         });
 
-        it('should detect level 3 when pk-no-refresh-attrs is present', async () => {
+        it('should namespace p-key by partial_name to avoid cross-partial collisions', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div class="server-class"><span>Level 3</span></div>')
+                text: () => Promise.resolve(wrap(
+                    '<div partial_name="namespaced-keys" partial_src="/p">' +
+                    '<section partial_name="inner" p-key="r.0">refreshed</section>' +
+                    '</div>'
+                ))
             });
 
             const partialEl = document.createElement('div');
-            partialEl.setAttribute('partial_name', 'level-3');
-            partialEl.setAttribute('partial_src', '/_piko/partials/level-3');
-            partialEl.setAttribute('pk-no-refresh-attrs', 'class');
-            partialEl.setAttribute('class', 'preserved-class');
-            partialEl.innerHTML = '<p>Old</p>';
+            partialEl.setAttribute('partial_name', 'namespaced-keys');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.innerHTML =
+                '<section partial_name="inner" p-key="r.0">stale</section>';
             testContainer.appendChild(partialEl);
 
-            await partial('level-3').reload();
+            const liveInner = partialEl.querySelector('[partial_name="inner"]') as HTMLElement & { __id?: number };
+            liveInner.__id = 42;
 
-            expect(partialEl.querySelector('span')?.textContent).toBe('Level 3');
-            expect(partialEl.getAttribute('class')).toBe('preserved-class');
-        });
+            await partial('namespaced-keys').reload();
 
-        it('should prioritise pk-no-refresh-attrs over pk-own-attrs', async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve('<div class="new"><span>Priority</span></div>')
-            });
-
-            const partialEl = document.createElement('div');
-            partialEl.setAttribute('partial_name', 'priority-test');
-            partialEl.setAttribute('partial_src', '/_piko/partials/priority-test');
-            partialEl.setAttribute('pk-no-refresh-attrs', 'class');
-            partialEl.setAttribute('pk-own-attrs', 'class');
-            partialEl.setAttribute('class', 'original');
-            testContainer.appendChild(partialEl);
-
-            await partial('priority-test').reload();
-
-            expect(partialEl.getAttribute('class')).toBe('original');
+            const afterInner = partialEl.querySelector('[partial_name="inner"]') as HTMLElement & { __id?: number };
+            expect(afterInner.__id).toBe(42);
+            expect(afterInner.textContent).toBe('refreshed');
         });
     });
 
@@ -471,7 +705,7 @@ describe('partial (PK Server Partials)', () => {
         it('should pass data query params to the fetch URL', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div><p>With data</p></div>')
+                text: () => Promise.resolve(wrap('<div><p>With data</p></div>'))
             });
 
             const partialEl = document.createElement('div');
@@ -490,53 +724,10 @@ describe('partial (PK Server Partials)', () => {
             expect(calledUrl).toContain('_f=true');
         });
 
-        it('should override refresh level when level option provided', async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve('<div class="forced"><span>Forced level</span></div>')
-            });
-
-            const partialEl = document.createElement('div');
-            partialEl.setAttribute('partial_name', 'opts-level');
-            partialEl.setAttribute('partial_src', '/_piko/partials/opts-level');
-            partialEl.innerHTML = '<p>Old</p>';
-            testContainer.appendChild(partialEl);
-
-            await partial('opts-level').reloadWithOptions({ level: 1 });
-
-            expect(partialEl.querySelector('span')?.textContent).toBe('Forced level');
-        });
-
-        it('should override owned attributes when ownedAttrs option provided', async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve('<div class="new" title="new-title" data-x="new-x"><span>Custom owned</span></div>')
-            });
-
-            const partialEl = document.createElement('div');
-            partialEl.setAttribute('partial_name', 'opts-owned');
-            partialEl.setAttribute('partial_src', '/_piko/partials/opts-owned');
-            partialEl.setAttribute('pk-own-attrs', 'class');
-            partialEl.setAttribute('class', 'old');
-            partialEl.setAttribute('title', 'old-title');
-            partialEl.setAttribute('data-x', 'old-x');
-            testContainer.appendChild(partialEl);
-
-            await partial('opts-owned').reloadWithOptions({
-                level: 2,
-                ownedAttrs: ['title']
-            });
-
-            expect(partialEl.querySelector('span')?.textContent).toBe('Custom owned');
-            expect(partialEl.getAttribute('title')).toBe('new-title');
-            expect(partialEl.getAttribute('class')).toBe('old');
-            expect(partialEl.getAttribute('data-x')).toBe('old-x');
-        });
-
         it('should use partial_src for custom base URL with data params', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div><p>Custom src</p></div>')
+                text: () => Promise.resolve(wrap('<div><p>Custom src</p></div>'))
             });
 
             const partialEl = document.createElement('div');
@@ -557,7 +748,7 @@ describe('partial (PK Server Partials)', () => {
         it('should fetch without query string when no data provided', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div><p>No params</p></div>')
+                text: () => Promise.resolve(wrap('<div><p>No params</p></div>'))
             });
 
             const partialEl = document.createElement('div');
@@ -591,7 +782,7 @@ describe('partial (PK Server Partials)', () => {
             expect(partialEl.classList.contains('pk-loading')).toBe(true);
             expect(partialEl.getAttribute('aria-busy')).toBe('true');
 
-            resolveText!('<div><p>Done</p></div>');
+            resolveText!(wrap('<div><p>Done</p></div>'));
             await reloadPromise;
 
             expect(partialEl.classList.contains('pk-loading')).toBe(false);
@@ -623,7 +814,7 @@ describe('partial (PK Server Partials)', () => {
         it('should use partial_src as the complete fetch URL', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div><p>Custom</p></div>')
+                text: () => Promise.resolve(wrap('<div><p>Custom</p></div>'))
             });
 
             const partialEl = document.createElement('div');
@@ -639,7 +830,7 @@ describe('partial (PK Server Partials)', () => {
         it('should append query params to partial_src', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
-                text: () => Promise.resolve('<div><p>Params</p></div>')
+                text: () => Promise.resolve(wrap('<div><p>Params</p></div>'))
             });
 
             const partialEl = document.createElement('div');
@@ -685,6 +876,30 @@ describe('partial (PK Server Partials)', () => {
 
             expect(warnSpy).toHaveBeenCalledWith(
                 expect.stringContaining('partial "empty-response" received empty or invalid response')
+            );
+            expect(partialEl.querySelector('p')?.textContent).toBe('Original');
+
+            warnSpy.mockRestore();
+        });
+
+        it('should warn when #app is empty', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve('<head></head><body><div id="app"></div></body>')
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'empty-app');
+            partialEl.setAttribute('partial_src', '/p');
+            partialEl.innerHTML = '<p>Original</p>';
+            testContainer.appendChild(partialEl);
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            await partial('empty-app').reload();
+
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining('partial "empty-app" received empty or invalid response')
             );
             expect(partialEl.querySelector('p')?.textContent).toBe('Original');
 

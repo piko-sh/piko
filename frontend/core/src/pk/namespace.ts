@@ -101,7 +101,7 @@ import type {ModalRequestOptions} from '../core/ModalManager';
 import type {RemoteRenderOptions} from '../core/RemoteRenderer';
 import {HookEvent as _HookEvent, type HookEventType, type HookCallback, type HookOptions} from '../services/HookManager';
 
-export type {PartialHandle, PartialReloadOptions} from './partial';
+export type {PartialHandle, PartialReloadOptions, ReloadMode} from './partial';
 export type {NavigateOptions, RouteInfo, NavigationGuard} from './navigation';
 export type {FormDataHandle, ValidationRule, ValidationRules, ValidationResult} from './form';
 export type {LoadingOptions, RetryOptions, RetryResult} from './ui';
