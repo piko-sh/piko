@@ -102,6 +102,15 @@ use (
 	./wdk/linguistics/linguistics_stemmer_russian
 	./wdk/linguistics/linguistics_stemmer_spanish
 	./wdk/linguistics/linguistics_stemmer_swedish
+	./wdk/linguistics/linguistics_bigrams_dutch
+	./wdk/linguistics/linguistics_bigrams_english
+	./wdk/linguistics/linguistics_bigrams_french
+	./wdk/linguistics/linguistics_bigrams_german
+	./wdk/linguistics/linguistics_bigrams_hungarian
+	./wdk/linguistics/linguistics_bigrams_norwegian
+	./wdk/linguistics/linguistics_bigrams_russian
+	./wdk/linguistics/linguistics_bigrams_spanish
+	./wdk/linguistics/linguistics_bigrams_swedish
 	./wdk/linguistics/linguistics_stopwords_dutch
 	./wdk/linguistics/linguistics_stopwords_english
 	./wdk/linguistics/linguistics_stopwords_french
@@ -241,6 +250,15 @@ replace (
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_russian v0.0.0 => ./wdk/linguistics/linguistics_stemmer_russian
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_spanish v0.0.0 => ./wdk/linguistics/linguistics_stemmer_spanish
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_swedish v0.0.0 => ./wdk/linguistics/linguistics_stemmer_swedish
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_dutch v0.0.0 => ./wdk/linguistics/linguistics_bigrams_dutch
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_english v0.0.0 => ./wdk/linguistics/linguistics_bigrams_english
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_french v0.0.0 => ./wdk/linguistics/linguistics_bigrams_french
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_german v0.0.0 => ./wdk/linguistics/linguistics_bigrams_german
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_hungarian v0.0.0 => ./wdk/linguistics/linguistics_bigrams_hungarian
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_norwegian v0.0.0 => ./wdk/linguistics/linguistics_bigrams_norwegian
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_russian v0.0.0 => ./wdk/linguistics/linguistics_bigrams_russian
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_spanish v0.0.0 => ./wdk/linguistics/linguistics_bigrams_spanish
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_swedish v0.0.0 => ./wdk/linguistics/linguistics_bigrams_swedish
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0 => ./wdk/linguistics/linguistics_stopwords_dutch
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 => ./wdk/linguistics/linguistics_stopwords_english
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0 => ./wdk/linguistics/linguistics_stopwords_french

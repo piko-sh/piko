@@ -1,0 +1,37 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+// Package spamdetect_provider_builtin_detectors provides the built-in
+// spam detection detectors: honeypot, gibberish, link density,
+// blocklist, timing, and repetition.
+//
+// The detectors operate on schema-annotated form fields with no
+// external service dependency and are suitable for production
+// deployments. The repetition detector requires a cache backend; the
+// others are stateless.
+//
+// Use [RegisterDefaults] to register all six with a service instance,
+// or construct and register them individually with their respective
+// [NewHoneypotDetector], [NewGibberishDetector], [NewLinkDensityDetector],
+// [NewBlocklistDetector], [NewTimingDetector], and [NewRepetitionDetector]
+// constructors.
+//
+// # Thread safety
+//
+// All detectors are safe for concurrent use after construction.
+package spamdetect_provider_builtin_detectors

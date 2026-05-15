@@ -418,7 +418,7 @@ func (s *statementSplitter) scanBlockComment() error {
 	return fmt.Errorf("unterminated block comment: %w", ErrMalformedSQLStatement)
 }
 
-// scanSingleQuotedString consumes a '...' literal, treating '' as an
+// scanSingleQuotedString consumes a '...' literal, treating single quotes as an
 // embedded quote.
 //
 // Returns error which wraps ErrMalformedSQLStatement when the literal never
@@ -513,7 +513,7 @@ func (s *statementSplitter) step() error {
 // terminators. Empty statements are skipped.
 //
 // The splitter recognises:
-//   - Single-quoted string literals with '' as an embedded quote.
+//   - Single-quoted string literals as an embedded quote.
 //   - PostgreSQL dollar-quoted blocks with optional tag, e.g. $$ ... $$,
 //     $tag$ ... $tag$.
 //   - "--" line comments through to end-of-line.
