@@ -119,6 +119,60 @@ function parseJsonAttribute(
 }
 
 /**
+ * Returns the type-appropriate empty value for a property type.
+ *
+ * Used as the last-resort fallback when an attribute is absent and the
+ * property has no configured default. Returning `undefined` here would
+ * leak into reactive state and break any render that accesses members
+ * on the value (e.g. `.length`, `.toString()`).
+ *
+ * @param typeHint - The property type.
+ * @returns The empty/zero value for the type.
+ */
+function emptyValueForType(typeHint: PropType): unknown {
+    switch (typeHint) {
+        case "boolean":
+            return false;
+        case "number":
+            return 0;
+        case "string":
+            return "";
+        case "array":
+            return [];
+        case "object":
+        case "json":
+            return null;
+        default:
+            return null;
+    }
+}
+
+/**
+ * Resolves the value to use when an attribute is absent (null on read or removed).
+ *
+ * @param typeHint - The property type.
+ * @param defaultValue - The configured default value, or undefined.
+ * @param isNullable - Whether the property accepts null values.
+ * @returns The resolved fallback value.
+ */
+function resolveAbsentAttributeValue(
+    typeHint: PropType,
+    defaultValue: unknown,
+    isNullable: boolean
+): unknown {
+    if (typeHint === "boolean") {
+        return false;
+    }
+    if (isNullable) {
+        return null;
+    }
+    if (defaultValue !== undefined) {
+        return defaultValue;
+    }
+    return emptyValueForType(typeHint);
+}
+
+/**
  * Translates a raw attribute string to a typed value based on the property type hint.
  *
  * @param typeHint - The target property type.
@@ -134,10 +188,7 @@ function translateValue(
     isNullable: boolean
 ): unknown {
     if (attributeValue === null) {
-        if (typeHint === "boolean") {
-            return false;
-        }
-        return isNullable ? null : defaultValue;
+        return resolveAbsentAttributeValue(typeHint, defaultValue, isNullable);
     }
 
     switch (typeHint) {

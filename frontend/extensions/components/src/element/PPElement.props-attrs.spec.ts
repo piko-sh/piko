@@ -316,3 +316,67 @@ describe('PPElement Props and Attributes', () => {
     });
   });
 });
+
+class DefaultPropsFallbackTestElement extends PPElement {
+  static override get propTypes(): Record<string, PropTypeDefinition> | undefined {
+    return {
+      modeProp: {type: 'string'},
+      countProp: {type: 'number'},
+      configProp: {type: 'json'},
+    };
+  }
+
+  static override get defaultProps(): Record<string, unknown> {
+    return {
+      modeProp: 'grid',
+      countProp: 60,
+      configProp: {section: 'details'},
+    };
+  }
+
+  constructor() {
+    super();
+  }
+
+  public testTranslateAttributeValue(
+    typeHint: string,
+    attributeValue: string | null,
+    propertyName: string
+  ): unknown {
+    return (this as unknown as {translateAttributeValue: TranslateAttributeValueFn})
+      .translateAttributeValue(typeHint, attributeValue, propertyName);
+  }
+
+  override renderVDOM(): VirtualNode {
+    return dom.el('div', 'defaults-fallback-test-root', {});
+  }
+}
+customElements.define('defaults-fallback-test-element', DefaultPropsFallbackTestElement);
+
+describe('PPElement defaultProps fallback', () => {
+  let element: DefaultPropsFallbackTestElement;
+
+  beforeEach(() => {
+    element = document.createElement('defaults-fallback-test-element') as DefaultPropsFallbackTestElement;
+    (element as unknown as {init: (ctx: unknown) => void}).init({
+      state: makeReactive({}, element as unknown as object) as Record<string, unknown>,
+      $$initialState: {},
+    });
+  });
+
+  it('should fall back to defaultProps for string when propTypes has no default', () => {
+    expect(element.testTranslateAttributeValue('string', null, 'modeProp')).toBe('grid');
+  });
+
+  it('should fall back to defaultProps for number when propTypes has no default', () => {
+    expect(element.testTranslateAttributeValue('number', null, 'countProp')).toBe(60);
+  });
+
+  it('should fall back to defaultProps for json when propTypes has no default', () => {
+    expect(element.testTranslateAttributeValue('json', null, 'configProp')).toEqual({section: 'details'});
+  });
+
+  it('should still fall back to type-empty when neither propTypes default nor defaultProps has the key', () => {
+    expect(element.testTranslateAttributeValue('string', null, 'unknownProp')).toBe('');
+  });
+});

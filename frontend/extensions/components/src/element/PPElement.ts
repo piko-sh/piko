@@ -49,6 +49,8 @@ export {PropTypeDefinition};
 export class PPElement extends HTMLElement {
     /** Prop type definitions for this component class. */
     static propTypes?: Record<string, PropTypeDefinition>;
+    /** Default property values for this component class. */
+    static defaultProps?: Record<string, unknown>;
     /** Names of behaviours to apply during construction. */
     static enabledBehaviours: string[] = [];
     /** Whether this component participates in form submission. */
@@ -196,10 +198,16 @@ export class PPElement extends HTMLElement {
             return this._defaults;
         }
         this._defaults = {};
+        const constructorDefaults = (this.constructor as typeof PPElement).defaultProps;
         for (const propName of this._propTypeRegistry.getPropertyNames()) {
-            const defaultValue = this._propTypeRegistry.getDefaultValue(propName);
-            if (defaultValue !== undefined) {
-                this._defaults[propName] = defaultValue;
+            const propTypeDefault = this._propTypeRegistry.getDefaultValue(propName);
+            if (propTypeDefault !== undefined) {
+                this._defaults[propName] = propTypeDefault;
+                continue;
+            }
+            const constructorDefault = constructorDefaults?.[propName];
+            if (constructorDefault !== undefined) {
+                this._defaults[propName] = constructorDefault;
             }
         }
         return this._defaults;
