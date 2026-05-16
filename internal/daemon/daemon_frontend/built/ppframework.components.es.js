@@ -1243,12 +1243,38 @@ function parseJsonAttribute(attributeValue, typeHint, defaultValue) {
     return typeHint === "array" ? [] : null;
   }
 }
+function emptyValueForType(typeHint) {
+  switch (typeHint) {
+    case "boolean":
+      return false;
+    case "number":
+      return 0;
+    case "string":
+      return "";
+    case "array":
+      return [];
+    case "object":
+    case "json":
+      return null;
+    default:
+      return null;
+  }
+}
+function resolveAbsentAttributeValue(typeHint, defaultValue, isNullable) {
+  if (typeHint === "boolean") {
+    return false;
+  }
+  if (isNullable) {
+    return null;
+  }
+  if (defaultValue !== void 0) {
+    return defaultValue;
+  }
+  return emptyValueForType(typeHint);
+}
 function translateValue(typeHint, attributeValue, defaultValue, isNullable) {
   if (attributeValue === null) {
-    if (typeHint === "boolean") {
-      return false;
-    }
-    return isNullable ? null : defaultValue;
+    return resolveAbsentAttributeValue(typeHint, defaultValue, isNullable);
   }
   switch (typeHint) {
     case "boolean":
@@ -1539,10 +1565,16 @@ const _PPElement = class _PPElement extends HTMLElement {
       return this._defaults;
     }
     this._defaults = {};
+    const constructorDefaults = this.constructor.defaultProps;
     for (const propName of this._propTypeRegistry.getPropertyNames()) {
-      const defaultValue = this._propTypeRegistry.getDefaultValue(propName);
-      if (defaultValue !== void 0) {
-        this._defaults[propName] = defaultValue;
+      const propTypeDefault = this._propTypeRegistry.getDefaultValue(propName);
+      if (propTypeDefault !== void 0) {
+        this._defaults[propName] = propTypeDefault;
+        continue;
+      }
+      const constructorDefault = constructorDefaults?.[propName];
+      if (constructorDefault !== void 0) {
+        this._defaults[propName] = constructorDefault;
       }
     }
     return this._defaults;

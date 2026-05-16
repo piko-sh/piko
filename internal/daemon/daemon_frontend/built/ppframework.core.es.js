@@ -500,22 +500,6 @@ function getNodeKey(node) {
   const partialName = el.getAttribute("partial_name");
   return partialName ? `${partialName}@${baseKey}` : baseKey;
 }
-const DEPRECATED_ROOT_DECORATORS = [
-  "pk-refresh-root",
-  "pk-own-attrs",
-  "pk-no-refresh-attrs"
-];
-const warnedDecorators = /* @__PURE__ */ new Set();
-function warnDeprecatedDecorators(el, context) {
-  for (const name of DEPRECATED_ROOT_DECORATORS) {
-    if (el.hasAttribute(name) && !warnedDecorators.has(name)) {
-      warnedDecorators.add(name);
-      console.warn(
-        `[pk] The "${name}" attribute on a ${context} is no longer honoured. Pass {mode, ownedAttrs, preserveAttrs} to piko.partials.reload(...) instead. See docs/how-to/templates/partial-refresh.md for the migration guide.`
-      );
-    }
-  }
-}
 const NEVER_SYNC_ATTRS = /* @__PURE__ */ new Set(["pk-ev-bound", "pk-sync-bound"]);
 const SCOPE_ATTR = "partial";
 function parseFragment(html) {
@@ -649,7 +633,6 @@ async function performReload(el, name, options) {
       console.warn(`[pk] partial "${name}" received empty or invalid response`);
       return;
     }
-    warnDeprecatedDecorators(sourceEl, "partial root");
     applyMorph(el, sourceEl, mode, options.ownedAttrs, options.preserveAttrs);
     if (effectiveData) {
       el.setAttribute(
@@ -5052,7 +5035,6 @@ function isElementVisible(el) {
 function createUpdateServer(binding) {
   const { containerEl, partialSrc, callbacks } = binding;
   return async (formData2 = null) => {
-    warnDeprecatedDecorators(containerEl, "sync container");
     const form = containerEl.closest("form");
     const gatheredData = formData2 ?? gatherFormData(form);
     await callbacks.onRemoteRender({

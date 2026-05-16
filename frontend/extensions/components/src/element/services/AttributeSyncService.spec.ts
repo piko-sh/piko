@@ -201,6 +201,44 @@ describe("AttributeSyncService", () => {
         );
       });
     });
+
+    describe("missing defaults fallback", () => {
+      it("should return empty string when no default exists for string", () => {
+        expect(
+          attributeSyncService.translateAttributeValue("string", null, "unknown", false)
+        ).toBe("");
+      });
+
+      it("should return 0 when no default exists for number", () => {
+        expect(
+          attributeSyncService.translateAttributeValue("number", null, "unknown", false)
+        ).toBe(0);
+      });
+
+      it("should return empty array when no default exists for array", () => {
+        expect(
+          attributeSyncService.translateAttributeValue("array", null, "unknown", false)
+        ).toEqual([]);
+      });
+
+      it("should return null when no default exists for object", () => {
+        expect(
+          attributeSyncService.translateAttributeValue("object", null, "unknown", false)
+        ).toBeNull();
+      });
+
+      it("should never return undefined for non-nullable typed property", () => {
+        for (const typeHint of ["string", "number", "boolean", "array", "object", "json"] as const) {
+          const result = attributeSyncService.translateAttributeValue(
+            typeHint,
+            null,
+            "unknown",
+            false
+          );
+          expect(result).not.toBeUndefined();
+        }
+      });
+    });
   });
 
   describe("applyAttributeToState()", () => {
