@@ -194,6 +194,83 @@ func TestFillSlotsInTree(t *testing.T) {
 			},
 		},
 		{
+			name: "named slot default suppressed when content provided",
+			nodes: []*ast_domain.TemplateNode{
+				{
+					TagName:  "div",
+					NodeType: ast_domain.NodeElement,
+					Children: []*ast_domain.TemplateNode{
+						{
+							TagName:  "piko:slot",
+							NodeType: ast_domain.NodeElement,
+							Attributes: []ast_domain.HTMLAttribute{
+								{Name: "name", Value: "header"},
+							},
+							Children: []*ast_domain.TemplateNode{
+								{TagName: "h2", NodeType: ast_domain.NodeElement},
+							},
+						},
+					},
+				},
+			},
+			content: map[string][]*ast_domain.TemplateNode{
+				"header": {
+					{TagName: "h1", NodeType: ast_domain.NodeElement},
+				},
+			},
+			expectedCount: 1,
+			validateResult: func(t *testing.T, result []*ast_domain.TemplateNode) {
+				if len(result[0].Children) != 1 {
+					t.Fatalf("Expected 1 child (only override, not default), got %d", len(result[0].Children))
+				}
+				if result[0].Children[0].TagName != "h1" {
+					t.Errorf("Expected override 'h1', got '%s'", result[0].Children[0].TagName)
+				}
+				for _, child := range result[0].Children {
+					if child.TagName == "h2" {
+						t.Errorf("Default 'h2' was rendered alongside the override")
+					}
+				}
+			},
+		},
+		{
+			name: "default slot default suppressed when content provided",
+			nodes: []*ast_domain.TemplateNode{
+				{
+					TagName:  "main",
+					NodeType: ast_domain.NodeElement,
+					Children: []*ast_domain.TemplateNode{
+						{
+							TagName:  "piko:slot",
+							NodeType: ast_domain.NodeElement,
+							Children: []*ast_domain.TemplateNode{
+								{TagName: "p", NodeType: ast_domain.NodeElement},
+							},
+						},
+					},
+				},
+			},
+			content: map[string][]*ast_domain.TemplateNode{
+				"": {
+					{TagName: "article", NodeType: ast_domain.NodeElement},
+				},
+			},
+			expectedCount: 1,
+			validateResult: func(t *testing.T, result []*ast_domain.TemplateNode) {
+				if len(result[0].Children) != 1 {
+					t.Fatalf("Expected 1 child (only override, not default), got %d", len(result[0].Children))
+				}
+				if result[0].Children[0].TagName != "article" {
+					t.Errorf("Expected override 'article', got '%s'", result[0].Children[0].TagName)
+				}
+				for _, child := range result[0].Children {
+					if child.TagName == "p" {
+						t.Errorf("Default 'p' was rendered alongside the override")
+					}
+				}
+			},
+		},
+		{
 			name: "multiple nodes with slots",
 			nodes: []*ast_domain.TemplateNode{
 				{
